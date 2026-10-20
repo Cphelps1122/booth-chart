@@ -142,6 +142,9 @@ main { padding-block: 14px 40px }
 }
 .legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 10px; font-size: 13px; color: var(--muted) }
 .legend i { display: inline-block; width: 14px; height: 8px; border-radius: 3px; margin-right: 6px; vertical-align: middle }
+.gres { font-family: var(--f-display); font-weight: 800; font-size: 16px }
+.gres.w { color: var(--go) } .gres.l { color: var(--red) }
+tr.curgame td { background: color-mix(in srgb, var(--amber) 30%, transparent) }
 .edgrid { margin-top: 10px } .edgrid input[type=text], .edgrid select { font-size: 16px; padding: 7px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); min-width: 120px }
 .edit { background: transparent; border: 1px solid var(--line); color: var(--ink); border-radius: 6px; padding: 2px 8px; cursor: pointer; font-size: 12px; margin-right: 4px }
 .toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--bar); color: var(--bar-ink); padding: 10px 16px; border-radius: 8px; font-weight: 600; z-index: 20 }
@@ -194,6 +197,7 @@ textarea { min-height: 64px }
       <button role="tab" id="t-report" aria-selected="false" data-tab="report">OC Report</button>
       <button role="tab" id="t-log" aria-selected="false" data-tab="log">Log</button>
       <button role="tab" id="t-drives" aria-selected="false" data-tab="drives">Drives</button>
+      <button role="tab" id="t-games" aria-selected="false" data-tab="games">Games</button>
       <button role="tab" id="t-setup" aria-selected="false" data-tab="setup">Setup</button>
     </nav>
   </div>
@@ -368,6 +372,27 @@ textarea { min-height: 64px }
   </section>
 
   <!-- SETUP -->
+  <section id="v-games" hidden class="setup">
+    <div class="panel">
+      <h3>This season <small id="gamesState"></small></h3>
+      <div class="tbl"><table id="tGames"></table></div>
+      <div class="actions" style="margin-top:10px">
+        <button class="btn" id="gamesRefresh">Refresh list</button>
+        <button class="btn" id="gamesShare">Copy share link for the open game</button>
+      </div>
+      <p class="note">Opening a game loads its chart, log, drives and reports on this device. Staff who opened your share link follow along only on the game in that link. Export any game from the Log tab.</p>
+    </div>
+    <div class="panel" style="margin-top:14px">
+      <h3>Start a new game <small>the current game stays saved in the list</small></h3>
+      <div class="custom">
+        <label for="ngOpp" style="flex:1 1 240px">Opponent<input id="ngOpp" type="text" style="width:100%" placeholder="e.g. Anna"></label>
+        <label for="ngDate">Date<input id="ngDate" type="date" style="width:170px"></label>
+        <button class="btn primary" id="ngGo" style="flex:0 0 auto;font-size:18px;padding:12px 18px">Start game</button>
+      </div>
+      <p class="note">Starting a game makes a new game code and a blank chart. Your buttons, roster and settings carry over. Then tap Copy share link and text it to your staff.</p>
+    </div>
+  </section>
+
   <section id="v-setup" hidden class="setup">
     <div class="grid2">
       <div class="panel">
@@ -540,18 +565,20 @@ textarea { min-height: 64px }
   var RESULTS = ["Rush", "Complete", "Incomplete", "Scramble", "Sack", "Interception", "Fumble", "Penalty"];
   var NEG = { Sack: 1, Interception: 1, Fumble: 1, Penalty: 1, Incomplete: 1 };
 
-  function fresh() {
+  function fresh_() {
     return { opp: "Lebanon Trail", pre: "Base: MFC 87% (218/250). Cov 4 37% (83/224), Cov 0 23%, Cov 1 16%, Cov 3 16%. Fronts: Heads, Over, Under. Blitz only 17% (42/252), but 3rd & long 10/28, 4th down 8/16. Red zone: Cov 0 21/35. Vs Empty: Cov 0 9/10. Hurt them: Screen 13.9 a play (8), Choice 9.3 (12), Insert 6.5 (35). Avoid: Inside Zone 1.8 (18), Power 1.7 (7). Their '4' is mostly tagged with a closed middle; meaning unconfirmed.", start: -30, lists: JSON.parse(JSON.stringify(DEF_LISTS)), snaps: [], example: false,
       cur: { qtr: 1, series: 1, dn: 0, dist: 10, yl: -30, hash: "M" } };
   }
+  function fresh() { var f = fresh_(); f.gameDate = today(); return f }
   var S = load() || exampleState();
+  if (!S.gameDate) S.gameDate = today();
   var pick = { form: null, call: null, callType: null, front: null, cov: null, shell: null, box: null, blitz: "No", res: null, td: false, qb: null, pl: null, lastRb: null };
 
   // ---------- live sync (Firebase Realtime Database over REST + EventSource) ----------
   var DEFAULT_DB = "https://cardinal-booth-default-rtdb.firebaseio.com";
   var SYNC_KEY = "cardinals-booth-sync-v1", DEVICE = Math.random().toString(36).slice(2, 10);
   var SY = { cfg: null, es: null, status: "off", mirror: null, last: null, pushing: false, dirty: false, needApply: false, timer: null, retry: null, applying: false };
-  var META_KEYS = ["opp", "pre", "start", "lists", "dmode", "fast", "oppScore", "ourAdj", "scoreLog", "tryPending", "endAfter", "example", "cur"];
+  var META_KEYS = ["gameDate", "opp", "pre", "start", "lists", "dmode", "fast", "oppScore", "ourAdj", "scoreLog", "tryPending", "endAfter", "example", "cur"];
   function syncCfg() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || "null") } catch (e) { return null } }
   function setSyncCfg(c) { try { if (c) localStorage.setItem(SYNC_KEY, JSON.stringify(c)); else localStorage.removeItem(SYNC_KEY) } catch (e) {} }
   function newCode() { var a = "abcdefghjkmnpqrstuvwxyz23456789", t = ""; var r = new Uint8Array(18); (window.crypto || window.msCrypto).getRandomValues(r); for (var i = 0; i < 18; i++) t += a[r[i] % a.length]; return "mel-" + t }
@@ -606,7 +633,7 @@ textarea { min-height: 64px }
       }, function () { SY.pushing = false; SY.dirty = true; setStatus("off"); clearTimeout(SY.retry); SY.retry = setTimeout(push, 4000) });
     })();
   }
-  function afterPush() { if (SY.dirty) schedulePush(); else if (SY.needApply) applyMirror() }
+  function afterPush() { if (SY.dirty) schedulePush(); else if (SY.needApply) applyMirror(); if (!SY.dirty) updateIndex() }
   function applyMirror() {
     if (SY.pushing || SY.dirty) { SY.needApply = true; return }
     SY.needApply = false;
@@ -675,7 +702,72 @@ textarea { min-height: 64px }
     });
   }
   function disconnectSync() { try { SY.es && SY.es.close() } catch (e) {} SY.es = null; SY.cfg = null; SY.last = null; setSyncCfg(null); setStatus("off"); toast("Live sync off on this device") }
-  function shareLink() { if (!SY.cfg && !syncCfg()) return ""; var c = SY.cfg || syncCfg(); var base = /^https?:/.test(location.protocol) ? location.origin + location.pathname : "https://YOUR-NAME.github.io/booth-chart/"; return base + "?db=" + encodeURIComponent(c.url) + "&game=" + encodeURIComponent(c.code) }
+  function shareLink() { if (!SY.cfg && !syncCfg()) return ""; var c = SY.cfg || syncCfg(); var base = /^https?:/.test(location.protocol) ? location.origin + location.pathname : "https://YOUR-NAME.github.io/booth-chart/"; return base + "?db=" + encodeURIComponent(c.url) + "&game=" + encodeURIComponent(c.code) + "&season=" + encodeURIComponent(seasonKey(true)) }
+
+  // ---------- season game list ----------
+  var SEASON_KEY = "cardinals-booth-season-v1", GLIST_KEY = "cardinals-booth-games-cache-v1";
+  function seasonKey(create) {
+    var k = null; try { k = localStorage.getItem(SEASON_KEY) } catch (e) {}
+    if (!k && create) { k = "season-" + newCode().slice(4); try { localStorage.setItem(SEASON_KEY, k) } catch (e) {} }
+    return k;
+  }
+  function setSeason(k) { if (!k || k.length < 16) return; try { localStorage.setItem(SEASON_KEY, k) } catch (e) {} }
+  function today() { var d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0") }
+  function listUrl(code) { return SY.cfg.url + "/games/" + encodeURIComponent(seasonKey(true)) + "/list" + (code ? "/" + encodeURIComponent(code) : "") + ".json" }
+  function indexEntry() { return { opp: S.opp || "Opponent", date: S.gameDate || today(), us: ourScore(), them: S.oppScore || 0, plays: plays().length, updated: Date.now() } }
+  var lastIdx = null;
+  function updateIndex() {
+    if (!SY.cfg || S.example) return;
+    var e = indexEntry(), key = JSON.stringify([e.opp, e.date, e.us, e.them, e.plays]);
+    if (key === lastIdx) return;
+    fetch(listUrl(SY.cfg.code), { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(e) }).then(function (r) { if (r.ok) lastIdx = key }, function () {});
+  }
+  function gamesCache(v) { try { if (v) localStorage.setItem(GLIST_KEY, JSON.stringify(v)); else return JSON.parse(localStorage.getItem(GLIST_KEY) || "{}") } catch (e) { return {} } }
+  var removeArm = null;
+  function renderGames(list, note) {
+    var cur = SY.cfg ? SY.cfg.code : null;
+    var keys = Object.keys(list || {}).sort(function (a, b) { var A = list[a], B = list[b]; return (B.date || "").localeCompare(A.date || "") || (B.updated || 0) - (A.updated || 0) });
+    var h = "<tr><th>Date</th><th>Opponent</th><th>Result</th><th>Plays</th><th></th></tr>";
+    keys.forEach(function (k) {
+      var g = list[k] || {}, res = g.plays ? (g.us > g.them ? "W" : g.us < g.them ? "L" : "T") : "–";
+      h += "<tr class='" + (k === cur ? "curgame" : "") + "'><td>" + esc(g.date || "") + "</td><td>" + esc(g.opp || "") + "</td><td><span class='gres " + (res === "W" ? "w" : res === "L" ? "l" : "") + "'>" + res + "</span> " + (g.us || 0) + "–" + (g.them || 0) + "</td><td>" + (g.plays || 0) + "</td><td style='white-space:nowrap'>" +
+        (k === cur ? "<b>Open now</b>" : "<button class='edit gopen' data-k='" + esc(k) + "'>Open</button>") +
+        (k === cur ? "" : "<button class='del gdel' data-k='" + esc(k) + "'>" + (removeArm === k ? "Tap again to remove" : "Remove") + "</button>") + "</td></tr>";
+    });
+    $("tGames").innerHTML = keys.length ? h : "<tr><td>" + (SY.cfg ? "No games saved yet. Your current game appears here after the first play." : "Turn on Live sync in Setup to keep a list of games.") + "</td></tr>";
+    $("gamesState").textContent = note || (keys.length ? keys.length + (keys.length === 1 ? " game" : " games") : "");
+    document.querySelectorAll(".gopen").forEach(function (b) { b.addEventListener("click", function () { openGame(b.dataset.k) }) });
+    document.querySelectorAll(".gdel").forEach(function (b) { b.addEventListener("click", function () {
+      var k = b.dataset.k; if (removeArm !== k) { removeArm = k; renderGames(list, note); return }
+      removeArm = null; fetch(listUrl(k), { method: "DELETE" }).then(loadGames, function () { toast("Couldn't reach the database") });
+    }) });
+  }
+  function loadGames() {
+    if (!$("ngDate").value) $("ngDate").value = today();
+    if (!SY.cfg) { renderGames({}); return }
+    updateIndex();
+    renderGames(gamesCache(), "loading…");
+    fetch(listUrl()).then(function (r) { if (!r.ok) throw 0; return r.json() }).then(function (l) { l = l || {}; if (SY.cfg && !S.example && !l[SY.cfg.code]) l[SY.cfg.code] = indexEntry(); gamesCache(l); renderGames(l) },
+      function () { renderGames(gamesCache(), "offline · showing the last list") });
+  }
+  function keepSettings() { return { lists: S.lists, start: S.start, dmode: S.dmode, fast: S.fast } }
+  function openGame(code) {
+    if (!SY.cfg || code === SY.cfg.code) return;
+    var k = keepSettings(); S = fresh(); Object.assign(S, k); S.example = false; S.gameDate = null; lastIdx = null;
+    $("syncCode").value = code; connectSync({ url: SY.cfg.url, code: code }, false);
+    document.getElementById("t-chart").click(); toast("Opening game…");
+  }
+  function startGame() {
+    if (!SY.cfg) { toast("Turn on Live sync in Setup first"); return }
+    var opp = $("ngOpp").value.trim(); if (!opp) { toast("Type the opponent's name"); $("ngOpp").focus(); return }
+    updateIndex();
+    var k = keepSettings(), code = newCode(); S = fresh(); Object.assign(S, k); S.example = false; S.opp = opp; S.gameDate = $("ngDate").value || today(); S.pre = ""; lastIdx = null;
+    try { localStorage.setItem(KEY, JSON.stringify(S)) } catch (e) {}
+    $("syncCode").value = code; $("ngOpp").value = "";
+    connectSync({ url: SY.cfg.url, code: code }, true);
+    renderAll(); setTimeout(loadGames, 1200);
+    toast("New game vs " + opp + " started · copy the share link for your staff");
+  }
 
   function load() { try { var r = localStorage.getItem(KEY); return r ? JSON.parse(r) : null } catch (e) { return null } }
   function save() { ensureIdsSafe(); try { localStorage.setItem(KEY, JSON.stringify(S)) } catch (e) {} if (typeof schedulePush === "function") schedulePush() }
@@ -1912,7 +2004,8 @@ textarea { min-height: 64px }
   document.querySelectorAll("nav button").forEach(function (b) {
     b.addEventListener("click", function () {
       document.querySelectorAll("nav button").forEach(function (x) { x.setAttribute("aria-selected", x === b ? "true" : "false") });
-      ["chart", "report", "log", "drives", "setup"].forEach(function (t) { $("v-" + t).hidden = t !== b.dataset.tab });
+      if (b.dataset.tab === "games") loadGames();
+      ["chart", "report", "log", "drives", "games", "setup"].forEach(function (t) { $("v-" + t).hidden = t !== b.dataset.tab });
       if (b.dataset.tab === "setup") renderSetup();
       window.scrollTo(0, 0);
     });
@@ -1989,6 +2082,9 @@ textarea { min-height: 64px }
   $("editCancel").addEventListener("click", function () { $("editModal").hidden = true });
   try { navigator.wakeLock && navigator.wakeLock.request("screen").catch(function () {}) } catch (e) {}
 
+  $("gamesRefresh").addEventListener("click", loadGames);
+  $("ngGo").addEventListener("click", startGame);
+  $("gamesShare").addEventListener("click", function () { $("syncShare").click() });
   $("syncNew").addEventListener("click", function () { $("syncCode").value = newCode() });
   $("syncGo").addEventListener("click", function () {
     var url = cleanUrl($("syncUrl").value), code = $("syncCode").value.trim();
@@ -2010,6 +2106,7 @@ textarea { min-height: 64px }
   buildChips(); renderAll();
   (function initSync() {
     var q = {}; try { location.search.replace(/^\?/, "").split("&").forEach(function (kv) { if (!kv) return; var i = kv.indexOf("="); q[decodeURIComponent(kv.slice(0, i))] = decodeURIComponent(kv.slice(i + 1)) }) } catch (e) {}
+    if (q.season) setSeason(q.season);
     var cfg = q.db && q.game ? { url: cleanUrl(q.db), code: q.game } : syncCfg();
     if (!cfg) { $("syncUrl").value = DEFAULT_DB; $("syncCode").value = newCode(); return }
     $("syncUrl").value = cfg.url; $("syncCode").value = cfg.code;

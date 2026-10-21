@@ -84,6 +84,12 @@ main { padding-block: 14px 40px }
 #csSearch { width: 100%; font: inherit; font-size: 16px; padding: 9px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink) }
 .picked { font-size: 13px; color: var(--muted); margin-top: 8px }
 .picked b { color: var(--ink) }
+.fstrip { position: relative; margin-top: 4px; border-radius: 10px; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; cursor: crosshair; box-shadow: inset 0 0 0 1px rgba(0,0,0,.25) }
+.fstrip svg { display: block; width: 100%; height: auto }
+.nudge { display: flex; gap: 10px; align-items: center; margin-top: 8px; flex-wrap: wrap }
+.nudge .nb { font-size: 18px; padding: 12px 16px; min-width: 104px }
+.spotout { flex: 1 1 220px; text-align: center; font-family: var(--f-display); font-weight: 800; font-size: 24px; font-variant-numeric: tabular-nums }
+.spotout .g { margin-left: 8px } .spotout .g.pos { color: var(--go) } .spotout .g.neg { color: var(--red) }
 .spotpanel.wait { border: 2px solid var(--red); box-shadow: 0 0 0 3px color-mix(in srgb, var(--red) 18%, transparent) }
 .pill.syncpill { border: 0; cursor: pointer; font-size: 15px; display: inline-flex; align-items: center; gap: 6px }
 .pill.syncpill::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: currentColor }
@@ -251,10 +257,9 @@ textarea { min-height: 64px }
       <p class="note" id="tryNote"></p>
     </div>
     <div class="panel spotpanel" style="margin-bottom:14px">
-      <h3>1 · Ball on <small id="spotHint">tap where the ball is spotted for this snap</small></h3>
+      <h3>1 · Ball on <small id="spotHint">tap the field where the ball is spotted</small></h3>
       <div class="spothead">
-        <div class="chips"><button class="chip side" id="sideOwn">Own</button><button class="chip side" id="sideOpp">Opp</button></div>
-        <div class="chips hashes" aria-label="Hash"><span class="hlbl">Hash</span><button class="chip hs" data-h="L">L</button><button class="chip hs" data-h="M">M</button><button class="chip hs" data-h="R">R</button></div>
+        <div class="chips hashes" style="border-left:0;padding-left:0" aria-label="Hash"><span class="hlbl">Hash</span><button class="chip hs" data-h="L">L</button><button class="chip hs" data-h="M">M</button><button class="chip hs" data-h="R">R</button></div>
         <span class="readout" id="spotRead"></span>
         <div class="chips qtrs" id="cQtr" style="margin-left:auto" aria-label="Quarter"></div>
       </div>
@@ -263,7 +268,17 @@ textarea { min-height: 64px }
         <button class="chip qs" id="qsPunt">Punt touchback · Own 20</button>
         <span class="fastnote">or tap where the drive starts</span>
       </div>
-      <div class="ygrid" id="yGrid"></div>
+      <div class="fstrip" id="fStrip"><svg id="spotSvg" viewBox="0 0 1000 150" role="img" aria-label="Tap the field where the ball is spotted"></svg></div>
+      <div class="nudge">
+        <button class="btn nb" id="nudL" aria-label="Back one yard">◀ 1 yd</button>
+        <div class="spotout" id="spotOut"></div>
+        <button class="btn nb" id="nudNG">No gain</button>
+        <button class="btn nb" id="nudR" aria-label="Forward one yard">1 yd ▶</button>
+      </div>
+      <details style="margin-top:8px"><summary style="cursor:pointer;font-size:13px;font-weight:700">Number grid</summary>
+        <div class="chips" style="margin:8px 0"><button class="chip side" id="sideOwn">Own</button><button class="chip side" id="sideOpp">Opp</button></div>
+        <div class="ygrid" id="yGrid"></div>
+      </details>
       <details style="margin-top:8px"><summary style="cursor:pointer;font-size:13px;font-weight:700">Type the last play's yards instead</summary>
         <div class="gain" style="margin-top:8px">
           <button class="step" id="gMinus" aria-label="Minus one yard">−</button>
@@ -519,7 +534,7 @@ textarea { min-height: 64px }
         <label for="lFront">Their fronts<textarea id="lFront"></textarea></label>
         <label for="lCov">Coverages<textarea id="lCov"></textarea></label>
         <label for="lBlitz">Their pressures<textarea id="lBlitz"></textarea></label>
-        <label for="lRoster">Our roster: one per line, number then position (QB, RB, WR, TE), name optional. Example: 22 RB Smith<textarea id="lRoster" style="min-height:150px;font-variant-numeric:tabular-nums"></textarea></label>
+        <label for="lRoster">Our roster: one per line, number then position (QB, RB, WR, TE), name optional. Add * to list a player first on the selector. Example: 22 RB Smith *<textarea id="lRoster" style="min-height:150px;font-variant-numeric:tabular-nums"></textarea></label>
         <button class="btn" id="saveLists">Save buttons &amp; roster</button>
       </div>
     </div>
@@ -618,14 +633,36 @@ textarea { min-height: 64px }
   var SCOUT_SHELL = {"sits":{"P&10":["1-HIGH",43,45],"1st & 10":["1-HIGH",42,50],"1st & 11+":["1-HIGH",6,9],"1st & 1-9":["1-HIGH",8,10],"2nd & 10+":["1-HIGH",33,36],"2nd & 7-9":["1-HIGH",9,10],"2nd & 3-6":["1-HIGH",19,22],"2nd & 1-2":["1-HIGH",7,9],"3rd & 10+":["1-HIGH",12,13],"3rd & 7-9":["1-HIGH",14,15],"3rd & 3-6":["1-HIGH",10,10],"3rd & 1-2":["1-HIGH",5,7],"4th & 3+":["1-HIGH",8,10],"4th & 1-2":["1-HIGH",2,4],"Coming out":["1-HIGH",18,18],"Open field":["1-HIGH",176,194],"High red zone":["1-HIGH",11,16],"Score zone":["1-HIGH",11,14],"Goal line":["ZERO",4,8],"ALL":["1-HIGH",218,250]},"forms":{"BLUE":["1-HIGH",20,24],"BONE":["1-HIGH",26,36],"BOSTON":["1-HIGH",19,19],"CREW":["1-HIGH",9,17],"EMPTY":["1-HIGH",9,10],"GRAY":["1-HIGH",9,9],"RED":["1-HIGH",26,28],"SLOT DIP":["1-HIGH",42,43],"SLOT TRIG":["1-HIGH",41,42]}};
   var ROSTER_KEY = "cardinals-booth-roster-v1";
   var DEF_ROSTER = "2 QB\n22 RB\n33 RB\n34 RB\n28 RB\n0 WR\n10 WR\n12 WR\n14 WR\n18 WR";
-  function rosterText() { try { return localStorage.getItem(ROSTER_KEY) || DEF_ROSTER } catch (e) { return DEF_ROSTER } }
-  function roster() {
-    return rosterText().split("\n").map(function (l) {
+  // Roster update (Oct 2026): added WRs/QBs, * = listed first on the selector. Merged once into whatever roster is saved or synced.
+  var ROSTER_MARK = "# * = listed first on the selector";
+  var ROSTER_ADD = { WR: [1, 3, 15, 80, 81, 87, 14, 6, 9, 43, 49, 83, 84, 85, 88, 89, 94], QB: [12, 18, 42] };
+  var ROSTER_STAR = { QB: [2], RB: [22, 34], WR: [0, 1, 3, 87] };
+  function parseRoster(t) {
+    return String(t || "").split("\n").map(function (l) {
       var m = l.trim().match(/^#?(\d{1,2})\s+(QB|RB|WR|TE|FB|HB|SB|TB|X|Y|Z|H)\b\s*(.*)$/i); if (!m) return null;
       var pos = m[2].toUpperCase(); pos = { HB: "RB", TB: "RB", FB: "RB", X: "WR", Z: "WR", H: "WR", SB: "WR", Y: "TE" }[pos] || pos;
-      return { n: m[1], pos: pos, name: m[3].trim() };
+      var rest = m[3]; return { n: m[1], pos: pos, name: rest.replace(/\*/g, "").trim(), star: /\*/.test(rest) };
     }).filter(Boolean);
   }
+  function mergeRoster(t) {
+    t = t || DEF_ROSTER; if (t.indexOf(ROSTER_MARK) >= 0) return t;
+    var R = parseRoster(t), by = {};
+    R.forEach(function (x) { by[x.n] = x });
+    Object.keys(ROSTER_ADD).forEach(function (pos) { ROSTER_ADD[pos].forEach(function (n) { n = String(n); if (by[n]) by[n].pos = pos; else { by[n] = { n: n, pos: pos, name: "", star: false }; R.push(by[n]) } }) });
+    R.forEach(function (x) { x.star = false });
+    var out = [ROSTER_MARK];
+    ["QB", "RB", "WR", "TE"].concat(R.map(function (x) { return x.pos })).forEach(function (pos, i, arr) {
+      if (arr.indexOf(pos) !== i) return;
+      (ROSTER_STAR[pos] || []).forEach(function (n) { var x = by[String(n)]; if (!x) { x = by[String(n)] = { n: String(n), pos: pos, name: "" }; R.push(x) } x.pos = pos; x.star = true; out.push(x) });
+      R.filter(function (x) { return x.pos === pos && !x.star }).sort(function (a, b) { return a.n - b.n }).forEach(function (x) { out.push(x) });
+    });
+    return out.map(function (x) { return typeof x === "string" ? x : x.n + " " + x.pos + (x.name ? " " + x.name : "") + (x.star ? " *" : "") }).join("\n");
+  }
+  function rosterText() {
+    var t = null; try { t = localStorage.getItem(ROSTER_KEY) } catch (e) {}
+    var m = mergeRoster(t || DEF_ROSTER); if (m !== t) { try { localStorage.setItem(ROSTER_KEY, m) } catch (e) {} } return m;
+  }
+  function roster() { return parseRoster(rosterText()) }
   function who(num) { var r = roster().filter(function (x) { return x.n === String(num) })[0]; return "#" + num + (r ? " " + (r.name || r.pos) : "") }
   var SCOUT_NAME = "Lebanon Trail scout (6 games, 252 plays)";
   var DEF_LISTS = {
@@ -729,7 +766,7 @@ textarea { min-height: 64px }
     META_KEYS.forEach(function (k) { if (meta[k] !== undefined) S[k] = meta[k]; else if (k !== "cur" && k !== "lists") delete S[k] });
     if (!S.cur) S.cur = { qtr: 1, series: 1, dn: 0, dist: 10, yl: -30, hash: "M" };
     if (!S.lists) S.lists = JSON.parse(JSON.stringify(DEF_LISTS));
-    if (meta.roster) { try { localStorage.setItem(ROSTER_KEY, meta.roster) } catch (e) {} }
+    if (meta.roster) { try { localStorage.setItem(ROSTER_KEY, mergeRoster(meta.roster)) } catch (e) {} }
     SY.last = rep;
     try { localStorage.setItem(KEY, JSON.stringify(S)) } catch (e) {}
     renderAll(); SY.applying = false;
@@ -983,6 +1020,7 @@ textarea { min-height: 64px }
   }
   function renderPlayers() {
     var R = roster(), qbs = R.filter(function (x) { return x.pos === "QB" });
+    qbs.sort(function (a, b) { return (b.star ? 1 : 0) - (a.star ? 1 : 0) });
     if (!pick.qb && qbs.length) pick.qb = qbs[0].n;
     var cq = $("cQB"); cq.innerHTML = "";
     (qbs.length ? qbs : [{ n: "?", pos: "QB", name: "" }]).forEach(function (x) {
@@ -994,7 +1032,7 @@ textarea { min-height: 64px }
     if (!role) return;
     $("plLabel").textContent = (role === "carrier" ? "Ball carrier" : "Target") + (S.fast !== false ? " · tap logs" : "");
     var order = role === "carrier" ? ["RB", "QB", "WR", "TE"] : ["WR", "TE", "RB"];
-    var list = []; order.forEach(function (pos) { R.forEach(function (x) { if (x.pos === pos) list.push(x) }) });
+    var list = []; order.forEach(function (pos) { [true, false].forEach(function (st) { R.forEach(function (x) { if (x.pos === pos && !!x.star === st) list.push(x) }) }) });
     var cp = $("cPlayer"); cp.innerHTML = "";
     list.forEach(function (x) {
       var b = document.createElement("button"); b.className = "chip pl";
@@ -1075,7 +1113,74 @@ textarea { min-height: 64px }
     else { c.dist = Math.max(1, c.dist - (newY - oldY)) }
     save(); renderAll(); toast("Ball on " + ballText(c.yl).toLowerCase() + " · " + ddText(c));
   }
+  // ---------- tap-the-field spot ----------
+  var FX0 = 70, FX1 = 930, PXY = (FX1 - FX0) / 100, lastSpot = null, dragY = null;
+  function yToX(y) { return FX0 + y * PXY }
+  function xToY(x) { return Math.round((x - FX0) / PXY) }
+  function spotBase() { var ps = pendingSnap(); return ps ? toY(ps.yl) : (lastSpot && lastSpot.snap ? toY(lastSpot.snap.yl) : toY(S.cur.yl)) }
+  function drawStrip() {
+    var ps = pendingSnap(), los = ps ? toY(ps.yl) : toY(S.cur.yl), c = S.cur, H = 150;
+    var h = "<defs><linearGradient id='tf' x1='0' x2='0' y1='0' y2='1'><stop offset='0' stop-color='#2f7d3a'/><stop offset='1' stop-color='#1f5e2a'/></linearGradient></defs>";
+    h += "<rect x='0' y='0' width='1000' height='" + H + "' fill='url(#tf)'/>";
+    for (var k = 0; k < 10; k++) if (k % 2 === 0) h += "<rect x='" + yToX(k * 10) + "' y='0' width='" + (PXY * 10) + "' height='" + H + "' fill='rgba(255,255,255,.035)'/>";
+    h += "<rect x='0' y='0' width='" + FX0 + "' height='" + H + "' fill='#0d0e12'/><rect x='" + FX1 + "' y='0' width='" + (1000 - FX1) + "' height='" + H + "' fill='#b8302b'/>";
+    h += "<text x='" + (FX0 / 2) + "' y='" + (H / 2) + "' fill='#fff' font-family='Barlow Condensed, Arial Narrow, sans-serif' font-weight='800' font-size='17' letter-spacing='3' text-anchor='middle' dominant-baseline='middle' transform='rotate(-90 " + (FX0 / 2) + " " + (H / 2) + ")'>US</text>";
+    h += "<text x='" + ((FX1 + 1000) / 2) + "' y='" + (H / 2) + "' fill='#fff' font-family='Barlow Condensed, Arial Narrow, sans-serif' font-weight='800' font-size='15' letter-spacing='2' text-anchor='middle' dominant-baseline='middle' transform='rotate(90 " + ((FX1 + 1000) / 2) + " " + (H / 2) + ")'>" + (ps ? "TD" : "THEM") + "</text>";
+    for (var y = 0; y <= 100; y++) {
+      var x = yToX(y);
+      if (y % 5 === 0) h += "<line x1='" + x + "' y1='0' x2='" + x + "' y2='" + H + "' stroke='rgba(255,255,255," + (y % 10 === 0 ? .55 : .3) + ")' stroke-width='" + (y === 0 || y === 100 ? 3 : y === 50 ? 2.2 : 1.3) + "'/>";
+      else { h += "<line x1='" + x + "' y1='4' x2='" + x + "' y2='12' stroke='rgba(255,255,255,.35)'/><line x1='" + x + "' y1='" + (H - 12) + "' x2='" + x + "' y2='" + (H - 4) + "' stroke='rgba(255,255,255,.35)'/><line x1='" + x + "' y1='" + (H / 2 - 4) + "' x2='" + x + "' y2='" + (H / 2 + 4) + "' stroke='rgba(255,255,255,.25)'/>" }
+      if (y % 10 === 0 && y > 0 && y < 100) h += "<text x='" + x + "' y='34' fill='#fff' font-family='Barlow Condensed, Arial Narrow, sans-serif' font-weight='800' font-size='22' text-anchor='middle'>" + (y <= 50 ? y : 100 - y) + "</text>";
+    }
+    h += "<text x='" + yToX(25) + "' y='" + (H - 16) + "' fill='rgba(255,255,255,.55)' font-family='Barlow, Arial, sans-serif' font-weight='700' font-size='13' text-anchor='middle'>OUR SIDE</text><text x='" + yToX(75) + "' y='" + (H - 16) + "' fill='rgba(255,255,255,.55)' font-family='Barlow, Arial, sans-serif' font-weight='700' font-size='13' text-anchor='middle'>THEIR SIDE</text>";
+    // line of scrimmage and line to gain
+    if (!S.tryPending) {
+      h += "<line x1='" + yToX(los) + "' y1='0' x2='" + yToX(los) + "' y2='" + H + "' stroke='#3b82f6' stroke-width='4'/>";
+      var lc = ps || c, fd = los + (lc.dist || 10);
+      if (fd < 100) h += "<line x1='" + yToX(fd) + "' y1='0' x2='" + yToX(fd) + "' y2='" + H + "' stroke='#facc15' stroke-width='4'/>";
+    }
+    var show = dragY != null ? dragY : (ps ? null : toY(c.yl));
+    if (show != null) {
+      var bx = yToX(Math.min(100, show));
+      if (dragY != null && ps) h += "<line x1='" + yToX(los) + "' y1='" + (H / 2) + "' x2='" + bx + "' y2='" + (H / 2) + "' stroke='" + (show >= los ? "#4ade80" : "#f87171") + "' stroke-width='6' stroke-linecap='round'/>";
+      h += "<ellipse cx='" + bx + "' cy='" + (H / 2) + "' rx='14' ry='9' fill='#7a3b12' stroke='#fff' stroke-width='2.5'/><line x1='" + (bx - 5) + "' y1='" + (H / 2) + "' x2='" + (bx + 5) + "' y2='" + (H / 2) + "' stroke='#fff' stroke-width='2'/>";
+    }
+    if (ps && dragY == null) h += "<text x='500' y='" + (H / 2 + 6) + "' fill='#fff' font-family='Barlow, Arial, sans-serif' font-weight='800' font-size='18' text-anchor='middle' style='paint-order:stroke' stroke='rgba(0,0,0,.6)' stroke-width='4'>Tap where the ball was spotted</text>";
+    $("spotSvg").innerHTML = h;
+    // readout + nudge state
+    var out = $("spotOut");
+    if (dragY != null) { var g = Math.min(100, dragY) - (ps ? los : toY(c.yl)); out.innerHTML = esc(dragY >= 100 ? "Touchdown" : ballText(toYL(Math.max(1, dragY)))) + (ps ? "<span class='g " + (g > 0 ? "pos" : g < 0 ? "neg" : "") + "'>" + (g > 0 ? "+" : "") + g + "</span>" : "") }
+    else if (ps) out.innerHTML = "Last play from " + esc(ballText(ps.yl).toLowerCase());
+    else if (lastSpot && lastSpot.snap && S.snaps[S.snaps.length - 1] === lastSpot.snap) { var sn = lastSpot.snap; out.innerHTML = esc(ballText(S.cur.yl)) + "<span class='g " + (sn.gain > 0 ? "pos" : sn.gain < 0 ? "neg" : "") + "'>" + (sn.td ? "TD" : sn.gain === 0 ? "No gain" : (sn.gain > 0 ? "+" : "") + sn.gain) + "</span> · " + esc(S.tryPending ? "Try" : ddText(S.cur)) }
+    else out.innerHTML = esc(ballText(S.cur.yl)) + " · " + esc(S.tryPending ? "Try" : ddText(S.cur));
+    var canNudge = !!(lastSpot && ((lastSpot.snap && S.snaps[S.snaps.length - 1] === lastSpot.snap) || (!lastSpot.snap && !ps)));
+    $("nudNG").disabled = !ps;
+  }
+  function stripY(ev) {
+    var svg = $("spotSvg"), r = svg.getBoundingClientRect(), x = (ev.clientX - r.left) * 1000 / r.width;
+    if (x >= FX1) return 100;
+    return Math.max(1, Math.min(99, xToY(x)));
+  }
+  function commitSpot(y) {
+    var ps = pendingSnap();
+    if (y >= 100) { if (ps) { lastSpot = { snap: ps }; setSpot("opp", 0, true) } return }
+    var yl = toYL(y);
+    if (ps) { lastSpot = { snap: ps }; setSpot(yl < 0 ? "own" : "opp", Math.abs(yl)) }
+    else { lastSpot = { snap: null }; setSpot(yl < 0 ? "own" : "opp", Math.abs(yl)) }
+  }
+  function nudge(d) {
+    var ps = pendingSnap();
+    if (ps) { commitSpot(Math.max(1, Math.min(100, toY(ps.yl) + d))); return }
+    if (lastSpot && lastSpot.snap && S.snaps[S.snaps.length - 1] === lastSpot.snap) {
+      var sn = lastSpot.snap, hashKeep = S.cur.hash, ny = Math.max(1, Math.min(100, toY(sn.yl) + (sn.td ? 100 - toY(sn.yl) : sn.gain) + d));
+      if (sn.td) { sn.td = false; if (S.tryPending) S.tryPending = false }
+      finishPending(sn, ny - toY(sn.yl), false); S.cur.hash = hashKeep; save(); renderAll();
+      toast("Adjusted: " + (sn.td ? "TD" : (sn.gain > 0 ? "+" : "") + sn.gain) + " → " + (S.tryPending ? "Try" : ddText(S.cur))); return;
+    }
+    var y = Math.max(1, Math.min(99, toY(S.cur.yl) + d)); lastSpot = { snap: null }; var yl = toYL(y); setSpot(yl < 0 ? "own" : "opp", Math.abs(yl));
+  }
   function renderSpot() {
+    drawStrip();
     renderQtr(); renderTry(); renderHash();
     var ps = pendingSnap(), base = ps ? ps.yl : S.cur.yl;
     var key = S.snaps.length + "|" + S.cur.series + "|" + S.cur.dn + "|" + S.cur.yl + "|" + (ps ? 1 : 0);
@@ -2311,6 +2416,16 @@ textarea { min-height: 64px }
   $("gPlus").addEventListener("click", function () { $("gain").value = (parseInt($("gain").value, 10) || 0) + 1 });
 
   $("sideOwn").addEventListener("click", function () { pick.spotSide = "own"; renderSpot() });
+  (function () {
+    var svg = $("spotSvg"), down = false;
+    svg.addEventListener("pointerdown", function (e) { down = true; try { svg.setPointerCapture(e.pointerId) } catch (x) {} dragY = stripY(e); drawStrip(); e.preventDefault() });
+    svg.addEventListener("pointermove", function (e) { if (!down) return; dragY = stripY(e); drawStrip() });
+    var end = function (e) { if (!down) return; down = false; var y = dragY; dragY = null; if (y != null) commitSpot(y); else drawStrip() };
+    svg.addEventListener("pointerup", end); svg.addEventListener("pointercancel", function () { down = false; dragY = null; drawStrip() });
+  })();
+  $("nudL").addEventListener("click", function () { nudge(-1) });
+  $("nudR").addEventListener("click", function () { nudge(1) });
+  $("nudNG").addEventListener("click", function () { var ps = pendingSnap(); if (ps) { lastSpot = { snap: ps }; finishPending(ps, 0) } });
   $("sideOpp").addEventListener("click", function () { pick.spotSide = "opp"; renderSpot() });
   $("applyOvr").addEventListener("click", function () {
     var c = S.cur; c.dn = +$("oDn").value; c.dist = Math.max(1, parseInt($("oDist").value, 10) || 10);

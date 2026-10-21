@@ -364,6 +364,7 @@ textarea { min-height: 64px }
 
   <!-- REPORT -->
   <section id="v-report" hidden>
+    <div class="actions" style="margin:0 0 10px;align-items:center"><b style="font-family:var(--f-display);letter-spacing:.06em;text-transform:uppercase;font-size:14px">Export OC reports</b><button class="btn" id="ocPdf" style="font-size:15px;padding:8px 14px">PDF</button><button class="btn" id="ocXlsx" style="font-size:15px;padding:8px 14px">Excel</button><span class="note" style="margin:0">Every between-series report from tonight plus all the tables on this tab.</span></div>
     <div class="oc" id="ocCard"></div>
     <div class="wpcard" id="wpCard"><h3 style="margin:0 0 6px;font-family:var(--f-display);font-weight:700;font-size:15px;letter-spacing:.08em;text-transform:uppercase">Win probability <small id="wpNow" style="font-family:var(--f-body);text-transform:none;letter-spacing:0;color:var(--muted);font-weight:500"></small></h3><svg id="wpChart" role="img" aria-label="Win probability over the game"></svg><p class="note" id="wpWhy"></p></div>
     <div class="grid2 wide" style="margin-top:14px">
@@ -1792,7 +1793,7 @@ textarea { min-height: 64px }
   function asciiText(t) { return String(t == null ? "" : t).replace(/[→]/g, "->").replace(/[·•]/g, "-").replace(/[✓]/g, "Y").replace(/[−–—]/g, "-").replace(/[“”]/g, '"').replace(/[‘’]/g, "'").replace(/≤/g, "<=").replace(/×/g, "x").replace(/[^\x20-\x7E]/g, "") }
   function tableRows(id) {
     return Array.prototype.map.call(document.querySelectorAll("#" + id + " tr"), function (tr) {
-      return Array.prototype.map.call(tr.children, function (td) { return td.textContent.trim() });
+      return Array.prototype.map.call(tr.children, function (td) { var d = document.createElement("div"); d.innerHTML = td.innerHTML.replace(/<br\s*\/?>/gi, " · "); return d.textContent.replace(/\s+/g, " ").trim() });
     });
   }
   function outcomeText(sn) { var d = document.createElement("div"); d.innerHTML = outcomeTags(sn); return Array.prototype.map.call(d.querySelectorAll(".tag"), function (t) { return t.textContent }).join(", ") }
@@ -1850,9 +1851,37 @@ textarea { min-height: 64px }
     });
     return x + "</sheetData></worksheet>";
   }
-  function buildXlsx() {
+  // every between-series OC report, rebuilt from the plays charted before each series
+  function ocLinesNow() {
+    return Array.prototype.map.call(document.querySelectorAll("#ocCard li"), function (li) {
+      var k = li.querySelector(".k"), body = li.querySelector("div");
+      return [k ? k.textContent : "", body ? body.textContent.replace(k ? k.textContent : "", "").trim() : li.textContent.trim()];
+    });
+  }
+  function ocHistory() {
+    var all = plays(), out = [], saveCur = S.cur, seen = {};
+    try {
+      S.snaps.forEach(function (sn) {
+        if (seen[sn.series]) return; seen[sn.series] = 1;
+        var P = all.filter(function (x) { return x.series < sn.series }); if (!P.length) return;
+        S.cur = { qtr: sn.qtr, series: sn.series, dn: sn.kind === "try" ? 1 : sn.dn, dist: sn.dist || 10, yl: sn.kind === "try" ? 3 : sn.yl, hash: sn.hash || "M" };
+        renderOC(P, callStats(P));
+        out.push({ series: sn.series, qtr: sn.qtr, dd: ddLabel(sn), ball: sn.kind === "try" ? "" : ballText(sn.yl), n: P.length, lines: ocLinesNow() });
+      });
+    } finally { S.cur = saveCur; renderReport() }
+    return out;
+  }
+  function ocSheetRows() {
+    var rows = [["SERIES", "QTR", "STARTED", "PLAYS CHARTED", "ITEM", "REPORT"]];
+    ocHistory().forEach(function (h) { h.lines.forEach(function (l, i) { rows.push([i ? "" : "Before series " + h.series, i ? "" : h.qtr, i ? "" : h.dd + (h.ball ? " @ " + h.ball : ""), i ? "" : h.n, l[0], l[1]]) }); rows.push([]) });
+    var now = ocLinesNow(); now.forEach(function (l, i) { rows.push([i ? "" : "Now (series " + S.cur.series + ")", i ? "" : S.cur.qtr, i ? "" : ddText(S.cur) + " @ " + ballText(S.cur.yl), i ? "" : plays().length, l[0], l[1]]) });
+    return rows;
+  }
+  function buildXlsx(kind) {
     renderReport();
-    var sheets = [["Play log", logRows()], ["Players", tableRows("tPlayers")], ["Calls", tableRows("tCall").concat([[]], tableRows("tConcept"))], ["Offense totals", tableRows("tTotals")], ["Their defense", tableRows("tSit").concat([[]], tableRows("tZone"), [[]], tableRows("tForm"))]];
+    var sheets = kind === "oc"
+      ? [["OC reports", ocSheetRows()], ["Defense by D&D", tableRows("tSit")], ["Defense by zone", tableRows("tZone")], ["Vs our formations", tableRows("tForm")], ["Looks by quarter", tableRows("tQtr")], ["Our calls", tableRows("tCall")], ["By concept", tableRows("tConcept")], ["Our players", tableRows("tPlayers")], ["Offense totals", tableRows("tTotals")]]
+      : [["Play log", logRows()], ["Players", tableRows("tPlayers")], ["Calls", tableRows("tCall").concat([[]], tableRows("tConcept"))], ["Offense totals", tableRows("tTotals")], ["Their defense", tableRows("tSit").concat([[]], tableRows("tZone"), [[]], tableRows("tForm"))]];
     var files = [
       { name: "[Content_Types].xml", data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' + sheets.map(function (s_, i) { return '<Override PartName="/xl/worksheets/sheet' + (i + 1) + '.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' }).join("") + "</Types>" },
       { name: "_rels/.rels", data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>' },
@@ -1865,14 +1894,14 @@ textarea { min-height: 64px }
   }
 
   // minimal PDF writer (Helvetica, landscape letter)
-  function buildPdf() {
+  function buildPdf(kind) {
     renderReport();
     var W = 792, H = 612, M = 32, pages = [], cur = null, y = 0;
     var wid = function (t, sz) { return asciiText(t).length * sz * 0.56 };
     var pdfStr = function (t) { return asciiText(t).replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)") };
     function newPage() { cur = []; pages.push(cur); y = H - M;
       cur.push("0.051 0.055 0.071 rg 0 " + (H - 46) + " " + W + " 46 re f 0.851 0.216 0.196 rg 0 " + (H - 49) + " " + W + " 3 re f");
-      text(M, H - 30, "CARDINALS SOLUTIONS CHART  -  vs " + (S.opp || "").toUpperCase(), 15, true, [1, 1, 1]);
+      text(M, H - 30, (kind === "oc" ? "CARDINALS OC REPORT" : "CARDINALS SOLUTIONS CHART") + "  -  vs " + (S.opp || "").toUpperCase(), 15, true, [1, 1, 1]);
       text(W - M - 160, H - 30, new Date().toLocaleDateString() + "   Page " + pages.length, 9, false, [0.8, 0.8, 0.8]);
       y = H - 70 }
     function text(x, yy, t, sz, bold, col) { col = col || [0.07, 0.08, 0.09]; cur.push(col.join(" ") + " rg BT /" + (bold ? "F2" : "F1") + " " + sz + " Tf " + x.toFixed(1) + " " + yy.toFixed(1) + " Td (" + pdfStr(t) + ") Tj ET") }
@@ -1899,6 +1928,28 @@ textarea { min-height: 64px }
       y -= 6;
     }
     newPage();
+    if (kind === "oc") {
+      var hist = ocHistory();
+      heading("Report to the OC now  -  series " + S.cur.series + ", Q" + S.cur.qtr + ", " + ddText(S.cur) + " @ " + ballText(S.cur.yl));
+      ocLinesNow().forEach(function (l, i) { para((i + 1) + ". " + l[0].toUpperCase() + ": " + l[1]) });
+      if ($("wpNow").textContent) para("Win chance: " + $("wpNow").textContent + ". " + $("wpWhy").textContent);
+      heading("Offense totals"); table(tableRows("tTotals").filter(function (r) { return r.length > 2 }), 8.5);
+      heading("Their defense by down & distance"); table(tableRows("tSit"), 7.5, 150);
+      heading("Their defense by field zone"); table(tableRows("tZone"), 7.5, 150);
+      heading("How they played our formations"); table(tableRows("tForm"), 7.5, 150);
+      heading("Their looks by quarter"); table(tableRows("tQtr"), 8, 200);
+      heading("Our calls: what's working"); table(tableRows("tCall"), 8);
+      heading("By concept (both sides added up)"); table(tableRows("tConcept"), 8, 220);
+      heading("Our players"); table(tableRows("tPlayers"), 8);
+      if (hist.length) {
+        newPage(); heading("Every between-series report tonight (" + hist.length + ")");
+        hist.forEach(function (h) {
+          need(40); y -= 4; text(M, y, "Before series " + h.series + "  -  Q" + h.qtr + "  -  " + h.dd + (h.ball ? " @ " + h.ball : "") + "  -  " + h.n + " plays charted", 9.5, true); y -= 13;
+          h.lines.forEach(function (l, i) { para((i + 1) + ". " + l[0].toUpperCase() + ": " + l[1], 8.5) });
+          y -= 4;
+        });
+      }
+    } else {
     heading("Offense totals"); table(tableRows("tTotals").filter(function (r) { return r.length > 2 }), 8.5);
     var pen = tableRows("tTotals").filter(function (r) { return r.length <= 2 && r[0] === "Penalties" })[0]; if (pen) para("Penalties: " + pen[1]);
     heading("Report to the OC"); Array.prototype.forEach.call(document.querySelectorAll("#ocCard li"), function (li) {
@@ -1907,7 +1958,7 @@ textarea { min-height: 64px }
       para((num && /\d/.test(num.textContent) ? num.textContent + ". " : "- ") + (k ? k.textContent.toUpperCase() + ": " : "") + t) });
     heading("Our players"); table(tableRows("tPlayers"), 8);
     heading("Their defense by down & distance"); table(tableRows("tSit"), 7.5, 150);
-    heading("Their defense by field zone"); table(tableRows("tZone").map(function (r) { return r.map(function (c) { return String(c).replace(/\s*(own|opp) [^A-Za-z]*$/i, "") }) }), 7.5, 150);
+    heading("Their defense by field zone"); table(tableRows("tZone"), 7.5, 150);
     heading("How they played our formations"); table(tableRows("tForm"), 7.5, 150);
     heading("Our calls"); table(tableRows("tCall"), 8);
     heading("By concept (both sides added up)"); table(tableRows("tConcept"), 8, 220);
@@ -1915,6 +1966,7 @@ textarea { min-height: 64px }
     var lr = logRows(), keep = [0, 1, 2, 6, 7, 8, 9, 10, 11, 12, 15, 16, 17, 18, 19, 20, 21, 22, 25, 26];
     lr[0] = ["#", "Q", "SER", "DN", "DIST", "YARD LN", "D&D", "BALL", "HASH", "FORM", "MOTION", "CALL", "RPO", "CONCEPT", "TYPE", "RESULT", "YDS", "QB", "CARR", "TGT", "SHELL", "BOX", "BLITZ", "FRONT", "COV", "PENALTY", "OUTCOME"];
     table(lr.map(function (r) { return keep.map(function (k) { return r[k] }) }), 6.5, 110);
+    }
     // assemble
     var objs = [], add = function (o) { objs.push(o); return objs.length };
     var cat = add(""), pagesId = add(""), f1 = add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>"), f2 = add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>");
@@ -1932,6 +1984,8 @@ textarea { min-height: 64px }
   }
   function exportXlsx() { try { saveFile(fileBase() + ".xlsx", buildXlsx()) } catch (e) { toast("Excel export failed: " + e.message) } }
   function exportPdf() { try { saveFile(fileBase() + ".pdf", buildPdf()) } catch (e) { toast("PDF export failed: " + e.message) } }
+  function exportOcPdf() { try { saveFile(fileBase() + "_OC_Reports.pdf", buildPdf("oc")) } catch (e) { toast("PDF export failed: " + e.message) } }
+  function exportOcXlsx() { try { saveFile(fileBase() + "_OC_Reports.xlsx", buildXlsx("oc")) } catch (e) { toast("Excel export failed: " + e.message) } }
 
   // ---------- win probability ----------
   var WP_DEF_US = 40, WP_DEF_THEM = 24, DRIVES_PER_GAME = 11, MIN_PER_PLAY = 0.75;
@@ -2459,6 +2513,7 @@ textarea { min-height: 64px }
   });
   $("dlCsv").addEventListener("click", function () { saveFile(fileBase() + "_hudl.csv", csv()) });
   $("xlsxBtn").addEventListener("click", exportXlsx); $("pdfBtn").addEventListener("click", exportPdf);
+  $("ocPdf").addEventListener("click", exportOcPdf); $("ocXlsx").addEventListener("click", exportOcXlsx);
   $("logXlsx").addEventListener("click", exportXlsx); $("logPdf").addEventListener("click", exportPdf);
   $("editSave").addEventListener("click", saveEdit);
   $("sbUs").addEventListener("click", openScore); $("sbThem").addEventListener("click", openScore);

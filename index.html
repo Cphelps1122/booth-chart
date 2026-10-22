@@ -381,14 +381,18 @@ textarea { min-height: 64px }
       <div class="panel">
         <h3>Offense totals <small>penalties left out · scrambles count as rushes</small></h3>
         <div class="tbl" style="margin-bottom:14px"><table id="tTotals"></table></div>
-        <h3>Our players tonight <small>gray = under 3 touches</small></h3>
-        <div class="tbl"><table id="tPlayers"></table></div>
+        <h3>Our players tonight <small>gray = under 3 · QB runs and scrambles count as rushing</small></h3>
+        <div class="tbl" style="margin-bottom:12px"><table id="tPass"></table></div>
+        <div class="tbl" style="margin-bottom:12px"><table id="tRush"></table></div>
+        <div class="tbl"><table id="tRec"></table></div>
       </div>
       <div class="panel">
         <h3>Our calls: what's working</h3>
         <div class="tbl"><table id="tCall"></table></div>
         <h3 style="margin-top:14px">By concept <small>both sides added up (2 AB + 3 AB = AB)</small></h3>
         <div class="tbl"><table id="tConcept"></table></div>
+        <h3 style="margin-top:14px">Full calls <small>formation + motion + play + RPO</small></h3>
+        <div class="tbl"><table id="tFull"></table></div>
       </div>
       <div class="panel">
         <h3>Their looks, by quarter</h3>
@@ -1499,20 +1503,38 @@ textarea { min-height: 64px }
     });
     $("tForm").innerHTML = forms.n ? h : "<tr><td>Tag our formation to fill this in.</td></tr>";
 
-    // players table
-    var pm = {};
+    // players: passing / rushing / receiving
+    var QB = {}, RU = {}, RC = {};
+    var get = function (m, k, z) { return m[k] || (m[k] = Object.assign({ n: k }, z)) };
     P.forEach(function (s) {
-      var add = function (num, kind) { if (!num) return; var o = pm[num] || (pm[num] = { n: num, car: 0, ryd: 0, tgt: 0, rec: 0, cyd: 0, ef: 0, tch: 0, exp: 0, td: 0 }); return o };
-      if (s.target) { var o = add(s.target); o.tgt++; o.tch++; if (s.res === "Complete") { o.rec++; o.cyd += s.gain } if (eff(s)) o.ef++; if (s.gain >= 15) o.exp++; if (s.td) o.td++ }
-      if (s.carrier && !(s.res === "Complete" && s.carrier === s.target) && s.res !== "Sack") { var q = add(s.carrier); q.car++; q.tch++; q.ryd += s.gain; if (eff(s)) q.ef++; if (s.gain >= 10) q.exp++; if (s.td) q.td++ }
+      if (s.pt === "Pass" && s.qb && s.res !== "Scramble") {
+        var q = get(QB, s.qb, { att: 0, cmp: 0, yd: 0, td: 0, int: 0, sk: 0, sky: 0, lg: null });
+        if (s.res === "Sack") { q.sk++; q.sky += s.gain }
+        else { q.att++; if (s.res === "Complete") { q.cmp++; q.yd += s.gain; if (s.td) q.td++; q.lg = q.lg == null ? s.gain : Math.max(q.lg, s.gain) } if (s.res === "Interception") q.int++ }
+      }
+      var isRun = s.res === "Rush" || s.res === "Scramble" || (s.res === "Fumble" && s.pt === "Run");
+      if (isRun && s.carrier) {
+        var r = get(RU, s.carrier, { car: 0, yd: 0, td: 0, ex: 0, ef: 0, fum: 0, lg: null });
+        r.car++; r.yd += s.gain; if (s.td) r.td++; if (s.gain >= 10) r.ex++; if (eff(s)) r.ef++; if (s.res === "Fumble") r.fum++; r.lg = r.lg == null ? s.gain : Math.max(r.lg, s.gain);
+      }
+      if (s.pt === "Pass" && s.target && s.res !== "Sack" && s.res !== "Scramble") {
+        var c = get(RC, s.target, { tgt: 0, rec: 0, yd: 0, td: 0, ex: 0, ef: 0, lg: null });
+        c.tgt++; if (s.res === "Complete") { c.rec++; c.yd += s.gain; if (s.td) c.td++; if (s.gain >= 15) c.ex++; c.lg = c.lg == null ? s.gain : Math.max(c.lg, s.gain) } if (eff(s)) c.ef++;
+      }
     });
-    var qbm = {};
-    P.forEach(function (s) { if (s.pt !== "Pass" || !s.qb) return; var o = qbm[s.qb] || (qbm[s.qb] = { att: 0, cmp: 0, yd: 0, int: 0, sk: 0 });
-      if (s.res === "Sack") o.sk++; else if (s.res !== "Scramble") { o.att++; if (s.res === "Complete") { o.cmp++; o.yd += s.gain } if (s.res === "Interception") o.int++ } });
-    h = "<tr><th>Player</th><th>Runs</th><th>Run yds</th><th>Avg/rush</th><th>Targets</th><th>Catches</th><th>Rec yds</th><th>Eff</th><th>Explosive</th><th>TD</th></tr>";
-    Object.keys(qbm).forEach(function (k) { var o = qbm[k]; h += "<tr><td>" + esc(who(k)) + " passing</td><td colspan='9'>" + o.cmp + "/" + o.att + ", " + o.yd + " yds" + (o.int ? ", " + o.int + " INT" : "") + (o.sk ? ", sacked " + o.sk : "") + "</td></tr>" });
-    Object.keys(pm).map(function (k) { return pm[k] }).sort(function (a, b) { return b.tch - a.tch }).forEach(function (o) {
-      h += "<tr class='" + (o.tch < 3 ? "small" : "") + "'><td>" + esc(who(o.n)) + "</td><td>" + o.car + "</td><td>" + o.ryd + "</td><td>" + (o.car ? (o.ryd / o.car).toFixed(1) : "–") + "</td><td>" + o.tgt + "</td><td>" + o.rec + "</td><td>" + o.cyd + "</td><td>" + pct(o.ef, o.tch) + "%</td><td>" + o.exp + "</td><td>" + o.td + "</td></tr>";
+    var vals = function (m) { return Object.keys(m).map(function (k) { return m[k] }) };
+    var avg = function (a, b) { return b ? (a / b).toFixed(1) : "–" };
+    var hp = "<tr><th>Passing</th><th>Cmp/Att</th><th>Cmp %</th><th>Yds</th><th>Yds/att</th><th>Long</th><th>TD</th><th>INT</th><th>Sacked</th></tr>";
+    vals(QB).sort(function (a, b) { return b.att - a.att }).forEach(function (o) {
+      hp += "<tr><td>" + esc(who(o.n)) + "</td><td>" + o.cmp + "/" + o.att + "</td><td>" + pct(o.cmp, o.att) + "%</td><td>" + o.yd + "</td><td>" + avg(o.yd, o.att) + "</td><td>" + (o.lg == null ? "–" : o.lg) + "</td><td>" + o.td + "</td><td>" + o.int + "</td><td>" + o.sk + (o.sk ? " (" + o.sky + ")" : "") + "</td></tr>";
+    });
+    var hr = "<tr><th>Rushing</th><th>Carries</th><th>Yds</th><th>Avg</th><th>Long</th><th>TD</th><th>10+ runs</th><th>Eff</th><th>Fumbles</th></tr>";
+    vals(RU).sort(function (a, b) { return b.car - a.car }).forEach(function (o) {
+      hr += "<tr class='" + (o.car < 3 ? "small" : "") + "'><td>" + esc(who(o.n)) + "</td><td>" + o.car + "</td><td>" + o.yd + "</td><td>" + avg(o.yd, o.car) + "</td><td>" + o.lg + "</td><td>" + o.td + "</td><td>" + o.ex + "</td><td>" + pct(o.ef, o.car) + "%</td><td>" + o.fum + "</td></tr>";
+    });
+    var hc = "<tr><th>Receiving</th><th>Targets</th><th>Catches</th><th>Yds</th><th>Yds/catch</th><th>Long</th><th>TD</th><th>15+ catches</th><th>Eff</th></tr>";
+    vals(RC).sort(function (a, b) { return b.tgt - a.tgt }).forEach(function (o) {
+      hc += "<tr class='" + (o.tgt < 3 ? "small" : "") + "'><td>" + esc(who(o.n)) + "</td><td>" + o.tgt + "</td><td>" + o.rec + "</td><td>" + o.yd + "</td><td>" + avg(o.yd, o.rec) + "</td><td>" + (o.lg == null ? "–" : o.lg) + "</td><td>" + o.td + "</td><td>" + o.ex + "</td><td>" + pct(o.ef, o.tgt) + "%</td></tr>";
     });
     // offense totals
     var T = { pl: P.length, yd: 0, ra: 0, ry: 0, pa: 0, pc: 0, py: 0, sk: 0, sky: 0, fd: 0, td: 0, to: 0, ex: 0, ef: 0 };
@@ -1533,7 +1555,9 @@ textarea { min-height: 64px }
     if (TR.length || touchdowns) tot += "<tr><td>Scoring</td><td colspan='11'>" + touchdowns + " TD · PAT " + pat.filter(function (x) { return x.good }).length + "/" + pat.length + " · 2-pt " + two.filter(function (x) { return x.good }).length + "/" + two.length + " · " + (touchdowns * 6 + pat.filter(function (x) { return x.good }).length + two.filter(function (x) { return x.good }).length * 2) + " points from the offense</td></tr>";
     tot += "<tr><td>Penalties</td><td colspan='11'>On us " + PO.length + " for " + pydO + " yds · On them " + PD.length + " for " + pydD + " yds" + (PD.filter(function (s) { return s.pen.afd }).length ? " (" + PD.filter(function (s) { return s.pen.afd }).length + " gave us a 1st down)" : "") + "</td></tr>";
     $("tTotals").innerHTML = (P.length || PO.length || PD.length) ? tot : "<tr><td>No plays yet.</td></tr>";
-    $("tPlayers").innerHTML = (Object.keys(pm).length || Object.keys(qbm).length) ? h : "<tr><td>Tap the ball carrier or target after the result to fill this in.</td></tr>";
+    $("tPass").innerHTML = vals(QB).length ? hp : "<tr><td>No passes yet.</td></tr>";
+    $("tRush").innerHTML = vals(RU).length ? hr : "<tr><td>No runs yet. Tap the ball carrier after the result.</td></tr>";
+    $("tRec").innerHTML = vals(RC).length ? hc : "<tr><td>No targets yet. Tap the target after the result.</td></tr>";
 
     // calls table
     var calls = callStats(P);
@@ -1548,6 +1572,21 @@ textarea { min-height: 64px }
       h += "<tr class='" + (c.n < 3 ? "small" : "") + "'><td>" + esc(c.call) + "</td><td>" + esc(c.parts.join(", ")) + "</td><td>" + c.n + "</td><td>" + c.ypp.toFixed(1) + "</td><td>" + c.eff + "%</td><td>" + c.exp + "</td></tr>";
     });
     $("tConcept").innerHTML = cons.length ? h : "<tr><td>Concept totals show once plays are charted.</td></tr>";
+    var fm = {};
+    P.forEach(function (s) {
+      if (!s.call && !s.form) return;
+      var k = [s.form || "", s.motion || "", s.call || "", s.rpo || ""].join("|");
+      var o = fm[k] || (fm[k] = { f: s.form || "", m: s.motion || "", c: s.call || "", r: s.rpo || "", n: 0, yds: 0, ef: 0, exp: 0, r_: 0, p_: 0 });
+      o.n++; o.yds += s.gain; if (eff(s)) o.ef++; if (s.pt === "Run") o.r_++; else o.p_++;
+      if ((s.pt === "Run" && s.gain >= 10) || (s.pt === "Pass" && s.gain >= 15)) o.exp++;
+    });
+    var fl = Object.keys(fm).map(function (k) { var o = fm[k]; o.ypp = o.yds / o.n; o.eff = pct(o.ef, o.n); return o })
+      .sort(function (a, b) { return b.n - a.n || b.eff - a.eff || b.ypp - a.ypp });
+    h = "<tr><th>Formation</th><th>Motion</th><th>Play</th><th>RPO</th><th>Run / Pass</th><th>Snaps</th><th>Yds/play</th><th>Eff</th><th>Explosive</th></tr>";
+    fl.forEach(function (o) {
+      h += "<tr class='" + (o.n < 3 ? "small" : "") + "'><td>" + esc(o.f || "–") + "</td><td>" + esc(o.m || "–") + "</td><td>" + esc(o.c || "–") + "</td><td>" + esc(o.r || "–") + "</td><td>" + o.r_ + " / " + o.p_ + "</td><td>" + o.n + "</td><td>" + o.ypp.toFixed(1) + "</td><td>" + o.eff + "%</td><td>" + o.exp + "</td></tr>";
+    });
+    $("tFull").innerHTML = fl.length ? h : "<tr><td>Full calls show once plays are charted.</td></tr>";
 
     // by quarter
     h = "<tr><th>Qtr</th><th>Snaps</th>" + LC.map(function (c) { return "<th>" + c[1] + "</th>" }).join("") + "<th>Blitz</th></tr>";
@@ -1880,8 +1919,8 @@ textarea { min-height: 64px }
   function buildXlsx(kind) {
     renderReport();
     var sheets = kind === "oc"
-      ? [["OC reports", ocSheetRows()], ["Defense by D&D", tableRows("tSit")], ["Defense by zone", tableRows("tZone")], ["Vs our formations", tableRows("tForm")], ["Looks by quarter", tableRows("tQtr")], ["Our calls", tableRows("tCall")], ["By concept", tableRows("tConcept")], ["Our players", tableRows("tPlayers")], ["Offense totals", tableRows("tTotals")]]
-      : [["Play log", logRows()], ["Players", tableRows("tPlayers")], ["Calls", tableRows("tCall").concat([[]], tableRows("tConcept"))], ["Offense totals", tableRows("tTotals")], ["Their defense", tableRows("tSit").concat([[]], tableRows("tZone"), [[]], tableRows("tForm"))]];
+      ? [["OC reports", ocSheetRows()], ["Defense by D&D", tableRows("tSit")], ["Defense by zone", tableRows("tZone")], ["Vs our formations", tableRows("tForm")], ["Looks by quarter", tableRows("tQtr")], ["Our calls", tableRows("tCall")], ["By concept", tableRows("tConcept")], ["Full calls", tableRows("tFull")], ["Passing", tableRows("tPass")], ["Rushing", tableRows("tRush")], ["Receiving", tableRows("tRec")], ["Offense totals", tableRows("tTotals")]]
+      : [["Play log", logRows()], ["Passing", tableRows("tPass")], ["Rushing", tableRows("tRush")], ["Receiving", tableRows("tRec")], ["Calls", tableRows("tCall").concat([[]], tableRows("tConcept"), [[]], tableRows("tFull"))], ["Offense totals", tableRows("tTotals")], ["Their defense", tableRows("tSit").concat([[]], tableRows("tZone"), [[]], tableRows("tForm"))]];
     var files = [
       { name: "[Content_Types].xml", data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' + sheets.map(function (s_, i) { return '<Override PartName="/xl/worksheets/sheet' + (i + 1) + '.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' }).join("") + "</Types>" },
       { name: "_rels/.rels", data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>' },
@@ -1939,8 +1978,8 @@ textarea { min-height: 64px }
       heading("How they played our formations"); table(tableRows("tForm"), 7.5, 150);
       heading("Their looks by quarter"); table(tableRows("tQtr"), 8, 200);
       heading("Our calls: what's working"); table(tableRows("tCall"), 8);
-      heading("By concept (both sides added up)"); table(tableRows("tConcept"), 8, 220);
-      heading("Our players"); table(tableRows("tPlayers"), 8);
+      heading("By concept (both sides added up)"); table(tableRows("tConcept"), 8, 220); heading("Full calls (formation + motion + play + RPO)"); table(tableRows("tFull"), 8, 180);
+      heading("Passing"); table(tableRows("tPass"), 8); heading("Rushing"); table(tableRows("tRush"), 8); heading("Receiving"); table(tableRows("tRec"), 8);
       if (hist.length) {
         newPage(); heading("Every between-series report tonight (" + hist.length + ")");
         hist.forEach(function (h) {
@@ -1956,12 +1995,12 @@ textarea { min-height: 64px }
       var num = li.querySelector("b"), k = li.querySelector(".k"), body = li.querySelector("div");
       var t = body ? body.textContent.replace(k ? k.textContent : "", "").trim() : li.textContent;
       para((num && /\d/.test(num.textContent) ? num.textContent + ". " : "- ") + (k ? k.textContent.toUpperCase() + ": " : "") + t) });
-    heading("Our players"); table(tableRows("tPlayers"), 8);
+    heading("Passing"); table(tableRows("tPass"), 8); heading("Rushing"); table(tableRows("tRush"), 8); heading("Receiving"); table(tableRows("tRec"), 8);
     heading("Their defense by down & distance"); table(tableRows("tSit"), 7.5, 150);
     heading("Their defense by field zone"); table(tableRows("tZone"), 7.5, 150);
     heading("How they played our formations"); table(tableRows("tForm"), 7.5, 150);
     heading("Our calls"); table(tableRows("tCall"), 8);
-    heading("By concept (both sides added up)"); table(tableRows("tConcept"), 8, 220);
+    heading("By concept (both sides added up)"); table(tableRows("tConcept"), 8, 220); heading("Full calls (formation + motion + play + RPO)"); table(tableRows("tFull"), 8, 180);
     heading("Play log");
     var lr = logRows(), keep = [0, 1, 2, 6, 7, 8, 9, 10, 11, 12, 15, 16, 17, 18, 19, 20, 21, 22, 25, 26];
     lr[0] = ["#", "Q", "SER", "DN", "DIST", "YARD LN", "D&D", "BALL", "HASH", "FORM", "MOTION", "CALL", "RPO", "CONCEPT", "TYPE", "RESULT", "YDS", "QB", "CARR", "TGT", "SHELL", "BOX", "BLITZ", "FRONT", "COV", "PENALTY", "OUTCOME"];

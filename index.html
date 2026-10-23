@@ -1615,9 +1615,9 @@ textarea { min-height: 64px }
 
     // calls table
     var calls = callStats(P);
-    h = "<tr><th>Call</th><th>Type</th><th>Snaps</th><th>Yds/play</th><th>Eff</th><th>Explosive</th></tr>";
+    h = "<tr><th>Call</th><th>Type</th><th>Snaps</th><th>Yds/play</th><th>Eff</th><th>Explosive</th><th>Scrambles</th></tr>";
     calls.forEach(function (c) {
-      h += "<tr class='" + (c.n < 3 ? "small" : "") + "'><td>" + esc(c.call) + "</td><td>" + c.type + "</td><td>" + c.n + "</td><td>" + c.ypp.toFixed(1) + "</td><td>" + c.eff + "%</td><td>" + c.exp + "</td></tr>";
+      h += "<tr class='" + (c.n < 3 ? "small" : "") + "'><td>" + esc(c.call) + "</td><td>" + c.type + "</td><td>" + c.n + "</td><td>" + c.ypp.toFixed(1) + "</td><td>" + c.eff + "%</td><td>" + c.exp + "</td><td>" + (c.p ? c.scr : "–") + "</td></tr>";
     });
     $("tCall").innerHTML = calls.length ? h : "<tr><td>Tag our call to fill this in.</td></tr>";
     var cons = conceptStats(P);
@@ -1630,15 +1630,16 @@ textarea { min-height: 64px }
     P.filter(inQ).forEach(function (s) {
       if (!s.call && !s.form) return;
       var k = [s.form || "", s.motion || "", s.call || "", s.rpo || ""].join("|");
-      var o = fm[k] || (fm[k] = { f: s.form || "", m: s.motion || "", c: s.call || "", r: s.rpo || "", n: 0, yds: 0, ef: 0, exp: 0, r_: 0, p_: 0 });
+      var o = fm[k] || (fm[k] = { f: s.form || "", m: s.motion || "", c: s.call || "", r: s.rpo || "", n: 0, yds: 0, ef: 0, exp: 0, r_: 0, p_: 0, scr: 0 });
+      if (s.res === "Scramble") o.scr++;
       o.n++; o.yds += s.gain; if (eff(s)) o.ef++; if (s.pt === "Run") o.r_++; else o.p_++;
       if ((s.pt === "Run" && s.gain >= 10) || (s.pt === "Pass" && s.gain >= 15)) o.exp++;
     });
     var fl = Object.keys(fm).map(function (k) { var o = fm[k]; o.ypp = o.yds / o.n; o.eff = pct(o.ef, o.n); return o })
       .sort(function (a, b) { return b.n - a.n || b.eff - a.eff || b.ypp - a.ypp });
-    h = "<tr><th>Formation</th><th>Motion</th><th>Play</th><th>RPO</th><th>Run / Pass</th><th>Snaps</th><th>Yds/play</th><th>Eff</th><th>Explosive</th></tr>";
+    h = "<tr><th>Formation</th><th>Motion</th><th>Play</th><th>RPO</th><th>Run / Pass</th><th>Snaps</th><th>Yds/play</th><th>Eff</th><th>Explosive</th><th>Scrambles</th></tr>";
     fl.forEach(function (o) {
-      h += "<tr class='" + (o.n < 3 ? "small" : "") + "'><td>" + esc(o.f || "–") + "</td><td>" + esc(o.m || "–") + "</td><td>" + esc(o.c || "–") + "</td><td>" + esc(o.r || "–") + "</td><td>" + o.r_ + " / " + o.p_ + "</td><td>" + o.n + "</td><td>" + o.ypp.toFixed(1) + "</td><td>" + o.eff + "%</td><td>" + o.exp + "</td></tr>";
+      h += "<tr class='" + (o.n < 3 ? "small" : "") + "'><td>" + esc(o.f || "–") + "</td><td>" + esc(o.m || "–") + "</td><td>" + esc(o.c || "–") + "</td><td>" + esc(o.r || "–") + "</td><td>" + o.r_ + " / " + o.p_ + "</td><td>" + o.n + "</td><td>" + o.ypp.toFixed(1) + "</td><td>" + o.eff + "%</td><td>" + o.exp + "</td><td>" + (o.p_ ? o.scr : "–") + "</td></tr>";
     });
     $("tFull").innerHTML = fl.length ? h : "<tr><td>Full calls show once plays are charted.</td></tr>";
 
@@ -1664,12 +1665,14 @@ textarea { min-height: 64px }
     return Object.keys(m).map(function (k) { var o = m[k]; o.ypp = o.yds / o.n; o.eff = pct(o.ef, o.n); return o })
       .sort(function (a, b) { return (b.n >= 3) - (a.n >= 3) || b.eff - a.eff || b.ypp - a.ypp });
   }
+  function scrTag(n) { return n ? " <span class='tag hot'>" + (n > 1 ? n + " scrambles" : "scramble") + "</span>" : "" }
   function callStats(P) {
     var m = {};
     P.forEach(function (s) {
       if (!s.call) return;
       var k = s.call;
-      var o = m[k] || (m[k] = { call: s.call, r: 0, p: 0, n: 0, yds: 0, ef: 0, exp: 0 });
+      var o = m[k] || (m[k] = { call: s.call, r: 0, p: 0, n: 0, yds: 0, ef: 0, exp: 0, scr: 0 });
+      if (s.res === "Scramble") o.scr++;
       o.n++; o.yds += s.gain; if (eff(s)) o.ef++; if (s.pt === "Run") o.r++; else o.p++;
       if ((s.pt === "Run" && s.gain >= 10) || (s.pt === "Pass" && s.gain >= 15)) o.exp++;
     });
@@ -1804,7 +1807,7 @@ textarea { min-height: 64px }
         var isT = s.kind === "try";
         h += "<tr><td>" + s.n + "</td>" + tc("q", s.qtr) + "<td>" + esc(ddLabel(s)) + "</td>" + (isT ? "<td></td>" : tc("ball", ballText(s.yl) + (s.hash ? " · " + s.hash : ""))) +
           tc("form", esc(s.form || "") + (s.motion ? " <span class='note'>" + esc(s.motion) + "</span>" : "") || "<span class='note'>+ form</span>") +
-          tc("call", (esc(s.call || "") + (s.rpo ? " <b>+ " + esc(s.rpo) + "</b>" : "") + (s.mulligan ? " <span class='tag mul'>↻</span>" : "")) || "<span class='note'>+ call</span>") +
+          tc("call", (esc(s.call || "") + (s.rpo ? " <b>+ " + esc(s.rpo) + "</b>" : "") + (s.res === "Scramble" ? " <span class='tag hot'>scramble</span>" : "") + (s.mulligan ? " <span class='tag mul'>↻</span>" : "")) || "<span class='note'>+ call</span>") +
           (isT ? "<td></td><td></td>" : tc("look", esc([s.shell ? s.shell.toLowerCase() : "", s.box ? s.box + " box" : "", s.front || "", s.cov ? covName(s.cov) : ""].filter(Boolean).join(" · ")) || "<span class='note'>+ look</span>") + tc("look", esc(s.blitz))) +
           (isT || s.res === "Penalty" ? "<td>" + esc(s.res) + (isT ? "" : "") + "</td><td>" + esc(playerText(s)) + "</td><td>" + outcomeTags(s) + "</td>"
             : tc("res", esc(s.res) + (s.td ? ", TD" : "") + (s.gain == null ? " · spot pending" : " " + s.gain)) + tc("pl", esc(playerText(s)) || "<span class='note'>+ player</span>") + tc("res", outcomeTags(s))) +

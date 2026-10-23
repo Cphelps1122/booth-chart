@@ -42,6 +42,14 @@ header { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; backg
 .sb .pts { font-family: var(--f-display); font-weight: 800; font-size: 34px; line-height: 1; font-variant-numeric: tabular-nums; color: #ffb21e; text-shadow: 0 0 10px rgba(255,178,30,.35) }
 .sb.us .pts { color: #ff4d45; text-shadow: 0 0 10px rgba(255,77,69,.35) }
 .sb.lead { border-color: #f4f4f5 }
+.lookcell { cursor: pointer; border-radius: 6px; box-shadow: inset 0 0 0 1px rgba(127,127,127,.25) } .lookcell:hover, .lookcell:active { background: rgba(200,16,46,.08) }
+#lookModal .chips { margin-bottom: 8px } #lookModal .sub { margin-top: 8px }
+.sb.clk { min-width: 108px; position: relative } .sb.clk .pts { color: #f4f4f5; text-shadow: 0 0 10px rgba(255,255,255,.25); font-size: 30px }
+.sb.clk.est .pts { color: #cfd2d8 } .sb.clk.need { border-color: #ffb21e; animation: clkpulse 1.6s ease-in-out infinite }
+@keyframes clkpulse { 50% { box-shadow: 0 0 0 3px rgba(255,178,30,.35) } }
+.ck { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 10px 0 }
+.ck .btn { font-size: 17px; padding: 10px 14px; min-width: 64px }
+.ck input { font-size: 30px; width: 130px; text-align: center; font-family: var(--f-display); font-weight: 800 }
 .sb.wpb { min-width: 108px; position: relative } .sb.wpb .pts { color: #4ade80; text-shadow: 0 0 10px rgba(74,222,128,.35) }
 .sb.wpb.low .pts { color: #f87171; text-shadow: 0 0 10px rgba(248,113,113,.35) } .sb.wpb.mid .pts { color: #fde047; text-shadow: 0 0 10px rgba(253,224,71,.3) }
 .wpd { display: block; min-height: 12px; font-size: 11px; line-height: 12px; font-weight: 700; color: #b9bbc0 }
@@ -214,6 +222,7 @@ textarea { min-height: 64px }
       <div class="board" aria-live="polite">
         <button class="sb us" id="sbUs" aria-label="Our score, tap to adjust"><span class="tm">Cardinals</span><span class="pts" id="ptsUs">0</span></button>
         <button class="sb them" id="sbThem" aria-label="Opponent score, tap to add points"><span class="tm" id="tmThem">Lebanon Trail</span><span class="pts" id="ptsThem">0</span></button>
+        <button class="sb clk" id="clkBadge" aria-label="Game clock, tap to set"><span class="tm" id="clkQ">Q1 clock</span><span class="pts" id="clkTime">12:00</span><span class="wpd" id="clkEst"></span></button>
         <button class="sb wpb" id="wpBadge" aria-label="Win probability, tap for details"><span class="tm">Win chance</span><span class="pts" id="wpPct">–</span><span class="wpd" id="wpDelta"></span></button>
       </div>
       <div class="sit" aria-live="polite">
@@ -553,6 +562,30 @@ textarea { min-height: 64px }
     </div>
   </section>
 </main>
+<div class="modal" id="lookModal" hidden role="dialog" aria-modal="true" aria-labelledby="lookTitle">
+  <div class="mbox" style="max-width:640px">
+    <h3 id="lookTitle">Edit play <small id="lkSub"></small></h3>
+    <div id="lkTabs" class="chips" style="margin:2px 0 10px"></div>
+    <div id="lkBody"></div>
+    <p class="note">Taps save right away. Tap a selected one again to clear it.</p>
+    <div class="actions"><button class="btn" id="lkPrev">◀ Earlier play</button><button class="btn" id="lkNext">Later play ▶</button><button class="btn" id="lkClose">Done</button></div>
+  </div>
+</div>
+<div class="modal" id="clockModal" hidden role="dialog" aria-modal="true" aria-labelledby="clockTitle">
+  <div class="mbox" style="max-width:560px">
+    <h3 id="clockTitle">Game clock <small id="ckSub"></small></h3>
+    <div class="ck"><input id="ckIn" type="text" inputmode="numeric" placeholder="7:30" aria-label="Time left, minutes and seconds"><button class="btn" id="ckSet">Set</button></div>
+    <div class="ck"><button class="btn" data-d="-60">−1:00</button><button class="btn" data-d="-10">−0:10</button><button class="btn" data-d="-5">−0:05</button><button class="btn" data-d="5">+0:05</button><button class="btn" data-d="10">+0:10</button><button class="btn" data-d="60">+1:00</button></div>
+    <div class="ck"><button class="btn" id="ck2min">2:00</button><button class="btn" id="ck12">12:00 (new quarter)</button></div>
+    <p class="note" id="ckWhy"></p>
+    <details style="margin-top:8px"><summary style="cursor:pointer;font-weight:700">Timing settings</summary>
+      <div class="ck"><label>Seconds per play when the clock keeps running<input id="ckRun" type="number" inputmode="numeric" style="width:90px;font-size:18px"></label></div>
+      <div class="ck"><label>Seconds per play when the clock stops<input id="ckStop" type="number" inputmode="numeric" style="width:90px;font-size:18px"></label></div>
+      <p class="note">Running = snap to snap, including the play itself. Our tempo default is 25. Stopped = just the play, about 6. The clock stops on incompletions, scores, turnovers, penalties and tries, and on first downs inside the last 2:00 of each half. Out of bounds isn't charted, so nudge the clock when it happens.</p>
+    </details>
+    <div class="actions"><button class="btn" id="ckClose">Done</button></div>
+  </div>
+</div>
 <div class="modal" id="scoreModal" hidden role="dialog" aria-modal="true" aria-labelledby="scoreTitle">
   <div class="mbox" style="max-width:620px">
     <h3 id="scoreTitle">Score <small>our offense's TDs, PATs and 2-pt tries count on their own · a +3 FG here marks the drive as a field goal</small></h3>
@@ -704,7 +737,7 @@ textarea { min-height: 64px }
   var DEFAULT_DB = "https://cardinal-booth-default-rtdb.firebaseio.com";
   var SYNC_KEY = "cardinals-booth-sync-v1", DEVICE = Math.random().toString(36).slice(2, 10);
   var SY = { cfg: null, es: null, status: "off", mirror: null, last: null, pushing: false, dirty: false, needApply: false, timer: null, retry: null, applying: false };
-  var META_KEYS = ["wp", "clock", "sheet", "gameDate", "opp", "pre", "start", "lists", "dmode", "fast", "oppScore", "ourAdj", "scoreLog", "tryPending", "endAfter", "example", "cur"];
+  var META_KEYS = ["wp", "clock", "clocks", "clk", "sheet", "gameDate", "opp", "pre", "start", "lists", "dmode", "fast", "oppScore", "ourAdj", "scoreLog", "tryPending", "endAfter", "example", "cur"];
   function syncCfg() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || "null") } catch (e) { return null } }
   function setSyncCfg(c) { try { if (c) localStorage.setItem(SYNC_KEY, JSON.stringify(c)); else localStorage.removeItem(SYNC_KEY) } catch (e) {} }
   function newCode() { var a = "abcdefghjkmnpqrstuvwxyz23456789", t = ""; var r = new Uint8Array(18); (window.crypto || window.msCrypto).getRandomValues(r); for (var i = 0; i < 18; i++) t += a[r[i] % a.length]; return "mel-" + t }
@@ -1760,12 +1793,21 @@ textarea { min-height: 64px }
       h += "<div class='log-series'><h4>Series " + k + "</h4><div class='tbl'><table><tr><th>#</th><th>Q</th><th>D&amp;D</th><th>Ball</th><th>Form</th><th>Call</th><th>Their look</th><th>Blitz</th><th>Result</th><th>Player</th><th>Outcome</th><th></th></tr>";
       by[k].slice().reverse().forEach(function (p) {
         var s = p[0];
-        h += "<tr><td>" + s.n + "</td><td>" + s.qtr + "</td><td>" + esc(ddLabel(s)) + "</td><td>" + (s.kind === "try" ? "" : ballText(s.yl) + (s.hash ? " · " + s.hash : "")) + "</td><td>" + esc(s.form || "") + (s.motion ? " <span class='note'>" + esc(s.motion) + "</span>" : "") + "</td><td>" + esc(s.call || "") + (s.rpo ? " <b>+ " + esc(s.rpo) + "</b>" : "") + (s.mulligan ? " <span class='tag mul'>↻</span>" : "") + "</td><td>" + esc([s.shell ? s.shell.toLowerCase() : "", s.box ? s.box + " box" : "", s.front || "", s.cov ? covName(s.cov) : ""].filter(Boolean).join(" · ")) + "</td><td>" + esc(s.blitz) + "</td><td>" + esc(s.res) + (s.td ? ", TD" : "") + (s.res === "Penalty" || s.kind === "try" ? "" : (s.gain == null ? " · spot pending" : " " + s.gain)) + "</td><td>" + esc(playerText(s)) + "</td><td>" + outcomeTags(s) + "</td><td style='white-space:nowrap'><button class='edit' data-i='" + p[1] + "'>Edit</button><button class='del' data-i='" + p[1] + "'>Delete</button></td></tr>";
+        var tc = function (k, html) { return "<td class='lookcell' data-i='" + p[1] + "' data-k='" + k + "'>" + html + "</td>" };
+        var isT = s.kind === "try";
+        h += "<tr><td>" + s.n + "</td>" + tc("q", s.qtr) + "<td>" + esc(ddLabel(s)) + "</td>" + (isT ? "<td></td>" : tc("ball", ballText(s.yl) + (s.hash ? " · " + s.hash : ""))) +
+          tc("form", esc(s.form || "") + (s.motion ? " <span class='note'>" + esc(s.motion) + "</span>" : "") || "<span class='note'>+ form</span>") +
+          tc("call", (esc(s.call || "") + (s.rpo ? " <b>+ " + esc(s.rpo) + "</b>" : "") + (s.mulligan ? " <span class='tag mul'>↻</span>" : "")) || "<span class='note'>+ call</span>") +
+          (isT ? "<td></td><td></td>" : tc("look", esc([s.shell ? s.shell.toLowerCase() : "", s.box ? s.box + " box" : "", s.front || "", s.cov ? covName(s.cov) : ""].filter(Boolean).join(" · ")) || "<span class='note'>+ look</span>") + tc("look", esc(s.blitz))) +
+          (isT || s.res === "Penalty" ? "<td>" + esc(s.res) + (isT ? "" : "") + "</td><td>" + esc(playerText(s)) + "</td><td>" + outcomeTags(s) + "</td>"
+            : tc("res", esc(s.res) + (s.td ? ", TD" : "") + (s.gain == null ? " · spot pending" : " " + s.gain)) + tc("pl", esc(playerText(s)) || "<span class='note'>+ player</span>") + tc("res", outcomeTags(s))) +
+          "<td style='white-space:nowrap'><button class='edit' data-i='" + p[1] + "'>Edit</button><button class='del' data-i='" + p[1] + "'>Delete</button></td></tr>";
       });
       h += "</table></div></div>";
     });
     $("logList").innerHTML = h || "<p class='note'>No snaps logged yet.</p>";
     $("logCount").textContent = S.snaps.length + " snaps";
+    document.querySelectorAll(".lookcell").forEach(function (td) { td.addEventListener("click", function () { openCell(+td.dataset.i, td.dataset.k) }) });
     document.querySelectorAll(".edit").forEach(function (b) { b.addEventListener("click", function () { openEdit(+b.dataset.i) }) });
     document.querySelectorAll(".del").forEach(function (b) { b.addEventListener("click", function () {
       var i = +b.dataset.i; S.snaps.splice(i, 1); S.snaps.forEach(function (s, j) { s.n = j + 1 }); save(); renderAll(); toast("Deleted. Down and distance unchanged; fix it on the Chart tab if needed.") }) });
@@ -2047,14 +2089,161 @@ textarea { min-height: 64px }
   function EPy(y) { y = Math.max(1, Math.min(99, y)); for (var i = 1; i < EPP.length; i++) if (y <= EPP[i][0]) { var a = EPP[i - 1], b = EPP[i]; return a[1] + (b[1] - a[1]) * (y - a[0]) / (b[0] - a[0]) } return 5.4 }
   function Phi(x) { var t = 1 / (1 + .2316419 * Math.abs(x)), d = .3989423 * Math.exp(-x * x / 2), p = d * t * (.3193815 + t * (-.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274)))); return x > 0 ? 1 - p : p }
   function wpSettings() { var w = S.wp || {}; return { us: w.us != null ? +w.us : WP_DEF_US, them: w.them != null ? +w.them : WP_DEF_THEM } }
+  // ---------- tap-to-edit log cells ----------
+  var lookIdx = -1, lookK = "look";
+  var CELL_TABS = [["q", "Qtr"], ["ball", "Hash"], ["form", "Formation"], ["call", "Play"], ["look", "Their look"], ["res", "Result"], ["pl", "Player"]];
+  function cellSec(title, items, isOn, onTap, label) {
+    var w = document.createElement("div");
+    w.innerHTML = "<div class='sub'>" + esc(title) + "</div>"; var row = document.createElement("div"); row.className = "chips";
+    items.forEach(function (v) {
+      var b = document.createElement("button"); b.className = "chip"; b.textContent = label ? label(v) : v;
+      b.setAttribute("aria-pressed", isOn(v) ? "true" : "false");
+      b.addEventListener("click", function () { onTap(v, isOn(v)); });
+      row.appendChild(b);
+    });
+    w.appendChild(row); $("lkBody").appendChild(w); return row;
+  }
+  function cellDone(sn) { save(); renderAll(); openCell(lookIdx, lookK) }
+  function replay(sn, oldKey) {
+    sn.pt = playType(sn);
+    var role = playerRole(sn.res), wasRole = sn.target ? "target" : (sn.carrier && sn.carrier !== sn.qb ? "carrier" : null);
+    var plv = role && role === wasRole ? (sn.target || sn.carrier) : null;
+    sn.carrier = role === "carrier" ? plv : (sn.res === "Scramble" || sn.res === "Sack" ? sn.qb : (sn.res === "Complete" ? plv : null));
+    sn.target = role === "target" ? plv : null;
+    qTag(sn);
+    var idx = S.snaps.indexOf(sn);
+    if ([sn.res, sn.gain, sn.td].join("|") !== oldKey && idx === S.snaps.length - 1 && sn.gain != null && sn.prev) { S.cur = JSON.parse(JSON.stringify(sn.prev)); advance(sn) }
+  }
+  function openCell(i, k) {
+    if (i < 0 || i >= S.snaps.length) return; lookIdx = i; lookK = k || lookK; var sn = S.snaps[i];
+    var isT = sn.kind === "try", isPen = sn.res === "Penalty";
+    var tabs = CELL_TABS.filter(function (t) { return !((isT || isPen) && (t[0] === "res" || t[0] === "pl")) && !(isT && (t[0] === "look" || t[0] === "ball")) });
+    if (!tabs.some(function (t) { return t[0] === lookK })) lookK = tabs[0][0];
+    $("lkSub").textContent = "#" + sn.n + " · Q" + sn.qtr + " · " + ddLabel(sn) + " · " + [sn.form, sn.motion, sn.call].filter(Boolean).join(" ") + (sn.res ? " · " + sn.res + (sn.gain != null && !isPen && !isT ? " " + sn.gain : "") : "");
+    var tb = $("lkTabs"); tb.innerHTML = "";
+    tabs.forEach(function (t) { var b = document.createElement("button"); b.className = "chip"; b.textContent = t[1]; b.setAttribute("aria-pressed", t[0] === lookK ? "true" : "false"); b.addEventListener("click", function () { openCell(lookIdx, t[0]) }); tb.appendChild(b) });
+    var B = $("lkBody"); B.innerHTML = "";
+    var set = function (key) { return function (v, on) { sn[key] = on ? null : v; cellDone(sn) } };
+    var is = function (key) { return function (v) { return sn[key] === v } };
+    if (lookK === "q") cellSec("Quarter", [1, 2, 3, 4, 5], function (v) { return sn.qtr === v }, function (v) { sn.qtr = v; cellDone(sn) }, function (v) { return v === 5 ? "OT" : "Q" + v });
+    if (lookK === "ball") { cellSec("Hash", ["L", "M", "R"], is("hash"), function (v) { sn.hash = v; cellDone(sn) }); var n = document.createElement("p"); n.className = "note"; n.textContent = "To move the ball spot itself, use Edit on the row."; B.appendChild(n) }
+    if (lookK === "form") {
+      var fs = []; SHEET.forEach(function (sec) { if (sec.form && fs.indexOf(sec.form) < 0) fs.push(sec.form) }); list("form").forEach(function (f) { if (fs.indexOf(f) < 0) fs.push(f) });
+      cellSec("Formation", fs, is("form"), set("form"));
+      cellSec("Motion", list("motion"), is("motion"), set("motion"));
+    }
+    if (lookK === "call") {
+      var base = (sn.call || "").replace(/\s+Q$/, ""), mine = [], other = [];
+      SHEET.forEach(function (sec) { sec.plays.forEach(function (pl) { var arr = sec.form && sec.form === sn.form ? mine : other; if (arr.indexOf(pl.t) < 0 && mine.indexOf(pl.t) < 0) arr.push(pl.t) }) });
+      var tapCall = function (v, on) { sn.call = on ? null : v; if (sn.call && sn.callType !== "run" && sn.callType !== "pass" && sn.callType !== "rpo") sn.callType = "sheet"; qTag(sn); cellDone(sn) };
+      var onCall = function (v) { return base === v };
+      if (mine.length) cellSec("Plays in " + sn.form, mine, onCall, tapCall);
+      cellSec("RPO", list("rpo"), is("rpo"), set("rpo"));
+      var d = document.createElement("details"); d.innerHTML = "<summary style='cursor:pointer;font-weight:700;margin-top:8px'>All other plays</summary>"; B.appendChild(d);
+      var keep = B; var tmp = document.createElement("div"); d.appendChild(tmp);
+      B = tmp; $("lkBody").appendChild(d); // ensure order
+      var w = document.createElement("div"); w.className = "chips"; other.forEach(function (v) { var b = document.createElement("button"); b.className = "chip"; b.textContent = v; b.setAttribute("aria-pressed", onCall(v) ? "true" : "false"); b.addEventListener("click", function () { tapCall(v, onCall(v)) }); w.appendChild(b) }); tmp.appendChild(w);
+      B = keep;
+    }
+    if (lookK === "look") {
+      cellSec("Shell", ["1-HIGH", "2-HIGH", "ZERO"], is("shell"), set("shell"));
+      cellSec("Box", ["5", "6", "7", "8"], is("box"), set("box"), function (v) { return v + " in box" });
+      var pOn = function (v) { return ((sn.blitz && sn.blitz !== "No") ? "Yes" : "No") === v };
+      cellSec("Pressure", ["No", "Yes"], pOn, function (v) { sn.blitz = v === "Yes" ? (sn.blitz && sn.blitz !== "No" ? sn.blitz : "Yes") : "No"; cellDone(sn) });
+      if (S.dmode === "full") {
+        cellSec("Front", list("front"), is("front"), set("front"));
+        cellSec("Coverage", list("cov"), is("cov"), set("cov"), function (v) { return /^\d$/.test(v) ? "Cov " + v : v });
+        cellSec("Blitz", list("blitz"), is("blitz"), function (v, on) { sn.blitz = on ? "No" : v; cellDone(sn) });
+      }
+    }
+    if (lookK === "res") {
+      cellSec("Result", RESULTS.filter(function (r) { return r !== "Penalty" }), is("res"), function (v) { var ok = [sn.res, sn.gain, sn.td].join("|"); sn.res = v; if (v === "Incomplete") { sn.gain = 0; sn.td = false } replay(sn, ok); cellDone(sn) });
+      var yd = document.createElement("div"); yd.innerHTML = "<div class='sub'>Yards</div>";
+      var row = document.createElement("div"); row.className = "ck";
+      [-5, -1].forEach(function (d) { var b = document.createElement("button"); b.className = "btn"; b.textContent = d; b.addEventListener("click", function () { var ok = [sn.res, sn.gain, sn.td].join("|"); sn.gain = (sn.gain || 0) + d; sn.td = false; replay(sn, ok); cellDone(sn) }); row.appendChild(b) });
+      var inp = document.createElement("input"); inp.type = "number"; inp.inputMode = "numeric"; inp.value = sn.gain == null ? "" : sn.gain; inp.style.width = "90px"; inp.style.fontSize = "26px";
+      inp.addEventListener("change", function () { var v = parseInt(inp.value, 10); if (isNaN(v)) return; var ok = [sn.res, sn.gain, sn.td].join("|"); sn.gain = v; replay(sn, ok); cellDone(sn) });
+      row.appendChild(inp);
+      [1, 5].forEach(function (d) { var b = document.createElement("button"); b.className = "btn"; b.textContent = "+" + d; b.addEventListener("click", function () { var ok = [sn.res, sn.gain, sn.td].join("|"); sn.gain = (sn.gain || 0) + d; sn.td = false; replay(sn, ok); cellDone(sn) }); row.appendChild(b) });
+      var td = document.createElement("button"); td.className = "chip"; td.textContent = "Touchdown"; td.setAttribute("aria-pressed", sn.td ? "true" : "false");
+      td.addEventListener("click", function () { var ok = [sn.res, sn.gain, sn.td].join("|"); sn.td = !sn.td; if (sn.td) sn.gain = 100 - toY(sn.yl); replay(sn, ok); cellDone(sn) }); row.appendChild(td);
+      yd.appendChild(row); B.appendChild(yd);
+      var nt = document.createElement("p"); nt.className = "note"; nt.textContent = i === S.snaps.length - 1 ? "Latest play: changing result or yards also fixes the current down and distance." : "Changes this play's stats. Later plays keep the spots you charted."; B.appendChild(nt);
+    }
+    if (lookK === "pl") {
+      var R = roster(), qbs = R.filter(function (x) { return x.pos === "QB" });
+      if (sn.pt === "Pass" || sn.res === "Scramble" || sn.res === "Sack") cellSec("QB", qbs.map(function (x) { return x.n }), function (v) { return sn.qb === v }, function (v) { sn.qb = v; if (sn.res === "Scramble" || sn.res === "Sack") sn.carrier = v; cellDone(sn) }, function (v) { return "#" + v });
+      var role = playerRole(sn.res);
+      if (role) {
+        var order = role === "carrier" ? ["RB", "QB", "WR", "TE"] : ["WR", "TE", "RB", "QB"], L = [];
+        order.forEach(function (pos) { [true, false].forEach(function (st) { R.forEach(function (x) { if (x.pos === pos && !!x.star === st) L.push(x.n) }) }) });
+        var cur = role === "carrier" ? sn.carrier : sn.target;
+        cellSec(role === "carrier" ? "Ball carrier" : "Target", L, function (v) { return cur === v }, function (v, on) { if (role === "carrier") sn.carrier = on ? null : v; else { sn.target = on ? null : v; sn.carrier = sn.res === "Complete" ? sn.target : null } qTag(sn); cellDone(sn) }, function (v) { return "#" + v + " " + ((R.filter(function (x) { return x.n === v })[0] || {}).pos || "") });
+      }
+    }
+    var prev = i - 1, next = i + 1;
+    $("lkPrev").disabled = prev < 0; $("lkNext").disabled = next >= S.snaps.length; $("lkPrev").dataset.i = prev; $("lkNext").dataset.i = next;
+    $("lookModal").hidden = false;
+  }
+  function openLook(i) { openCell(i, "look") }
+
+  // ---------- game clock estimate ----------
+  var QSEC = 720;
+  function ckSet_() { var c = S.clk || {}; return { run: c.run != null ? +c.run : 25, stop: c.stop != null ? +c.stop : 6 } }
+  function clockStops(x, secLeftBefore) {
+    if (x.kind === "try" || x.res === "Penalty" || x.res === "Incomplete" || x.res === "Interception" || x.res === "Fumble" || x.td) return true;
+    if ((x.qtr === 2 || x.qtr === 4) && secLeftBefore <= 120 && x.gain != null && x.gain >= x.dist) return true;
+    return false;
+  }
+  // seconds left in quarter q just before snap index idx (idx = S.snaps.length for "now")
+  function clockAt(q, idx) {
+    if (q >= 5) return { sec: 0, est: true, anchored: false };
+    var t = ckSet_(), sec = QSEC, i0 = 0, anchored = false;
+    var A = (S.clocks || []).filter(function (c) { return c.qtr === q && c.at <= idx }).sort(function (a, b) { return a.at - b.at || a.t - b.t });
+    if (!A.length && S.clock && S.clock.qtr === q && S.clock.at <= idx) A = [S.clock];
+    if (A.length) { var c = A[A.length - 1]; sec = c.sec; i0 = c.at; anchored = true }
+    var n = 0;
+    for (var i = i0; i < idx; i++) {
+      var x = S.snaps[i]; if (!x || x.qtr !== q) continue;
+      sec -= clockStops(x, sec) ? t.stop : t.run; n++;
+    }
+    return { sec: Math.max(0, sec), est: n > 0 || !anchored, anchored: anchored, since: n };
+  }
+  function fmtClock(sec) { sec = Math.max(0, Math.round(sec)); return Math.floor(sec / 60) + ":" + String(sec % 60).padStart(2, "0") }
+  function setClockNow(sec) {
+    sec = Math.max(0, Math.min(QSEC, Math.round(sec)));
+    S.clocks = (S.clocks || []).filter(function (c) { return !(c.qtr === S.cur.qtr && c.at === S.snaps.length) });
+    S.clocks.push({ qtr: S.cur.qtr, sec: sec, at: S.snaps.length, t: Date.now() });
+    S.clock = { qtr: S.cur.qtr, sec: sec, at: S.snaps.length };
+    save(); renderAll();
+  }
+  function needClock() {
+    // a new drive started and the clock hasn't been set since the series began (their possession burned time we didn't chart)
+    var c = S.cur, first = -1;
+    for (var i = 0; i < S.snaps.length; i++) if (S.snaps[i].series === c.series) { first = i; break }
+    var at = first < 0 ? S.snaps.length : first;
+    var any = (S.clocks || []).some(function (k) { return k.qtr === c.qtr && k.at >= at }) || (S.clock && S.clock.qtr === c.qtr && S.clock.at >= at);
+    var hadEarlier = S.snaps.some(function (x) { return x.qtr === c.qtr && x.series < c.series }) || S.snaps.some(function (x) { return x.qtr < c.qtr });
+    return !any && hadEarlier;
+  }
+  function renderClock() {
+    var q = S.cur.qtr, ck = clockAt(q, S.snaps.length), b = $("clkBadge"); if (!b) return;
+    $("clkQ").textContent = (q === 5 ? "OT" : "Q" + q) + " clock";
+    $("clkTime").textContent = q === 5 ? "OT" : fmtClock(ck.sec);
+    $("clkEst").textContent = q === 5 ? "" : (needClock() ? "set it" : ck.est ? "est" : "");
+    b.className = "sb clk" + (ck.est ? " est" : "") + (q !== 5 && needClock() ? " need" : "");
+  }
+  function openClock() {
+    var q = S.cur.qtr, ck = clockAt(q, S.snaps.length), t = ckSet_();
+    $("ckIn").value = fmtClock(ck.sec);
+    $("ckSub").textContent = (q === 5 ? "OT" : "Q" + q) + " · " + (ck.anchored ? (ck.since ? "set " + ck.since + " play" + (ck.since > 1 ? "s" : "") + " ago, estimated since" : "set by you") : "estimated from 12:00");
+    $("ckWhy").textContent = needClock() ? "New drive: set the clock from the scoreboard so their possession is counted." : "It runs " + t.run + " sec a play while the clock keeps running and " + t.stop + " sec when it stops. Fix it any time.";
+    $("ckRun").value = t.run; $("ckStop").value = t.stop;
+    $("clockModal").hidden = false;
+  }
   function minsLeftAt(q, idx) {
     if (q >= 5) return 6;
-    var n = 0, i0 = 0, base = 12;
-    if (S.clock && S.clock.qtr === q && S.clock.at <= idx) { base = S.clock.sec / 60; i0 = S.clock.at }
-    for (var i = i0; i < idx; i++) { var x = S.snaps[i]; if (x && x.qtr === q && x.kind !== "try" && x.res !== "Penalty") n++ }
-    if (!(S.clock && S.clock.qtr === q && S.clock.at <= idx)) { n = 0; for (var j = 0; j < idx; j++) { var y = S.snaps[j]; if (y && y.qtr === q && y.kind !== "try" && y.res !== "Penalty") n++ } }
-    var left = Math.max(0.2, Math.min(12, base - MIN_PER_PLAY * n));
-    return (4 - q) * 12 + left;
+    return (4 - q) * 12 + Math.max(0.2, clockAt(q, idx).sec / 60);
   }
   function scoreAt(idx) {
     var us = 0, them = 0, offPts = 0;
@@ -2449,7 +2638,7 @@ textarea { min-height: 64px }
     $("sOpp").value = S.opp; $("sPre").value = S.pre; $("sStart").value = S.start; $("sMode").value = S.dmode === "full" ? "full" : "fast";
     ["form", "run", "pass", "rpo", "motion", "front", "cov", "blitz"].forEach(function (k) { $("l" + k[0].toUpperCase() + k.slice(1)).value = list(k) });
   }
-  function renderAll() { refreshSheet(); renderHead(); renderWP(); renderScore(); renderChips(); renderReport(); renderLog(); renderDrives(); renderLive() }
+  function renderAll() { refreshSheet(); renderHead(); renderClock(); renderWP(); renderScore(); renderChips(); renderReport(); renderLog(); renderDrives(); renderLive() }
 
   function csv() {
     var cols = ["PLAY #", "ODK", "QTR", "SERIES", "DN", "DIST", "YARD LN", "PLAY TYPE", "RESULT", "GN/LS", "HASH", "O FORMATION", "MOTION", "RUN FAMILY", "PASS FAMILY", "RPO", "FRONT", "BLITZ", "COVERAGE", "MFC/MFO/0", "BOX", "TARGET", "BALL CARRIER", "QB", "TEAM"];
@@ -2595,9 +2784,23 @@ textarea { min-height: 64px }
   function fillWp() { var st = wpSettings(); $("wpUs").value = st.us; $("wpThem").value = st.them }
   ["wpUs", "wpThem"].forEach(function (id) { $(id).addEventListener("change", function () { S.wp = { us: Math.max(0, +$("wpUs").value || 0), them: Math.max(0, +$("wpThem").value || 0) }; save(); renderAll(); toast("Win chance updated") }) });
   $("wpReset").addEventListener("click", function () { delete S.wp; fillWp(); save(); renderAll(); toast("Back to the data-based start") });
+  $("clkBadge").addEventListener("click", openClock);
+  $("lkClose").addEventListener("click", function () { $("lookModal").hidden = true });
+  $("lkPrev").addEventListener("click", function () { openCell(+this.dataset.i, lookK) });
+  $("lkNext").addEventListener("click", function () { openCell(+this.dataset.i, lookK) });
+  $("ckClose").addEventListener("click", function () { $("clockModal").hidden = true });
+  $("ckSet").addEventListener("click", function () {
+    var m = String($("ckIn").value).trim().match(/^(\d{1,2})(?::(\d{1,2}))?$/); if (!m) { toast("Type the time like 7:30"); return }
+    setClockNow((+m[1]) * 60 + (+(m[2] || 0))); $("clockModal").hidden = true; toast("Clock set " + fmtClock((+m[1]) * 60 + (+(m[2] || 0))));
+  });
+  document.querySelectorAll("#clockModal [data-d]").forEach(function (b) { b.addEventListener("click", function () {
+    var cur = clockAt(S.cur.qtr, S.snaps.length).sec + (+b.dataset.d); setClockNow(cur); $("ckIn").value = fmtClock(Math.max(0, Math.min(QSEC, cur))); openClock() }) });
+  $("ck2min").addEventListener("click", function () { setClockNow(120); openClock() });
+  $("ck12").addEventListener("click", function () { setClockNow(QSEC); openClock() });
+  ["ckRun", "ckStop"].forEach(function (id) { $(id).addEventListener("change", function () { S.clk = { run: Math.max(1, +$("ckRun").value || 25), stop: Math.max(0, +$("ckStop").value || 6) }; save(); renderAll(); openClock() }) });
   $("clkSet").addEventListener("click", function () {
     var m = String($("clkIn").value).trim().match(/^(\d{1,2})(?::(\d{1,2}))?$/); if (!m) { toast("Type the time like 7:30"); return }
-    var sec = Math.min(720, (+m[1]) * 60 + (+(m[2] || 0))); S.clock = { qtr: S.cur.qtr, sec: sec, at: S.snaps.length }; save(); renderAll();
+    var sec = Math.min(720, (+m[1]) * 60 + (+(m[2] || 0))); setClockNow(sec);
     $("clkNote").textContent = "Set: " + m[1] + ":" + String(m[2] || 0).padStart(2, "0") + " left in " + (S.cur.qtr === 5 ? "OT" : "Q" + S.cur.qtr); toast("Clock set");
   });
   $("ceSec").addEventListener("change", function () { ceSel = +this.value; ceDelArm = null; renderCE() });

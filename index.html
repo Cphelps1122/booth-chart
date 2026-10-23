@@ -381,7 +381,8 @@ textarea { min-height: 64px }
       <div class="panel">
         <h3>Offense totals <small>penalties left out · scrambles count as rushes</small></h3>
         <div class="tbl" style="margin-bottom:14px"><table id="tTotals"></table></div>
-        <h3>Our players tonight <small>gray = under 3 · QB runs and scrambles count as rushing</small></h3>
+        <div class="actions" id="ocQtr" style="margin:0 0 8px;align-items:center"><b style="font-size:13px;letter-spacing:.06em;text-transform:uppercase">Quarter</b><button class="chip" data-q="0">All</button><button class="chip" data-q="1">Q1</button><button class="chip" data-q="2">Q2</button><button class="chip" data-q="3">Q3</button><button class="chip" data-q="4">Q4</button><button class="chip" data-q="5">OT</button></div>
+        <h3>Our players tonight<span id="plQ" style="color:var(--red)"></span> <small>gray = under 3 · QB runs and scrambles count as rushing</small></h3>
         <div class="tbl" style="margin-bottom:12px"><table id="tPass"></table></div>
         <div class="tbl" style="margin-bottom:12px"><table id="tRush"></table></div>
         <div class="tbl"><table id="tRec"></table></div>
@@ -391,7 +392,7 @@ textarea { min-height: 64px }
         <div class="tbl"><table id="tCall"></table></div>
         <h3 style="margin-top:14px">By concept <small>both sides added up (2 AB + 3 AB = AB)</small></h3>
         <div class="tbl"><table id="tConcept"></table></div>
-        <h3 style="margin-top:14px">Full calls <small>formation + motion + play + RPO</small></h3>
+        <h3 style="margin-top:14px">Full calls<span id="fcQ" style="color:var(--red)"></span> <small>formation + motion + play + RPO</small></h3>
         <div class="tbl"><table id="tFull"></table></div>
       </div>
       <div class="panel">
@@ -1229,9 +1230,17 @@ textarea { min-height: 64px }
     for (var i = S.snaps.length - 1; i >= 0; i--) { var x = S.snaps[i]; if (x.kind === "try") continue; if (x.call || x.form) return x }
     return null;
   }
+  // Q run game: a designed run where the QB carries gets " Q" added to the call
+  function isQB(num) { return roster().some(function (x) { return x.n === String(num) && x.pos === "QB" }) }
+  function qTag(sn) {
+    if (!sn.call) return;
+    var base = sn.call.replace(/\s+Q$/, "");
+    var qrun = sn.carrier && (sn.res === "Rush" || (sn.res === "Fumble" && sn.pt === "Run")) && isQB(sn.carrier);
+    sn.call = qrun && !/\(Q\)/.test(base) ? base + " Q" : base;
+  }
   function mulligan() {
     var pv = prevCall(); if (!pv) return;
-    pick.form = pv.form || pick.form; pick.call = pv.call || null; pick.callType = pv.callType || (pv.call ? "sheet" : null);
+    pick.form = pv.form || pick.form; pick.call = pv.call ? pv.call.replace(/\s+Q$/, "") : null; pick.callType = pv.callType || (pv.call ? "sheet" : null);
     pick.motion = pv.motion || null; pick.rpo = pv.rpo || null; pick.mull = true;
     var gs = formSections(); gs.forEach(function (p, gi) { if (p[0].form === pick.form && p[0].plays.some(function (pl) { return pl.t === pick.call })) pick.sec = gi });
     renderChips(); toast("Mulligan: " + callText(pv));
@@ -1286,6 +1295,7 @@ textarea { min-height: 64px }
     snap.qb = pick.qb || null;
     snap.carrier = role === "carrier" ? pick.pl : (snap.res === "Scramble" || snap.res === "Sack" ? snap.qb : (snap.res === "Complete" ? pick.pl : null));
     snap.target = role === "target" ? pick.pl : null;
+    qTag(snap);
     S.snaps.push(snap);
     if (g != null) advance(snap);
     if (snap.td) S.tryPending = true;
@@ -1465,8 +1475,12 @@ textarea { min-height: 64px }
     if (has("cov") || full) cols.push(["cov", "Coverage", covName]);
     return cols;
   }
+  var ocQ = 0;
+  function inQ(s) { return !ocQ || s.qtr === ocQ }
   function renderReport() {
     var P = plays();
+    var qb = $("ocQtr"); if (qb) qb.querySelectorAll("button").forEach(function (b) { b.setAttribute("aria-pressed", +b.dataset.q === ocQ ? "true" : "false") });
+    var qn = ocQ ? (ocQ === 5 ? " · OT only" : " · Q" + ocQ + " only") : ""; $("plQ").textContent = qn; $("fcQ").textContent = qn;
     // situation table
     var LC = lookCols(P);
     var head = function (first) { return "<tr><th>" + first + "</th><th>Snaps</th>" + LC.map(function (c) { return "<th>" + c[1] + "</th>" }).join("") + "<th>Blitz</th><th>Our R / P</th><th>Eff</th><th>Scout</th></tr>" };
@@ -1506,7 +1520,7 @@ textarea { min-height: 64px }
     // players: passing / rushing / receiving
     var QB = {}, RU = {}, RC = {};
     var get = function (m, k, z) { return m[k] || (m[k] = Object.assign({ n: k }, z)) };
-    P.forEach(function (s) {
+    P.filter(inQ).forEach(function (s) {
       if (s.pt === "Pass" && s.qb && s.res !== "Scramble") {
         var q = get(QB, s.qb, { att: 0, cmp: 0, yd: 0, td: 0, int: 0, sk: 0, sky: 0, lg: null });
         if (s.res === "Sack") { q.sk++; q.sky += s.gain }
@@ -1573,7 +1587,7 @@ textarea { min-height: 64px }
     });
     $("tConcept").innerHTML = cons.length ? h : "<tr><td>Concept totals show once plays are charted.</td></tr>";
     var fm = {};
-    P.forEach(function (s) {
+    P.filter(inQ).forEach(function (s) {
       if (!s.call && !s.form) return;
       var k = [s.form || "", s.motion || "", s.call || "", s.rpo || ""].join("|");
       var o = fm[k] || (fm[k] = { f: s.form || "", m: s.motion || "", c: s.call || "", r: s.rpo || "", n: 0, yds: 0, ef: 0, exp: 0, r_: 0, p_: 0 });
@@ -1802,6 +1816,7 @@ textarea { min-height: 64px }
       var plv = $("ePl").value || null, role = playerRole(sn.res);
       sn.carrier = role === "carrier" ? plv : (sn.res === "Scramble" || sn.res === "Sack" ? sn.qb : (sn.res === "Complete" ? plv : null));
       sn.target = role === "target" ? plv : null;
+      qTag(sn);
       var changed = [sn.res, sn.gain, sn.td].join("|") !== oldKey;
       if (changed && editIdx === S.snaps.length - 1 && sn.gain != null) { S.cur = JSON.parse(JSON.stringify(sn.prev)); advance(sn) }
     }
@@ -2021,10 +2036,10 @@ textarea { min-height: 64px }
     var bytes = new Uint8Array(out.length); for (var i = 0; i < out.length; i++) bytes[i] = out.charCodeAt(i) & 0xFF;
     return new Blob([bytes], { type: "application/pdf" });
   }
-  function exportXlsx() { try { saveFile(fileBase() + ".xlsx", buildXlsx()) } catch (e) { toast("Excel export failed: " + e.message) } }
-  function exportPdf() { try { saveFile(fileBase() + ".pdf", buildPdf()) } catch (e) { toast("PDF export failed: " + e.message) } }
-  function exportOcPdf() { try { saveFile(fileBase() + "_OC_Reports.pdf", buildPdf("oc")) } catch (e) { toast("PDF export failed: " + e.message) } }
-  function exportOcXlsx() { try { saveFile(fileBase() + "_OC_Reports.xlsx", buildXlsx("oc")) } catch (e) { toast("Excel export failed: " + e.message) } }
+  function exportXlsx() { var kq = ocQ; ocQ = 0; try { saveFile(fileBase() + ".xlsx", buildXlsx()) } catch (e) { toast("Excel export failed: " + e.message) } ocQ = kq; renderReport(); }
+  function exportPdf() { var kq = ocQ; ocQ = 0; try { saveFile(fileBase() + ".pdf", buildPdf()) } catch (e) { toast("PDF export failed: " + e.message) } ocQ = kq; renderReport(); }
+  function exportOcPdf() { var kq = ocQ; ocQ = 0; try { saveFile(fileBase() + "_OC_Reports.pdf", buildPdf("oc")) } catch (e) { toast("PDF export failed: " + e.message) } ocQ = kq; renderReport(); }
+  function exportOcXlsx() { var kq = ocQ; ocQ = 0; try { saveFile(fileBase() + "_OC_Reports.xlsx", buildXlsx("oc")) } catch (e) { toast("Excel export failed: " + e.message) } ocQ = kq; renderReport(); }
 
   // ---------- win probability ----------
   var WP_DEF_US = 40, WP_DEF_THEM = 24, DRIVES_PER_GAME = 11, MIN_PER_PLAY = 0.75;
@@ -2552,6 +2567,7 @@ textarea { min-height: 64px }
   });
   $("dlCsv").addEventListener("click", function () { saveFile(fileBase() + "_hudl.csv", csv()) });
   $("xlsxBtn").addEventListener("click", exportXlsx); $("pdfBtn").addEventListener("click", exportPdf);
+  document.querySelectorAll("#ocQtr button").forEach(function (b) { b.addEventListener("click", function () { ocQ = +b.dataset.q; renderReport() }) });
   $("ocPdf").addEventListener("click", exportOcPdf); $("ocXlsx").addEventListener("click", exportOcXlsx);
   $("logXlsx").addEventListener("click", exportXlsx); $("logPdf").addEventListener("click", exportPdf);
   $("editSave").addEventListener("click", saveEdit);

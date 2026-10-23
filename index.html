@@ -42,6 +42,7 @@ header { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; backg
 .sb .pts { font-family: var(--f-display); font-weight: 800; font-size: 34px; line-height: 1; font-variant-numeric: tabular-nums; color: #ffb21e; text-shadow: 0 0 10px rgba(255,178,30,.35) }
 .sb.us .pts { color: #ff4d45; text-shadow: 0 0 10px rgba(255,77,69,.35) }
 .sb.lead { border-color: #f4f4f5 }
+.scoutnew { background: #fff1c7; color: #6b4a00; border-radius: 8px; padding: 8px 10px; font-weight: 600; margin-bottom: 8px }
 .lookcell { cursor: pointer; border-radius: 6px; box-shadow: inset 0 0 0 1px rgba(127,127,127,.25) } .lookcell:hover, .lookcell:active { background: rgba(200,16,46,.08) }
 #lookModal .chips { margin-bottom: 8px } #lookModal .sub { margin-top: 8px }
 .sb.clk { min-width: 108px; position: relative } .sb.clk .pts { color: #f4f4f5; text-shadow: 0 0 10px rgba(255,255,255,.25); font-size: 30px }
@@ -463,6 +464,10 @@ textarea { min-height: 64px }
       <div class="panel">
         <h3>Game</h3>
         <label for="sOpp">Opponent<input type="text" id="sOpp"></label>
+        <div class="sub" style="margin-top:4px">Opponent scout</div>
+        <p class="note" id="scoutNow" style="margin:2px 0 6px"></p>
+        <div class="scoutnew" id="scoutNew" hidden><span id="scoutNewTxt"></span> <button class="btn" id="scoutUse" style="font-size:14px;padding:6px 12px">Use it</button> <button class="btn" id="scoutSkip" style="font-size:14px;padding:6px 12px">Not now</button></div>
+        <div class="actions" style="margin:4px 0 10px"><label class="btn" for="scoutFile" style="font-size:14px;padding:6px 12px;cursor:pointer">Load scout file<input type="file" id="scoutFile" accept=".json,application/json" hidden></label><button class="btn" id="scoutBuiltin" style="font-size:14px;padding:6px 12px">Use built-in Lebanon Trail</button></div>
         <label for="sPre">Pre-game expectations (from the scout)<textarea id="sPre"></textarea></label>
         <label for="sMode">Defense tags
           <select id="sMode" style="font-size:16px;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink)">
@@ -672,6 +677,7 @@ textarea { min-height: 64px }
     if (S && S.sheet && S.sheetVer !== SHEET_VER) { S.sheet = null } // new call sheet loaded in the app replaces older edits
     if (S && S.sheetVer !== SHEET_VER) S.sheetVer = SHEET_VER;
     SHEET = (S && Array.isArray(S.sheet) && S.sheet.length) ? S.sheet : DEFAULT_SHEET;
+    applyScout();
     SHEET.forEach(function (sec) { if (!Array.isArray(sec.plays)) sec.plays = sec.plays ? Object.keys(sec.plays).map(function (k) { return sec.plays[k] }) : [] });
     CONCEPT = {}; SHEET.forEach(function (sec) { sec.plays.forEach(function (pl) { if (!CONCEPT[pl.t]) CONCEPT[pl.t] = pl.g || pl.t }) });
   }
@@ -714,6 +720,27 @@ textarea { min-height: 64px }
   function roster() { return parseRoster(rosterText()) }
   function who(num) { var r = roster().filter(function (x) { return x.n === String(num) })[0]; return "#" + num + (r ? " " + (r.name || r.pos) : "") }
   var SCOUT_NAME = "Lebanon Trail scout (6 games, 252 plays)";
+  // ---------- opponent scout: built-in Lebanon Trail, or one sent from the Report Builder ----------
+  var SCOUT_KEY = "cardinals-scout-v1", BUILTIN_SCOUT = { sits: SCOUT.sits, forms: SCOUT.forms, shell: SCOUT_SHELL, calls: SCOUT_CALLS, name: SCOUT_NAME };
+  function applyScout() {
+    var sc = S && S.scout && S.scout.sits ? S.scout : null;
+    if (sc) { SCOUT = { sits: sc.sits || {}, forms: sc.forms || {} }; SCOUT_SHELL = { sits: (sc.shell && sc.shell.sits) || {}, forms: (sc.shell && sc.shell.forms) || {} }; SCOUT_CALLS = sc.calls || []; SCOUT_NAME = sc.name || "Scout" }
+    else { SCOUT = { sits: BUILTIN_SCOUT.sits, forms: BUILTIN_SCOUT.forms }; SCOUT_SHELL = BUILTIN_SCOUT.shell; SCOUT_CALLS = BUILTIN_SCOUT.calls; SCOUT_NAME = BUILTIN_SCOUT.name }
+  }
+  function pendingScout() { try { var x = JSON.parse(localStorage.getItem(SCOUT_KEY) || "null"); if (x && x.sits && (!S.scout || x.at !== S.scout.at) && x.at !== S.scoutSkip) return x } catch (e) {} return null }
+  function useScout(sc) {
+    var oldPre = S.scout ? S.scout.pre : null;
+    S.scout = sc; if (sc && sc.pre) S.pre = sc.pre; else if (!sc && oldPre && S.pre === oldPre) S.pre = "";
+    if (sc && sc.team && (!S.opp || S.opp === "Opponent" || S.example)) S.opp = sc.team;
+    if (sc && sc.team && S.opp && S.opp !== sc.team) toast("Scout is " + sc.team + " but the game says vs " + S.opp + ". Change the opponent below if needed.");
+    save(); renderAll(); renderSetup(); renderScoutBox(); if (!(sc && sc.team && S.opp && S.opp !== sc.team)) toast(sc ? "Scout loaded: " + sc.name : "Back to the built-in Lebanon Trail scout");
+  }
+  function renderScoutBox() {
+    var el = $("scoutNow"); if (!el) return;
+    el.textContent = SCOUT_NAME + (S.scout ? " · from the Report Builder" : " · built in");
+    var pn = pendingScout(); $("scoutNew").hidden = !pn; if (pn) $("scoutNewTxt").textContent = "New from the Report Builder: " + pn.name;
+    $("scoutBuiltin").hidden = !S.scout;
+  }
   var DEF_LISTS = {
     form: "GOLD, SLOT DIP, SLOT TRIG, RED, TEXAS, BONE, AGGIE, EMPTY, BLUE, GRAY, PRO, UNBALANCED",
     run: "INSERT, ACE, ACES, POWER, INSIDE ZONE, MIKE, SPLIT ZONE, GH, POWER READ, SNEAK",
@@ -740,7 +767,7 @@ textarea { min-height: 64px }
   var DEFAULT_DB = "https://cardinal-booth-default-rtdb.firebaseio.com";
   var SYNC_KEY = "cardinals-booth-sync-v1", DEVICE = Math.random().toString(36).slice(2, 10);
   var SY = { cfg: null, es: null, status: "off", mirror: null, last: null, pushing: false, dirty: false, needApply: false, timer: null, retry: null, applying: false };
-  var META_KEYS = ["wp", "clock", "clocks", "clk", "sheet", "sheetVer", "gameDate", "opp", "pre", "start", "lists", "dmode", "fast", "oppScore", "ourAdj", "scoreLog", "tryPending", "endAfter", "example", "cur"];
+  var META_KEYS = ["wp", "clock", "clocks", "clk", "sheet", "sheetVer", "scout", "gameDate", "opp", "pre", "start", "lists", "dmode", "fast", "oppScore", "ourAdj", "scoreLog", "tryPending", "endAfter", "example", "cur"];
   function syncCfg() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || "null") } catch (e) { return null } }
   function setSyncCfg(c) { try { if (c) localStorage.setItem(SYNC_KEY, JSON.stringify(c)); else localStorage.removeItem(SYNC_KEY) } catch (e) {} }
   function newCode() { var a = "abcdefghjkmnpqrstuvwxyz23456789", t = ""; var r = new Uint8Array(18); (window.crypto || window.msCrypto).getRandomValues(r); for (var i = 0; i < 18; i++) t += a[r[i] % a.length]; return "mel-" + t }
@@ -1723,7 +1750,7 @@ textarea { min-height: 64px }
     var lb = blitzRate(last), bb = blitzRate(before);
     if (last.length >= 3 && before.length >= 5 && lb.p - bb.p >= 30) l1 += " Pressure up last series: " + lb.b + " of " + lb.n + ".";
     var sa = SCOUT.sits.ALL, ss = SCOUT_SHELL.sits.ALL;
-    l1 += S.dmode === "full" ? " Scout: " + covName(sa.cov[0]) + " " + pct(sa.cov[1], sa.cn) + "%, blitz " + pct(sa.bl, sa.n) + "%." : " Scout: " + ss[0].toLowerCase() + " " + pct(ss[1], ss[2]) + "%, blitz " + pct(sa.bl, sa.n) + "%.";
+    if (sa) l1 += S.dmode === "full" && sa.cov ? " Scout: " + covName(sa.cov[0]) + " " + pct(sa.cov[1], sa.cn) + "%, blitz " + pct(sa.bl, sa.n) + "%." : " Scout: " + (ss ? ss[0].toLowerCase() + " " + pct(ss[1], ss[2]) + "%, " : "") + "blitz " + pct(sa.bl, sa.n) + "%.";
     lines.push(["They're playing", l1]);
     // 2 working
     var good = calls.filter(function (x) { return x.n >= 3 && x.eff >= 50 }).slice(0, 2);
@@ -2813,6 +2840,14 @@ textarea { min-height: 64px }
   ["wpUs", "wpThem"].forEach(function (id) { $(id).addEventListener("change", function () { S.wp = { us: Math.max(0, +$("wpUs").value || 0), them: Math.max(0, +$("wpThem").value || 0) }; save(); renderAll(); toast("Win chance updated") }) });
   $("wpReset").addEventListener("click", function () { delete S.wp; fillWp(); save(); renderAll(); toast("Back to the data-based start") });
   $("clkBadge").addEventListener("click", openClock);
+  $("scoutUse").addEventListener("click", function () { var pn = pendingScout(); if (pn) useScout(pn) });
+  $("scoutSkip").addEventListener("click", function () { var pn = pendingScout(); if (pn) { S.scoutSkip = pn.at; save(); renderScoutBox() } });
+  $("scoutBuiltin").addEventListener("click", function () { useScout(null) });
+  $("scoutFile").addEventListener("change", function () {
+    var f = this.files[0]; this.value = ""; if (!f) return;
+    f.text().then(function (t) { var sc = JSON.parse(t); if (!sc || !sc.sits) throw new Error("bad"); useScout(sc) }).catch(function () { toast("That isn't a scout file from the Report Builder") });
+  });
+  document.getElementById("t-setup").addEventListener("click", renderScoutBox);
   $("lkClose").addEventListener("click", function () { $("lookModal").hidden = true });
   $("lkPrev").addEventListener("click", function () { openCell(+this.dataset.i, lookK) });
   $("lkNext").addEventListener("click", function () { openCell(+this.dataset.i, lookK) });

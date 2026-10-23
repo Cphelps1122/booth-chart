@@ -1606,6 +1606,7 @@ textarea { min-height: 64px }
     var TR = S.snaps.filter(function (x) { return x.kind === "try" }), pat = TR.filter(function (x) { return x.res === "PAT" }), two = TR.filter(function (x) { return x.res !== "PAT" });
     var touchdowns = S.snaps.filter(function (x) { return x.td }).length;
     if (TR.length || touchdowns) tot += "<tr><td>Scoring</td><td colspan='11'>" + touchdowns + " TD · PAT " + pat.filter(function (x) { return x.good }).length + "/" + pat.length + " · 2-pt " + two.filter(function (x) { return x.good }).length + "/" + two.length + " · " + (touchdowns * 6 + pat.filter(function (x) { return x.good }).length + two.filter(function (x) { return x.good }).length * 2) + " points from the offense</td></tr>";
+    var TP = topNow(); if (S.snaps.length) tot += "<tr><td>Time of poss.</td><td colspan='11'>Us " + fmtClock(TP.us) + " · Them " + fmtClock(TP.them) + " (est" + (TP.elapsed ? ", " + Math.round(100 * TP.us / TP.elapsed) + "% ours" : "") + ") · set the clock at the start of each drive to sharpen it</td></tr>";
     tot += "<tr><td>Penalties</td><td colspan='11'>On us " + PO.length + " for " + pydO + " yds · On them " + PD.length + " for " + pydD + " yds" + (PD.filter(function (s) { return s.pen.afd }).length ? " (" + PD.filter(function (s) { return s.pen.afd }).length + " gave us a 1st down)" : "") + "</td></tr>";
     $("tTotals").innerHTML = (P.length || PO.length || PD.length) ? tot : "<tr><td>No plays yet.</td></tr>";
     $("tPass").innerHTML = vals(QB).length ? hp : "<tr><td>No passes yet.</td></tr>";
@@ -2036,6 +2037,7 @@ textarea { min-height: 64px }
       ocLinesNow().forEach(function (l, i) { para((i + 1) + ". " + l[0].toUpperCase() + ": " + l[1]) });
       if ($("wpNow").textContent) para("Win chance: " + $("wpNow").textContent + ". " + $("wpWhy").textContent);
       heading("Offense totals"); table(tableRows("tTotals").filter(function (r) { return r.length > 2 }), 8.5);
+      tableRows("tTotals").filter(function (r) { return r.length <= 2 && (r[0] === "Time of poss." || r[0] === "Penalties") }).forEach(function (r) { para(r[0] + ": " + r[1]) });
       heading("Their defense by down & distance"); table(tableRows("tSit"), 7.5, 150);
       heading("Their defense by field zone"); table(tableRows("tZone"), 7.5, 150);
       heading("How they played our formations"); table(tableRows("tForm"), 7.5, 150);
@@ -2054,6 +2056,7 @@ textarea { min-height: 64px }
     } else {
     heading("Offense totals"); table(tableRows("tTotals").filter(function (r) { return r.length > 2 }), 8.5);
     var pen = tableRows("tTotals").filter(function (r) { return r.length <= 2 && r[0] === "Penalties" })[0]; if (pen) para("Penalties: " + pen[1]);
+    var topr = tableRows("tTotals").filter(function (r) { return r[0] === "Time of poss." })[0]; if (topr) para("Time of possession: " + topr[1]);
     heading("Report to the OC"); Array.prototype.forEach.call(document.querySelectorAll("#ocCard li"), function (li) {
       var num = li.querySelector("b"), k = li.querySelector(".k"), body = li.querySelector("div");
       var t = body ? body.textContent.replace(k ? k.textContent : "", "").trim() : li.textContent;
@@ -2214,6 +2217,21 @@ textarea { min-height: 64px }
       sec -= clockStops(x, sec) ? t.stop : t.run; n++;
     }
     return { sec: Math.max(0, sec), est: n > 0 || !anchored, anchored: anchored, since: n };
+  }
+  // time of possession (estimate): our snaps use the clock between snaps of the same drive; a drive's last play uses the per-play estimate
+  function snapSecs(i) {
+    var x = S.snaps[i]; if (!x || x.kind === "try" || x.qtr >= 5) return 0;
+    var nx = S.snaps[i + 1];
+    if (nx && nx.qtr === x.qtr && nx.series === x.series) return Math.max(0, clockAt(x.qtr, i).sec - clockAt(x.qtr, i + 1).sec);
+    var t = ckSet_(), before = clockAt(x.qtr, i).sec;
+    if (i === S.snaps.length - 1 && x.series === S.cur.series && x.qtr === S.cur.qtr) return Math.max(0, before - clockAt(x.qtr, i + 1).sec);
+    return Math.min(before, clockStops(x, before) ? t.stop : t.run);
+  }
+  function topNow() {
+    var us = 0, bySer = {};
+    S.snaps.forEach(function (x, i) { var v = snapSecs(i); us += v; bySer[x.series] = (bySer[x.series] || 0) + v });
+    var q = Math.min(S.cur.qtr, 4), el = (q - 1) * QSEC + (S.cur.qtr >= 5 ? QSEC : QSEC - clockAt(q, S.snaps.length).sec);
+    return { us: us, them: Math.max(0, el - us), bySer: bySer, elapsed: el };
   }
   function fmtClock(sec) { sec = Math.max(0, Math.round(sec)); return Math.floor(sec / 60) + ":" + String(sec % 60).padStart(2, "0") }
   function setClockNow(sec) {
@@ -2540,8 +2558,9 @@ textarea { min-height: 64px }
     var avgStart = D.length ? Math.round(D.reduce(function (t, d) { return t + d.start }, 0) / D.length) : 0;
     var pts = D.reduce(function (t, d) { return t + d.pts }, 0);
     $("drvSum").textContent = D.length ? D.length + " drives · " + tds + " TD · avg start " + ballText(toYL(avgStart)).toLowerCase() + (done.length ? " · " + (pts / done.length).toFixed(1) + " pts per drive" : "") : "";
-    var t = "<tr><th>Drive</th><th>Qtr</th><th>Start</th><th>End</th><th>Plays</th><th>Yards</th><th>Result</th><th>Points</th></tr>";
-    D.forEach(function (d) { t += "<tr><td>D" + d.n + "</td><td>" + (d.qtr === 5 ? "OT" : "Q" + d.qtr) + "</td><td>" + ballText(toYL(d.start)) + "</td><td>" + (d.end >= 100 ? "End zone" : ballText(toYL(Math.max(1, d.end)))) + "</td><td>" + d.plays + "</td><td>" + d.yds + "</td><td><span class='tag' style='background:" + DCOL[d.result] + ";color:#fff'>" + d.result + "</span></td><td>" + d.pts + "</td></tr>" });
+    var t = "<tr><th>Drive</th><th>Qtr</th><th>Start</th><th>End</th><th>Plays</th><th>Yards</th><th>Time</th><th>Result</th><th>Points</th></tr>";
+    var TPd = topNow();
+    D.forEach(function (d) { t += "<tr><td>D" + d.n + "</td><td>" + (d.qtr === 5 ? "OT" : "Q" + d.qtr) + "</td><td>" + ballText(toYL(d.start)) + "</td><td>" + (d.end >= 100 ? "End zone" : ballText(toYL(Math.max(1, d.end)))) + "</td><td>" + d.plays + "</td><td>" + d.yds + "</td><td>" + fmtClock(TPd.bySer[d.series] || 0) + "</td><td><span class='tag' style='background:" + DCOL[d.result] + ";color:#fff'>" + d.result + "</span></td><td>" + d.pts + "</td></tr>" });
     $("tDrives").innerHTML = D.length ? t : "<tr><td>No drives yet.</td></tr>";
   }
   function loadStadium(file) {

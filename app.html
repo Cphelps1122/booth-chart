@@ -310,6 +310,7 @@ textarea { min-height: 64px }
       <button role="tab" id="t-setup" aria-selected="false" data-tab="setup">Setup</button>
       <a class="navlink" id="navDef" href="defense.html" hidden>Defense ›</a>
       <a class="navlink" id="navRep" href="reports.html" hidden>Reports ›</a>
+      <a class="navlink" id="navAdm" href="admin.html" hidden style="margin-left:auto">Admin</a>
       <button class="navlink" id="navOut" type="button" hidden style="background:none;border:0;cursor:pointer;margin-left:auto;color:#93a1b1">Log out</button>
     </nav>
   </div>
@@ -3205,7 +3206,8 @@ textarea { min-height: 64px }
       else { var k = seasonKey(true); return fetch(solSchoolBase() + "/season.json?auth=" + t, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(k) }) }
     });
   }).then(function () { if (!$("v-home").hidden) loadHome() }, function () {});
-  if (ONLINE) { $("navOut").hidden = false; $("navOut").addEventListener("click", function () { solLogout(); location.href = "index.html" }) }
+  if (ONLINE) { $("navOut").hidden = false; $("navOut").addEventListener("click", function () { solLogout(); location.href = "index.html" });
+    solToken().then(function (t) { return fetch(SOL_DB + "/admins/" + ACC.uid + ".json?auth=" + t).then(function (r) { return r.json() }) }).then(function (ok) { if (ok === true) { $("navAdm").hidden = false; $("navOut").style.marginLeft = "12px" } }, function () {}) }
   $("schoolName").textContent = SCHOOL.name.toUpperCase(); document.documentElement.style.setProperty("--school", SCHOOL.color);
   $("hlGo").addEventListener("click", function () { var v = $("hlIn").value.trim(); if (v.length < 4) { toast("At least 4 letters or numbers"); return } seasonKey(true); S.lock = lockOf(v); lastIdx = null; save(); updateIndex(); $("hlIn").value = ""; toast("Game code set: " + v.toUpperCase()); setTimeout(loadHome, 600) });
   $("homeContinue").addEventListener("click", function () { document.getElementById("t-chart").click() });

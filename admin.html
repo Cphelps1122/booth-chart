@@ -29,6 +29,11 @@ button.d{background:none;color:var(--bad);border:1px solid #5a2a2a;padding:6px 1
 .hide{display:none}
 dialog{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:12px;max-width:560px;width:calc(100% - 32px)}
 dialog::backdrop{background:#000a}
+.se-n{color:#93a1b1;font-size:13px;margin:6px 0}.se-t{width:100%;box-sizing:border-box;background:#0c1117;color:#e8edf2;border:1px solid #2a3442;border-radius:8px;padding:8px;font:inherit}
+.se-r{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0}.se-m{color:#a5e3ff;font-size:13px}
+.se-b{background:#1a222d;color:#e8edf2;border:1px solid #2a3442;border-radius:8px;padding:7px 12px;font:600 13px inherit;cursor:pointer}.se-b.pri{background:var(--hi,#a5e3ff);color:#0c1117;border-color:transparent}
+.se-tb{width:100%;border-collapse:collapse}.se-tb th{text-align:left;color:#93a1b1;font-size:11px;text-transform:uppercase;padding:4px}.se-tb td{padding:3px}
+.se-tb input,.se-tb select{background:#0c1117;color:#e8edf2;border:1px solid #2a3442;border-radius:6px;padding:6px;font:inherit;width:100%;box-sizing:border-box}
 </style>
 <header><div class="brand">SOLUTIONS <b>ANALYTICS</b></div><span class="tag">ADMIN</span><span class="sp"></span><a href="app.html">Open app</a><button class="l" id="out">Log out</button></header>
 <div id="gate" class="gate hide"></div>
@@ -39,7 +44,7 @@ dialog::backdrop{background:#000a}
   <div class="card"><h2>New school</h2>
     <div class="row"><label>School name<input id="nsName" placeholder="Lebanon Trail"></label><label>School ID<input id="nsId" placeholder="lebanontrail"></label><button class="b" id="nsGo">Create school</button></div>
     <p class="mute">The ID is permanent: lowercase letters and numbers only. Set colors and logo after creating.</p></div>
-  <div class="card"><h2>All schools</h2><div class="wrap"><table><thead><tr><th></th><th>School</th><th>ID</th><th>Colors</th><th>Users</th><th>Games</th><th></th></tr></thead><tbody id="schoolRows"></tbody></table></div></div>
+  <div class="card"><h2>All schools</h2><div class="wrap"><table><thead><tr><th></th><th>School</th><th>ID</th><th>Colors</th><th>Users</th><th>Games</th><th>Next game</th><th></th></tr></thead><tbody id="schoolRows"></tbody></table></div></div>
 </section>
 <section id="t-users" class="hide">
   <div class="card"><h2>New coach login</h2>
@@ -116,6 +121,68 @@ dialog::backdrop{background:#000a}
     return { c1: c1, c2: c2 || c1, on: on };
   }
 
+  // ---------- schedule import: paste a MaxPreps (or any) schedule page, get dates + opponents ----------
+  function schedSeasonYear(d) { d = d || new Date(); return d.getMonth() >= 5 ? d.getFullYear() : d.getFullYear() - 1 }
+  function parseSchedule(text, seasonYear) {
+    var Y = seasonYear || schedSeasonYear(), MON = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, sept: 9, oct: 10, nov: 11, dec: 12 };
+    var reNum = /\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/, reMon = /\b(jan|feb|mar|apr|may|jun|jul|aug|sept?|oct|nov|dec)[a-z]*\.?\s+(\d{1,2})(?:,?\s*(\d{4}))?\b/i;
+    var JUNK = /^(game ?recap|recap|box ?score|preview|tickets?|buy tickets|stats|photos|videos?|watch|live|listen|more|details|game info|result|results|opponent|date|time|location|score|non-?league|league|district|conference|playoffs?|scrimmage|final|postponed|cancell?ed|forfeit|bye|home|away|neutral|tba|tbd|w|l|t|\*|-|–)$/i;
+    var WD = /^(mon|tue|tues|wed|thu|thur|thurs|fri|sat|sun)[a-z]*,?$/i, TIME = /^\d{1,2}(:\d{2})?\s*(am|pm|a|p)?\.?\s*(ct|cst|cdt|et|est|edt|mt|pt)?$/i, RES = /^[WLT]\s*\(?\d+\s*[-–]\s*\d+\)?/i;
+    var lines = String(text || "").split(/[\n\t]+/).map(function (s) { return s.replace(/\s+/g, " ").trim() }).filter(Boolean);
+    var games = [], g = null;
+    function iso(m, d, y) { m = +m; d = +d; if (!(m >= 1 && m <= 12 && d >= 1 && d <= 31)) return null; y = y ? (+y < 100 ? 2000 + +y : +y) : (m >= 6 ? Y : Y + 1); return y + "-" + ("0" + m).slice(-2) + "-" + ("0" + d).slice(-2) }
+    function cleanOpp(s) {
+      var ha = null;
+      s = s.replace(/^(vs\.?|v\.?)\s+/i, function () { ha = "H"; return "" }).replace(/^(@|at)\s+/i, function () { ha = "A"; return "" });
+      s = s.replace(/\([^)]*\)/g, "").replace(/^#\s*\d+\s*/, "").replace(/\*+/g, "").replace(/\s+(W|L|T)\s*\d+\s*[-–]\s*\d+.*$/i, "").replace(/\s+\d{1,2}:\d{2}\s*(am|pm)?.*$/i, "").trim();
+      return { opp: s, ha: ha };
+    }
+    lines.forEach(function (ln) {
+      var m = ln.match(reNum), mm = !m && ln.match(reMon), date = null, rest = ln;
+      if (m && !RES.test(ln)) { date = iso(m[1], m[2], m[3]); rest = ln.replace(m[0], "") }
+      else if (mm) { date = iso(MON[mm[1].toLowerCase().slice(0, mm[1].toLowerCase() === "sept" ? 4 : 3)] || MON[mm[1].toLowerCase().slice(0, 3)], mm[2], mm[3]); rest = ln.replace(mm[0], "") }
+      if (date) { g = { date: date, opp: "", ha: "" }; games.push(g); ln = rest.replace(/^[\s,·|-]+/, "").replace(/^(mon|tue|tues|wed|thu|thur|thurs|fri|sat|sun)[a-z]*,?\s*/i, "").trim(); if (!ln) return }
+      if (!g) return;
+      if (/^(vs\.?|v\.?)$/i.test(ln) || /^home$/i.test(ln)) { if (!g.ha) g.ha = "H"; return }
+      if (/^(@|at)$/i.test(ln) || /^away$/i.test(ln)) { if (!g.ha) g.ha = "A"; return }
+      if (/^neutral$/i.test(ln)) { if (!g.ha) g.ha = "N"; return }
+      if (g.opp || WD.test(ln) || TIME.test(ln) || RES.test(ln) || JUNK.test(ln) || !/[a-z]/i.test(ln)) return;
+      var c = cleanOpp(ln); if (!c.opp || JUNK.test(c.opp) || c.opp.length > 60) return;
+      g.opp = c.opp; if (c.ha) g.ha = c.ha;
+    });
+    var seen = {};
+    return games.filter(function (x) { var k = x.date + "|" + x.opp.toLowerCase(); if (!x.opp || seen[k]) return false; seen[k] = 1; return true }).sort(function (a, b) { return a.date.localeCompare(b.date) });
+  }
+  function schedNext(list, todayIso) {
+    var t = todayIso || (function () { var d = new Date(); return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2) })();
+    return (list || []).filter(function (x) { return x && x.date >= t }).sort(function (a, b) { return a.date.localeCompare(b.date) })[0] || null;
+  }
+  function schedNice(iso) { var p = String(iso || "").split("-"); if (p.length < 3) return iso || ""; var d = new Date(+p[0], +p[1] - 1, +p[2]); return d.toLocaleDateString([], { weekday: "short" }) + " " + (+p[1]) + "/" + (+p[2]) }
+  // paste box + editable preview. host: element; list: current schedule; save(list) -> Promise
+  function schedEditor(host, list, save, done) {
+    var rows = (list || []).map(function (x) { return { date: x.date, opp: x.opp, ha: x.ha || "" } });
+    var e = function (s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] }) };
+    host.innerHTML = "<div class='se'><p class='se-n'>On MaxPreps, open the team's <b>Schedule</b> page, select the whole page (Ctrl+A / long-press → Select All), copy, and paste it here. Any schedule text works.</p>"
+      + "<textarea class='se-t' rows='5' placeholder='Paste the schedule here'></textarea><div class='se-r'><button type='button' class='se-b se-read'>Read schedule</button><span class='se-m'></span></div><div class='se-l'></div>"
+      + "<div class='se-r'><button type='button' class='se-b se-add'>+ Add a game</button><span style='flex:1'></span><button type='button' class='se-b se-x'>Cancel</button><button type='button' class='se-b pri se-s'>Save schedule</button></div></div>";
+    var q = function (c) { return host.querySelector(c) }, msg = q(".se-m");
+    function draw() {
+      rows.sort(function (a, b) { return (a.date || "9").localeCompare(b.date || "9") });
+      q(".se-l").innerHTML = rows.length ? "<table class='se-tb'><tr><th>Date</th><th>Opponent</th><th>Site</th><th></th></tr>" + rows.map(function (r, i) {
+        return "<tr><td><input type='date' data-i='" + i + "' data-f='date' value='" + e(r.date) + "'></td><td><input data-i='" + i + "' data-f='opp' value='" + e(r.opp) + "'></td><td><select data-i='" + i + "' data-f='ha'>" + [["", "—"], ["H", "Home"], ["A", "Away"], ["N", "Neutral"]].map(function (o) { return "<option value='" + o[0] + "'" + (r.ha === o[0] ? " selected" : "") + ">" + o[1] + "</option>" }).join("") + "</select></td><td><button type='button' class='se-b se-del' data-del='" + i + "' aria-label='Remove'>✕</button></td></tr>" }).join("") + "</table>" : "<p class='se-n'>No games yet.</p>";
+    }
+    host.oninput = host.onchange = function (ev) { var t = ev.target, i = t.dataset && t.dataset.i; if (i != null && rows[i]) rows[i][t.dataset.f] = t.value };
+    host.onclick = function (ev) {
+      var b = ev.target.closest("button"); if (!b) return;
+      if (b.classList.contains("se-read")) { var got = parseSchedule(q(".se-t").value); if (!got.length) { msg.textContent = "Couldn't find any dates and opponents in that text."; return } rows = got; msg.textContent = "Found " + got.length + " games. Check them, then Save."; draw() }
+      if (b.classList.contains("se-add")) { rows.push({ date: "", opp: "", ha: "" }); draw() }
+      if (b.dataset.del != null) { rows.splice(+b.dataset.del, 1); draw() }
+      if (b.classList.contains("se-x")) done && done(false);
+      if (b.classList.contains("se-s")) { var out = rows.filter(function (r) { return r.date && r.opp.trim() }).map(function (r) { return { date: r.date, opp: r.opp.trim(), ha: r.ha || "" } }); msg.textContent = "Saving…"; save(out).then(function () { done && done(true, out) }, function () { msg.textContent = "Couldn't save. Check the connection." }) }
+    };
+    draw();
+  }
+
 var $=function(i){return document.getElementById(i)};
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
 function toast(m,bad){var t=$("toast");t.textContent=m;t.style.borderColor=bad?"var(--bad)":"var(--ice)";t.style.display="block";clearTimeout(toast.h);toast.h=setTimeout(function(){t.style.display="none"},3500)}
@@ -130,7 +197,7 @@ document.querySelectorAll("nav.tabs button").forEach(function(b){b.onclick=funct
 var S={schools:{},members:{},users:{},leads:{},games:{}};
 function loadAll(){
   return Promise.all([api("schools","GET").catch(function(){return null}),api("members").catch(function(){return null}),api("users").catch(function(){return null}),api("leads").catch(function(){return null})]).then(function(r){
-    var sc=r[0]||{};S.schools={};S.games={};Object.keys(sc).forEach(function(k){S.schools[k]=(sc[k]&&sc[k].profile)||{};S.games[k]=Object.keys((sc[k]&&sc[k].games)||{})});
+    var sc=r[0]||{};S.schools={};S.games={};S.sched={};Object.keys(sc).forEach(function(k){S.schools[k]=(sc[k]&&sc[k].profile)||{};S.games[k]=Object.keys((sc[k]&&sc[k].games)||{});S.sched[k]=(sc[k]&&sc[k].schedule)||[]});
     S.members=r[1]||{};S.users=r[2]||{};S.leads=r[3]||{};
     Object.keys(S.members).forEach(function(u){if(!S.users[u])S.users[u]={email:""}});if(A.email&&!(S.users[A.uid]||{}).email){S.users[A.uid]={email:A.email,school:S.members[A.uid]||null};api("users/"+A.uid,"PUT",S.users[A.uid])}
     render()})}
@@ -138,7 +205,7 @@ function schoolOpts(sel){return Object.keys(S.schools).sort().map(function(k){re
 function render(){
   var ids=Object.keys(S.schools).sort();
   $("schoolRows").innerHTML=ids.map(function(k){var p=S.schools[k],n=Object.keys(S.members).filter(function(u){return S.members[u]===k}).length;
-    return"<tr><td>"+(p.logo?"<img class='logo' src='"+esc(p.logo)+"'>":"")+"</td><td><b>"+esc(p.name||k)+"</b></td><td class='mute'>"+esc(k)+"</td><td>"+(p.color?"<span class='sw' style='background:"+esc(p.color)+"'></span> ":"")+(p.color2?"<span class='sw' style='background:"+esc(p.color2)+"'></span>":"")+"</td><td>"+n+"</td><td>"+S.games[k].length+"</td><td class='row'><button class='g' data-ed='"+esc(k)+"'>Edit</button><button class='g' data-gm='"+esc(k)+"'>Games</button></td></tr>"}).join("")||"<tr><td colspan=7 class='mute'>No schools yet.</td></tr>";
+    return"<tr><td>"+(p.logo?"<img class='logo' src='"+esc(p.logo)+"'>":"")+"</td><td><b>"+esc(p.name||k)+"</b></td><td class='mute'>"+esc(k)+"</td><td>"+(p.color?"<span class='sw' style='background:"+esc(p.color)+"'></span> ":"")+(p.color2?"<span class='sw' style='background:"+esc(p.color2)+"'></span>":"")+"</td><td>"+n+"</td><td>"+S.games[k].length+"</td><td>"+(function(n){return n?esc((n.ha==="A"?"at ":"vs ")+n.opp)+"<br><span class='mute'>"+esc(schedNice(n.date))+"</span>":"<span class='mute'>—</span>"})(schedNext(S.sched[k]))+"</td><td class='row'><button class='g' data-ed='"+esc(k)+"'>Edit</button><button class='g' data-gm='"+esc(k)+"'>Games</button><button class='g' data-sc='"+esc(k)+"'>Schedule</button></td></tr>"}).join("")||"<tr><td colspan=8 class='mute'>No schools yet.</td></tr>";
   $("nuSchool").innerHTML=$("luSchool").innerHTML=schoolOpts();
   $("userRows").innerHTML=Object.keys(S.users).map(function(u){var m=S.members[u];
     return"<tr><td>"+esc(S.users[u].email||"—")+"</td><td><select data-mv='"+esc(u)+"'><option value=''>— no access —</option>"+schoolOpts(m)+"</select></td><td class='mute' style='font-size:11px'>"+esc(u)+"</td><td class='row'>"+(S.users[u].email?"<button class='g' data-rs='"+esc(u)+"'>Send reset email</button>":"")+"<button class='d' data-rm='"+esc(u)+"'>Remove</button></td></tr>"}).join("")||"<tr><td colspan=4 class='mute'>No users yet.</td></tr>";
@@ -154,6 +221,8 @@ $("nsGo").onclick=function(){var id=slug($("nsId").value),nm=$("nsName").value.t
 document.addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;var d=b.dataset;
   if(d.ed)openEdit(d.ed);
   if(d.gm)openGames(d.gm);
+  if(d.sc){var sk=d.sc;$("dlgBody").innerHTML="<h2>"+esc(S.schools[sk].name||sk)+" schedule</h2><div id='scHost'></div>";$("dlg").showModal();
+    schedEditor($("scHost"),S.sched[sk],function(list){return api("schools/"+sk+"/schedule","PUT",list)},function(ok,list){$("dlg").close();if(ok){toast("Schedule saved · "+list.length+" games");loadAll()}})}
   if(d.rs){var em=S.users[d.rs].email;fetch("https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key="+SOL_KEY,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({requestType:"PASSWORD_RESET",email:em})}).then(function(r){return r.json()}).then(function(x){if(x.error)throw new Error(x.error.message);toast("Reset email sent to "+em)}).catch(function(e){toast(e.message,1)})}
   if(d.rm){if(d.rm===A.uid)return toast("You can't remove yourself",1);if(!confirm("Remove "+(S.users[d.rm].email||d.rm)+" from Solutions? They lose access right away."))return;
     Promise.all([api("members/"+d.rm,"DELETE"),api("users/"+d.rm,"DELETE")]).then(function(){toast("Removed");loadAll()},function(e){toast(e.message,1)})}

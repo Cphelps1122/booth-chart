@@ -269,6 +269,13 @@ textarea { min-height: 64px }
 .setup label { display: grid; gap: 4px; font-weight: 600; font-size: 13px; margin-bottom: 10px }
 .confirm { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 8px }
 @media (prefers-reduced-motion: no-preference) { .chip, .btn { transition: background-color .12s, transform .08s } .chip:active, .btn:active { transform: scale(.97) } }
+.se-n{color:#93a1b1;font-size:13px;margin:6px 0}.se-t{width:100%;box-sizing:border-box;background:#0c1117;color:#e8edf2;border:1px solid #2a3442;border-radius:8px;padding:8px;font:inherit}
+.se-r{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0}.se-m{color:#a5e3ff;font-size:13px}
+.se-b{background:#1a222d;color:#e8edf2;border:1px solid #2a3442;border-radius:8px;padding:7px 12px;font:600 13px inherit;cursor:pointer}.se-b.pri{background:var(--hi,#a5e3ff);color:#0c1117;border-color:transparent}
+.se-tb{width:100%;border-collapse:collapse}.se-tb th{text-align:left;color:#93a1b1;font-size:11px;text-transform:uppercase;padding:4px}.se-tb td{padding:3px}
+.se-tb input,.se-tb select{background:#0c1117;color:#e8edf2;border:1px solid #2a3442;border-radius:6px;padding:6px;font:inherit;width:100%;box-sizing:border-box}
+.h-next{display:flex;align-items:center;gap:12px;flex-wrap:wrap;border:1px solid var(--hl,#2a3442);border-radius:12px;padding:12px 14px;margin:10px 0}
+.h-next .hn-t{font-family:var(--f-display);font-size:22px;letter-spacing:.03em;text-transform:uppercase}.h-next .hn-t b{color:var(--hi,#a5e3ff);font-weight:inherit}
 </style>
 
 <header>
@@ -357,6 +364,9 @@ textarea { min-height: 64px }
 
     <div class="h-games">
       <div class="h-gh"><div><div class="hk">Season</div><div class="h-gt">Games <span id="homeState"></span></div></div><button class="h-btn" id="hsToggle">+ Schedule a game</button></div>
+      <div class="h-next" id="homeNext" hidden><div style="flex:1;min-width:200px"><div class="hk">Next game</div><div class="hn-t" id="hnTxt"></div><div class="h-sub" id="hnSub"></div></div><button class="h-btn pri" id="hnGo">Set up this game</button><button class="h-btn" id="hnEd">Season schedule</button></div>
+      <div id="homeNoSched" class="h-sub" hidden style="margin:8px 0">Add your season schedule and the next opponent fills in automatically. <button class="h-btn" id="hnImp" style="margin-left:8px">Import schedule</button></div>
+      <div id="homeSchedEd" hidden style="margin:10px 0"></div>
       <div class="h-sched" id="hsBox" hidden>
         <label for="hsOpp">Opponent<input id="hsOpp" type="text" placeholder="e.g. Anna"></label>
         <label for="hsDate">Date<input id="hsDate" type="date"></label>
@@ -855,6 +865,67 @@ textarea { min-height: 64px }
   function solAuthQ() { return SOL_T ? "?auth=" + encodeURIComponent(SOL_T) : "" }
   function solKeepFresh() { solToken().then(function (t) { SOL_T = t }, function () {}) }
   setInterval(solKeepFresh, 5 * 60000);
+  // ---------- schedule import: paste a MaxPreps (or any) schedule page, get dates + opponents ----------
+  function schedSeasonYear(d) { d = d || new Date(); return d.getMonth() >= 5 ? d.getFullYear() : d.getFullYear() - 1 }
+  function parseSchedule(text, seasonYear) {
+    var Y = seasonYear || schedSeasonYear(), MON = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, sept: 9, oct: 10, nov: 11, dec: 12 };
+    var reNum = /\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/, reMon = /\b(jan|feb|mar|apr|may|jun|jul|aug|sept?|oct|nov|dec)[a-z]*\.?\s+(\d{1,2})(?:,?\s*(\d{4}))?\b/i;
+    var JUNK = /^(game ?recap|recap|box ?score|preview|tickets?|buy tickets|stats|photos|videos?|watch|live|listen|more|details|game info|result|results|opponent|date|time|location|score|non-?league|league|district|conference|playoffs?|scrimmage|final|postponed|cancell?ed|forfeit|bye|home|away|neutral|tba|tbd|w|l|t|\*|-|–)$/i;
+    var WD = /^(mon|tue|tues|wed|thu|thur|thurs|fri|sat|sun)[a-z]*,?$/i, TIME = /^\d{1,2}(:\d{2})?\s*(am|pm|a|p)?\.?\s*(ct|cst|cdt|et|est|edt|mt|pt)?$/i, RES = /^[WLT]\s*\(?\d+\s*[-–]\s*\d+\)?/i;
+    var lines = String(text || "").split(/[\n\t]+/).map(function (s) { return s.replace(/\s+/g, " ").trim() }).filter(Boolean);
+    var games = [], g = null;
+    function iso(m, d, y) { m = +m; d = +d; if (!(m >= 1 && m <= 12 && d >= 1 && d <= 31)) return null; y = y ? (+y < 100 ? 2000 + +y : +y) : (m >= 6 ? Y : Y + 1); return y + "-" + ("0" + m).slice(-2) + "-" + ("0" + d).slice(-2) }
+    function cleanOpp(s) {
+      var ha = null;
+      s = s.replace(/^(vs\.?|v\.?)\s+/i, function () { ha = "H"; return "" }).replace(/^(@|at)\s+/i, function () { ha = "A"; return "" });
+      s = s.replace(/\([^)]*\)/g, "").replace(/^#\s*\d+\s*/, "").replace(/\*+/g, "").replace(/\s+(W|L|T)\s*\d+\s*[-–]\s*\d+.*$/i, "").replace(/\s+\d{1,2}:\d{2}\s*(am|pm)?.*$/i, "").trim();
+      return { opp: s, ha: ha };
+    }
+    lines.forEach(function (ln) {
+      var m = ln.match(reNum), mm = !m && ln.match(reMon), date = null, rest = ln;
+      if (m && !RES.test(ln)) { date = iso(m[1], m[2], m[3]); rest = ln.replace(m[0], "") }
+      else if (mm) { date = iso(MON[mm[1].toLowerCase().slice(0, mm[1].toLowerCase() === "sept" ? 4 : 3)] || MON[mm[1].toLowerCase().slice(0, 3)], mm[2], mm[3]); rest = ln.replace(mm[0], "") }
+      if (date) { g = { date: date, opp: "", ha: "" }; games.push(g); ln = rest.replace(/^[\s,·|-]+/, "").replace(/^(mon|tue|tues|wed|thu|thur|thurs|fri|sat|sun)[a-z]*,?\s*/i, "").trim(); if (!ln) return }
+      if (!g) return;
+      if (/^(vs\.?|v\.?)$/i.test(ln) || /^home$/i.test(ln)) { if (!g.ha) g.ha = "H"; return }
+      if (/^(@|at)$/i.test(ln) || /^away$/i.test(ln)) { if (!g.ha) g.ha = "A"; return }
+      if (/^neutral$/i.test(ln)) { if (!g.ha) g.ha = "N"; return }
+      if (g.opp || WD.test(ln) || TIME.test(ln) || RES.test(ln) || JUNK.test(ln) || !/[a-z]/i.test(ln)) return;
+      var c = cleanOpp(ln); if (!c.opp || JUNK.test(c.opp) || c.opp.length > 60) return;
+      g.opp = c.opp; if (c.ha) g.ha = c.ha;
+    });
+    var seen = {};
+    return games.filter(function (x) { var k = x.date + "|" + x.opp.toLowerCase(); if (!x.opp || seen[k]) return false; seen[k] = 1; return true }).sort(function (a, b) { return a.date.localeCompare(b.date) });
+  }
+  function schedNext(list, todayIso) {
+    var t = todayIso || (function () { var d = new Date(); return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2) })();
+    return (list || []).filter(function (x) { return x && x.date >= t }).sort(function (a, b) { return a.date.localeCompare(b.date) })[0] || null;
+  }
+  function schedNice(iso) { var p = String(iso || "").split("-"); if (p.length < 3) return iso || ""; var d = new Date(+p[0], +p[1] - 1, +p[2]); return d.toLocaleDateString([], { weekday: "short" }) + " " + (+p[1]) + "/" + (+p[2]) }
+  // paste box + editable preview. host: element; list: current schedule; save(list) -> Promise
+  function schedEditor(host, list, save, done) {
+    var rows = (list || []).map(function (x) { return { date: x.date, opp: x.opp, ha: x.ha || "" } });
+    var e = function (s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] }) };
+    host.innerHTML = "<div class='se'><p class='se-n'>On MaxPreps, open the team's <b>Schedule</b> page, select the whole page (Ctrl+A / long-press → Select All), copy, and paste it here. Any schedule text works.</p>"
+      + "<textarea class='se-t' rows='5' placeholder='Paste the schedule here'></textarea><div class='se-r'><button type='button' class='se-b se-read'>Read schedule</button><span class='se-m'></span></div><div class='se-l'></div>"
+      + "<div class='se-r'><button type='button' class='se-b se-add'>+ Add a game</button><span style='flex:1'></span><button type='button' class='se-b se-x'>Cancel</button><button type='button' class='se-b pri se-s'>Save schedule</button></div></div>";
+    var q = function (c) { return host.querySelector(c) }, msg = q(".se-m");
+    function draw() {
+      rows.sort(function (a, b) { return (a.date || "9").localeCompare(b.date || "9") });
+      q(".se-l").innerHTML = rows.length ? "<table class='se-tb'><tr><th>Date</th><th>Opponent</th><th>Site</th><th></th></tr>" + rows.map(function (r, i) {
+        return "<tr><td><input type='date' data-i='" + i + "' data-f='date' value='" + e(r.date) + "'></td><td><input data-i='" + i + "' data-f='opp' value='" + e(r.opp) + "'></td><td><select data-i='" + i + "' data-f='ha'>" + [["", "—"], ["H", "Home"], ["A", "Away"], ["N", "Neutral"]].map(function (o) { return "<option value='" + o[0] + "'" + (r.ha === o[0] ? " selected" : "") + ">" + o[1] + "</option>" }).join("") + "</select></td><td><button type='button' class='se-b se-del' data-del='" + i + "' aria-label='Remove'>✕</button></td></tr>" }).join("") + "</table>" : "<p class='se-n'>No games yet.</p>";
+    }
+    host.oninput = host.onchange = function (ev) { var t = ev.target, i = t.dataset && t.dataset.i; if (i != null && rows[i]) rows[i][t.dataset.f] = t.value };
+    host.onclick = function (ev) {
+      var b = ev.target.closest("button"); if (!b) return;
+      if (b.classList.contains("se-read")) { var got = parseSchedule(q(".se-t").value); if (!got.length) { msg.textContent = "Couldn't find any dates and opponents in that text."; return } rows = got; msg.textContent = "Found " + got.length + " games. Check them, then Save."; draw() }
+      if (b.classList.contains("se-add")) { rows.push({ date: "", opp: "", ha: "" }); draw() }
+      if (b.dataset.del != null) { rows.splice(+b.dataset.del, 1); draw() }
+      if (b.classList.contains("se-x")) done && done(false);
+      if (b.classList.contains("se-s")) { var out = rows.filter(function (r) { return r.date && r.opp.trim() }).map(function (r) { return { date: r.date, opp: r.opp.trim(), ha: r.ha || "" } }); msg.textContent = "Saving…"; save(out).then(function () { done && done(true, out) }, function () { msg.textContent = "Couldn't save. Check the connection." }) }
+    };
+    draw();
+  }
   // school theme: the logged-in school's colors take over the accents everywhere
   function solTheme(p) {
     p = p || {}; var c1 = /^#[0-9a-f]{6}$/i.test(p.color || "") ? p.color : null, c2 = /^#[0-9a-f]{6}$/i.test(p.color2 || "") ? p.color2 : null;
@@ -1149,7 +1220,31 @@ textarea { min-height: 64px }
   function homeDb() { var c = syncCfg(), d = null; try { d = localStorage.getItem(SYNC_KEY + "-db") } catch (e) {} return (SY.cfg && SY.cfg.url) || (c && c.url) || d || DEFAULT_DB }
   function homeListUrl(k) { return ((ONLINE && solSchoolBase()) || homeDb()) + "/games/" + encodeURIComponent(seasonKey(false)) + "/list" + (k ? "/" + encodeURIComponent(k) : "") + ".json" + (ONLINE ? solAuthQ() : "") }
   var HOME = { list: {}, open: null }, SCHOOL_NAME_H = "Melissa";
+  var SCHED = null;
+  function schedUrl() { var b = ONLINE && solSchoolBase(); return b ? b + "/schedule.json" + solAuthQ() : null }
+  function loadSched() {
+    var u = schedUrl(); if (!u) return;
+    fetch(u).then(function (r) { if (!r.ok) throw 0; return r.json() }).then(function (l) { SCHED = Array.isArray(l) ? l : (l ? Object.keys(l).map(function (k) { return l[k] }) : []); drawNext() }, function () {});
+  }
+  function drawNext() {
+    var n = schedNext(SCHED), us = ((ACC && ACC.profile && ACC.profile.name) || SCHOOL_NAME_H);
+    $("homeNext").hidden = !n; $("homeNoSched").hidden = !!n || !schedUrl();
+    if (n) {
+      $("hnTxt").innerHTML = esc(n.ha === "A" ? us + " at " : us + " vs ") + "<b>" + esc(n.opp) + "</b>";
+      var dd = Math.round((new Date(n.date + "T12:00") - new Date(today() + "T12:00")) / 864e5);
+      $("hnSub").textContent = schedNice(n.date) + (n.ha === "H" ? " · Home" : n.ha === "A" ? " · Away" : n.ha === "N" ? " · Neutral site" : "") + (dd === 0 ? " · Today" : dd === 1 ? " · Tomorrow" : " · in " + dd + " days");
+      var L = HOME.list || {}, has = Object.keys(L).some(function (k) { var g = L[k] || {}; return g.date === n.date && String(g.opp || "").toLowerCase() === n.opp.toLowerCase() });
+      $("hnGo").hidden = has;
+      if (!$("ngOpp").value) { $("ngOpp").placeholder = n.opp; $("ngOpp").value = n.opp; $("ngDate").value = n.date }
+    }
+  }
+  function openSchedEd() {
+    var box = $("homeSchedEd"); box.hidden = false;
+    schedEditor(box, SCHED || [], function (list) { return fetch(schedUrl(), { method: "PUT", body: JSON.stringify(list) }).then(function (r) { if (!r.ok) throw 0 }) }, function (ok, list) { box.hidden = true; box.innerHTML = ""; if (ok) { SCHED = list; drawNext(); toast("Schedule saved · " + list.length + " games") } });
+    box.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
   function loadHome() {
+    loadSched();
     if (!$("hsDate").value) $("hsDate").value = today();
     $("homePrep").hidden = !/^https?:/.test(location.protocol); $("homeDef").hidden = $("homePrep").hidden;
     var cur = !!(SY.cfg && !S.example);
@@ -1158,7 +1253,7 @@ textarea { min-height: 64px }
     renderStats();
     if (!seasonKey(false)) { HOME.list = {}; renderHome("Open your staff link once on this device to see the season's games."); return }
     renderHome("loading…");
-    fetch(homeListUrl()).then(function (r) { if (!r.ok) throw 0; return r.json() }).then(function (l) { HOME.list = l || {}; gamesCache(HOME.list); renderHome(); renderStats() }, function () { HOME.list = gamesCache(); renderHome("offline · showing the last list") });
+    fetch(homeListUrl()).then(function (r) { if (!r.ok) throw 0; return r.json() }).then(function (l) { HOME.list = l || {}; gamesCache(HOME.list); renderHome(); renderStats(); if (SCHED) drawNext() }, function () { HOME.list = gamesCache(); renderHome("offline · showing the last list") });
   }
   function renderStats() {
     var L = HOME.list || {}, ks = Object.keys(L), w = 0, l = 0, pl = 0;
@@ -3148,6 +3243,8 @@ textarea { min-height: 64px }
   $("wpReset").addEventListener("click", function () { delete S.wp; fillWp(); save(); renderAll(); toast("Back to the data-based start") });
   $("clkBadge").addEventListener("click", openClock);
   $("hsGo").addEventListener("click", scheduleGame);
+  $("hnEd").addEventListener("click", openSchedEd); $("hnImp").addEventListener("click", openSchedEd);
+  $("hnGo").addEventListener("click", function () { var n = schedNext(SCHED); if (!n) return; $("hsOpp").value = n.opp; $("hsDate").value = n.date; $("hsBox").hidden = false; $("hsCode").focus(); toast("Pick a game code, then Schedule") });
   $("hsToggle").addEventListener("click", function () { $("hsBox").hidden = !$("hsBox").hidden; if (!$("hsBox").hidden) $("hsOpp").focus() });
   $("homeOff").addEventListener("click", function () { document.getElementById("t-chart").click() });
   var PROF = (ONLINE && ACC && ACC.profile) || {};

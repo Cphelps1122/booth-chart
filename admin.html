@@ -188,6 +188,7 @@ function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return
 function toast(m,bad){var t=$("toast");t.textContent=m;t.style.borderColor=bad?"var(--bad)":"var(--ice)";t.style.display="block";clearTimeout(toast.h);toast.h=setTimeout(function(){t.style.display="none"},3500)}
 function api(path,method,body){return solToken().then(function(t){SOL_T=t;return fetch(SOL_DB+"/"+path+".json?auth="+encodeURIComponent(t),{method:method||"GET",body:body===undefined?undefined:JSON.stringify(body)})}).then(function(r){return r.json().then(function(d){if(!r.ok)throw new Error((d&&d.error)||("HTTP "+r.status));return d})})}
 var A=authGet();
+if(A&&A.viewAs&&A.home){A.school=A.home.school;A.profile=A.home.profile;delete A.viewAs;delete A.home;authSet(A)}
 $("out").onclick=function(){solLogout();location.href="index.html"};
 if(!A||!A.uid){location.replace("index.html#login");return}
 function gate(msg){$("gate").innerHTML=msg;$("gate").classList.remove("hide")}
@@ -205,7 +206,7 @@ function schoolOpts(sel){return Object.keys(S.schools).sort().map(function(k){re
 function render(){
   var ids=Object.keys(S.schools).sort();
   $("schoolRows").innerHTML=ids.map(function(k){var p=S.schools[k],n=Object.keys(S.members).filter(function(u){return S.members[u]===k}).length;
-    return"<tr><td>"+(p.logo?"<img class='logo' src='"+esc(p.logo)+"'>":"")+"</td><td><b>"+esc(p.name||k)+"</b></td><td class='mute'>"+esc(k)+"</td><td>"+(p.color?"<span class='sw' style='background:"+esc(p.color)+"'></span> ":"")+(p.color2?"<span class='sw' style='background:"+esc(p.color2)+"'></span>":"")+"</td><td>"+n+"</td><td>"+S.games[k].length+"</td><td>"+(function(n){return n?esc((n.ha==="A"?"at ":"vs ")+n.opp)+"<br><span class='mute'>"+esc(schedNice(n.date))+"</span>":"<span class='mute'>—</span>"})(schedNext(S.sched[k]))+"</td><td class='row'><button class='g' data-ed='"+esc(k)+"'>Edit</button><button class='g' data-gm='"+esc(k)+"'>Games</button><button class='g' data-sc='"+esc(k)+"'>Schedule</button></td></tr>"}).join("")||"<tr><td colspan=8 class='mute'>No schools yet.</td></tr>";
+    return"<tr><td>"+(p.logo?"<img class='logo' src='"+esc(p.logo)+"'>":"")+"</td><td><b>"+esc(p.name||k)+"</b></td><td class='mute'>"+esc(k)+"</td><td>"+(p.color?"<span class='sw' style='background:"+esc(p.color)+"'></span> ":"")+(p.color2?"<span class='sw' style='background:"+esc(p.color2)+"'></span>":"")+"</td><td>"+n+"</td><td>"+S.games[k].length+"</td><td>"+(function(n){return n?esc((n.ha==="A"?"at ":"vs ")+n.opp)+"<br><span class='mute'>"+esc(schedNice(n.date))+"</span>":"<span class='mute'>—</span>"})(schedNext(S.sched[k]))+"</td><td class='row'><button class='g' data-ed='"+esc(k)+"'>Edit</button><button class='g' data-gm='"+esc(k)+"'>Games</button><button class='g' data-sc='"+esc(k)+"'>Schedule</button><button class='b' data-as='"+esc(k)+"'>Open as school</button><button class='d' data-dels='"+esc(k)+"'>Delete</button></td></tr>"}).join("")||"<tr><td colspan=8 class='mute'>No schools yet.</td></tr>";
   $("nuSchool").innerHTML=$("luSchool").innerHTML=schoolOpts();
   $("userRows").innerHTML=Object.keys(S.users).map(function(u){var m=S.members[u];
     return"<tr><td>"+esc(S.users[u].email||"—")+"</td><td><select data-mv='"+esc(u)+"'><option value=''>— no access —</option>"+schoolOpts(m)+"</select></td><td class='mute' style='font-size:11px'>"+esc(u)+"</td><td class='row'>"+(S.users[u].email?"<button class='g' data-rs='"+esc(u)+"'>Send reset email</button>":"")+"<button class='d' data-rm='"+esc(u)+"'>Remove</button></td></tr>"}).join("")||"<tr><td colspan=4 class='mute'>No users yet.</td></tr>";
@@ -221,6 +222,10 @@ $("nsGo").onclick=function(){var id=slug($("nsId").value),nm=$("nsName").value.t
 document.addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;var d=b.dataset;
   if(d.ed)openEdit(d.ed);
   if(d.gm)openGames(d.gm);
+  if(d.as){var a=authGet();a.home={school:a.school,profile:a.profile};a.school=d.as;a.profile=S.schools[d.as]||{};a.viewAs=d.as;authSet(a);location.href="app.html"}
+  if(d.dels){var nm=S.schools[d.dels].name||d.dels;if(prompt("This deletes "+nm+" and ALL its games, schedule and settings, and removes its users' access. Type the school ID ("+d.dels+") to confirm.")!==d.dels)return;
+    var us=Object.keys(S.members).filter(function(u){return S.members[u]===d.dels});
+    Promise.all([api("schools/"+d.dels,"DELETE")].concat(us.map(function(u){return api("members/"+u,"DELETE")}))).then(function(){toast(nm+" deleted");loadAll()},function(e){toast(e.message,1)})}
   if(d.sc){var sk=d.sc;$("dlgBody").innerHTML="<h2>"+esc(S.schools[sk].name||sk)+" schedule</h2><div id='scHost'></div>";$("dlg").showModal();
     schedEditor($("scHost"),S.sched[sk],function(list){return api("schools/"+sk+"/schedule","PUT",list)},function(ok,list){$("dlg").close();if(ok){toast("Schedule saved · "+list.length+" games");loadAll()}})}
   if(d.rs){var em=S.users[d.rs].email;fetch("https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key="+SOL_KEY,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({requestType:"PASSWORD_RESET",email:em})}).then(function(r){return r.json()}).then(function(x){if(x.error)throw new Error(x.error.message);toast("Reset email sent to "+em)}).catch(function(e){toast(e.message,1)})}

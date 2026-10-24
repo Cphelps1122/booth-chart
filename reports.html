@@ -224,7 +224,8 @@ tr.all td { background: var(--redsoft); font-weight: 700 }
   if (ONLINE && (!ACC || !ACC.school)) { location.replace("index.html#login"); return }
   var $ = function (id) { return document.getElementById(id) };
   var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] }) };
-  var KEY = "cardinals-report-builder-v1";
+  var IS_HOME = !ONLINE || (ACC && ACC.school === "melissa"), NS = IS_HOME ? "" : "-" + ACC.school;
+  var KEY = "cardinals-report-builder-v1" + NS;
   var store = { get: function (k, d) { try { var v = localStorage.getItem(KEY + ":" + k); return v ? JSON.parse(v) : d } catch (e) { return d } }, set: function (k, v) { try { localStorage.setItem(KEY + ":" + k, JSON.stringify(v)) } catch (e) {} } };
   function toast(t) { var el = $("toast"); el.textContent = t; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(function () { el.hidden = true }, 2600) }
 
@@ -333,6 +334,7 @@ tr.all td { background: var(--redsoft); font-weight: 700 }
     { id: "oppO", name: "Opponent offense", side: "O", team: "Lebanon Trail", title: "Offense scout", secs: O_SECS },
     { id: "oppD", name: "Opponent defense", side: "D", team: "Lebanon Trail", title: "Defense scout", secs: D_SECS }
   ];
+  if (!IS_HOME) PRESETS.forEach(function (p) { p.team = p.id === "self" ? (((ACC && ACC.profile && ACC.profile.name) || "Our team")) : "Opponent" });
   var MY = store.get("templates", []);
   var CUR = null; // {id,name,side,title,secs,min}
   function cloneSecs(a) { return a.map(function (s) { return { title: s.title, by: s.by, m: s.m.slice(), filter: s.filter || "all", minShow: s.minShow || 1, on: s.on !== false } }) }
@@ -741,7 +743,7 @@ tr.all td { background: var(--redsoft); font-weight: 700 }
 
   // ---------- send scout to the Solutions Chart ----------
   // Uses the chart's own fixed buckets so its OC report lines up, whatever buckets this page is set to.
-  var SCOUT_KEY = "cardinals-scout-v1";
+  var SCOUT_KEY = "cardinals-scout-v1" + NS;
   function chartDD(r) { for (var i = 0; i < DEF_DD.length; i++) { var d = DEF_DD[i]; if (r.dn === d[1] && (r.dn === 0 || (r.dist >= d[2] && r.dist <= d[3]))) return d[0] } return null }
   function chartZone(r) { if (r.y == null) return null; for (var j = 0; j < DEF_Z.length; j++) { var z = DEF_Z[j], a = zoneY(z[1], z[2]), b = zoneY(z[3], z[4]); if (r.y >= Math.min(a, b) && r.y <= Math.max(a, b)) return z[0] } return null }
   function covCode(r) { var c = r.cov; if (!c) return null; c = c.replace(/^COV /, ""); var m = /^(\d)/.exec(c); return m ? m[1] : c }
@@ -812,8 +814,20 @@ tr.all td { background: var(--redsoft); font-weight: 700 }
   // ---------- start ----------
   CUR = store.get("cur", null); if (!CUR || !CUR.secs) CUR = null;
   if (CUR && CUR.team == null) { var pr = PRESETS.filter(function (x) { return x.id === CUR.id })[0]; if (pr) { CUR.team = pr.team; CUR.title = pr.title; CUR.secs.forEach(function (sx) { pr.secs.forEach(function (ps) { if (ps.by === sx.by && ps.m.join() === sx.m.join()) sx.title = ps.title }) }) } }
-  loadSample();
+  if (IS_HOME) loadSample(); else { SAMPLE = false; build() }
   if (CUR) { SIDE = CUR.side || SIDE; renderAll() } else useTemplate(PRESETS[0]);
+})();
+</script>
+<script>
+(function () {
+  var a; try { a = JSON.parse(localStorage.getItem("solutions-auth-v1") || "null") } catch (e) {}
+  if (!a || !a.viewAs || !a.home) return;
+  var nm = (a.profile && a.profile.name) || a.viewAs;
+  var b = document.createElement("div");
+  b.style.cssText = "position:sticky;top:0;z-index:9999;display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:8px 14px;background:#a5e3ff;color:#0c1117;font:600 14px Inter,system-ui,sans-serif";
+  b.innerHTML = "<span style='letter-spacing:.08em;font-weight:800'>ADMIN</span><span style='flex:1'>Viewing <b></b> as the owner. Everything you change saves to this school.</span><a href='admin.html' style='color:#0c1117;font-weight:800'>Back to Admin</a>";
+  b.querySelector("b").textContent = nm;
+  document.body.insertBefore(b, document.body.firstChild);
 })();
 </script>
 </body></html>

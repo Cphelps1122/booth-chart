@@ -198,7 +198,7 @@ document.querySelectorAll("nav.tabs button").forEach(function(b){b.onclick=funct
 var S={schools:{},members:{},users:{},leads:{},games:{}};
 function loadAll(){
   return Promise.all([api("schools","GET").catch(function(){return null}),api("members").catch(function(){return null}),api("users").catch(function(){return null}),api("leads").catch(function(){return null})]).then(function(r){
-    var sc=r[0]||{};S.schools={};S.games={};S.sched={};Object.keys(sc).forEach(function(k){S.schools[k]=(sc[k]&&sc[k].profile)||{};S.games[k]=Object.keys((sc[k]&&sc[k].games)||{});S.sched[k]=(sc[k]&&sc[k].schedule)||[]});
+    var sc=r[0]||{};S.schools={};S.games={};S.sched={};Object.keys(sc).forEach(function(k){S.schools[k]=(sc[k]&&sc[k].profile)||{};S.games[k]=gamesOf((sc[k]&&sc[k].games)||{});S.sched[k]=(sc[k]&&sc[k].schedule)||[]});
     S.members=r[1]||{};S.users=r[2]||{};S.leads=r[3]||{};
     Object.keys(S.members).forEach(function(u){if(!S.users[u])S.users[u]={email:""}});if(A.email&&!(S.users[A.uid]||{}).email){S.users[A.uid]={email:A.email,school:S.members[A.uid]||null};api("users/"+A.uid,"PUT",S.users[A.uid])}
     render()})}
@@ -233,7 +233,8 @@ document.addEventListener("click",function(e){var b=e.target.closest("button");i
     Promise.all([api("members/"+d.rm,"DELETE"),api("users/"+d.rm,"DELETE")]).then(function(){toast("Removed");loadAll()},function(e){toast(e.message,1)})}
   if(d.dl){if(!confirm("Delete this demo request?"))return;api("leads/"+d.dl,"DELETE").then(loadAll)}
   if(d.mk){var l=S.leads[d.mk]||{};$("nsName").value=l.school||"";$("nsId").value=slug(l.school);document.querySelector("nav.tabs button[data-t=schools]").click();$("nsName").focus()}
-  if(d.gdel){var p=d.gdel.split("|");if(!confirm("Delete game "+p[1]+" for "+p[0]+"? This can't be undone."))return;api("schools/"+p[0]+"/games/"+p[1],"DELETE").then(function(){toast("Game deleted");return loadAll()}).then(function(){openGames(p[0])})}
+  if(d.gdel){var p=d.gdel.split("|"),gx=S.games[p[0]].filter(function(x){return x.code===p[1]})[0]||{};if(!confirm("Delete the game vs "+(gx.opp||p[1])+" for "+(S.schools[p[0]].name||p[0])+"? All its plays are erased. This can't be undone."))return;
+    Promise.all([api("schools/"+p[0]+"/games/"+p[1],"DELETE")].concat(p[2]?[api("schools/"+p[0]+"/games/"+p[2]+"/list/"+p[1],"DELETE")]:[])).then(function(){toast("Game deleted");return loadAll()}).then(function(){openGames(p[0])},function(e){toast(e.message,1)})}
   if(d.close)$("dlg").close();
 });
 document.addEventListener("change",function(e){var u=e.target.dataset&&e.target.dataset.mv;if(!u)return;var v=e.target.value;
@@ -245,7 +246,11 @@ $("nuGo").onclick=function(){var em=$("nuEmail").value.trim(),pw=$("nuPass").val
     var uid=x.localId;return Promise.all([api("members/"+uid,"PUT",sc),api("users/"+uid,"PUT",{email:em,school:sc,created:Date.now()})])}).then(function(){toast("Login created for "+em);$("nuEmail").value=$("nuPass").value="";loadAll()}).catch(function(e){toast(e.message,1)})};
 $("luGo").onclick=function(){var uid=$("luUid").value.trim(),em=$("luEmail").value.trim(),sc=$("luSchool").value;if(!uid||!sc)return toast("UID and school required",1);
   Promise.all([api("members/"+uid,"PUT",sc),api("users/"+uid,"PUT",{email:em,school:sc,created:Date.now()})]).then(function(){toast("Linked");$("luUid").value=$("luEmail").value="";loadAll()},function(e){toast(e.message,1)})};
-function openGames(k){var g=S.games[k];$("dlgBody").innerHTML="<h2>"+esc(S.schools[k].name||k)+" games</h2>"+(g.length?"<table>"+g.map(function(c){return"<tr><td><b>"+esc(c)+"</b></td><td style='text-align:right'><button class='d' data-gdel='"+esc(k+"|"+c)+"'>Delete</button></td></tr>"}).join("")+"</table>":"<p class='mute'>No games.</p>")+"<p style='text-align:right'><button class='g' data-close=1>Close</button></p>";$("dlg").showModal()}
+function gamesOf(G){var out=[],seen={};
+  Object.keys(G).forEach(function(sk){var L=G[sk]&&G[sk].list;if(!L||typeof L!=="object")return;Object.keys(L).forEach(function(c){var e=L[c]||{};seen[c]=1;out.push({code:c,season:sk,opp:e.opp||"",date:e.date||"",us:e.us||0,them:e.them||0,plays:e.plays||0})})});
+  Object.keys(G).forEach(function(c){var v=G[c];if(seen[c]||!v||typeof v!=="object"||v.list)return;var m=v.meta;try{m=typeof m==="string"?JSON.parse(m):m}catch(e){m=null}out.push({code:c,season:"",opp:(m&&m.opp)||"(not in the season list)",date:(m&&m.gameDate)||"",us:0,them:0,plays:v.snaps?Object.keys(v.snaps).length:0})});
+  return out.sort(function(a,b){return(b.date||"").localeCompare(a.date||"")})}
+function openGames(k){var g=S.games[k];$("dlgBody").innerHTML="<h2>"+esc(S.schools[k].name||k)+" games</h2>"+(g.length?"<div class='wrap'><table><tr><th>Date</th><th>Opponent</th><th>Score</th><th>Plays</th><th></th></tr>"+g.map(function(x){return"<tr><td class='mute'>"+esc(x.date)+"</td><td><b>"+esc(x.opp)+"</b></td><td>"+(x.plays?x.us+"–"+x.them:"")+"</td><td>"+x.plays+"</td><td style='text-align:right'><button class='d' data-gdel='"+esc(k+"|"+x.code+"|"+x.season)+"'>Delete</button></td></tr>"}).join("")+"</table></div>":"<p class='mute'>No games.</p>")+"<p class='mute'>To open or edit a game, use Open as school.</p><p style='text-align:right'><button class='g' data-close=1>Close</button></p>";$("dlg").showModal()}
 // --- school editor with logo upload + color pull ---
 function logoColors(img){var c=document.createElement("canvas"),n=64;c.width=c.height=n;var x=c.getContext("2d");x.drawImage(img,0,0,n,n);var d=x.getImageData(0,0,n,n).data,bins={};
   for(var i=0;i<d.length;i+=4){if(d[i+3]<200)continue;var r=d[i],g=d[i+1],b=d[i+2],mx=Math.max(r,g,b),mn=Math.min(r,g,b);if(mx-mn<40)continue;var key=(r>>4)+","+(g>>4)+","+(b>>4);(bins[key]=bins[key]||{n:0,r:0,g:0,b:0}).n++;bins[key].r+=r;bins[key].g+=g;bins[key].b+=b}
@@ -254,14 +259,14 @@ function logoColors(img){var c=document.createElement("canvas"),n=64;c.width=c.h
   top.forEach(function(o){var h=hex(o);if(out.length<4&&out.every(function(p){var a=parseInt(p.slice(1),16),q=parseInt(h.slice(1),16);return Math.abs((a>>16)-(q>>16))+Math.abs(((a>>8)&255)-((q>>8)&255))+Math.abs((a&255)-(q&255))>90}))out.push(h)});
   return out.concat(["#000000","#ffffff"])}
 function openEdit(k){var p=Object.assign({},S.schools[k]);
-  $("dlgBody").innerHTML="<h2>Edit school</h2><div class='row'><label>Name<input id='edName' value='"+esc(p.name||"")+"'></label><label>Main color<input type='color' id='edC1' value='"+esc(p.color||"#c8102e")+"'></label><label>Second color<input type='color' id='edC2' value='"+esc(p.color2||"#ffffff")+"'></label></div>"
+  $("dlgBody").innerHTML="<h2>Edit school</h2><div class='row'><label>Name<input id='edName' value='"+esc(p.name||"")+"'></label><label>Mascot<input id='edMascot' placeholder='e.g. Cardinals' value='"+esc(p.mascot||"")+"'></label><label>Main color<input type='color' id='edC1' value='"+esc(p.color||"#c8102e")+"'></label><label>Second color<input type='color' id='edC2' value='"+esc(p.color2||"#ffffff")+"'></label></div>"
    +"<p class='row'><img id='edLogo' class='logo' style='width:64px;height:64px' "+(p.logo?"src='"+esc(p.logo)+"'":"")+"><label class='g' style='cursor:pointer;padding:8px 12px;border:1px solid var(--line);border-radius:8px'>Upload logo<input type='file' id='edFile' accept='image/*' hidden></label></p><div id='edSw' class='row'></div>"
    +"<p class='mute'>School ID: "+esc(k)+"</p><p class='row' style='justify-content:flex-end'><button class='g' data-close=1>Cancel</button><button class='b' id='edSave'>Save</button></p>";
   $("dlg").showModal();
   $("edFile").onchange=function(){var f=this.files[0];if(!f)return;var rd=new FileReader();rd.onload=function(){var im=new Image();im.onload=function(){var s=Math.min(1,256/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);c.getContext("2d").drawImage(im,0,0,c.width,c.height);p.logo=c.toDataURL("image/png");$("edLogo").src=p.logo;
       var cols=logoColors(im),sw=function(t,lab){return"<div class='row' style='margin:6px 0'><span class='mute' style='width:60px'>"+lab+"</span>"+cols.map(function(h){return"<button class='g' data-pick='"+h+"' data-to='"+t+"'><span class='sw' style='background:"+h+"'></span></button>"}).join("")+"</div>"};$("edSw").style.display="block";$("edSw").innerHTML="<p class='mute'>Colors pulled from the logo:</p>"+sw("edC1","Main")+sw("edC2","Second");if(cols[0]&&cols[0]!=="#000000")$("edC1").value=cols[0]};im.src=rd.result};rd.readAsDataURL(f)};
   $("edSw").onclick=function(e){var b=e.target.closest("[data-pick]");if(!b)return;$(b.dataset.to).value=b.dataset.pick};
-  $("edSave").onclick=function(){p.name=$("edName").value.trim()||k;p.color=$("edC1").value;p.color2=$("edC2").value;api("schools/"+k+"/profile","PUT",p).then(function(){toast("Saved");$("dlg").close();loadAll()},function(e){toast(e.message,1)})};
+  $("edSave").onclick=function(){p.name=$("edName").value.trim()||k;p.mascot=$("edMascot").value.trim()||null;p.color=$("edC1").value;p.color2=$("edC2").value;api("schools/"+k+"/profile","PUT",p).then(function(){toast("Saved");$("dlg").close();loadAll()},function(e){toast(e.message,1)})};
 }
 })();
 </script>

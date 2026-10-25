@@ -173,6 +173,12 @@ details.more > .rail { margin-top: 8px }
       <div id="smSecs"></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px"><button class="big pri" id="smSend" type="button">Send to chart</button><button class="big" id="smPdf" type="button">PDF</button><button class="big" id="smXls" type="button">Excel</button></div>
     </section>
+    <section class="panel simple" aria-labelledby="h-my">
+      <h2 id="h-my">Your own templates</h2>
+      <div class="note" style="margin:0;font-size:14px">Use your staff's own scout sheet, slides or doc. Type tags like <b>{{3rd &amp; 10+ · Top coverage}}</b> where numbers go, upload it once, and every week it fills in.</div>
+      <div id="myTpls"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><label class="big" for="tplFile" style="cursor:pointer">Upload template<input type="file" id="tplFile" accept=".xlsx,.docx,.pptx" hidden></label><button class="big" id="tagOpen" type="button">Tag list</button></div>
+    </section>
     <details class="more" id="moreSet"><summary>More settings</summary><div class="rail">
     <section class="panel" aria-labelledby="h-data">
       <h2 id="h-data">1 · Hudl data <small id="dataSum"></small></h2>
@@ -228,6 +234,13 @@ details.more > .rail { margin-top: 8px }
   <p class="note">On another device, open the Solutions Chart → Setup → Opponent scout → Load scout file.</p>
 </div></div>
 
+<div class="sendbox" id="tagBox" hidden role="dialog" aria-modal="true" aria-labelledby="tagT"><div class="sendin" style="max-width:760px;width:calc(100% - 32px);max-height:86vh;display:flex;flex-direction:column">
+  <h2 id="tagT">Tag list</h2>
+  <p class="note" style="font-size:14px">Copy a tag into your Excel, Word or PowerPoint file (from Google: File → Download as .xlsx, .docx or .pptx). The number on the right is what it fills in this week. Tags work in any cell, text box or table.</p>
+  <input type="text" id="tagFind" placeholder="Search: 3rd, red zone, blitz…" style="font-size:16px;padding:10px;margin:6px 0">
+  <div id="tagList" style="overflow:auto;flex:1;min-height:120px"></div>
+  <div style="display:flex;justify-content:flex-end;margin-top:10px"><button class="btn pri" id="tagClose">Done</button></div>
+</div></div>
 <script>window.SOL_CONFIG = window.SOL_CONFIG || {"db": "https://cardinal-booth-default-rtdb.firebaseio.com", "apiKey": "AIzaSyDm0t01_w92gL5sm4_1RnVLip7xWkjb9ME"};</script>
 <script>
 (function () {
@@ -981,6 +994,110 @@ details.more > .rail { margin-top: 8px }
   ["dragenter", "dragover"].forEach(function (e) { bd.addEventListener(e, function (ev) { ev.preventDefault(); bd.classList.add("over") }) });
   ["dragleave", "drop"].forEach(function (e) { bd.addEventListener(e, function (ev) { ev.preventDefault(); bd.classList.remove("over") }) });
   bd.addEventListener("drop", function (ev) { if (ev.dataTransfer && ev.dataTransfer.files.length) readFiles(ev.dataTransfer.files) });
+
+  // ---------- your own templates: {{tags}} in an .xlsx / .docx / .pptx get this week's numbers ----------
+  function tnorm(t) { return String(t).toLowerCase().replace(/&amp;/g, "&").replace(/[^a-z0-9+%&]+/g, " ").trim() }
+  function tagTable() {
+    var P = active(), out = [], add = function (tag, v) { out.push({ tag: tag, v: v == null ? "" : String(v) }) };
+    var runs = P.filter(isRun).length, us = (ACC && ACC.profile && ACC.profile.name) || "";
+    add("Team", CUR ? CUR.team : ""); add("Opponent", WK.cur ? WK.cur.opp : (CUR ? CUR.team : "")); add("School", us);
+    add("Game date", WK.cur ? wkNice(WK.cur).split(" · ")[0] : ""); add("Report title", CUR ? CUR.title : "");
+    add("Games", GAMES.filter(function (g) { return GAMESON[g.id] }).map(function (g) { return "vs " + g.label }).join(", "));
+    add("Plays", P.length); add("Run %", P.length ? pc(runs, P.length) + "%" : ""); add("Pass %", P.length ? (100 - pc(runs, P.length)) + "%" : "");
+    (CUR ? CUR.secs : []).forEach(function (sc) {
+      var d = P.length ? sectionData(sc, P) : null; if (!d) return;
+      var rows = d.body.concat(d.body.length > 1 ? [{ k: "All", cells: d.all.cells }] : []);
+      rows.forEach(function (r) { r.cells.forEach(function (c, i) { add(sc.title + " · " + r.k + " · " + d.head[i + 1], c.t) }) });
+    });
+    return out;
+  }
+  function tagMap() { var m = {}; tagTable().forEach(function (x) { m[tnorm(x.tag)] = x.v; var p = x.tag.split(" · "); if (p.length === 3) { var k2 = tnorm(p[1] + " · " + p[2]); if (!(k2 in m)) m[k2] = x.v } }); return m }
+  function renderTags() {
+    var q = tnorm($("tagFind").value), L = tagTable().filter(function (x) { return !q || tnorm(x.tag).indexOf(q) >= 0 }).slice(0, 400);
+    var box = $("tagList"); box.innerHTML = L.length ? "" : "<p class='note'>No tags match. Upload this week's Hudl files to see numbers.</p>";
+    L.forEach(function (x) { var r = document.createElement("div"); r.style.cssText = "display:flex;gap:10px;align-items:center;padding:8px 2px;border-bottom:1px solid var(--line)";
+      var t = document.createElement("code"); t.textContent = "{{" + x.tag + "}}"; t.style.cssText = "flex:1;font-size:13.5px;word-break:break-word";
+      var v = document.createElement("b"); v.textContent = x.v || "–"; v.style.cssText = "min-width:70px;text-align:right";
+      var b = document.createElement("button"); b.className = "btn"; b.textContent = "Copy"; b.addEventListener("click", function () { try { navigator.clipboard.writeText("{{" + x.tag + "}}").then(function () { toast("Copied") }) } catch (e) { toast("{{" + x.tag + "}}") } });
+      r.appendChild(t); r.appendChild(v); r.appendChild(b); box.appendChild(r) });
+  }
+  $("tagOpen").addEventListener("click", function () { $("tagFind").value = ""; renderTags(); $("tagBox").hidden = false });
+  $("tagClose").addEventListener("click", function () { $("tagBox").hidden = true });
+  $("tagFind").addEventListener("input", renderTags);
+  // binary-safe zip in and out (keeps pictures, fonts and formatting in the template)
+  function unzipBin(buf) {
+    var u = new Uint8Array(buf), dv = new DataView(buf), e = -1;
+    for (var i = u.length - 22; i >= Math.max(0, u.length - 70000); i--) if (dv.getUint32(i, true) === 0x06054b50) { e = i; break }
+    if (e < 0) return Promise.reject(new Error("not a zip"));
+    var n = dv.getUint16(e + 10, true), off = dv.getUint32(e + 16, true), out = [], jobs = [], td = new TextDecoder();
+    for (var k = 0; k < n; k++) {
+      var meth = dv.getUint16(off + 10, true), csz = dv.getUint32(off + 20, true), nl = dv.getUint16(off + 28, true), xl = dv.getUint16(off + 30, true), cl = dv.getUint16(off + 32, true), lo = dv.getUint32(off + 42, true);
+      var name = td.decode(u.subarray(off + 46, off + 46 + nl)); off += 46 + nl + xl + cl;
+      (function (name, meth, csz, lo, idx) { var ds = lo + 30 + dv.getUint16(lo + 26, true) + dv.getUint16(lo + 28, true), data = u.subarray(ds, ds + csz);
+        jobs.push((meth === 0 ? Promise.resolve(new Uint8Array(data)) : inflateRaw(data)).then(function (d) { out[idx] = { name: name, data: d } })) })(name, meth, csz, lo, out.length); out.push(null);
+    }
+    return Promise.all(jobs).then(function () { return out.filter(Boolean) });
+  }
+  function zipBin(files, type) {
+    var enc = new TextEncoder(), parts = [], central = [], off = 0;
+    files.forEach(function (f) {
+      var name = enc.encode(f.name), data = typeof f.data === "string" ? enc.encode(f.data) : f.data, crc = crc32(data), h = new DataView(new ArrayBuffer(30));
+      h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true); h.setUint16(12, 0x21, true); h.setUint32(14, crc, true); h.setUint32(18, data.length, true); h.setUint32(22, data.length, true); h.setUint16(26, name.length, true);
+      parts.push(new Uint8Array(h.buffer), name, data);
+      var c = new DataView(new ArrayBuffer(46));
+      c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x0800, true); c.setUint16(14, 0x21, true); c.setUint32(16, crc, true); c.setUint32(20, data.length, true); c.setUint32(24, data.length, true); c.setUint16(28, name.length, true); c.setUint32(42, off, true);
+      central.push(new Uint8Array(c.buffer), name); off += 30 + name.length + data.length;
+    });
+    var cs = central.reduce(function (t, a) { return t + a.length }, 0), e = new DataView(new ArrayBuffer(22));
+    e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true); e.setUint32(12, cs, true); e.setUint32(16, off, true);
+    return new Blob(parts.concat(central, [new Uint8Array(e.buffer)]), { type: type });
+  }
+  var TYPES = { xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation" };
+  // a tag may be split across formatting runs in Word/PowerPoint: match {{ … }} with any tags between, then put the value in one piece
+  function fillXml(xml, map, miss) {
+    var n = 0;
+    xml = xml.replace(/\{(?:<[^>]*>)*\{((?:[^{}<]|<[^>]*>)*?)\}(?:<[^>]*>)*\}/g, function (all, inner) {
+      var plain = inner.replace(/<[^>]*>/g, "").replace(/&#(\d+);/g, function (m, d) { return String.fromCharCode(+d) }).replace(/&#x([0-9a-f]+);/gi, function (m, h) { return String.fromCharCode(parseInt(h, 16)) }).replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, "&"), key = tnorm(plain);
+      if (!(key in map)) { miss[plain] = 1; return all }
+      n++; var keepTags = (all.match(/<[^>]*>/g) || []).join("");
+      return xe(map[key]) + keepTags;
+    });
+    return { xml: xml, n: n };
+  }
+  function fillTemplate(t) {
+    var ext = (t.name.match(/\.(xlsx|docx|pptx)$/i) || [])[1]; ext = ext ? ext.toLowerCase() : "";
+    if (!ext) { toast("Templates must be .xlsx, .docx or .pptx"); return }
+    var bin = Uint8Array.from(atob(t.data), function (c) { return c.charCodeAt(0) }), map = tagMap(), miss = {}, total = 0, td = new TextDecoder();
+    unzipBin(bin.buffer).then(function (files) {
+      files.forEach(function (f) { if (!/\.xml$/i.test(f.name) || /^\[Content_Types\]|\/_rels\/|theme|styles\.xml$/i.test(f.name)) return;
+        var x = td.decode(f.data); if (x.indexOf("{") < 0) return; var r = fillXml(x, map, miss); if (r.n) { f.data = r.xml; total += r.n } });
+      var out = zipBin(files, TYPES[ext]), base = t.name.replace(/\.[^.]+$/, "");
+      saveFile(((WK.cur ? WK.cur.opp + " " : "") + base).replace(/[^\w\- ]+/g, "").replace(/\s+/g, "_") + "." + ext, out);
+      var m = Object.keys(miss); toast("Filled " + total + " spot" + (total === 1 ? "" : "s") + (m.length ? ". Not recognized: {{" + m.slice(0, 3).join("}}, {{") + "}}" + (m.length > 3 ? " and " + (m.length - 3) + " more" : "") + ". Check the Tag list." : "."));
+    }, function () { toast("Couldn't open that file. Save it as .xlsx, .docx or .pptx and upload again.") });
+  }
+  var MYT = {};
+  function tplBase() { return ONLINE && solSchoolBase() ? "/templates" : null }
+  function loadMyTpls() { if (!tplBase()) return; wkGet("/templates").then(function (d) { MYT = d || {}; drawMyTpls() }) }
+  function drawMyTpls() {
+    var box = $("myTpls"); if (!box) return; box.innerHTML = ""; var ks = Object.keys(MYT);
+    if (!ks.length) { box.innerHTML = "<p class='note' style='margin:6px 0'>None yet.</p>"; return }
+    ks.forEach(function (k) { var t = MYT[k] || {}, r = document.createElement("div"); r.style.cssText = "display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:6px 0";
+      var nm = document.createElement("span"); nm.textContent = t.name; nm.style.cssText = "flex:1;font-weight:700;word-break:break-word";
+      var go = document.createElement("button"); go.className = "big pri"; go.type = "button"; go.textContent = "Fill it in"; go.addEventListener("click", function () { if (!RAW.length) { toast("Add this week's Hudl files first"); return } fillTemplate(t) });
+      var del = document.createElement("button"); del.className = "btn"; del.type = "button"; del.textContent = "Remove"; del.addEventListener("click", function () { if (!confirm("Remove " + t.name + "?")) return; wkPut("/templates/" + k, null).then(function () { delete MYT[k]; drawMyTpls() }) });
+      r.appendChild(nm); r.appendChild(go); r.appendChild(del); box.appendChild(r) });
+  }
+  $("tplFile").addEventListener("change", function () {
+    var f = this.files && this.files[0]; this.value = ""; if (!f) return;
+    if (!/\.(xlsx|docx|pptx)$/i.test(f.name)) { toast("Use an Excel (.xlsx), Word (.docx) or PowerPoint (.pptx) file. From Google: File → Download."); return }
+    if (f.size > 6e6) { toast("That file is over 6 MB. Remove big pictures and try again."); return }
+    f.arrayBuffer().then(function (b) { var u = new Uint8Array(b), s2 = "", CH = 32768; for (var i = 0; i < u.length; i += CH) s2 += String.fromCharCode.apply(null, u.subarray(i, i + CH));
+      var t = { name: f.name, data: btoa(s2), at: Date.now() }, id = "t" + Date.now().toString(36);
+      if (!tplBase()) { MYT[id] = t; drawMyTpls(); toast("Template added on this device"); return }
+      wkPut("/templates/" + id, t).then(function () { MYT[id] = t; drawMyTpls(); toast("Template saved for your whole staff") }, function () { toast("Couldn't save the template. Check the connection.") }) });
+  });
+  loadMyTpls();
   // ---------- weeks: each game on the schedule keeps its own Hudl files, report setup and scout ----------
   var WKS = { lastState: "", loading: false, timer: null };
   function wkPath(x) { return WK.cur ? "/weeks/" + WK.cur.date + "/report" + (x || "") : null }

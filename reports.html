@@ -353,7 +353,7 @@ details.more > .rail { margin-top: 8px }
     ["tempo", "Tempo", ["TEMPO"]], ["runFam", "Run play", ["RUN FAMILY", "OFF PLAY", "RUN CONCEPT"]], ["passFam", "Pass play", ["PASS FAMILY", "PASS CONCEPT"]],
     ["rpo", "RPO", ["RPO"]], ["rb", "RB alignment", ["RB ALIGNMENT", "BACKFIELD"]], ["front", "Front", ["FRONT", "DEF FRONT"]], ["blitz", "Blitz", ["BLITZ", "DEF BLITZ"]],
     ["shell", "Shell (MFC/MFO/0)", ["MFC/MFO/0", "SHELL"]], ["cov", "Coverage", ["COVERAGE", "COV"]], ["stunt", "Stunt", ["STUNT"]],
-    ["target", "Target", ["TARGET"]], ["carrier", "Ball carrier", ["BALL CARRIER", "CARRIER"]], ["team", "Opponent / team", ["TEAM", "OPPONENT"]]
+    ["pers", "Personnel", ["PERSONNEL", "PERS", "OFF PERS", "OFF PERSONNEL", "PERSONNEL GROUP", "PERS GROUP"]], ["target", "Target", ["TARGET"]], ["carrier", "Ball carrier", ["BALL CARRIER", "CARRIER"]], ["team", "Opponent / team", ["TEAM", "OPPONENT"]]
   ];
   var FLABEL = {}; FIELDS.forEach(function (f) { FLABEL[f[0]] = f[1] });
 
@@ -504,7 +504,7 @@ details.more > .rail { margin-top: 8px }
         var r = { g: g, odk: String(get("odk") || "").toUpperCase(), qtr: get("qtr") == null ? null : +get("qtr"), dn: dn, dist: dist, y: y, gain: gain, res: res, td: td, run: run,
           hash: get("hash") ? String(get("hash")).toUpperCase().charAt(0) : null, form: str(get("form")), adj: str(get("adj")), motion: str(get("motion")), tempo: str(get("tempo")),
           runFam: str(get("runFam")), passFam: str(get("passFam")), rpo: str(get("rpo")), rb: str(get("rb")), front: str(get("front")), blitz: str(get("blitz")), shell: shellName(get("shell")),
-          cov: covName(get("cov")), carrier: str(get("carrier")), target: str(get("target")) };
+          cov: covName(get("cov")), pers: get("pers") == null ? null : String(get("pers")).trim().replace(/^(\d)$/, "0$1").replace(/\s*pers(onnel)?$/i, ""), carrier: str(get("carrier")), target: str(get("target")) };
         r.eff = td || (dist != null && gain >= Math.ceil(need * dist));
         r.expl = run ? gain >= 10 : gain >= 15;
         ROWS.push(r);
@@ -1008,6 +1008,7 @@ details.more > .rail { margin-top: 8px }
       var d = P.length ? sectionData(sc, P) : null; if (!d) return;
       var rows = d.body.concat(d.body.length > 1 ? [{ k: "All", cells: d.all.cells }] : []);
       rows.forEach(function (r) { r.cells.forEach(function (c, i) { add(sc.title + " · " + r.k + " · " + d.head[i + 1], c.t) }) });
+      d.body.forEach(function (r, j) { add(sc.title + " · #" + (j + 1) + " · Name", r.k); r.cells.forEach(function (c, i) { add(sc.title + " · #" + (j + 1) + " · " + d.head[i + 1], c.t) }) });
     });
     return out;
   }
@@ -1058,34 +1059,120 @@ details.more > .rail { margin-top: 8px }
     var n = 0;
     xml = xml.replace(/\{(?:<[^>]*>)*\{((?:[^{}<]|<[^>]*>)*?)\}(?:<[^>]*>)*\}/g, function (all, inner) {
       var plain = inner.replace(/<[^>]*>/g, "").replace(/&#(\d+);/g, function (m, d) { return String.fromCharCode(+d) }).replace(/&#x([0-9a-f]+);/gi, function (m, h) { return String.fromCharCode(parseInt(h, 16)) }).replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, "&"), key = tnorm(plain);
+      if (!(key in map) && /#\s*\d+/.test(plain)) { n++; return (all.match(/<[^>]*>/g) || []).join("") }
       if (!(key in map)) { miss[plain] = 1; return all }
       n++; var keepTags = (all.match(/<[^>]*>/g) || []).join("");
       return xe(map[key]) + keepTags;
     });
     return { xml: xml, n: n };
   }
+
+  // ---------- smart decks: a coach's own PowerPoint/Google Slides scout deck, refilled from this week's Hudl ----------
+  // Recognizes boxes by their heading: Top Formations, Form w/ Backfield, Top Passes / Top Runs, Personnel cards (10, 11, 20…),
+  // formation run/pass cards, OVERALL, and "x% Pass and y% Run" sentences. Everything else in the deck is left exactly as it is.
+  function offPlays() { return active().filter(function (r) { return r.run === true || r.run === false }) }
+  function cnt(P, f) { var m = {}; P.forEach(function (r) { var k = f(r); if (k) m[k] = (m[k] || 0) + 1 }); return Object.keys(m).map(function (k) { return [k, m[k]] }).sort(function (a, b) { return b[1] - a[1] }) }
+  function tcase(s) { return String(s).toLowerCase().replace(/(^|[\s\/-])([a-z])/g, function (m, p, c) { return p + c.toUpperCase() }) }
+  function rp(P) { var r = P.filter(isRun).length, n = P.length; return { n: n, run: r, pass: n - r, rp: n ? pc(r, n) : 0, pp: n ? 100 - pc(r, n) : 0 } }
+  function deckStats() {
+    var P = offPlays(), all = rp(P), st = { all: all, P: P };
+    st.forms = cnt(P, function (r) { return r.form }).map(function (x) { return { name: tcase(x[0]), key: x[0], n: x[1], pct: pc(x[1], P.length) } });
+    st.formBf = cnt(P, function (r) { return r.form ? r.form + (r.rb ? " " + r.rb : "") : null }).map(function (x) { return { name: tcase(x[0].split(" ").slice(0, -1).join(" ") || x[0]) + (x[0].indexOf(" ") > 0 ? " " + x[0].split(" ").pop() : ""), n: x[1], pct: pc(x[1], P.length) } });
+    st.passes = cnt(P.filter(isPass), function (r) { return r.passFam }).map(function (x) { return { name: tcase(x[0]), n: x[1], pct: pc(x[1], all.pass) } });
+    st.runs = cnt(P.filter(isRun), function (r) { return r.runFam }).map(function (x) { return { name: tcase(x[0]), n: x[1], pct: pc(x[1], all.run) } });
+    st.pers = cnt(P, function (r) { return r.pers }).map(function (x) { var Q = P.filter(function (r) { return r.pers === x[0] }); return { name: x[0], n: x[1], s: rp(Q) } });
+    st.formRp = st.forms.map(function (f) { var Q = P.filter(function (r) { return r.form === f.key }); return { name: f.name, n: f.n, bf: cnt(Q, function (r) { return r.rb || "—" }).map(function (b) { return { name: b[0], s: rp(Q.filter(function (r) { return (r.rb || "—") === b[0] })) } }) } });
+    return st;
+  }
+  function rpLine(s) { return s.rp >= s.pp ? "Run " + s.rp + "%" + (s.pp ? " / Pass " + s.pp + "%" : "") : "Pass " + s.pp + "%" + (s.rp ? " / Run " + s.rp + "%" : "") }
+  var X_A = function (v) { return xe(v) };
+  function paraText(p) { return (p.match(/<a:t>([^<]*)<\/a:t>/g) || []).map(function (t) { return t.replace(/<\/?a:t>/g, "") }).join("").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">") }
+  function setPara(p, text) { // put text in the paragraph's first run, keep its formatting, empty the rest
+    var first = true; p = p.replace(/<a:t>[^<]*<\/a:t>/g, function () { if (first) { first = false; return "<a:t>" + X_A(text) + "</a:t>" } return "<a:t></a:t>" });
+    if (first) p = p.replace(/<\/a:p>$/, "<a:r><a:t>" + X_A(text) + "</a:t></a:r></a:p>");
+    return p;
+  }
+  function boxParts(sp) { var m = sp.match(/<a:p>[\s\S]*?<\/a:p>|<a:p\/>/g) || []; return m }
+  function rebuild(sp, paras) { var ps = boxParts(sp); if (!ps.length) return sp; var i0 = sp.indexOf(ps[0]), last = ps[ps.length - 1], i1 = sp.lastIndexOf(last) + last.length; return sp.slice(0, i0) + paras.join("") + sp.slice(i1) }
+  function nonEmpty(ps) { return ps.filter(function (p) { return paraText(p).trim() }) }
+  function fillDeckSlide(x, st, ctx) {
+    var hits = 0;
+    var sps = x.match(/<p:sp>[\s\S]*?<\/p:sp>/g) || [], pi = 0, fi = 0;
+    var pos = function (sp) { var m = sp.match(/<a:off x="(-?\d+)" y="(-?\d+)"/); return m ? [+m[1], +m[2]] : [0, 0] };
+    var byPos = function (a, b) { var A = pos(a), B = pos(b); return Math.abs(A[1] - B[1]) > 400000 ? A[1] - B[1] : A[0] - B[0] };
+    var formCards = sps.filter(function (sp) { var ps = nonEmpty(boxParts(sp)); return ps.length >= 2 && /^\s*[^:]+:\s*(run|pass)\s*\d+%/i.test(paraText(ps[1])) }).sort(byPos);
+    var persCards0 = 0; var persCards = sps.filter(function (sp) { var ps = nonEmpty(boxParts(sp)); return ps.length >= 2 && /^\d{2}$/.test(paraText(ps[0]).trim()) }).sort(byPos);
+    if (persCards.length && !st.pers.length) ctx.skipped.Personnel = 1;
+    sps.forEach(function (sp) {
+      var ps = boxParts(sp), ne = nonEmpty(ps); if (!ne.length) return;
+      var head = paraText(ne[0]).trim(), out = null, H = head.toLowerCase().replace(/\*/g, "").trim();
+      var listFill = function (items, from) { var tpl = ne[from] || ne[ne.length - 1]; return ps.slice(0, ps.indexOf(ne[from - 1]) + 1).concat(items.map(function (t) { return setPara(tpl, t) })) };
+      if (/^top formations?$/.test(H) && ne.length > 1 && st.forms.length) { out = listFill(st.forms.slice(0, Math.max(ne.length - 1, 6)).map(function (f) { return f.name + " (" + f.pct + "%)" }), 1) }
+      else if (/w\/?\s*backfield|formation.*backfield|backfield/.test(H) && ne.length > 1 && st.formBf.length) { out = listFill(st.formBf.slice(0, Math.max(ne.length - 1, 9)).map(function (f) { return f.name }), 1) }
+      else if (/^top (passes|pass|runs|run)\b/.test(H)) {
+        var res = []; ps.forEach(function (p) { var t = paraText(p).trim().toLowerCase(); if (/^top pass/.test(t)) { res.push(setPara(p, paraText(p).replace(/\(\d+%\)/, "(" + st.all.pp + "%)"))); res.push.apply(res, st.passes.slice(0, 5).map(function (z) { return setPara(ps[ps.indexOf(p) + 1] || p, z.name + " (" + z.pct + "%)") })) } else if (/^top run/.test(t)) { res.push(setPara(p, paraText(p).replace(/\(\d+%\)/, "(" + st.all.rp + "%)"))); var nxt = ps[ps.indexOf(p) + 1] || p; res.push.apply(res, st.runs.slice(0, 5).map(function (z) { return setPara(nxt, z.name + " (" + z.pct + "%)") })) } });
+        if (res.length) out = res;
+      }
+      else if (/^overall/.test(H)) { out = [ne[0]].concat([setPara(ne[1] || ne[0], "PASS = " + st.all.pp + "%"), setPara(ne[2] || ne[1] || ne[0], "RUN = " + st.all.rp + "%")]) }
+      else if (/^\d{2}$/.test(head) && ne.length >= 2) {
+        var c = st.pers[persCards.indexOf(sp)], foot = ne[ne.length - 1], l1 = ne[1], l2 = ne[2] && ne[2] !== foot ? ne[2] : ne[1];
+        if (!st.pers.length) out = null; else if (!c) out = [setPara(ne[0], " ")]; else {
+          var s = c.s, a = s.pass >= s.run ? ["Pass", s.pp, s.pass] : ["Run", s.rp, s.run], b = s.pass >= s.run ? ["Run", s.rp, s.run] : ["Pass", s.pp, s.pass];
+          out = [setPara(ne[0], c.name), setPara(l1, a[0] + " - " + a[1] + "% (" + a[2] + ")")].concat(b[2] ? [setPara(l2, b[0] + " - " + b[1] + "% (" + b[2] + ")")] : []).concat([setPara(foot, pc(c.n, st.all.n) + "% : " + c.n + " / " + st.all.n)]);
+        }
+      }
+      else if (formCards.indexOf(sp) >= 0) {
+        var f = st.formRp[formCards.indexOf(sp)];
+        var room = Math.max(1, ne.length - 1), bfs = f ? f.bf.filter(function (b) { return b.name !== "—" }) : [];
+        if (f && !bfs.length) bfs = f.bf;
+        if (!f) out = [setPara(ne[0], " ")]; else out = [setPara(ne[0], f.name)].concat(bfs.slice(0, room).map(function (b) { return setPara(ne[1], (b.name === "—" ? "All" : b.name) + " : " + rpLine(b.s)) }));
+      }
+      if (out) { hits++; x = x.replace(sp, rebuild(sp, out)) }
+    });
+    // sentences like "57% Pass and 43% Run", even when Google split the words into pieces
+    if (st.all.n) x = x.replace(/<a:p>[\s\S]*?<\/a:p>/g, function (p) {
+      var t = paraText(p), t2 = t.replace(/(\d+)%(\s*)(Pass)(\s+and\s+)(\d+)%(\s*)(Run)/gi, function (m, a, s1, w1, mid, b, s2, w2) { return st.all.pp + "%" + s1 + w1 + mid + st.all.rp + "%" + s2 + w2 }).replace(/(\d+)%(\s*)(Run)(\s+and\s+)(\d+)%(\s*)(Pass)/gi, function (m, a, s1, w1, mid, b, s2, w2) { return st.all.rp + "%" + s1 + w1 + mid + st.all.pp + "%" + s2 + w2 });
+      if (t2 === t) return p; hits++;
+      var rx = /(\d+)%(\s*)(Pass|Run)(\s+and\s+)(\d+)%/i, done = false;
+      var q = p.replace(/<a:t>([^<]*)<\/a:t>/g, function (m, inner) { if (done) return m; var dec = inner.replace(/&amp;/g, "&"); if (rx.test(dec)) { done = true; return "<a:t>" + xe(dec.replace(/(\d+)%(\s*)(Pass|Run)(\s+and\s+)(\d+)%/i, function (mm, a, s1, w, mid) { var pf = /pass/i.test(w); return (pf ? st.all.pp : st.all.rp) + "%" + s1 + w + mid + (pf ? st.all.rp : st.all.pp) + "%" })) + "</a:t>" } return m });
+      return done ? q : setPara(p, t2);
+    });
+    // the team the deck was built for becomes this week's opponent
+    if (ctx.oldMascot && ctx.newMascot) x = x.split(xe(ctx.oldMascot)).join(xe(ctx.newMascot));
+    if (ctx.oldTeam && ctx.newTeam && ctx.oldTeam !== ctx.newTeam) x = x.split(xe(ctx.oldTeam)).join(xe(ctx.newTeam));
+    return { xml: x, hits: hits };
+  }
+  function venKey(s) { return String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, "-") }
   function fillTemplate(t) {
     var ext = (t.name.match(/\.(xlsx|docx|pptx)$/i) || [])[1]; ext = ext ? ext.toLowerCase() : "";
     if (!ext) { toast("Templates must be .xlsx, .docx or .pptx"); return }
     var bin = Uint8Array.from(atob(t.data), function (c) { return c.charCodeAt(0) }), map = tagMap(), miss = {}, total = 0, td = new TextDecoder();
+    var st = ext === "pptx" ? deckStats() : null, ctx = { oldTeam: t.team || "", newTeam: WK.cur ? WK.cur.opp : (CUR && CUR.team) || "", oldMascot: t.mascot || "", newMascot: "", skipped: {} };
+    if (ext === "pptx" && t.mascot) { var mk = "solutions-mascot-" + venKey(ctx.newTeam), mm = null; try { mm = localStorage.getItem(mk) } catch (e) {}
+      if (ctx.newTeam && ctx.newTeam !== t.team) { mm = prompt(ctx.newTeam + "'s mascot? (replaces \"" + t.mascot + "\" in the deck)", mm || ""); if (mm == null) return; try { localStorage.setItem(mk, mm) } catch (e) {} }
+      ctx.newMascot = ctx.newTeam === t.team ? t.mascot : (mm || "").trim(); if (!ctx.newMascot) ctx.oldMascot = "" }
     unzipBin(bin.buffer).then(function (files) {
       files.forEach(function (f) { if (!/\.xml$/i.test(f.name) || /^\[Content_Types\]|\/_rels\/|theme|styles\.xml$/i.test(f.name)) return;
-        var x = td.decode(f.data); if (x.indexOf("{") < 0) return; var r = fillXml(x, map, miss); if (r.n) { f.data = r.xml; total += r.n } });
+        var x = td.decode(f.data), changed = false;
+        if (ext === "pptx" && /^ppt\/slides\/slide\d+\.xml$/.test(f.name)) { var d = fillDeckSlide(x, st, ctx); if (d.hits || d.xml !== x) { x = d.xml; total += d.hits; changed = true } }
+        if (x.indexOf("{") >= 0) { var r = fillXml(x, map, miss); if (r.n) { x = r.xml; total += r.n; changed = true } }
+        if (changed) f.data = x });
       var out = zipBin(files, TYPES[ext]), base = t.name.replace(/\.[^.]+$/, "");
       saveFile(((WK.cur ? WK.cur.opp + " " : "") + base).replace(/[^\w\- ]+/g, "").replace(/\s+/g, "_") + "." + ext, out);
+      var sk = Object.keys(ctx.skipped); if (sk.length) setTimeout(function () { toast(sk.join(", ") + " slide left as it was: that column isn't in this week's Hudl files.") }, 3200);
       var m = Object.keys(miss); toast("Filled " + total + " spot" + (total === 1 ? "" : "s") + (m.length ? ". Not recognized: {{" + m.slice(0, 3).join("}}, {{") + "}}" + (m.length > 3 ? " and " + (m.length - 3) + " more" : "") + ". Check the Tag list." : "."));
     }, function () { toast("Couldn't open that file. Save it as .xlsx, .docx or .pptx and upload again.") });
   }
-  var MYT = {};
+  var MYT = {}, BUILTIN_TPL = { name: "Solutions_Defense_Scout.xlsx", data: "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" };
   function tplBase() { return ONLINE && solSchoolBase() ? "/templates" : null }
   function loadMyTpls() { if (!tplBase()) return; wkGet("/templates").then(function (d) { MYT = d || {}; drawMyTpls() }) }
   function drawMyTpls() {
-    var box = $("myTpls"); if (!box) return; box.innerHTML = ""; var ks = Object.keys(MYT);
-    if (!ks.length) { box.innerHTML = "<p class='note' style='margin:6px 0'>None yet.</p>"; return }
-    ks.forEach(function (k) { var t = MYT[k] || {}, r = document.createElement("div"); r.style.cssText = "display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:6px 0";
+    var box = $("myTpls"); if (!box) return; box.innerHTML = ""; var ks = ["builtin"].concat(Object.keys(MYT));
+    ks.forEach(function (k) { var t = k === "builtin" ? BUILTIN_TPL : (MYT[k] || {}), r = document.createElement("div"); r.style.cssText = "display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:6px 0";
       var nm = document.createElement("span"); nm.textContent = t.name; nm.style.cssText = "flex:1;font-weight:700;word-break:break-word";
       var go = document.createElement("button"); go.className = "big pri"; go.type = "button"; go.textContent = "Fill it in"; go.addEventListener("click", function () { if (!RAW.length) { toast("Add this week's Hudl files first"); return } fillTemplate(t) });
       var del = document.createElement("button"); del.className = "btn"; del.type = "button"; del.textContent = "Remove"; del.addEventListener("click", function () { if (!confirm("Remove " + t.name + "?")) return; wkPut("/templates/" + k, null).then(function () { delete MYT[k]; drawMyTpls() }) });
+      if (k === "builtin") { del.textContent = "Blank copy"; del.onclick = null; del.addEventListener("click", function () { saveFile(t.name, new Blob([Uint8Array.from(atob(t.data), function (c) { return c.charCodeAt(0) })], { type: TYPES.xlsx })) }); nm.textContent = "Solutions defense scout sheet (built in)" }
       r.appendChild(nm); r.appendChild(go); r.appendChild(del); box.appendChild(r) });
   }
   $("tplFile").addEventListener("change", function () {
@@ -1094,6 +1181,7 @@ details.more > .rail { margin-top: 8px }
     if (f.size > 6e6) { toast("That file is over 6 MB. Remove big pictures and try again."); return }
     f.arrayBuffer().then(function (b) { var u = new Uint8Array(b), s2 = "", CH = 32768; for (var i = 0; i < u.length; i += CH) s2 += String.fromCharCode.apply(null, u.subarray(i, i + CH));
       var t = { name: f.name, data: btoa(s2), at: Date.now() }, id = "t" + Date.now().toString(36);
+      if (/\.pptx$/i.test(f.name)) { var tm = prompt("Which team is this deck about right now? Its name gets swapped for each week's opponent.", ""); if (tm) t.team = tm.trim(); var ms = prompt("Their mascot as written in the deck (optional, e.g. Trail Blazers)", ""); if (ms) t.mascot = ms.trim() }
       if (!tplBase()) { MYT[id] = t; drawMyTpls(); toast("Template added on this device"); return }
       wkPut("/templates/" + id, t).then(function () { MYT[id] = t; drawMyTpls(); toast("Template saved for your whole staff") }, function () { toast("Couldn't save the template. Check the connection.") }) });
   });

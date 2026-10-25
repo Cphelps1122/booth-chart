@@ -225,6 +225,39 @@ label.f { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font
     });
   }
   function solLogout() { authSet(null) }
+    // ---------- weeks: every game on the school's schedule is a week; each week keeps its own reports, scout and games ----------
+  var WK = { list: null, cur: null, subs: [] };
+  function wkToday() { var d = new Date(); return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2) }
+  function wkBase() { return (typeof solSchoolBase === "function" && solSchoolBase()) || null }
+  function wkUrl(path) { var b = wkBase(); if (!b) return null; return solToken().then(function (t) { return b + path + ".json?auth=" + encodeURIComponent(t) }) }
+  function wkGet(path) { var u = wkUrl(path); return u ? u.then(function (x) { return fetch(x) }).then(function (r) { return r.ok ? r.json() : null }) : Promise.resolve(null) }
+  function wkPut(path, v) { var u = wkUrl(path); return u ? u.then(function (x) { return fetch(x, { method: v == null ? "DELETE" : "PUT", body: v == null ? undefined : JSON.stringify(v) }) }).then(function (r) { if (!r.ok) throw new Error("save") }) : Promise.reject(new Error("offline")) }
+  function wkNice(e) { if (!e) return "No week"; var p = e.date.split("-"), d = new Date(+p[0], +p[1] - 1, +p[2]); return d.toLocaleDateString([], { weekday: "short" }) + " " + (+p[1]) + "/" + (+p[2]) + " · " + (e.ha === "A" ? "at " : "vs ") + e.opp }
+  function wkNext(list) { var t = wkToday(); return (list || []).filter(function (x) { return x.date >= t })[0] || null }
+  function wkPickKey() { return "solutions-week" + (typeof NS === "string" ? NS : "") }
+  function wkFind(date) { return (WK.list || []).filter(function (x) { return x.date === date })[0] || null }
+  // load the schedule; the chosen week is remembered for the day, otherwise the next game is this week
+  function wkLoad() {
+    return wkGet("/schedule").then(function (l) {
+      l = Array.isArray(l) ? l : (l ? Object.keys(l).map(function (k) { return l[k] }) : []);
+      WK.list = l.filter(function (x) { return x && x.date && x.opp }).sort(function (a, b) { return a.date.localeCompare(b.date) });
+      var saved = null; try { saved = JSON.parse(localStorage.getItem(wkPickKey()) || "null") } catch (e) {}
+      var pick = saved && saved.day === wkToday() ? wkFind(saved.date) : null;
+      WK.cur = pick || wkNext(WK.list) || WK.list[WK.list.length - 1] || null;
+      return WK.cur;
+    }, function () { WK.list = []; WK.cur = null; return null });
+  }
+  function wkSet(date) { WK.cur = wkFind(date); try { localStorage.setItem(wkPickKey(), JSON.stringify({ date: date, day: wkToday() })) } catch (e) {} WK.subs.forEach(function (f) { f(WK.cur) }) }
+  // a week picker: <select> listing every game on the schedule
+  function wkBar(host, label) {
+    var nx = wkNext(WK.list);
+    if (!WK.list || !WK.list.length) { host.innerHTML = "<span class='wk-l'>" + (label || "Week") + "</span><span class='wk-n'>No schedule yet. Add it on Home → Season schedule.</span>"; return }
+    host.innerHTML = "<label class='wk-l' for='wkSel'>" + (label || "Week") + "</label><select id='wkSel' class='wk-s'>" + WK.list.map(function (e, i) {
+      var tag = nx && e.date === nx.date ? " (this week)" : e.date < wkToday() ? " (played)" : "";
+      return "<option value='" + e.date + "'" + (WK.cur && WK.cur.date === e.date ? " selected" : "") + ">Wk " + (i + 1) + " · " + wkNice(e).replace(/[<>&'"]/g, "") + tag + "</option>" }).join("") + "</select>";
+    host.querySelector("#wkSel").addEventListener("change", function () { wkSet(this.value) });
+  }
+
   function solSchoolBase() { var a = authGet(); return a && a.school ? SOL_DB + "/schools/" + encodeURIComponent(a.school) : null }
   // current token for URLs (kept fresh in the background)
   var SOL_T = (authGet() || {}).idToken || "";
@@ -453,8 +486,9 @@ label.f { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font
     var c = S.cur, ps = pending();
     $("pQtr").textContent = c.qtr >= 5 ? "OT" : "Q" + c.qtr; $("pDrv").textContent = "D" + c.drive;
     $("pDD").textContent = ps ? "Spot it" : c.ready ? ddText(c) : "New drive"; $("pBall").textContent = (c.ready || ps ? ballText(ps ? ps.y : c.y) : "–") + " · " + (c.hash || "M");
-    $("oppLabel").textContent = SY.cfg ? "vs " + (S.opp || "Opponent") : "No game open";
-    $("tmThem").textContent = S.opp || "Opponent";
+    var nx_ = (typeof WK !== "undefined" && WK.list) ? wkNext(WK.list) : null;
+    $("oppLabel").textContent = SY.cfg ? "vs " + (S.opp || "Opponent") : "No game open" + (nx_ ? " · next: " + (nx_.ha === "A" ? "at " : "vs ") + nx_.opp : "");
+    $("tmThem").textContent = S.opp || (!SY.cfg && nx_ ? nx_.opp : "Opponent");
   }
   function renderAll() {
     renderTop(); renderInput(); drawField();
@@ -549,6 +583,7 @@ label.f { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font
     ["chart", "dc", "log", "setup"].forEach(function (t) { $("v-" + t).hidden = t !== b.dataset.t }); window.scrollTo(0, 0);
   }) });
   renderAll(); connect();
+  if (ONLINE) wkLoad().then(function () { renderAll() });
 })();
 </script>
 <script>

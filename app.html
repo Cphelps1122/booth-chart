@@ -274,8 +274,13 @@ textarea { min-height: 64px }
 .se-b{background:#1a222d;color:#e8edf2;border:1px solid #2a3442;border-radius:8px;padding:7px 12px;font:600 13px inherit;cursor:pointer}.se-b.pri{background:var(--hi,#a5e3ff);color:#0c1117;border-color:transparent}
 .se-tb{width:100%;border-collapse:collapse}.se-tb th{text-align:left;color:#93a1b1;font-size:11px;text-transform:uppercase;padding:4px}.se-tb td{padding:3px}
 .se-tb input,.se-tb select{background:#0c1117;color:#e8edf2;border:1px solid #2a3442;border-radius:6px;padding:6px;font:inherit;width:100%;box-sizing:border-box}
+.wkbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:6px 0 4px}.wk-l{font-family:var(--f-display);font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-size:15px}.wk-s{font:inherit;font-size:16px;padding:8px 10px;border-radius:8px;background:#0c1117;color:#e8edf2;border:1px solid #2a3442;max-width:100%}.wk-n{opacity:.75}
 .h-next{display:flex;align-items:center;gap:12px;flex-wrap:wrap;border:1px solid var(--hl,#2a3442);border-radius:12px;padding:12px 14px;margin:10px 0}
 .h-next .hn-t{font-family:var(--f-display);font-size:22px;letter-spacing:.03em;text-transform:uppercase}.h-next .hn-t b{color:var(--hi,#a5e3ff);font-weight:inherit}
+.filmbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}.filmbar video{width:168px;height:94px;object-fit:cover;border-radius:8px;background:#000}
+.filmdot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#e5372f;margin-right:6px;animation:fdot 1.2s infinite}@keyframes fdot{50%{opacity:.25}}
+.clipbtn{background:#1f6feb;color:#fff;border:0;border-radius:6px;padding:4px 9px;font-weight:700;cursor:pointer;margin-right:4px}
+#clipModal video{width:100%;max-height:70vh;background:#000;border-radius:8px}
 </style>
 
 <header>
@@ -364,6 +369,7 @@ textarea { min-height: 64px }
 
     <div class="h-games">
       <div class="h-gh"><div><div class="hk">Season</div><div class="h-gt">Games <span id="homeState"></span></div></div><button class="h-btn" id="hsToggle">+ Schedule a game</button></div>
+      <div class="wkbar" id="wkBar"></div>
       <div class="h-next" id="homeNext" hidden><div style="flex:1;min-width:200px"><div class="hk">Next game</div><div class="hn-t" id="hnTxt"></div><div class="h-sub" id="hnSub"></div></div><button class="h-btn pri" id="hnGo">Set up this game</button><button class="h-btn" id="hnEd">Season schedule</button></div>
       <div id="homeNoSched" class="h-sub" hidden style="margin:8px 0">Add your season schedule and the next opponent fills in automatically. <button class="h-btn" id="hnImp" style="margin-left:8px">Import schedule</button></div>
       <div id="homeSchedEd" hidden style="margin:10px 0"></div>
@@ -385,6 +391,12 @@ textarea { min-height: 64px }
 
   <!-- CHART -->
   <section id="v-chart">
+    <div class="panel filmbar" id="filmBar">
+      <button class="btn" id="filmGo" type="button">🎥 Film this game</button>
+      <video id="filmPrev" muted playsinline autoplay hidden></video>
+      <div style="flex:1;min-width:200px"><div id="filmState" class="note" style="margin:0">Point this device at the field. Each play you log gets its own clip; tap ▶ in the Log to watch it.</div></div>
+      <button class="btn" id="filmCam" type="button" hidden style="font-size:13px;padding:6px 10px">Switch camera</button>
+    </div>
     <div class="panel livepanel" id="livePanel">
       <div class="livehead">
         <h3 style="margin:0">Live drive <small id="liveSum"></small></h3>
@@ -569,6 +581,7 @@ textarea { min-height: 64px }
     <div class="panel"><h3>Snaps by series <small id="logCount"></small></h3>
       <div class="actions" style="margin:0 0 10px"><button class="btn" id="logXlsx" style="font-size:15px;padding:8px 14px">Export Excel</button><button class="btn" id="logPdf" style="font-size:15px;padding:8px 14px">Export PDF</button></div>
       <div id="logList"></div></div>
+    <div class="modal" id="clipModal" hidden><div class="mbox" style="max-width:900px;width:100%"><h3 id="clipTitle" style="margin-top:0"></h3><video id="clipVid" controls playsinline></video><div class="actions" style="margin-top:10px"><button class="btn" id="clipPrev">◀ Previous</button><button class="btn" id="clipNext">Next ▶</button><a class="btn" id="clipDl" download>Save clip</a><button class="btn primary" id="clipClose" style="margin-left:auto">Close</button></div></div></div>
   </section>
 
   <!-- SETUP -->
@@ -616,7 +629,7 @@ textarea { min-height: 64px }
         <div class="sub" style="margin-top:4px">Opponent scout</div>
         <p class="note" id="scoutNow" style="margin:2px 0 6px"></p>
         <div class="scoutnew" id="scoutNew" hidden><span id="scoutNewTxt"></span> <button class="btn" id="scoutUse" style="font-size:14px;padding:6px 12px">Use it</button> <button class="btn" id="scoutSkip" style="font-size:14px;padding:6px 12px">Not now</button></div>
-        <div class="actions" style="margin:4px 0 10px"><label class="btn" for="scoutFile" style="font-size:14px;padding:6px 12px;cursor:pointer">Load scout file<input type="file" id="scoutFile" accept=".json,application/json" hidden></label><button class="btn" id="scoutBuiltin" style="font-size:14px;padding:6px 12px">Use built-in Lebanon Trail</button></div>
+        <div class="actions" style="margin:4px 0 10px"><label class="btn" for="scoutFile" style="font-size:14px;padding:6px 12px;cursor:pointer">Load scout file<input type="file" id="scoutFile" accept=".json,application/json" hidden></label><button class="btn" id="scoutBuiltin" style="font-size:14px;padding:6px 12px">Clear scout</button></div>
         <label for="sPre">Pre-game expectations (from the scout)<textarea id="sPre"></textarea></label>
         <label for="sMode">Defense tags
           <select id="sMode" style="font-size:16px;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink)">
@@ -670,7 +683,7 @@ textarea { min-height: 64px }
           <label for="wpThem">Their expected points<input id="wpThem" type="number" inputmode="numeric" style="width:110px"></label>
           <button class="btn" id="wpReset" style="font-size:15px;padding:8px 12px">Use our data</button>
         </div>
-        <p class="note" id="wpNote">Ours starts from the data: our offense scored a TD on 56% of drives (7 games) and Lebanon Trail's defense allowed one on 47% of drives (6 games), about 40 points over a game. Their side isn't in your files, so set it to their average points per game. Both update live from tonight's drives.</p>
+        <p class="note" id="wpNote">Starts even: 24 points a side. Set your expected points and theirs before kickoff. Both update live from tonight&#39;s drives.</p>
       </div>
       <div class="panel" id="cePanel" style="grid-column:1/-1">
         <h3>Call sheet <small id="ceState"></small></h3>
@@ -860,6 +873,39 @@ textarea { min-height: 64px }
     });
   }
   function solLogout() { authSet(null) }
+    // ---------- weeks: every game on the school's schedule is a week; each week keeps its own reports, scout and games ----------
+  var WK = { list: null, cur: null, subs: [] };
+  function wkToday() { var d = new Date(); return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2) }
+  function wkBase() { return (typeof solSchoolBase === "function" && solSchoolBase()) || null }
+  function wkUrl(path) { var b = wkBase(); if (!b) return null; return solToken().then(function (t) { return b + path + ".json?auth=" + encodeURIComponent(t) }) }
+  function wkGet(path) { var u = wkUrl(path); return u ? u.then(function (x) { return fetch(x) }).then(function (r) { return r.ok ? r.json() : null }) : Promise.resolve(null) }
+  function wkPut(path, v) { var u = wkUrl(path); return u ? u.then(function (x) { return fetch(x, { method: v == null ? "DELETE" : "PUT", body: v == null ? undefined : JSON.stringify(v) }) }).then(function (r) { if (!r.ok) throw new Error("save") }) : Promise.reject(new Error("offline")) }
+  function wkNice(e) { if (!e) return "No week"; var p = e.date.split("-"), d = new Date(+p[0], +p[1] - 1, +p[2]); return d.toLocaleDateString([], { weekday: "short" }) + " " + (+p[1]) + "/" + (+p[2]) + " · " + (e.ha === "A" ? "at " : "vs ") + e.opp }
+  function wkNext(list) { var t = wkToday(); return (list || []).filter(function (x) { return x.date >= t })[0] || null }
+  function wkPickKey() { return "solutions-week" + (typeof NS === "string" ? NS : "") }
+  function wkFind(date) { return (WK.list || []).filter(function (x) { return x.date === date })[0] || null }
+  // load the schedule; the chosen week is remembered for the day, otherwise the next game is this week
+  function wkLoad() {
+    return wkGet("/schedule").then(function (l) {
+      l = Array.isArray(l) ? l : (l ? Object.keys(l).map(function (k) { return l[k] }) : []);
+      WK.list = l.filter(function (x) { return x && x.date && x.opp }).sort(function (a, b) { return a.date.localeCompare(b.date) });
+      var saved = null; try { saved = JSON.parse(localStorage.getItem(wkPickKey()) || "null") } catch (e) {}
+      var pick = saved && saved.day === wkToday() ? wkFind(saved.date) : null;
+      WK.cur = pick || wkNext(WK.list) || WK.list[WK.list.length - 1] || null;
+      return WK.cur;
+    }, function () { WK.list = []; WK.cur = null; return null });
+  }
+  function wkSet(date) { WK.cur = wkFind(date); try { localStorage.setItem(wkPickKey(), JSON.stringify({ date: date, day: wkToday() })) } catch (e) {} WK.subs.forEach(function (f) { f(WK.cur) }) }
+  // a week picker: <select> listing every game on the schedule
+  function wkBar(host, label) {
+    var nx = wkNext(WK.list);
+    if (!WK.list || !WK.list.length) { host.innerHTML = "<span class='wk-l'>" + (label || "Week") + "</span><span class='wk-n'>No schedule yet. Add it on Home → Season schedule.</span>"; return }
+    host.innerHTML = "<label class='wk-l' for='wkSel'>" + (label || "Week") + "</label><select id='wkSel' class='wk-s'>" + WK.list.map(function (e, i) {
+      var tag = nx && e.date === nx.date ? " (this week)" : e.date < wkToday() ? " (played)" : "";
+      return "<option value='" + e.date + "'" + (WK.cur && WK.cur.date === e.date ? " selected" : "") + ">Wk " + (i + 1) + " · " + wkNice(e).replace(/[<>&'"]/g, "") + tag + "</option>" }).join("") + "</select>";
+    host.querySelector("#wkSel").addEventListener("change", function () { wkSet(this.value) });
+  }
+
   function solSchoolBase() { var a = authGet(); return a && a.school ? SOL_DB + "/schools/" + encodeURIComponent(a.school) : null }
   // current token for URLs (kept fresh in the background)
   var SOL_T = (authGet() || {}).idToken || "";
@@ -962,7 +1008,8 @@ textarea { min-height: 64px }
   var SCOUT_CALLS = [["POWER", -1, "LT held Power to 1.7 (7)"], ["CHOICE", 1, "Choice hurt LT: 9.3 a play (12)"]];
   var SCOUT = {"sits":{"P&10":{"n":45,"cov":["4",20],"cn":40,"front":["HEADS",13],"fn":37,"bl":3,"ypp":10.3},"1st & 10":{"n":50,"cov":["4",22],"cn":47,"front":["OVER",19],"fn":39,"bl":5,"ypp":5.4},"1st & 11+":{"n":9,"cov":["1",2],"cn":6,"front":["OVER",2],"fn":5,"bl":1,"ypp":5.7},"1st & 1-9":{"n":10,"cov":["0",6],"cn":8,"front":["BEAR",2],"fn":5,"bl":0,"ypp":5.9},"2nd & 10+":{"n":36,"cov":["4",12],"cn":32,"front":["HEADS",12],"fn":28,"bl":7,"ypp":9.7},"2nd & 7-9":{"n":10,"cov":["0",3],"cn":8,"front":["HEADS",4],"fn":7,"bl":1,"ypp":8.5},"2nd & 3-6":{"n":22,"cov":["4",7],"cn":21,"front":["OVER",6],"fn":18,"bl":3,"ypp":2.9},"2nd & 1-2":{"n":9,"cov":["4",4],"cn":8,"front":["HEADS",3],"fn":8,"bl":0,"ypp":8.2},"3rd & 10+":{"n":13,"cov":["0",5],"cn":12,"front":["OVER",5],"fn":12,"bl":5,"ypp":10.8},"3rd & 7-9":{"n":15,"cov":["4",6],"cn":15,"front":["HEADS",6],"fn":13,"bl":5,"ypp":8.9},"3rd & 3-6":{"n":10,"cov":["4",3],"cn":8,"front":["OVER",3],"fn":8,"bl":2,"ypp":5.0},"3rd & 1-2":{"n":7,"cov":["1",3],"cn":6,"front":["HEADS",3],"fn":7,"bl":2,"ypp":6.7},"4th & 3+":{"n":11,"cov":["0",4],"cn":9,"front":["HEADS",3],"fn":8,"bl":3,"ypp":11.4},"4th & 1-2":{"n":5,"cov":["0",4],"cn":4,"front":["HEADS",3],"fn":5,"bl":5,"ypp":-1.0},"Coming out":{"n":18,"cov":["0",5],"cn":17,"front":["OVER",5],"fn":14,"bl":1,"ypp":10.5},"Open field":{"n":195,"cov":["4",76],"cn":173,"front":["HEADS",58],"fn":154,"bl":30,"ypp":8.0},"High red zone":{"n":16,"cov":["1",6],"cn":13,"front":["OVER",5],"fn":13,"bl":5,"ypp":3.1},"Score zone":{"n":14,"cov":["0",9],"cn":13,"front":["HEADS",4],"fn":11,"bl":4,"ypp":6.2},"Goal line":{"n":9,"cov":["0",8],"cn":8,"front":["BEAR",4],"fn":8,"bl":2,"ypp":1.8},"ALL":{"n":252,"cov":["4",83],"cn":224,"front":["HEADS",67],"fn":200,"bl":42,"ypp":7.6}},"forms":{"BLUE":{"n":24,"cov":["4",13],"cn":23,"bl":0,"ypp":9.3},"BONE":{"n":37,"cov":["3",15],"cn":20,"bl":0,"ypp":11.3},"BOSTON":{"n":19,"cov":["0",6],"cn":19,"bl":7,"ypp":5.7},"CREW":{"n":18,"cov":["0",7],"cn":17,"bl":4,"ypp":4.4},"EMPTY":{"n":10,"cov":["0",9],"cn":10,"bl":4,"ypp":14.4},"GRAY":{"n":9,"cov":["4",6],"cn":9,"bl":2,"ypp":2.8},"RED":{"n":28,"cov":["4",17],"cn":26,"bl":4,"ypp":6.7},"SLOT DIP":{"n":43,"cov":["4",20],"cn":42,"bl":7,"ypp":7.0},"SLOT TRIG":{"n":42,"cov":["4",13],"cn":40,"bl":8,"ypp":7.3}}};
   var SCOUT_SHELL = {"sits":{"P&10":["1-HIGH",43,45],"1st & 10":["1-HIGH",42,50],"1st & 11+":["1-HIGH",6,9],"1st & 1-9":["1-HIGH",8,10],"2nd & 10+":["1-HIGH",33,36],"2nd & 7-9":["1-HIGH",9,10],"2nd & 3-6":["1-HIGH",19,22],"2nd & 1-2":["1-HIGH",7,9],"3rd & 10+":["1-HIGH",12,13],"3rd & 7-9":["1-HIGH",14,15],"3rd & 3-6":["1-HIGH",10,10],"3rd & 1-2":["1-HIGH",5,7],"4th & 3+":["1-HIGH",8,10],"4th & 1-2":["1-HIGH",2,4],"Coming out":["1-HIGH",18,18],"Open field":["1-HIGH",176,194],"High red zone":["1-HIGH",11,16],"Score zone":["1-HIGH",11,14],"Goal line":["ZERO",4,8],"ALL":["1-HIGH",218,250]},"forms":{"BLUE":["1-HIGH",20,24],"BONE":["1-HIGH",26,36],"BOSTON":["1-HIGH",19,19],"CREW":["1-HIGH",9,17],"EMPTY":["1-HIGH",9,10],"GRAY":["1-HIGH",9,9],"RED":["1-HIGH",26,28],"SLOT DIP":["1-HIGH",42,43],"SLOT TRIG":["1-HIGH",41,42]}};
-  if (!IS_HOME) { SCOUT = { sits: {}, forms: {} }; SCOUT_SHELL = { sits: {}, forms: {} }; SCOUT_CALLS = [] }
+  // no built-in opponent: scouts change every week and come from the Report Builder
+  SCOUT = { sits: {}, forms: {} }; SCOUT_SHELL = { sits: {}, forms: {} }; SCOUT_CALLS = [];
   var ROSTER_KEY = "cardinals-booth-roster-v1" + NS;
   var DEF_ROSTER = "2 QB\n22 RB\n33 RB\n34 RB\n28 RB\n0 WR\n10 WR\n12 WR\n14 WR\n18 WR";
   // Roster update (Oct 2026): added WRs/QBs, * = listed first on the selector. Merged once into whatever roster is saved or synced.
@@ -997,7 +1044,7 @@ textarea { min-height: 64px }
   }
   function roster() { return parseRoster(rosterText()) }
   function who(num) { var r = roster().filter(function (x) { return x.n === String(num) })[0]; return "#" + num + (r ? " " + (r.name || r.pos) : "") }
-  var SCOUT_NAME = IS_HOME ? "Lebanon Trail scout (6 games, 252 plays)" : "No scout loaded";
+  var SCOUT_NAME = "No scout loaded";
   // ---------- opponent scout: built-in Lebanon Trail, or one sent from the Report Builder ----------
   var SCOUT_KEY = "cardinals-scout-v1" + NS, BUILTIN_SCOUT = { sits: SCOUT.sits, forms: SCOUT.forms, shell: SCOUT_SHELL, calls: SCOUT_CALLS, name: SCOUT_NAME };
   function applyScout() {
@@ -1008,14 +1055,15 @@ textarea { min-height: 64px }
   function pendingScout() { try { var x = JSON.parse(localStorage.getItem(SCOUT_KEY) || "null"); if (x && x.sits && (!S.scout || x.at !== S.scout.at) && x.at !== S.scoutSkip) return x } catch (e) {} return null }
   function useScout(sc) {
     var oldPre = S.scout ? S.scout.pre : null;
+    if (!sc && S.scout) S.scoutSkip = S.scout.at;
     S.scout = sc; if (sc && sc.pre) S.pre = sc.pre; else if (!sc && oldPre && S.pre === oldPre) S.pre = "";
     if (sc && sc.team && (!S.opp || S.opp === "Opponent" || S.example)) S.opp = sc.team;
     if (sc && sc.team && S.opp && S.opp !== sc.team) toast("Scout is " + sc.team + " but the game says vs " + S.opp + ". Change the opponent below if needed.");
-    save(); renderAll(); renderSetup(); renderScoutBox(); if (!(sc && sc.team && S.opp && S.opp !== sc.team)) toast(sc ? "Scout loaded: " + sc.name : IS_HOME ? "Back to the built-in Lebanon Trail scout" : "Scout cleared");
+    save(); renderAll(); renderSetup(); renderScoutBox(); if (!(sc && sc.team && S.opp && S.opp !== sc.team)) toast(sc ? "Scout loaded: " + sc.name : "Scout cleared");
   }
   function renderScoutBox() {
     var el = $("scoutNow"); if (!el) return;
-    el.textContent = SCOUT_NAME + (S.scout ? " · from the Report Builder" : IS_HOME ? " · built in" : "");
+    el.textContent = SCOUT_NAME + (S.scout ? " · from the Report Builder" : "");
     var pn = pendingScout(); $("scoutNew").hidden = !pn; if (pn) $("scoutNewTxt").textContent = "New from the Report Builder: " + pn.name;
     $("scoutBuiltin").hidden = !S.scout;
   }
@@ -1034,12 +1082,15 @@ textarea { min-height: 64px }
   var NEG = { Sack: 1, Interception: 1, Fumble: 1, Penalty: 1, Incomplete: 1 };
 
   function fresh_() {
-    if (!IS_HOME) return { opp: "Opponent", pre: "", autoOpp: true, start: -30, lists: JSON.parse(JSON.stringify(DEF_LISTS)), snaps: [], example: false, cur: { qtr: 1, series: 1, dn: 0, dist: 10, yl: -30, hash: "M" } };
+    return { opp: "Opponent", pre: "", autoOpp: true, start: -30, lists: JSON.parse(JSON.stringify(DEF_LISTS)), snaps: [], example: false, cur: { qtr: 1, series: 1, dn: 0, dist: 10, yl: -30, hash: "M" } };
     return { opp: "Lebanon Trail", autoOpp: true, pre: "Base: MFC 87% (218/250). Cov 4 37% (83/224), Cov 0 23%, Cov 1 16%, Cov 3 16%. Fronts: Heads, Over, Under. Blitz only 17% (42/252), but 3rd & 7+ 10/28, 4th down 8/16. Score zone (opp 14-5): Cov 0 9/13. Goal line: Cov 0 8/8. Vs Empty: Cov 0 9/10. Hurt them: Screen 13.9 a play (8), Choice 9.3 (12), Insert 6.5 (35). Avoid: Inside Zone 1.8 (18), Power 1.7 (7). Their '4' is mostly tagged with a closed middle; meaning unconfirmed.", start: -30, lists: JSON.parse(JSON.stringify(DEF_LISTS)), snaps: [], example: false,
       cur: { qtr: 1, series: 1, dn: 0, dist: 10, yl: -30, hash: "M" } };
   }
   function fresh() { var f = fresh_(); f.gameDate = today(); return f }
-  var S = load() || (IS_HOME ? exampleState() : fresh());
+  var S = load() || fresh();
+  // older saves: drop the old example game and the built-in Lebanon Trail opponent so the schedule decides
+  if (S.example) { var kx = { lists: S.lists, start: S.start, dmode: S.dmode, fast: S.fast, sheet: S.sheet, sheetVer: S.sheetVer }; S = fresh(); Object.assign(S, kx) }
+  if (!S.snaps.length && (S.opp === "Lebanon Trail" || !S.opp)) { S.opp = "Opponent"; S.autoOpp = true; if (!S.scout) S.pre = "" }
   if (!S.gameDate) S.gameDate = today();
   var pick = { form: null, call: null, callType: null, front: null, cov: null, shell: null, box: null, blitz: "No", res: null, td: false, qb: null, pl: null, lastRb: null };
 
@@ -1157,6 +1208,7 @@ textarea { min-height: 64px }
     SY.cfg = cfg; setStatus("off", "connecting…");
     fetch(gameUrl("")).then(function (r) { if (!r.ok) throw new Error(r.status === 401 || r.status === 403 ? "denied" : "HTTP " + r.status); return r.json() }).then(function (remote) {
       setSyncCfg(cfg);
+      if (typeof filmLoadKeys === "function") filmLoadKeys();
       if (S.example) { var o_ = S.opp, l_ = S.lists, p_ = S.pre, st_ = S.start, dm_ = S.dmode; S = fresh(); S.opp = o_; S.lists = l_; S.pre = p_; S.start = st_; S.dmode = dm_; try { localStorage.setItem(KEY, JSON.stringify(S)) } catch (e) {} }
       var rs = remote && remote.snaps ? Object.keys(remote.snaps).length : 0, ls = S.snaps.length;
       SY.mirror = remote || {};
@@ -1168,7 +1220,7 @@ textarea { min-height: 64px }
       $("syncChoice").hidden = true;
       if (rs && preferLocal !== true) { SY.last = { snaps: {}, meta: "" }; applyMirror() }
       else { SY.last = { snaps: {}, meta: "" }; Object.keys((remote && remote.snaps) || {}).forEach(function (k) { SY.last.snaps[k] = "?" }); schedulePush() }
-      openStream(); renderAll();
+      openStream(); renderAll(); wkScout();
       toast("Live sync on · " + cfg.code);
     }, function (e) {
       if (String(e.message) === "denied") setStatus("err", "the database refused access · check the rules and the game code (16+ letters)");
@@ -1243,10 +1295,11 @@ textarea { min-height: 64px }
   function schedUrl() { var b = ONLINE && solSchoolBase(); return b ? b + "/schedule.json" + solAuthQ() : null }
   function loadSched() {
     var u = schedUrl(); if (!u) return;
+    if (!WK.list) wkLoad().then(function () { wkBar($("wkBar"), "Week"); drawNext(); renderHome(); wkScout() });
     fetch(u).then(function (r) { if (!r.ok) throw 0; return r.json() }).then(function (l) { SCHED = Array.isArray(l) ? l : (l ? Object.keys(l).map(function (k) { return l[k] }) : []); drawNext() }, function () {});
   }
   function drawNext() {
-    var n = schedNext(SCHED), us = ((ACC && ACC.profile && ACC.profile.name) || SCHOOL_NAME_H);
+    var n = (WK.cur) || schedNext(SCHED), us = ((ACC && ACC.profile && ACC.profile.name) || SCHOOL_NAME_H);
     $("homeNext").hidden = !n; $("homeNoSched").hidden = !!n || !schedUrl();
     if (n) {
       $("hnTxt").innerHTML = esc(n.ha === "A" ? us + " at " : us + " vs ") + "<b>" + esc(n.opp) + "</b>";
@@ -1254,13 +1307,27 @@ textarea { min-height: 64px }
       $("hnSub").textContent = schedNice(n.date) + (n.ha === "H" ? " · Home" : n.ha === "A" ? " · Away" : n.ha === "N" ? " · Neutral site" : "") + (dd === 0 ? " · Today" : dd === 1 ? " · Tomorrow" : " · in " + dd + " days");
       var L = HOME.list || {}, has = Object.keys(L).some(function (k) { var g = L[k] || {}; return g.date === n.date && String(g.opp || "").toLowerCase() === n.opp.toLowerCase() });
       $("hnGo").hidden = has;
-      if (S.autoOpp && !S.snaps.length && !S.example && (S.opp !== n.opp || S.gameDate !== n.date)) { S.opp = n.opp; S.gameDate = n.date; save(); renderAll() }
+      var nn = schedNext(SCHED) || n;
+      if (nn && S.autoOpp && !S.snaps.length && !S.example && (S.opp !== nn.opp || S.gameDate !== nn.date)) { S.opp = nn.opp; S.gameDate = nn.date; save(); renderAll() }
       if (!$("ngOpp").value) { $("ngOpp").placeholder = n.opp; $("ngOpp").value = n.opp; $("ngDate").value = n.date }
     }
   }
+  WK.subs.push(function () { wkBar($("wkBar"), "Week"); drawNext(); renderHome() });
+  // this week's scout, saved by the Report Builder, loads into the game charting that week
+  function wkScout() {
+    if (!ONLINE || !S || !S.gameDate || S.example) return;
+    wkGet("/weeks/" + S.gameDate + "/scout").then(function (sc) {
+      if (!sc || !sc.sits) return;
+      if (S.scout && (S.scout.at || 0) >= (sc.at || 0)) return;
+      if (S.scoutSkip === sc.at) return;
+      S.scout = sc; if (sc.pre) S.pre = sc.pre; save(); renderAll(); if (typeof renderScoutBox === "function") renderScoutBox();
+      toast("Loaded this week's scout: " + sc.name);
+    }, function () {});
+  }
+  setInterval(wkScout, 60000);
   function openSchedEd() {
     var box = $("homeSchedEd"); box.hidden = false;
-    schedEditor(box, SCHED || [], function (list) { return fetch(schedUrl(), { method: "PUT", body: JSON.stringify(list) }).then(function (r) { if (!r.ok) throw 0 }) }, function (ok, list) { box.hidden = true; box.innerHTML = ""; if (ok) { SCHED = list; drawNext(); toast("Schedule saved · " + list.length + " games") } });
+    schedEditor(box, SCHED || [], function (list) { return fetch(schedUrl(), { method: "PUT", body: JSON.stringify(list) }).then(function (r) { if (!r.ok) throw 0 }) }, function (ok, list) { box.hidden = true; box.innerHTML = ""; if (ok) { SCHED = list; wkLoad().then(function () { wkBar($("wkBar"), "Week"); drawNext(); renderHome() }); toast("Schedule saved · " + list.length + " games") } });
     box.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
   function loadHome() {
@@ -1288,10 +1355,12 @@ textarea { min-height: 64px }
     return ["", "Final " + (g.us > g.them ? "W" : g.us < g.them ? "L" : "T")];
   }
   function renderHome(note) {
-    var L = HOME.list || {}, keys = Object.keys(L).sort(function (a, b) { var A = L[a] || {}, B = L[b] || {}; var la = gameStatus(A, a)[0] === "live" ? 1 : 0, lb = gameStatus(B, b)[0] === "live" ? 1 : 0; return lb - la || (B.date || "").localeCompare(A.date || "") || (B.updated || 0) - (A.updated || 0) });
+    var L0 = HOME.list || {}, L = {};
+    Object.keys(L0).forEach(function (k) { var g = L0[k] || {}; if (!WK.cur || g.date === WK.cur.date || (SY.cfg && k === SY.cfg.code && !S.example)) L[k] = g });
+    var keys = Object.keys(L).sort(function (a, b) { var A = L[a] || {}, B = L[b] || {}; var la = gameStatus(A, a)[0] === "live" ? 1 : 0, lb = gameStatus(B, b)[0] === "live" ? 1 : 0; return lb - la || (B.date || "").localeCompare(A.date || "") || (B.updated || 0) - (A.updated || 0) });
     $("homeState").textContent = note || (keys.length + (keys.length === 1 ? " game" : " games"));
     var box = $("homeList"); box.innerHTML = "";
-    if (!keys.length) { box.innerHTML = "<p class='note'>" + esc(note && /Open your/.test(note) ? note : "No games yet. Schedule one below.") + "</p>"; return }
+    if (!keys.length) { box.innerHTML = "<p class='note'>" + esc(note && /Open your/.test(note) ? note : WK.cur ? "No game charted for " + wkNice(WK.cur) + " yet. Set it up above." : "No games yet. Schedule one below.") + "</p>"; return }
     keys.forEach(function (k) {
       var g = L[k] || {}, st = gameStatus(g, k), el = document.createElement("div"); el.className = "hgame";
       var upd = g.updated ? new Date(g.updated) : null;
@@ -1353,7 +1422,7 @@ textarea { min-height: 64px }
   }
 
   function load() { try { var r = localStorage.getItem(KEY); return r ? JSON.parse(r) : null } catch (e) { return null } }
-  function save() { ensureIdsSafe(); try { localStorage.setItem(KEY, JSON.stringify(S)); localStorage.setItem("cardinals-last-used" + NS, String(Date.now())) } catch (e) {} if (typeof schedulePush === "function") schedulePush() }
+  function save() { ensureIdsSafe(); if (typeof filmCheck === "function") filmCheck(); try { localStorage.setItem(KEY, JSON.stringify(S)); localStorage.setItem("cardinals-last-used" + NS, String(Date.now())) } catch (e) {} if (typeof schedulePush === "function") schedulePush() }
   function ensureIdsSafe() { if (typeof ensureIds === "function" && S && S.snaps) ensureIds() }
   function $(id) { return document.getElementById(id) }
   function list(k) { if (S.lists[k] == null) S.lists[k] = DEF_LISTS[k]; return S.lists[k].split(",").map(function (s) { return s.trim() }).filter(Boolean) }
@@ -2215,6 +2284,81 @@ textarea { min-height: 64px }
     if (s.mulligan) t.push("<span class='tag mul'>Mulligan</span>");
     return t.join("");
   }
+
+  // ---------- film: this device's camera records; each logged play gets the clip since the last one ----------
+  var FILM = { on: false, rec: null, stream: null, chunks: [], have: {}, lastId: null, n: 0, facing: "environment", lock: null, mime: "" };
+  function filmGame() { return (SY.cfg && SY.cfg.code) || "local" }
+  function filmKey(id) { return NS + "|" + filmGame() + "|" + id }
+  var filmDb = null;
+  function fdb() {
+    if (filmDb) return filmDb;
+    filmDb = new Promise(function (ok, bad) { var r = indexedDB.open("solutions-clips", 1); r.onupgradeneeded = function () { r.result.createObjectStore("clips") }; r.onsuccess = function () { ok(r.result) }; r.onerror = function () { bad(r.error) } });
+    return filmDb;
+  }
+  function fput(k, v) { return fdb().then(function (db) { return new Promise(function (ok, bad) { var t = db.transaction("clips", "readwrite"); t.objectStore("clips").put(v, k); t.oncomplete = ok; t.onerror = function () { bad(t.error) } }) }) }
+  function fget(k) { return fdb().then(function (db) { return new Promise(function (ok) { var q = db.transaction("clips").objectStore("clips").get(k); q.onsuccess = function () { ok(q.result) }; q.onerror = function () { ok(null) } }) }) }
+  function filmLoadKeys() {
+    if (!window.indexedDB) return;
+    fdb().then(function (db) { var q = db.transaction("clips").objectStore("clips").getAllKeys(); q.onsuccess = function () { var pre = NS + "|" + filmGame() + "|"; FILM.have = {}; (q.result || []).forEach(function (k) { if (String(k).indexOf(pre) === 0) FILM.have[k] = 1 }); renderLog() } }, function () {});
+  }
+  function filmPickMime() { var c = ["video/mp4;codecs=avc1", "video/mp4", "video/webm;codecs=vp9", "video/webm"]; for (var i = 0; i < c.length; i++) if (window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(c[i])) return c[i]; return "" }
+  function filmStartRec() {
+    var opts = { videoBitsPerSecond: 1500000 }; if (FILM.mime) opts.mimeType = FILM.mime;
+    var r = new MediaRecorder(FILM.stream, opts), mine = []; r._chunks = mine;
+    r.ondataavailable = function (e) { if (e.data && e.data.size) mine.push(e.data) };
+    r.start(1000); FILM.rec = r;
+  }
+  function filmCut(snapId) {
+    var r = FILM.rec; if (!r || r.state === "inactive") return;
+    var chunks = r._chunks;
+    r.onstop = function () {
+      var blob = new Blob(chunks, { type: FILM.mime.split(";")[0] || "video/webm" });
+      if (blob.size > 2000 && snapId) { var k = filmKey(snapId); fput(k, blob).then(function () { FILM.have[k] = 1; FILM.n++; filmStatus(); renderLog() }, function () { toast("Couldn't save the clip. The device may be out of storage.") }) }
+    };
+    r.stop();
+    if (FILM.on) filmStartRec();
+  }
+  function filmCheck() {
+    if (!FILM.on || !S || !S.snaps || !S.snaps.length) return;
+    var last = S.snaps[S.snaps.length - 1];
+    if (last.id && last.id !== FILM.lastId && !FILM.have[filmKey(last.id)]) { FILM.lastId = last.id; filmCut(last.id) }
+  }
+  function filmStatus() {
+    $("filmGo").textContent = FILM.on ? "■ Stop filming" : "🎥 Film this game";
+    $("filmPrev").hidden = !FILM.on; $("filmCam").hidden = !FILM.on;
+    $("filmState").innerHTML = FILM.on ? "<span class='filmdot'></span><b>Filming</b> · " + FILM.n + " clip" + (FILM.n === 1 ? "" : "s") + " saved tonight. Keep this screen on and the device steady."
+      : "Point this device at the field. Each play you log gets its own clip; tap ▶ in the Log to watch it.";
+  }
+  function filmOn() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) { toast("This browser can't record video. Use Safari on iPhone/iPad or Chrome."); return }
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: FILM.facing, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false }).then(function (st) {
+      FILM.stream = st; FILM.mime = filmPickMime(); $("filmPrev").srcObject = st;
+      FILM.on = true; FILM.lastId = S.snaps.length ? S.snaps[S.snaps.length - 1].id : null; filmStartRec(); filmStatus();
+      try { navigator.wakeLock && navigator.wakeLock.request("screen").then(function (l) { FILM.lock = l }, function () {}) } catch (e) {}
+      toast("Filming. Log plays as usual; each one saves a clip.");
+    }, function () { toast("Camera blocked. Allow camera access for this site in your browser settings.") });
+  }
+  function filmOff() {
+    FILM.on = false;
+    if (FILM.rec && FILM.rec.state !== "inactive") { FILM.rec.onstop = null; FILM.rec.stop() }
+    FILM.rec = null; if (FILM.stream) FILM.stream.getTracks().forEach(function (t) { t.stop() }); FILM.stream = null;
+    try { FILM.lock && FILM.lock.release() } catch (e) {} FILM.lock = null; filmStatus();
+  }
+  document.addEventListener("visibilitychange", function () { if (FILM.on && document.visibilityState === "visible" && navigator.wakeLock) { navigator.wakeLock.request("screen").then(function (l) { FILM.lock = l }, function () {}) } });
+  var clipIdx = null, clipUrl = null;
+  function clipList() { var a = []; S.snaps.forEach(function (s, i) { if (s.id && FILM.have[filmKey(s.id)]) a.push(i) }); return a }
+  function openClip(i) {
+    var s = S.snaps[i]; if (!s) return; clipIdx = i;
+    fget(filmKey(s.id)).then(function (b) {
+      if (!b) { toast("That clip isn't on this device."); return }
+      if (clipUrl) URL.revokeObjectURL(clipUrl); clipUrl = URL.createObjectURL(b);
+      $("clipVid").src = clipUrl; $("clipDl").href = clipUrl; $("clipDl").download = "Play_" + s.n + "_" + (S.opp || "game").replace(/\W+/g, "_") + (/mp4/.test(b.type) ? ".mp4" : ".webm");
+      $("clipTitle").textContent = "#" + s.n + " · Q" + s.qtr + " · " + ddLabel(s) + " · " + [s.form, s.call].filter(Boolean).join(" ") + " · " + (s.res || "") + (s.gain != null && s.kind !== "try" ? " " + s.gain : "");
+      var L = clipList(), at = L.indexOf(i); $("clipPrev").disabled = at <= 0; $("clipNext").disabled = at < 0 || at >= L.length - 1;
+      $("clipModal").hidden = false; try { $("clipVid").play() } catch (e) {}
+    });
+  }
+  function closeClip() { $("clipModal").hidden = true; try { $("clipVid").pause() } catch (e) {} }
   function renderLog() {
     var by = {};
     S.snaps.forEach(function (s, i) { (by[s.series] = by[s.series] || []).push([s, i]) });
@@ -2232,7 +2376,7 @@ textarea { min-height: 64px }
           (isT ? "<td></td><td></td>" : tc("look", esc([s.shell ? s.shell.toLowerCase() : "", s.box ? s.box + " box" : "", s.front || "", s.cov ? covName(s.cov) : ""].filter(Boolean).join(" · ")) || "<span class='note'>+ look</span>") + tc("look", esc(s.blitz))) +
           (isT ? "<td>" + esc(s.res) + "</td><td>" + esc(playerText(s)) + "</td><td>" + outcomeTags(s) + "</td>" : s.res === "Penalty" ? tc("res", esc(s.pen ? s.pen.n : "Penalty")) + "<td></td>" + tc("res", outcomeTags(s))
             : tc("res", esc(s.res) + (s.td ? ", TD" : "") + (s.gain == null ? " · spot pending" : " " + s.gain)) + tc("pl", esc(playerText(s)) || "<span class='note'>+ player</span>") + tc("res", outcomeTags(s))) +
-          "<td style='white-space:nowrap'><button class='edit' data-i='" + p[1] + "'>Edit</button><button class='del' data-i='" + p[1] + "'>Delete</button></td></tr>";
+          "<td style='white-space:nowrap'>" + (s.id && FILM.have[filmKey(s.id)] ? "<button class='clipbtn' data-i='" + p[1] + "' aria-label='Watch play'>▶</button>" : "") + "<button class='edit' data-i='" + p[1] + "'>Edit</button><button class='del' data-i='" + p[1] + "'>Delete</button></td></tr>";
       });
       h += "</table></div></div>";
     });
@@ -2240,6 +2384,7 @@ textarea { min-height: 64px }
     $("logCount").textContent = S.snaps.length + " snaps";
     document.querySelectorAll(".lookcell").forEach(function (td) { td.addEventListener("click", function () { openCell(+td.dataset.i, td.dataset.k) }) });
     document.querySelectorAll(".edit").forEach(function (b) { b.addEventListener("click", function () { openEdit(+b.dataset.i) }) });
+    document.querySelectorAll(".clipbtn").forEach(function (b) { b.addEventListener("click", function () { openClip(+b.dataset.i) }) });
     document.querySelectorAll(".del").forEach(function (b) { b.addEventListener("click", function () {
       var i = +b.dataset.i; S.snaps.splice(i, 1); S.snaps.forEach(function (s, j) { s.n = j + 1 }); save(); renderAll(); toast("Deleted. Down and distance unchanged; fix it on the Chart tab if needed.") }) });
   }
@@ -2517,7 +2662,7 @@ textarea { min-height: 64px }
   function exportOcXlsx() { var kq = ocQ; ocQ = 0; try { saveFile(fileBase() + "_OC_Reports.xlsx", buildXlsx("oc")) } catch (e) { toast("Excel export failed: " + e.message) } ocQ = kq; renderReport(); }
 
   // ---------- win probability ----------
-  var WP_DEF_US = IS_HOME ? 40 : 24, WP_DEF_THEM = 24, DRIVES_PER_GAME = 11, MIN_PER_PLAY = 0.75;
+  var WP_DEF_US = 24, WP_DEF_THEM = 24, DRIVES_PER_GAME = 11, MIN_PER_PLAY = 0.75;
   var EPP = [[1, -1.2], [10, -0.6], [20, 0], [30, 0.6], [40, 1.2], [50, 1.8], [60, 2.4], [70, 3.0], [80, 3.6], [90, 4.4], [95, 4.9], [99, 5.4]];
   function EPy(y) { y = Math.max(1, Math.min(99, y)); for (var i = 1; i < EPP.length; i++) if (y <= EPP[i][0]) { var a = EPP[i - 1], b = EPP[i]; return a[1] + (b[1] - a[1]) * (y - a[0]) / (b[0] - a[0]) } return 5.4 }
   function Phi(x) { var t = 1 / (1 + .2316419 * Math.abs(x)), d = .3989423 * Math.exp(-x * x / 2), p = d * t * (.3193815 + t * (-.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274)))); return x > 0 ? 1 - p : p }
@@ -3265,8 +3410,15 @@ textarea { min-height: 64px }
   $("wpReset").addEventListener("click", function () { delete S.wp; fillWp(); save(); renderAll(); toast("Back to the data-based start") });
   $("clkBadge").addEventListener("click", openClock);
   $("hsGo").addEventListener("click", scheduleGame);
+  $("filmGo").addEventListener("click", function () { if (FILM.on) { filmOff(); toast("Filming stopped. Clips stay on this device.") } else filmOn() });
+  $("filmCam").addEventListener("click", function () { FILM.facing = FILM.facing === "environment" ? "user" : "environment"; filmOff(); filmOn() });
+  $("clipClose").addEventListener("click", closeClip);
+  $("clipPrev").addEventListener("click", function () { var L = clipList(), at = L.indexOf(clipIdx); if (at > 0) openClip(L[at - 1]) });
+  $("clipNext").addEventListener("click", function () { var L = clipList(), at = L.indexOf(clipIdx); if (at >= 0 && at < L.length - 1) openClip(L[at + 1]) });
+  filmLoadKeys();
+  if (location.hash === "#selftest") window.__sol = { S: function () { return S }, save: save, renderAll: renderAll, FILM: FILM };
   $("hnEd").addEventListener("click", openSchedEd); $("hnImp").addEventListener("click", openSchedEd);
-  $("hnGo").addEventListener("click", function () { var n = schedNext(SCHED); if (!n) return; $("hsOpp").value = n.opp; $("hsDate").value = n.date; $("hsBox").hidden = false; $("hsCode").focus(); toast("Pick a game code, then Schedule") });
+  $("hnGo").addEventListener("click", function () { var n = WK.cur || schedNext(SCHED); if (!n) return; $("hsOpp").value = n.opp; $("hsDate").value = n.date; $("hsBox").hidden = false; $("hsCode").focus(); toast("Pick a game code, then Schedule") });
   $("hsToggle").addEventListener("click", function () { $("hsBox").hidden = !$("hsBox").hidden; if (!$("hsBox").hidden) $("hsOpp").focus() });
   $("homeOff").addEventListener("click", function () { document.getElementById("t-chart").click() });
   var PROF = (ONLINE && ACC && ACC.profile) || {};
@@ -3409,7 +3561,7 @@ textarea { min-height: 64px }
   window.addEventListener("online", function () { if (SY.cfg) { openStream(); schedulePush() } });
 
   buildChips(); renderAll();
-  if (!IS_HOME && $("wpNote")) $("wpNote").textContent = "Starts even: 24 points a side. Set your expected points and theirs (their average points per game) before kickoff. Both update live from tonight's drives.";
+  if ($("wpNote")) $("wpNote").textContent = "Starts even: 24 points a side. Set your expected points and theirs (their average points per game) before kickoff. Both update live from tonight's drives.";
   if (ONLINE) loadSched();
   (function initSync() {
     var q = {}; try { location.search.replace(/^\?/, "").split("&").forEach(function (kv) { if (!kv) return; var i = kv.indexOf("="); q[decodeURIComponent(kv.slice(0, i))] = decodeURIComponent(kv.slice(i + 1)) }) } catch (e) {}

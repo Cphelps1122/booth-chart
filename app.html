@@ -151,6 +151,8 @@ main { padding-block: 14px 40px }
 .gsgrid .gc { gap: 2px; flex-wrap: wrap } .gsgrid .gc.sit-on { background: #fff9d6 }
 .gsgrid .gc button { font: inherit; font-size: 1em; border: 1px solid transparent; background: none; padding: 3px 5px; border-radius: 5px; cursor: pointer; flex: 1 1 auto; text-align: left; white-space: nowrap; line-height: 1.15 }
 .gsgrid .gc button:hover { border-color: #9aa3ad } .gsgrid .gc button[aria-pressed=true] { background: #111 !important; color: #fff !important } .gsgrid .k-run { color: #d00000 } .gsgrid .k-pass { color: #0030d0 } .gsgrid .k-scr { color: #000 }
+.gsgrid .gc button .gm { font-size: .72em; opacity: .75; margin-left: 4px; border: 1px solid currentColor; border-radius: 4px; padding: 0 3px }
+.gsgrid .gsch { display: inline-flex; gap: 3px; flex: 0 0 auto } .gsgrid .gsch button { flex: 0 0 auto !important; font-size: 1.15em !important; font-weight: 900; padding: 5px 10px !important; border: 2px solid #111 !important; background: #fff !important; color: #111 !important } .gsgrid .gsch button[aria-pressed=true] { background: #ffd400 !important; color: #000 !important }
 .gsgrid .gc button .n { font-size: .78em; background: #ffd400; color: #000; border-radius: 4px; padding: 0 3px; margin-left: 3px } .gsgrid .gc .d { font-size: .8em; opacity: .7; margin-right: 3px }
 .cs-run { background: #fde2e2; color: #b40000 } .cs-pass { background: #dde7ff; color: #0b2fb3 } .cs-scr { background: #e9e9ea; color: #111 } .cs-w { background: var(--cs-w) } .cs-g { background: var(--cs-g) } .cs-y { background: var(--cs-y) } .cs-o { background: var(--cs-o) } .cs-gn { background: var(--cs-gn) }
 .chip.cs { font-size: 15px; min-height: 40px; border-color: var(--line); color: var(--cs-ink) }
@@ -462,6 +464,7 @@ textarea { min-height: 64px }
     </div>
     <div class="inmode" role="group" aria-label="Input mode"><span>Input</span><button type="button" id="imFull" aria-pressed="true">Full input</button><button type="button" id="imSheet" aria-pressed="false">Call sheet</button><span class="note" id="imNote"></span></div>
     <div class="panel" id="gsPanel" hidden>
+      <button class="mull" id="gsMull" type="button" disabled style="margin-bottom:10px"><span class="mt">↻ Mulligan</span><span class="ms" id="gsMullWhat">no play to repeat yet</span></button>
       <div class="gshead"><h3>Call sheet <small id="gsSit"></small></h3><span class="gspick" id="gsPick">Tap a play</span><button type="button" class="btn" id="gsZo" aria-label="Zoom out">−</button><button type="button" class="btn" id="gsZi" aria-label="Zoom in">+</button></div>
       <div class="gswrap" id="gsWrap"><div class="gsgrid" id="gsGrid"></div></div>
     </div>
@@ -1608,7 +1611,7 @@ textarea { min-height: 64px }
     var box = SHEET[cell.b]; if (!box) return [];
     var t = String(cell.v).toUpperCase(), d = null, m = t.match(/^(\d+(?:\s*-\s*\d+)?\+?)\s*:\s*(.*)$/); if (m) { d = m[1].replace(/\s/g, ""); t = m[2] } if (!t) return [];
     var out = [], seen = {};
-    expandCall(t).forEach(function (p) { otVariants(box, { t: p.t, g: p.g, c: "w", d: d }).forEach(function (v) {
+    csExpand(t).forEach(function (p) { otVariants(box, { t: p.t, g: p.g, c: "w", d: d }).forEach(function (v) {
       var extra = v.form && box.form && v.form !== box.form && v.form.indexOf(box.form + " ") === 0 ? v.form.slice(box.form.length + 1) : "";
       v.short = (box.kind === "sit" && v.form ? v.form + " " : "") + v.call + (extra ? " · " + extra : "") + (v.motion ? " · " + v.motion : "") + (v.rpo ? " · " + v.rpo : "");
       if (!seen[v.short]) { seen[v.short] = 1; out.push(v) }
@@ -1638,17 +1641,28 @@ textarea { min-height: 64px }
         el.className = "gc k-" + (c.k || "scr"); if (sitBox[c.b]) el.classList.add("sit-on");
         var vs = gsCellVariants(c);
         if (!vs.length) el.textContent = c.v;
-        vs.forEach(function (v) {
-          var b = document.createElement("button"), n = usedCount(v.call, v.form), sel = pick.call === v.call && pick.form === v.form && (pick.motion || null) === v.motion && (pick.rpo || null) === v.rpo;
-          b.type = "button"; b.className = "k-" + (c.k || "scr"); b.setAttribute("aria-pressed", sel ? "true" : "false"); b.title = v.label;
-          b.innerHTML = (v.d ? "<span class='d'>" + esc(v.d) + "</span>" : "") + esc(v.short) + (n ? "<span class='n'>×" + n + "</span>" : "");
+        var grp = [], gi = {};
+        vs.forEach(function (v) { var key = v.call + "|" + (v.motion || "") + "|" + (v.rpo || ""); if (gi[key] == null) { gi[key] = grp.length; grp.push({ v: v, all: [] }) } grp[gi[key]].all.push(v) });
+        grp.forEach(function (gr) {
+          var all = gr.all, v0 = all[0], base = SHEET[c.b].form || "", extra = function (v) { return v.form && base && v.form.indexOf(base + " ") === 0 ? v.form.slice(base.length + 1) : (v.form || "—") };
+          var cur = all.filter(function (v) { return pick.call === v.call && pick.form === v.form && (pick.motion || null) === v.motion && (pick.rpo || null) === v.rpo })[0];
+          var lab = (SHEET[c.b].kind === "sit" && v0.form ? v0.form + " " : "") + v0.call + (v0.motion ? " · " + v0.motion : "") + (v0.rpo ? " · " + v0.rpo : "");
+          if (all.length === 1) lab = v0.short;
+          var n = all.reduce(function (t, v) { return t + usedCount(v.call, v.form) }, 0), b = document.createElement("button");
+          b.type = "button"; b.className = "k-" + (c.k || "scr"); b.setAttribute("aria-pressed", cur ? "true" : "false"); b.title = all.map(function (v) { return v.label }).join(" / ");
+          b.innerHTML = (v0.d ? "<span class='d'>" + esc(v0.d) + "</span>" : "") + esc(lab) + (all.length > 1 ? "<span class='gm'>" + esc(all.map(extra).join("/")) + "</span>" : "") + (n ? "<span class='n'>×" + n + "</span>" : "");
+          var setV = function (v) { pick.mull = false; pick.form = v.form || pick.form; pick.call = v.call; pick.callType = "sheet"; pick.motion = v.motion; pick.rpo = v.rpo; if (all.length > 1 && base) { S.gsMod = S.gsMod || {}; S.gsMod[base] = extra(v) } renderChips() };
           b.addEventListener("click", function () {
-            pick.mull = false;
-            if (sel) { pick.call = null; pick.callType = null; pick.motion = null; pick.rpo = null }
-            else { pick.form = v.form || pick.form; pick.call = v.call; pick.callType = "sheet"; pick.motion = v.motion; pick.rpo = v.rpo }
-            renderChips();
+            if (cur) { pick.call = null; pick.callType = null; pick.motion = null; pick.rpo = null; renderChips(); return }
+            var last = base && S.gsMod && S.gsMod[base], pf = all.filter(function (v) { return pick.form && v.form === pick.form })[0] || all.filter(function (v) { return last && extra(v) === last })[0] || all[0];
+            setV(pf);
           });
           el.appendChild(b);
+          if (cur && all.length > 1) {
+            var ch = document.createElement("span"); ch.className = "gsch";
+            all.forEach(function (v) { var x = document.createElement("button"); x.type = "button"; x.textContent = extra(v); x.setAttribute("aria-pressed", v === cur ? "true" : "false"); x.addEventListener("click", function (e) { e.stopPropagation(); setV(v) }); ch.appendChild(x) });
+            el.appendChild(ch);
+          }
         });
       } else { el.className = "gx"; el.textContent = c.v }
       g.appendChild(el);
@@ -1656,6 +1670,7 @@ textarea { min-height: 64px }
     $("gsPick").textContent = pick.call ? ((pick.form ? pick.form + " " : "") + pick.call + (pick.motion ? " · " + pick.motion : "") + (pick.rpo ? " · " + pick.rpo : "")) : "Tap a play";
   }
   function gsWire() {
+    $("gsMull").addEventListener("click", function () { $("mullBtn").click() });
     $("imFull").addEventListener("click", function () { S.inMode = "full"; save(); renderChips() });
     $("imSheet").addEventListener("click", function () { S.inMode = "sheet"; save(); renderChips() });
     var z = function (d) { GS_Z = Math.max(.6, Math.min(2, Math.round((GS_Z + d) * 10) / 10)); try { localStorage.setItem("solutions-gsz" + (typeof NS === "string" ? NS : ""), GS_Z) } catch (e) {} renderGrid() };
@@ -1944,6 +1959,7 @@ textarea { min-height: 64px }
     var pv = prevCall(), mb = $("mullBtn");
     mb.disabled = !pv; mb.classList.toggle("on", !!pick.mull);
     $("mullWhat").textContent = pv ? (pick.mull ? "repeating: " : "run it back: ") + callText(pv) : "no play to repeat yet";
+    var gm = $("gsMull"); if (gm) { gm.disabled = !pv; gm.classList.toggle("on", !!pick.mull); $("gsMullWhat").textContent = $("mullWhat").textContent }
     $("logBtn").disabled = !pick.res;
   }
 
@@ -3481,6 +3497,10 @@ textarea { min-height: 64px }
     merges.forEach(function (m) { var top = cells[m.r0 + "," + m.c0]; if (!top) return; for (var r = m.r0; r <= m.r1; r++) for (var c = m.c0; c <= m.c1; c++) if (r !== m.r0 || c !== m.c0) cells[r + "," + c] = { v: "", fill: top.fill, part: true, r: r, c: c } });
     return { cells: cells, merges: merges };
   }
+  function csExpand(t) { // trailing "(DIP / TRIG)" applies to every play in the cell, not just the last one
+    var m = String(t).match(/^(.*?\S)((?:\s*\([^)]*\))+)\s*$/); if (!m || m[1].indexOf(" / ") < 0) return expandCall(t);
+    var tail = m[2].trim(), seen = {}; return expandCall(m[1]).map(function (p) { return { t: p.t + " " + tail, g: p.g } }).filter(function (p) { if (seen[p.t]) return false; seen[p.t] = 1; return true });
+  }
   var CS_SIT = [[/2\s*P(T|OINT)/, "2PT"], [/GOAL ?LINE|5 ?& ?IN|TIGHT ZONE/, "TZ"], [/SCORE ?ZONE/, "SZ"], [/RED ?ZONE/, "RZ"], [/BACKED|COMING OUT/, "CO"], [/4TH/, "4TH"], [/OFF SCHED|2ND/, "2L"], [/^LONG|3RD.*(LONG|11|7)/, "3L7"], [/^MEDIUM|3RD.*(MED|4-6)/, "3M"], [/^SHORT|3RD.*(SHORT|1-3)/, "3S"]];
   var CS_OTHER = /2 ?MIN|4 ?MIN|MAN BEAT|CLOUD|BRACKET|PALMS|BLITZ|DROP 8|COV 3|END OF|ATTACK|2 PLAY SERIES|TEMPO|SERIES|BEATERS/;
   var CS_SKIP = /^(NOTES?|FAST|FEARLESS|PHYSICAL|3RD DOWN|\d+ PERSONNEL|PERSONNEL)$|BULLDOGS|\d{1,2}-\d{1,2}-\d{2}/;
@@ -3505,7 +3525,7 @@ textarea { min-height: 64px }
       plays.forEach(function (x) {
         var t = x.v.toUpperCase(), d = null, m = t.match(/^(\d+(?:\s*-\s*\d+)?\+?)\s*:\s*(.*)$/); if (m) { d = m[1].replace(/\s/g, ""); t = m[2] } if (!t) return;
         var k = csKind(x.fc), col = k === "run" ? "run" : k === "pass" ? "pass" : "scr";
-        (typeof expandCall === "function" ? expandCall(t) : [{ t: t, g: t }]).forEach(function (p) { var pl = { t: p.t, g: p.g, c: col, rp: k }; if (d) pl.d = d; box.plays.push(pl) });
+        csExpand(t).forEach(function (p) { var pl = { t: p.t, g: p.g, c: col, rp: k }; if (d) pl.d = d; box.plays.push(pl) });
       });
       if (box.plays.length) { plays.forEach(function (x) { x.bi = boxes.length }); boxes.push(box) } else skipped++;
     });

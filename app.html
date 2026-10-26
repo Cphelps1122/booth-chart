@@ -140,7 +140,7 @@ main { padding-block: 14px 40px }
 .chip[aria-pressed="true"] { background: var(--chip-on); color: var(--chip-on-ink) }
 .chip.res-neg[aria-pressed="true"] { background: var(--red); color: var(--red-ink) }
 .chip:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid var(--red); outline-offset: 2px }
-.cs-w { background: var(--cs-w) } .cs-g { background: var(--cs-g) } .cs-y { background: var(--cs-y) } .cs-o { background: var(--cs-o) } .cs-gn { background: var(--cs-gn) }
+.cs-run { background: #fde2e2; color: #b40000 } .cs-pass { background: #dde7ff; color: #0b2fb3 } .cs-scr { background: #e9e9ea; color: #111 } .cs-w { background: var(--cs-w) } .cs-g { background: var(--cs-g) } .cs-y { background: var(--cs-y) } .cs-o { background: var(--cs-o) } .cs-gn { background: var(--cs-gn) }
 .chip.cs { font-size: 15px; min-height: 40px; border-color: var(--line); color: var(--cs-ink) }
 .chip.cs .n { font-family: var(--f-body); font-size: 11px; font-weight: 700; margin-left: 6px; opacity: .7 }
 .chip.cs .d { font-family: var(--f-body); font-size: 11px; font-weight: 700; margin-right: 6px; opacity: .7 }
@@ -687,6 +687,8 @@ textarea { min-height: 64px }
       </div>
       <div class="panel" id="cePanel" style="grid-column:1/-1">
         <h3>Call sheet <small id="ceState"></small></h3>
+        <div class="custom" style="align-items:center"><button class="btn primary" id="csUp" style="font-size:17px;padding:10px 16px">Upload this week's call sheet</button><button class="btn" id="csBack" hidden style="font-size:15px;padding:8px 12px">Back to previous sheet</button><input type="file" id="csFile" accept=".xlsx" hidden><span class="note" style="flex:1 1 260px">Google Sheets → File → Download → Microsoft Excel (.xlsx). Red = run, blue = pass, black = screen.</span></div>
+        <div id="csBox" hidden style="margin:10px 0;padding:12px;border:2px solid var(--red, #c00);border-radius:10px"><div id="csPrev" style="max-height:340px;overflow:auto"></div><div class="actions"><button class="btn primary" id="csSave">Use this call sheet</button> <button class="btn" id="csCancel">Cancel</button></div></div>
         <div class="custom">
           <label for="ceSec" style="flex:1 1 220px">Box<select id="ceSec" style="width:100%"></select></label>
           <label for="ceSecName" style="flex:1 1 200px">Box name<input id="ceSecName" type="text" style="width:100%"></label>
@@ -1220,7 +1222,7 @@ textarea { min-height: 64px }
       $("syncChoice").hidden = true;
       if (rs && preferLocal !== true) { SY.last = { snaps: {}, meta: "" }; applyMirror() }
       else { SY.last = { snaps: {}, meta: "" }; Object.keys((remote && remote.snaps) || {}).forEach(function (k) { SY.last.snaps[k] = "?" }); schedulePush() }
-      openStream(); renderAll(); wkScout(); wkHudlLists(); wkPred();
+      openStream(); renderAll(); wkScout(); wkHudlLists(); wkPred(); wkCallSheet();
       toast("Live sync on · " + cfg.code);
     }, function (e) {
       if (String(e.message) === "denied") setStatus("err", "the database refused access · check the rules and the game code (16+ letters)");
@@ -1295,7 +1297,7 @@ textarea { min-height: 64px }
   function schedUrl() { var b = ONLINE && solSchoolBase(); return b ? b + "/schedule.json" + solAuthQ() : null }
   function loadSched() {
     var u = schedUrl(); if (!u) return;
-    if (!WK.list) wkLoad().then(function () { wkBar($("wkBar"), "Week"); drawNext(); renderHome(); wkScout(); wkHudlLists(); wkPred() });
+    if (!WK.list) wkLoad().then(function () { wkBar($("wkBar"), "Week"); drawNext(); renderHome(); wkScout(); wkHudlLists(); wkPred(); wkCallSheet() });
     fetch(u).then(function (r) { if (!r.ok) throw 0; return r.json() }).then(function (l) { SCHED = Array.isArray(l) ? l : (l ? Object.keys(l).map(function (k) { return l[k] }) : []); drawNext() }, function () {});
   }
   function drawNext() {
@@ -1419,7 +1421,7 @@ textarea { min-height: 64px }
     var k = newCode(), e = { opp: opp, date: date, us: 0, them: 0, plays: 0, updated: Date.now(), lock: lockOf(code) };
     fetch(homeListUrl(k), { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(e) }).then(function (r) { if (!r.ok) throw 0; $("hsOpp").value = ""; $("hsCode").value = ""; toast("Scheduled vs " + opp + ". Game code: " + code.toUpperCase()); $("hsBox").hidden = true; loadHome() }, function () { toast("Couldn't reach the database. Check the connection.") });
   }
-  function keepSettings() { return { lists: S.lists, start: S.start, dmode: S.dmode, fast: S.fast, sheet: S.sheet } }
+  function keepSettings() { return { lists: S.lists, start: S.start, dmode: S.dmode, fast: S.fast, sheet: S.sheet, sheetPrev: S.sheetPrev } }
   function openGame(code) {
     if (!SY.cfg || code === SY.cfg.code) return;
     // other games open through Home with their game code
@@ -3313,8 +3315,127 @@ textarea { min-height: 64px }
     r.readAsDataURL(file);
   }
 
+  // ---------- upload this week's call sheet (Google Sheets → Download → .xlsx) ----------
+  function csUnzip(buf) {
+    var u = new Uint8Array(buf), dv = new DataView(buf), td = new TextDecoder(), e = u.length - 22;
+    while (e >= 0 && dv.getUint32(e, true) !== 0x06054b50) e--; if (e < 0) return Promise.reject(new Error("zip"));
+    var n = dv.getUint16(e + 10, true), off = dv.getUint32(e + 16, true), out = {}, jobs = [];
+    for (var i = 0; i < n; i++) {
+      var meth = dv.getUint16(off + 10, true), csz = dv.getUint32(off + 20, true), nl = dv.getUint16(off + 28, true), xl = dv.getUint16(off + 30, true), cl = dv.getUint16(off + 32, true), lo = dv.getUint32(off + 42, true);
+      var name = td.decode(u.subarray(off + 46, off + 46 + nl)); off += 46 + nl + xl + cl;
+      if (!/^xl\/(sharedStrings|styles|workbook|worksheets\/sheet\d+|_rels\/workbook)\.xml(\.rels)?$/.test(name) && !/^xl\/_rels\//.test(name)) continue;
+      (function (name, meth, csz, lo) {
+        var ds = lo + 30 + dv.getUint16(lo + 26, true) + dv.getUint16(lo + 28, true), data = u.slice(ds, ds + csz);
+        var p = meth === 0 ? Promise.resolve(data) : new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer().then(function (b) { return new Uint8Array(b) });
+        jobs.push(p.then(function (d) { out[name] = td.decode(d) }));
+      })(name, meth, csz, lo);
+    }
+    return Promise.all(jobs).then(function () { return out });
+  }
+  function csRGB(el) { if (!el) return null; var r = el.getAttribute("rgb"); if (r) return r.slice(-6).toUpperCase(); var t = el.getAttribute("theme"); if (t != null) return t === "1" || t === "0" ? (t === "1" ? "000000" : "FFFFFF") : null; var ix = el.getAttribute("indexed"); if (ix === "8") return "000000"; if (ix === "9" || ix === "64") return "FFFFFF"; if (ix === "10") return "FF0000"; if (ix === "12") return "0000FF"; return null }
+  function csKind(hex) { // font color → run / pass / screen
+    if (!hex) return "scr"; var r = parseInt(hex.slice(0, 2), 16), g = parseInt(hex.slice(2, 4), 16), b = parseInt(hex.slice(4, 6), 16);
+    if (r > 140 && r > g * 1.6 && r > b * 1.6) return "run";
+    if (b > 120 && b > r * 1.4 && b > g * 1.1) return "pass";
+    return "scr";
+  }
+  function csGrid(z) {
+    var P = new DOMParser(), X = function (k) { return z[k] ? P.parseFromString(z[k], "application/xml") : null }, tag = function (d, t) { return d ? Array.prototype.slice.call(d.getElementsByTagName(t)) : [] };
+    var ss = tag(X("xl/sharedStrings.xml"), "si").map(function (si) { return tag(si, "t").map(function (t) { return t.textContent }).join("") });
+    var st = X("xl/styles.xml"), fonts = tag(st && st.getElementsByTagName("fonts")[0], "font").map(function (f) { return { c: csRGB(f.getElementsByTagName("color")[0]), b: !!f.getElementsByTagName("b")[0] } });
+    var fills = tag(st && st.getElementsByTagName("fills")[0], "fill").map(function (f) { var p = f.getElementsByTagName("patternFill")[0]; if (!p || p.getAttribute("patternType") === "none" || !p.getAttribute("patternType")) return null; return csRGB(p.getElementsByTagName("fgColor")[0]) });
+    var xfs = tag(st && st.getElementsByTagName("cellXfs")[0], "xf").map(function (x) { return { f: +(x.getAttribute("fontId") || 0), l: +(x.getAttribute("fillId") || 0) } });
+    var sheets = Object.keys(z).filter(function (k) { return /^xl\/worksheets\/sheet\d+\.xml$/.test(k) }).sort(function (a, b) { return parseInt(a.match(/\d+/)[0]) - parseInt(b.match(/\d+/)[0]) });
+    if (!sheets.length) return null;
+    var sh = X(sheets[0]), cells = {}, col = function (ref) { var m = /^([A-Z]+)(\d+)/.exec(ref), n = 0; for (var i = 0; i < m[1].length; i++) n = n * 26 + m[1].charCodeAt(i) - 64; return [n - 1, +m[2] - 1] };
+    tag(sh, "c").forEach(function (c) {
+      var rc = col(c.getAttribute("r")), t = c.getAttribute("t"), v = c.getElementsByTagName("v")[0], val = "";
+      if (t === "s" && v) val = ss[+v.textContent] || ""; else if (t === "inlineStr") val = tag(c, "t").map(function (x) { return x.textContent }).join(""); else if (v) val = v.textContent;
+      var x = xfs[+(c.getAttribute("s") || 0)] || { f: 0, l: 0 }, fo = fonts[x.f] || {}, fi = fills[x.l] || null;
+      cells[rc[1] + "," + rc[0]] = { v: String(val).replace(/\s+/g, " ").trim(), fc: fo.c, bold: fo.b, fill: fi && fi !== "FFFFFF" ? fi : null, r: rc[1], c: rc[0] };
+    });
+    var merges = tag(sh, "mergeCell").map(function (m) { var p = m.getAttribute("ref").split(":"), a = col(p[0]), b = col(p[1] || p[0]); return { r0: a[1], c0: a[0], r1: b[1], c1: b[0] } });
+    merges.forEach(function (m) { var top = cells[m.r0 + "," + m.c0]; if (!top) return; for (var r = m.r0; r <= m.r1; r++) for (var c = m.c0; c <= m.c1; c++) if (r !== m.r0 || c !== m.c0) cells[r + "," + c] = { v: "", fill: top.fill, part: true, r: r, c: c } });
+    return { cells: cells, merges: merges };
+  }
+  var CS_SIT = [[/2\s*P(T|OINT)/, "2PT"], [/GOAL ?LINE|5 ?& ?IN|TIGHT ZONE/, "TZ"], [/SCORE ?ZONE/, "SZ"], [/RED ?ZONE/, "RZ"], [/BACKED|COMING OUT/, "CO"], [/4TH/, "4TH"], [/OFF SCHED|2ND/, "2L"], [/^LONG|3RD.*(LONG|11|7)/, "3L7"], [/^MEDIUM|3RD.*(MED|4-6)/, "3M"], [/^SHORT|3RD.*(SHORT|1-3)/, "3S"]];
+  var CS_OTHER = /2 ?MIN|4 ?MIN|MAN BEAT|CLOUD|BRACKET|PALMS|BLITZ|DROP 8|COV 3|END OF|ATTACK|2 PLAY SERIES|TEMPO|SERIES|BEATERS/;
+  var CS_SKIP = /^(NOTES?|FAST|FEARLESS|PHYSICAL|3RD DOWN|\d+ PERSONNEL|PERSONNEL)$|BULLDOGS|\d{1,2}-\d{1,2}-\d{2}/;
+  function csParse(G) {
+    var C = G.cells, keys = Object.keys(C), maxR = 0, maxC = 0; keys.forEach(function (k) { var x = C[k]; if (x.r > maxR) maxR = x.r; if (x.c > maxC) maxC = x.c });
+    var isHead = function (x) { return x && x.fill && !x.part && x.v };
+    var span = function (x) { var m = G.merges.filter(function (m) { return m.r0 === x.r && m.c0 === x.c })[0]; return m ? [m.c0, m.c1] : [x.c, x.c] };
+    var boxes = [], skipped = 0;
+    keys.map(function (k) { return C[k] }).filter(isHead).sort(function (a, b) { return a.r - b.r || a.c - b.c }).forEach(function (h) {
+      var name = h.v.toUpperCase(); if (CS_SKIP.test(name)) return;
+      var sp = span(h), plays = [];
+      for (var r = h.r + 1; r <= maxR; r++) {
+        var stop = false, rowCells = [];
+        for (var c = sp[0]; c <= sp[1]; c++) { var x = C[r + "," + c]; if (x && x.fill && (isHead(x) || x.part) && !(x.part && x.fill === h.fill && false)) { stop = true; break } if (x && x.v && !x.part) rowCells.push(x) }
+        if (stop) break;
+        rowCells.forEach(function (x) { plays.push(x) });
+      }
+      var sit = null; CS_SIT.some(function (p) { if (p[0].test(name)) { sit = p[1]; return true } });
+      var other = !sit && CS_OTHER.test(name);
+      var box = { name: name, kind: sit || other ? "sit" : "form", plays: [] };
+      if (sit) box.key = sit; else if (other) box.key = ""; else box.form = name;
+      plays.forEach(function (x) {
+        var t = x.v.toUpperCase(), d = null, m = t.match(/^(\d+(?:\s*-\s*\d+)?\+?)\s*:\s*(.*)$/); if (m) { d = m[1].replace(/\s/g, ""); t = m[2] } if (!t) return;
+        var k = csKind(x.fc), col = k === "run" ? "run" : k === "pass" ? "pass" : "scr";
+        (typeof expandCall === "function" ? expandCall(t) : [{ t: t, g: t }]).forEach(function (p) { var pl = { t: p.t, g: p.g, c: col, rp: k }; if (d) pl.d = d; box.plays.push(pl) });
+      });
+      if (box.plays.length) boxes.push(box); else skipped++;
+    });
+    // a "LONG" box covers 3rd & 11+ too
+    boxes.filter(function (b) { return b.key === "3L7" }).forEach(function (b) { boxes.push({ name: b.name + " (11+)", kind: "sit", key: "3L11", plays: JSON.parse(JSON.stringify(b.plays)) }) });
+    return { boxes: boxes, empty: skipped };
+  }
+  var csPending = null;
+  function csShow(res, fname) {
+    var bx = res.boxes, F = bx.filter(function (b) { return b.kind === "form" }), Sx = bx.filter(function (b) { return b.kind === "sit" }), n = 0, cnt = { run: 0, pass: 0, scr: 0 };
+    bx.forEach(function (b) { b.plays.forEach(function (p) { n++; cnt[p.rp]++ }) });
+    var whenName = function (k) { var w = CE_WHEN.filter(function (x) { return x[0] === k })[0]; return w && k ? w[1] : "Always listed" };
+    var li = function (b) { return "<li><b>" + esc(b.name) + "</b>" + (b.kind === "sit" ? " <small>· " + esc(whenName(b.key)) + "</small>" : "") + " — " + b.plays.slice(0, 6).map(function (p) { return "<span class='cs-" + p.c + "' style='padding:1px 5px;border-radius:4px'>" + esc((p.d ? p.d + ": " : "") + p.t) + "</span>" }).join(" ") + (b.plays.length > 6 ? " +" + (b.plays.length - 6) + " more" : "") + "</li>" };
+    $("csPrev").innerHTML = "<p><b>" + esc(fname) + "</b>: " + F.length + " formation boxes, " + Sx.length + " situation boxes, " + n + " plays (" + cnt.run + " run, " + cnt.pass + " pass, " + cnt.scr + " screens)." + (res.empty ? " " + res.empty + " empty boxes skipped." : "") + "</p>" +
+      (F.length ? "<h4>Formations</h4><ul>" + F.map(li).join("") + "</ul>" : "") + (Sx.length ? "<h4>Situations</h4><ul>" + Sx.map(li).join("") + "</ul>" : "") +
+      "<p class='note'>Saving replaces the call sheet for " + esc(S.opp || "this game") + ". You can fix anything below in the editor, or go back to the last sheet.</p>";
+    $("csBox").hidden = false;
+  }
+  function csSaveWeek() { if (ONLINE && S && S.gameDate && !S.example && S.sheetWeek === S.gameDate && Array.isArray(S.sheet)) wkPut("/weeks/" + S.gameDate + "/callsheet", { sheet: S.sheet, at: Date.now() }).catch(function () {}) }
+  function wkCallSheet() {
+    if (!ONLINE || !S || !S.gameDate || S.example) return;
+    wkGet("/weeks/" + S.gameDate + "/callsheet").then(function (d) {
+      if (!d || !Array.isArray(d.sheet) || !d.sheet.length) return;
+      d.sheet.forEach(function (b) { if (!Array.isArray(b.plays)) b.plays = b.plays ? Object.keys(b.plays).map(function (k) { return b.plays[k] }) : [] });
+      if (S.sheetWeek === S.gameDate && JSON.stringify(S.sheet) === JSON.stringify(d.sheet)) return;
+      if (S.sheetWeek !== S.gameDate && Array.isArray(S.sheet)) S.sheetPrev = S.sheet;
+      S.sheet = d.sheet; S.sheetVer = SHEET_VER; S.sheetWeek = S.gameDate; ceSave();
+    }, function () {});
+  }
+  function csWire() {
+    var fi = $("csFile"); if (!fi) return;
+    $("csUp").addEventListener("click", function () { fi.value = ""; fi.click() });
+    fi.addEventListener("change", function () {
+      var f = fi.files[0]; if (!f) return;
+      if (!/\.xlsx$/i.test(f.name)) { toast("Use the Excel download: in Google Sheets, File → Download → Microsoft Excel (.xlsx)"); return }
+      if (typeof DecompressionStream === "undefined") { toast("This browser can't read Excel files. Update Safari/Chrome and try again."); return }
+      f.arrayBuffer().then(csUnzip).then(function (z) { var G = csGrid(z); if (!G) throw new Error("sheet"); var r = csParse(G); if (!r.boxes.length) { toast("Couldn't find any boxes with plays in " + f.name); return } csPending = r; csShow(r, f.name) })
+        .catch(function () { toast("Couldn't read " + f.name + ". Download it again from Google Sheets as .xlsx.") });
+    });
+    $("csCancel").addEventListener("click", function () { csPending = null; $("csBox").hidden = true });
+    $("csSave").addEventListener("click", function () {
+      if (!csPending) return; S.sheetPrev = Array.isArray(S.sheet) && S.sheet.length ? S.sheet : null;
+      S.sheet = csPending.boxes; S.sheetVer = SHEET_VER; S.sheetWeek = S.gameDate; csPending = null; $("csBox").hidden = true; ceSel = 0;
+      ceSave("Call sheet loaded for " + (S.opp || "this game")); csSaveWeek(); csPrevBtn();
+    });
+    $("csBack").addEventListener("click", function () {
+      if (!S.sheetPrev) return; var cur = S.sheet; S.sheet = S.sheetPrev; S.sheetPrev = cur; ceSel = 0; ceSave("Switched back to the previous call sheet"); csSaveWeek(); csPrevBtn();
+    });
+    csPrevBtn();
+  }
+  function csPrevBtn() { var b = $("csBack"); if (b) b.hidden = !(S && S.sheetPrev) }
   // ---------- call sheet editor ----------
-  var CE_COLORS = [["w", "White"], ["g", "Gray"], ["y", "Yellow"], ["o", "Orange"], ["gn", "Green"]];
+  var CE_COLORS = [["run", "Run (red)"], ["pass", "Pass (blue)"], ["scr", "Screen (black)"], ["w", "White"], ["g", "Gray"], ["y", "Yellow"], ["o", "Orange"], ["gn", "Green"]];
   var CE_WHEN = [["", "Always listed"], ["3L11", "3rd & 11+"], ["3L7", "3rd & 7-10"], ["3M", "3rd & 4-6"], ["3S", "3rd & 1-3"], ["3FD", "3rd & 4-9 (4-down zone)"], ["2L", "2nd & 8+"], ["RZ", "Red zone (opp 25-16)"], ["SZ", "Score zone (opp 15-6)"], ["CO", "Coming out (own 1-10)"], ["TZ", "Tight zone (inside the 6)"], ["2PT", "2-point try"], ["4TH", "4th down"]];
   var ceSel = 0, ceDelArm = null;
   var FORM_WORDS = ["SLOT TRIG", "SLOT DIP", "HEAVY AGGIE", "GOLD", "RED", "BLUE", "GRAY", "TEXAS", "PRO", "EMPTY", "SLOT", "BONE", "CREW", "BOSTON", "AGGIE"];
@@ -3337,7 +3458,7 @@ textarea { min-height: 64px }
   }
   function ownSheet() { if (!Array.isArray(S.sheet) || !S.sheet.length) S.sheet = JSON.parse(JSON.stringify(DEFAULT_SHEET)); refreshSheet(); return S.sheet }
   var ceBusy = false;
-  function ceSave(msg) { if (ceBusy) return; ceBusy = true; try { save(); refreshSheet(); buildChips(); renderAll(); renderCE() } finally { ceBusy = false } if (msg) toast(msg) }
+  function ceSave(msg) { if (ceBusy) return; ceBusy = true; try { save(); refreshSheet(); buildChips(); renderAll(); renderCE() } finally { ceBusy = false } if (msg) toast(msg); clearTimeout(ceSave.t); ceSave.t = setTimeout(csSaveWeek, 1500) }
   function optList(arr, v) { return arr.map(function (o) { return "<option value='" + o[0] + "'" + (o[0] === v ? " selected" : "") + ">" + esc(o[1]) + "</option>" }).join("") }
   function renderCE() {
     refreshSheet(); var sh = SHEET; if (ceSel >= sh.length) ceSel = 0;
@@ -3673,6 +3794,7 @@ textarea { min-height: 64px }
     var sh = ownSheet(); if (sit) sh.push(sec); else { var firstSit = sh.findIndex(function (x) { return x.kind === "sit" }); sh.splice(firstSit < 0 ? sh.length : firstSit, 0, sec) }
     ceSel = sh.indexOf(sec); $("cbName").value = ""; $("cbForm").value = ""; ceSave("Added box " + name);
   });
+  csWire();
   $("ceReset").addEventListener("click", function () {
     if (ceDelArm !== "reset") { ceDelArm = "reset"; this.textContent = "Tap again to reset the whole sheet"; return }
     ceDelArm = null; this.textContent = "Reset to the built-in sheet"; delete S.sheet; ceSel = 0; ceSave("Call sheet reset");

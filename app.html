@@ -140,6 +140,18 @@ main { padding-block: 14px 40px }
 .chip[aria-pressed="true"] { background: var(--chip-on); color: var(--chip-on-ink) }
 .chip.res-neg[aria-pressed="true"] { background: var(--red); color: var(--red-ink) }
 .chip:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid var(--red); outline-offset: 2px }
+.inmode { display: flex; gap: 6px; align-items: center; margin: 0 0 10px; flex-wrap: wrap } .inmode > span:first-child { font-weight: 800; letter-spacing: .08em; font-size: 13px; text-transform: uppercase; margin-right: 4px }
+.inmode button { font: inherit; font-weight: 800; font-size: 15px; padding: 9px 16px; border-radius: 10px; border: 2px solid #c9ced6; background: #fff; cursor: pointer } .inmode button[aria-pressed=true] { background: #111; color: #fff; border-color: #111 }
+.gshead { display: flex; align-items: center; gap: 8px; flex-wrap: wrap } .gshead h3 { margin: 0; flex: 1 } .gspick { font-weight: 800; font-size: 15px; padding: 6px 10px; background: #f1f3f6; border-radius: 8px } .gshead .btn { font-size: 18px; padding: 4px 12px }
+.gswrap { overflow: auto; margin-top: 8px; border: 1px solid #222; max-height: 78vh; -webkit-overflow-scrolling: touch; touch-action: pan-x pan-y pinch-zoom }
+.gsgrid { display: grid; gap: 0; background: #fff; font-family: Arial, Helvetica, sans-serif; font-weight: 700; transform-origin: 0 0 }
+.gsgrid > div { background: #fff; min-height: 22px; box-shadow: 0 0 0 .5px #9aa3ad; display: flex; align-items: center; padding: 1px 3px; overflow: hidden }
+.gsgrid .gh { justify-content: center; text-align: center; font-weight: 900; letter-spacing: .02em }
+.gsgrid .gh.sit-on { outline: 3px solid #ffd400; outline-offset: -3px; animation: gsGlow 1.4s ease-in-out infinite alternate } @keyframes gsGlow { to { outline-color: #ff8a00 } }
+.gsgrid .gc { gap: 2px; flex-wrap: wrap } .gsgrid .gc.sit-on { background: #fff9d6 }
+.gsgrid .gc button { font: inherit; font-size: 1em; border: 1px solid transparent; background: none; padding: 3px 5px; border-radius: 5px; cursor: pointer; flex: 1 1 auto; text-align: left; white-space: nowrap; line-height: 1.15 }
+.gsgrid .gc button:hover { border-color: #9aa3ad } .gsgrid .gc button[aria-pressed=true] { background: #111 !important; color: #fff !important } .gsgrid .k-run { color: #d00000 } .gsgrid .k-pass { color: #0030d0 } .gsgrid .k-scr { color: #000 }
+.gsgrid .gc button .n { font-size: .78em; background: #ffd400; color: #000; border-radius: 4px; padding: 0 3px; margin-left: 3px } .gsgrid .gc .d { font-size: .8em; opacity: .7; margin-right: 3px }
 .cs-run { background: #fde2e2; color: #b40000 } .cs-pass { background: #dde7ff; color: #0b2fb3 } .cs-scr { background: #e9e9ea; color: #111 } .cs-w { background: var(--cs-w) } .cs-g { background: var(--cs-g) } .cs-y { background: var(--cs-y) } .cs-o { background: var(--cs-o) } .cs-gn { background: var(--cs-gn) }
 .chip.cs { font-size: 15px; min-height: 40px; border-color: var(--line); color: var(--cs-ink) }
 .chip.cs .n { font-family: var(--f-body); font-size: 11px; font-weight: 700; margin-left: 6px; opacity: .7 }
@@ -448,15 +460,19 @@ textarea { min-height: 64px }
         </div>
       </details>
     </div>
+    <div class="inmode" role="group" aria-label="Input mode"><span>Input</span><button type="button" id="imFull" aria-pressed="true">Full input</button><button type="button" id="imSheet" aria-pressed="false">Call sheet</button><span class="note" id="imNote"></span></div>
+    <div class="panel" id="gsPanel" hidden>
+      <div class="gshead"><h3>Call sheet <small id="gsSit"></small></h3><span class="gspick" id="gsPick">Tap a play</span><button type="button" class="btn" id="gsZo" aria-label="Zoom out">−</button><button type="button" class="btn" id="gsZi" aria-label="Zoom in">+</button></div>
+      <div class="gswrap" id="gsWrap"><div class="gsgrid" id="gsGrid"></div></div>
+    </div>
     <div class="grid2">
-      <div class="panel">
+      <div class="panel" id="fullInPanel">
         <button class="mull" id="mullBtn" disabled><span class="mt">↻ Mulligan</span><span class="ms" id="mullWhat">no play to repeat yet</span></button>
         <h3>2 · Formation <small>stays until you change it</small></h3>
         <div class="chips" id="csForms"></div>
         <h3 style="margin-top:12px">Motion <small>resets each play</small></h3>
         <div class="chips" id="cMotion"></div>
         <h3 style="margin-top:12px">3 · Play <small id="csSecName"></small></h3>
-        <label class="fastnote" style="display:flex;gap:8px;align-items:center;margin:2px 0 8px"><input type="checkbox" id="oneTap"> One-tap calls: each button sets formation, motion, play and RPO at once</label>
         <div class="chips" id="csPlays"></div>
         <h3 style="margin-top:12px">RPO <small>resets each play</small></h3>
         <div class="chips" id="cRpoTag"></div>
@@ -1092,7 +1108,7 @@ textarea { min-height: 64px }
   function fresh() { var f = fresh_(); f.gameDate = today(); return f }
   var S = load() || fresh();
   // older saves: drop the old example game and the built-in Lebanon Trail opponent so the schedule decides
-  if (S.example) { var kx = { lists: S.lists, start: S.start, dmode: S.dmode, fast: S.fast, oneTap: S.oneTap, sheet: S.sheet, sheetVer: S.sheetVer }; S = fresh(); Object.assign(S, kx) }
+  if (S.example) { var kx = { lists: S.lists, start: S.start, dmode: S.dmode, fast: S.fast, inMode: S.inMode, sheet: S.sheet, sheetGrid: S.sheetGrid, sheetVer: S.sheetVer }; S = fresh(); Object.assign(S, kx) }
   if (!S.snaps.length && (S.opp === "Lebanon Trail" || !S.opp)) { S.opp = "Opponent"; S.autoOpp = true; if (!S.scout) S.pre = "" }
   if (!S.gameDate) S.gameDate = today();
   var pick = { form: null, call: null, callType: null, front: null, cov: null, shell: null, box: null, blitz: "No", res: null, td: false, qb: null, pl: null, lastRb: null };
@@ -1422,7 +1438,7 @@ textarea { min-height: 64px }
     var k = newCode(), e = { opp: opp, date: date, us: 0, them: 0, plays: 0, updated: Date.now(), lock: lockOf(code) };
     fetch(homeListUrl(k), { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(e) }).then(function (r) { if (!r.ok) throw 0; $("hsOpp").value = ""; $("hsCode").value = ""; toast("Scheduled vs " + opp + ". Game code: " + code.toUpperCase()); $("hsBox").hidden = true; loadHome() }, function () { toast("Couldn't reach the database. Check the connection.") });
   }
-  function keepSettings() { return { lists: S.lists, start: S.start, dmode: S.dmode, fast: S.fast, oneTap: S.oneTap, sheet: S.sheet, sheetPrev: S.sheetPrev } }
+  function keepSettings() { return { lists: S.lists, start: S.start, dmode: S.dmode, fast: S.fast, inMode: S.inMode, sheet: S.sheet, sheetGrid: S.sheetGrid, sheetPrev: S.sheetPrev, sheetPrevGrid: S.sheetPrevGrid } }
   function openGame(code) {
     if (!SY.cfg || code === SY.cfg.code) return;
     // other games open through Home with their game code
@@ -1575,13 +1591,75 @@ textarea { min-height: 64px }
     return b;
   }
   function addPlayChips(pr, si, pi, q) {
-    if (!S.oneTap) { pr.appendChild(sheetChip(si, pi)); return 1 }
+    if (true) { pr.appendChild(sheetChip(si, pi)); return 1 }
     var n = 0; otVariants(SHEET[si], SHEET[si].plays[pi]).forEach(function (v) {
       if (q) { var words = v.label.split(/[\s·/]+/); if (!q.split(/\s+/).every(function (t) { return words.some(function (w) { return w.indexOf(t) === 0 }) || v.label.indexOf(t) >= 0 })) return }
       if (pr.querySelector('[data-k="ot"][data-v="' + v.label.replace(/"/g, '\\"') + '"]')) return;
       pr.appendChild(otChip(v)); n++;
     });
     return n;
+  }
+  // ---------- call sheet mode: the uploaded sheet on screen, tap a play ----------
+  var GS_Z = 1;
+  try { GS_Z = +localStorage.getItem("solutions-gsz" + (typeof NS === "string" ? NS : "")) || 1 } catch (e) {}
+  function gsHex(h) { return h ? "#" + h : "" }
+  function gsDark(h) { if (!h) return false; var r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16); return r * .299 + g * .587 + b * .114 < 140 }
+  function gsCellVariants(cell) {
+    var box = SHEET[cell.b]; if (!box) return [];
+    var t = String(cell.v).toUpperCase(), d = null, m = t.match(/^(\d+(?:\s*-\s*\d+)?\+?)\s*:\s*(.*)$/); if (m) { d = m[1].replace(/\s/g, ""); t = m[2] } if (!t) return [];
+    var out = [], seen = {};
+    expandCall(t).forEach(function (p) { otVariants(box, { t: p.t, g: p.g, c: "w", d: d }).forEach(function (v) {
+      var extra = v.form && box.form && v.form !== box.form && v.form.indexOf(box.form + " ") === 0 ? v.form.slice(box.form.length + 1) : "";
+      v.short = (box.kind === "sit" && v.form ? v.form + " " : "") + v.call + (extra ? " · " + extra : "") + (v.motion ? " · " + v.motion : "") + (v.rpo ? " · " + v.rpo : "");
+      if (!seen[v.short]) { seen[v.short] = 1; out.push(v) }
+    }) });
+    return out;
+  }
+  function renderGrid() {
+    var on = S.inMode === "sheet", G = S.sheetGrid;
+    $("imFull").setAttribute("aria-pressed", on ? "false" : "true"); $("imSheet").setAttribute("aria-pressed", on ? "true" : "false");
+    $("gsPanel").hidden = !on; $("fullInPanel").hidden = on;
+    $("imNote").textContent = on && !G ? "Upload this week's call sheet in Setup to see it here." : "";
+    if (!on) return;
+    var g = $("gsGrid"); g.innerHTML = "";
+    if (!G || !G.cells) { g.innerHTML = "<div style='padding:14px'>No call sheet layout yet. Setup → Call sheet → Upload this week's call sheet (.xlsx).</div>"; return }
+    g.style.gridTemplateColumns = "repeat(" + G.cols + ", minmax(" + Math.round(120 * GS_Z) + "px, auto))"; g.style.fontSize = Math.round(12 * GS_Z) + "px";
+    var keys = sitKeys(S.cur), sitBox = {}; SHEET.forEach(function (b, i) { if (b.kind === "sit" && keys.indexOf(b.key) >= 0) sitBox[i] = 1 });
+    var heads = G.cells.filter(function (c) { return c.h });
+    $("gsSit").textContent = Object.keys(sitBox).length ? "· " + Object.keys(sitBox).map(function (i) { return SHEET[i].name }).join(", ") + " is up" : "";
+    G.cells.forEach(function (c) {
+      var el = document.createElement("div"); el.style.gridRow = (c.r + 1) + " / span " + c.rs; el.style.gridColumn = (c.c + 1) + " / span " + c.cs;
+      if (c.f) { el.style.background = gsHex(c.f); el.style.color = c.fc ? gsHex(c.fc) : (gsDark(c.f) ? "#fff" : "#000") }
+      if (c.h) {
+        el.className = "gh"; el.textContent = c.v;
+        var hb = SHEET.map(function (b, i) { return i }).filter(function (i) { return sitBox[i] && SHEET[i].name.indexOf(String(c.v).toUpperCase()) === 0 });
+        if (hb.length) el.classList.add("sit-on");
+      } else if (c.b != null && SHEET[c.b]) {
+        el.className = "gc k-" + (c.k || "scr"); if (sitBox[c.b]) el.classList.add("sit-on");
+        var vs = gsCellVariants(c);
+        if (!vs.length) el.textContent = c.v;
+        vs.forEach(function (v) {
+          var b = document.createElement("button"), n = usedCount(v.call, v.form), sel = pick.call === v.call && pick.form === v.form && (pick.motion || null) === v.motion && (pick.rpo || null) === v.rpo;
+          b.type = "button"; b.className = "k-" + (c.k || "scr"); b.setAttribute("aria-pressed", sel ? "true" : "false"); b.title = v.label;
+          b.innerHTML = (v.d ? "<span class='d'>" + esc(v.d) + "</span>" : "") + esc(v.short) + (n ? "<span class='n'>×" + n + "</span>" : "");
+          b.addEventListener("click", function () {
+            pick.mull = false;
+            if (sel) { pick.call = null; pick.callType = null; pick.motion = null; pick.rpo = null }
+            else { pick.form = v.form || pick.form; pick.call = v.call; pick.callType = "sheet"; pick.motion = v.motion; pick.rpo = v.rpo }
+            renderChips();
+          });
+          el.appendChild(b);
+        });
+      } else { el.className = "gx"; el.textContent = c.v }
+      g.appendChild(el);
+    });
+    $("gsPick").textContent = pick.call ? ((pick.form ? pick.form + " " : "") + pick.call + (pick.motion ? " · " + pick.motion : "") + (pick.rpo ? " · " + pick.rpo : "")) : "Tap a play";
+  }
+  function gsWire() {
+    $("imFull").addEventListener("click", function () { S.inMode = "full"; save(); renderChips() });
+    $("imSheet").addEventListener("click", function () { S.inMode = "sheet"; save(); renderChips() });
+    var z = function (d) { GS_Z = Math.max(.6, Math.min(2, Math.round((GS_Z + d) * 10) / 10)); try { localStorage.setItem("solutions-gsz" + (typeof NS === "string" ? NS : ""), GS_Z) } catch (e) {} renderGrid() };
+    $("gsZo").addEventListener("click", function () { z(-.1) }); $("gsZi").addEventListener("click", function () { z(.1) });
   }
   var SIT_GROUP = "SITUATION PLAYS";
   function formSections() { return SHEET.map(function (x, i) { return [x, i] }).filter(function (p) { return p[0].kind === "form" }) }
@@ -1608,7 +1686,6 @@ textarea { min-height: 64px }
       var seen = {};
       SHEET.forEach(function (sec, si) { sec.plays.forEach(function (pl, pi) {
         var key = (sec.form || "") + "|" + pl.t;
-        if (S.oneTap) { addPlayChips(pr, si, pi, q); return }
         if (pl.t.indexOf(q) >= 0 && !seen[key]) { seen[key] = 1; var c = sheetChip(si, pi); if (sec.form && pl.t.indexOf(sec.form) !== 0) c.firstChild && c.insertAdjacentHTML("afterbegin", "<span class='d'>" + esc(sec.form) + "</span>"); pr.appendChild(c) }
       }) });
       if (!pr.childNodes.length) pr.innerHTML = "<p class='note'>Not on the sheet. Use “Not on the sheet” below.</p>";
@@ -1845,7 +1922,7 @@ textarea { min-height: 64px }
   }
   function renderChips() {
     renderSpot();
-    renderSheet();
+    renderSheet(); renderGrid();
     renderPlayers();
     var full = S.dmode === "full";
     $("fastD").hidden = full; $("fullD").hidden = !full;
@@ -3430,11 +3507,19 @@ textarea { min-height: 64px }
         var k = csKind(x.fc), col = k === "run" ? "run" : k === "pass" ? "pass" : "scr";
         (typeof expandCall === "function" ? expandCall(t) : [{ t: t, g: t }]).forEach(function (p) { var pl = { t: p.t, g: p.g, c: col, rp: k }; if (d) pl.d = d; box.plays.push(pl) });
       });
-      if (box.plays.length) boxes.push(box); else skipped++;
+      if (box.plays.length) { plays.forEach(function (x) { x.bi = boxes.length }); boxes.push(box) } else skipped++;
     });
+    var grid = { cells: [] }, mr = 0, mc = 0;
+    keys.map(function (k) { return C[k] }).forEach(function (x) {
+      if (x.part || (!x.v && !x.fill)) return; var sp = G.merges.filter(function (m) { return m.r0 === x.r && m.c0 === x.c })[0];
+      var o = { r: x.r, c: x.c, rs: sp ? sp.r1 - sp.r0 + 1 : 1, cs: sp ? sp.c1 - sp.c0 + 1 : 1, v: x.v };
+      if (x.fill) o.f = x.fill; if (x.fc) o.fc = x.fc; if (isHead(x)) o.h = 1; else if (x.v) { o.k = csKind(x.fc); if (x.bi != null) o.b = x.bi }
+      if (x.r + o.rs > mr) mr = x.r + o.rs; if (x.c + o.cs > mc) mc = x.c + o.cs; grid.cells.push(o);
+    });
+    grid.rows = mr; grid.cols = mc;
     // a "LONG" box covers 3rd & 11+ too
     boxes.filter(function (b) { return b.key === "3L7" }).forEach(function (b) { boxes.push({ name: b.name + " (11+)", kind: "sit", key: "3L11", plays: JSON.parse(JSON.stringify(b.plays)) }) });
-    return { boxes: boxes, empty: skipped };
+    return { boxes: boxes, empty: skipped, grid: grid };
   }
   var csPending = null;
   function csShow(res, fname) {
@@ -3447,15 +3532,15 @@ textarea { min-height: 64px }
       "<p class='note'>Saving replaces the call sheet for " + esc(S.opp || "this game") + ". You can fix anything below in the editor, or go back to the last sheet.</p>";
     $("csBox").hidden = false;
   }
-  function csSaveWeek() { if (ONLINE && S && S.gameDate && !S.example && S.sheetWeek === S.gameDate && Array.isArray(S.sheet)) wkPut("/weeks/" + S.gameDate + "/callsheet", { sheet: S.sheet, at: Date.now() }).catch(function () {}) }
+  function csSaveWeek() { if (ONLINE && S && S.gameDate && !S.example && S.sheetWeek === S.gameDate && Array.isArray(S.sheet)) wkPut("/weeks/" + S.gameDate + "/callsheet", { sheet: S.sheet, grid: S.sheetGrid || null, at: Date.now() }).catch(function () {}) }
   function wkCallSheet() {
     if (!ONLINE || !S || !S.gameDate || S.example) return;
     wkGet("/weeks/" + S.gameDate + "/callsheet").then(function (d) {
       if (!d || !Array.isArray(d.sheet) || !d.sheet.length) return;
       d.sheet.forEach(function (b) { if (!Array.isArray(b.plays)) b.plays = b.plays ? Object.keys(b.plays).map(function (k) { return b.plays[k] }) : [] });
-      if (S.sheetWeek === S.gameDate && JSON.stringify(S.sheet) === JSON.stringify(d.sheet)) return;
+      if (S.sheetWeek === S.gameDate && JSON.stringify(S.sheet) === JSON.stringify(d.sheet) && JSON.stringify(S.sheetGrid || null) === JSON.stringify(d.grid || null)) return;
       if (S.sheetWeek !== S.gameDate && Array.isArray(S.sheet)) S.sheetPrev = S.sheet;
-      S.sheet = d.sheet; S.sheetVer = SHEET_VER; S.sheetWeek = S.gameDate; ceSave();
+      S.sheet = d.sheet; S.sheetGrid = d.grid || null; S.sheetVer = SHEET_VER; S.sheetWeek = S.gameDate; ceSave();
     }, function () {});
   }
   function csWire() {
@@ -3470,12 +3555,12 @@ textarea { min-height: 64px }
     });
     $("csCancel").addEventListener("click", function () { csPending = null; $("csBox").hidden = true });
     $("csSave").addEventListener("click", function () {
-      if (!csPending) return; S.sheetPrev = Array.isArray(S.sheet) && S.sheet.length ? S.sheet : null;
-      S.sheet = csPending.boxes; S.sheetVer = SHEET_VER; S.sheetWeek = S.gameDate; csPending = null; $("csBox").hidden = true; ceSel = 0;
+      if (!csPending) return; S.sheetPrev = Array.isArray(S.sheet) && S.sheet.length ? S.sheet : null; S.sheetPrevGrid = S.sheetGrid || null;
+      S.sheet = csPending.boxes; S.sheetGrid = csPending.grid; S.sheetVer = SHEET_VER; S.sheetWeek = S.gameDate; csPending = null; $("csBox").hidden = true; ceSel = 0;
       ceSave("Call sheet loaded for " + (S.opp || "this game")); csSaveWeek(); csPrevBtn();
     });
     $("csBack").addEventListener("click", function () {
-      if (!S.sheetPrev) return; var cur = S.sheet; S.sheet = S.sheetPrev; S.sheetPrev = cur; ceSel = 0; ceSave("Switched back to the previous call sheet"); csSaveWeek(); csPrevBtn();
+      if (!S.sheetPrev) return; var cur = S.sheet, cg = S.sheetGrid; S.sheet = S.sheetPrev; S.sheetGrid = S.sheetPrevGrid || null; S.sheetPrev = cur; S.sheetPrevGrid = cg; ceSel = 0; ceSave("Switched back to the previous call sheet"); csSaveWeek(); csPrevBtn();
     });
     csPrevBtn();
   }
@@ -3634,8 +3719,7 @@ textarea { min-height: 64px }
   $("penDecline").addEventListener("click", function () { if (!penSel) return; pick.declined = penSel.n + (penSel.side === "O" ? " on us" : " on them"); $("penModal").hidden = true; renderChips(); toast("Declined. Now tap the play's result and yards.") });
   $("pcGo").addEventListener("click", function () { var side = $("pcSide").value; pickPen({ k: "custom", n: "Penalty", side: side, y: Math.abs(parseInt($("pcYds").value, 10) || 0), afd: $("pcAfd").checked, lod: $("pcLod").checked }) });
   $("sMode").addEventListener("change", function () { S.dmode = $("sMode").value; save(); renderAll(); toast(S.dmode === "full" ? "Full defense tags on" : "Fast defense tags on") });
-  $("oneTap").checked = !!S.oneTap;
-  $("oneTap").addEventListener("change", function () { S.oneTap = $("oneTap").checked; save(); renderChips() });
+  gsWire();
   $("fastLog").checked = S.fast !== false;
   $("fastLog").addEventListener("change", function () { S.fast = $("fastLog").checked; save() });
   $("logBtn").addEventListener("click", logSnap);

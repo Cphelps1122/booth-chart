@@ -456,6 +456,7 @@ textarea { min-height: 64px }
         <h3 style="margin-top:12px">Motion <small>resets each play</small></h3>
         <div class="chips" id="cMotion"></div>
         <h3 style="margin-top:12px">3 · Play <small id="csSecName"></small></h3>
+        <label class="fastnote" style="display:flex;gap:8px;align-items:center;margin:2px 0 8px"><input type="checkbox" id="oneTap"> One-tap calls: each button sets formation, motion, play and RPO at once</label>
         <div class="chips" id="csPlays"></div>
         <h3 style="margin-top:12px">RPO <small>resets each play</small></h3>
         <div class="chips" id="cRpoTag"></div>
@@ -1091,7 +1092,7 @@ textarea { min-height: 64px }
   function fresh() { var f = fresh_(); f.gameDate = today(); return f }
   var S = load() || fresh();
   // older saves: drop the old example game and the built-in Lebanon Trail opponent so the schedule decides
-  if (S.example) { var kx = { lists: S.lists, start: S.start, dmode: S.dmode, fast: S.fast, sheet: S.sheet, sheetVer: S.sheetVer }; S = fresh(); Object.assign(S, kx) }
+  if (S.example) { var kx = { lists: S.lists, start: S.start, dmode: S.dmode, fast: S.fast, oneTap: S.oneTap, sheet: S.sheet, sheetVer: S.sheetVer }; S = fresh(); Object.assign(S, kx) }
   if (!S.snaps.length && (S.opp === "Lebanon Trail" || !S.opp)) { S.opp = "Opponent"; S.autoOpp = true; if (!S.scout) S.pre = "" }
   if (!S.gameDate) S.gameDate = today();
   var pick = { form: null, call: null, callType: null, front: null, cov: null, shell: null, box: null, blitz: "No", res: null, td: false, qb: null, pl: null, lastRb: null };
@@ -1421,7 +1422,7 @@ textarea { min-height: 64px }
     var k = newCode(), e = { opp: opp, date: date, us: 0, them: 0, plays: 0, updated: Date.now(), lock: lockOf(code) };
     fetch(homeListUrl(k), { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(e) }).then(function (r) { if (!r.ok) throw 0; $("hsOpp").value = ""; $("hsCode").value = ""; toast("Scheduled vs " + opp + ". Game code: " + code.toUpperCase()); $("hsBox").hidden = true; loadHome() }, function () { toast("Couldn't reach the database. Check the connection.") });
   }
-  function keepSettings() { return { lists: S.lists, start: S.start, dmode: S.dmode, fast: S.fast, sheet: S.sheet, sheetPrev: S.sheetPrev } }
+  function keepSettings() { return { lists: S.lists, start: S.start, dmode: S.dmode, fast: S.fast, oneTap: S.oneTap, sheet: S.sheet, sheetPrev: S.sheetPrev } }
   function openGame(code) {
     if (!SY.cfg || code === SY.cfg.code) return;
     // other games open through Home with their game code
@@ -1538,6 +1539,50 @@ textarea { min-height: 64px }
     });
     return b;
   }
+  // one-tap calls: "2*3 POWER (DIP / TRIG)" in SLOT → SLOT DIP 2 POWER, SLOT TRIG 2 POWER … each sets formation + motion + play + RPO
+  var OT_MOD = ["DIP", "TRIG", "FIB"];
+  function otVariants(sec, pl) {
+    var base = sec.form || formOf(sec, pl.t) || "", up = function (x) { return String(x || "").toUpperCase().trim() };
+    var forms = list("form").map(up), mots = list("motion").map(up), rpos = list("rpo").map(up);
+    var isForm = function (w) { return OT_MOD.indexOf(w) >= 0 || forms.indexOf(w) >= 0 || (base && forms.indexOf(base + " " + w) >= 0) };
+    var fmods = [[]], motion = null, rpo = null, keep = [];
+    var call = pl.t.replace(/\(([^)]*)\)/g, function (m, inner) {
+      var alts = inner.split(/\s*\/\s*/).map(up).filter(Boolean);
+      if (alts.length && alts.every(function (a) { return a.split(" ").every(isForm) })) { fmods = [].concat.apply([], fmods.map(function (f) { return alts.map(function (a) { return f.concat([a]) }) })); return " " }
+      if (alts.length === 1 && mots.indexOf(alts[0]) >= 0) { motion = alts[0]; return " " }
+      if (alts.length === 1 && rpos.indexOf(alts[0]) >= 0) { rpo = alts[0]; return " " }
+      return m;
+    }).replace(/\s+/g, " ").trim();
+    var lead = call.match(/^(\S+)/); if (lead && !base && forms.indexOf(lead[1]) >= 0) { base = lead[1]; call = call.slice(lead[1].length).trim() }
+    return fmods.map(function (fm) {
+      var form = [base].concat(fm).filter(Boolean).join(" ").replace(/\s+/g, " ").trim() || null, cl = call;
+      if (form && cl.indexOf(form + " ") === 0) cl = cl.slice(form.length + 1);
+      return { form: form, call: cl, motion: motion, rpo: rpo, c: pl.c, d: pl.d, label: (form ? form + " " : "") + cl + (motion ? " · " + motion : "") + (rpo ? " · " + rpo : "") };
+    });
+  }
+  function otChip(v) {
+    var b = document.createElement("button"), n = usedCount(v.call, v.form);
+    b.className = "chip cs cs-" + v.c;
+    b.innerHTML = (v.d ? "<span class='d'>" + esc(v.d) + "</span>" : "") + esc(v.label) + (n ? "<span class='n'>×" + n + "</span>" : "");
+    b.dataset.k = "ot"; b.dataset.v = v.label;
+    b.setAttribute("aria-pressed", pick.call === v.call && pick.form === v.form && (pick.motion || null) === v.motion && (pick.rpo || null) === v.rpo ? "true" : "false");
+    b.addEventListener("click", function () {
+      pick.mull = false;
+      if (b.getAttribute("aria-pressed") === "true") { pick.call = null; pick.callType = null; pick.motion = null; pick.rpo = null }
+      else { pick.form = v.form || pick.form; pick.call = v.call; pick.callType = "sheet"; pick.motion = v.motion; pick.rpo = v.rpo }
+      renderChips();
+    });
+    return b;
+  }
+  function addPlayChips(pr, si, pi, q) {
+    if (!S.oneTap) { pr.appendChild(sheetChip(si, pi)); return 1 }
+    var n = 0; otVariants(SHEET[si], SHEET[si].plays[pi]).forEach(function (v) {
+      if (q) { var words = v.label.split(/[\s·/]+/); if (!q.split(/\s+/).every(function (t) { return words.some(function (w) { return w.indexOf(t) === 0 }) || v.label.indexOf(t) >= 0 })) return }
+      if (pr.querySelector('[data-k="ot"][data-v="' + v.label.replace(/"/g, '\\"') + '"]')) return;
+      pr.appendChild(otChip(v)); n++;
+    });
+    return n;
+  }
   var SIT_GROUP = "SITUATION PLAYS";
   function formSections() { return SHEET.map(function (x, i) { return [x, i] }).filter(function (p) { return p[0].kind === "form" }) }
   function renderSheet() {
@@ -1563,6 +1608,7 @@ textarea { min-height: 64px }
       var seen = {};
       SHEET.forEach(function (sec, si) { sec.plays.forEach(function (pl, pi) {
         var key = (sec.form || "") + "|" + pl.t;
+        if (S.oneTap) { addPlayChips(pr, si, pi, q); return }
         if (pl.t.indexOf(q) >= 0 && !seen[key]) { seen[key] = 1; var c = sheetChip(si, pi); if (sec.form && pl.t.indexOf(sec.form) !== 0) c.firstChild && c.insertAdjacentHTML("afterbegin", "<span class='d'>" + esc(sec.form) + "</span>"); pr.appendChild(c) }
       }) });
       if (!pr.childNodes.length) pr.innerHTML = "<p class='note'>Not on the sheet. Use “Not on the sheet” below.</p>";
@@ -1575,7 +1621,7 @@ textarea { min-height: 64px }
     g.idx.forEach(function (si) {
       if (only2 && SHEET[si].key !== "2PT") return;
       if (g.idx.length > 1) { var lab = document.createElement("div"); lab.className = "sub"; lab.style.flexBasis = "100%"; lab.textContent = SHEET[si].name; pr.appendChild(lab) }
-      SHEET[si].plays.forEach(function (pl, pi) { pr.appendChild(sheetChip(si, pi)) });
+      SHEET[si].plays.forEach(function (pl, pi) { addPlayChips(pr, si, pi) });
     });
   }
   function playerRole(res) {
@@ -3588,6 +3634,8 @@ textarea { min-height: 64px }
   $("penDecline").addEventListener("click", function () { if (!penSel) return; pick.declined = penSel.n + (penSel.side === "O" ? " on us" : " on them"); $("penModal").hidden = true; renderChips(); toast("Declined. Now tap the play's result and yards.") });
   $("pcGo").addEventListener("click", function () { var side = $("pcSide").value; pickPen({ k: "custom", n: "Penalty", side: side, y: Math.abs(parseInt($("pcYds").value, 10) || 0), afd: $("pcAfd").checked, lod: $("pcLod").checked }) });
   $("sMode").addEventListener("change", function () { S.dmode = $("sMode").value; save(); renderAll(); toast(S.dmode === "full" ? "Full defense tags on" : "Fast defense tags on") });
+  $("oneTap").checked = !!S.oneTap;
+  $("oneTap").addEventListener("change", function () { S.oneTap = $("oneTap").checked; save(); renderChips() });
   $("fastLog").checked = S.fast !== false;
   $("fastLog").addEventListener("change", function () { S.fast = $("fastLog").checked; save() });
   $("logBtn").addEventListener("click", logSnap);

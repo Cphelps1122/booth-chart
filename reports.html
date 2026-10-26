@@ -169,7 +169,7 @@ details.more > .rail { margin-top: 8px }
 .tpred { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 12px } @media (max-width: 900px) { .tpred { grid-template-columns: minmax(0, 1fr) } }
 .tpc { background: #fff; border-radius: 12px; padding: 14px } .tps { display: flex; align-items: center; font-size: 18px; padding: 4px 0 } .tps b { flex: 1 } .tps em { font-style: normal; font-family: var(--f-display); font-size: 40px; font-weight: 800 } .twhy { font-size: 13.5px; background: #f3f5f8; border-radius: 8px; padding: 8px 10px }
 .tpaste { display: flex; flex-direction: column; gap: 8px } .tpaste input, .tpaste textarea { font: inherit; padding: 9px; border-radius: 8px; border: 1px solid #c9d1da; background: #fff; color: #141a22 }
-.ted { border-collapse: collapse; font-size: 12.5px; width: 100% } .ted th { text-align: left; color: #6b7684; font-size: 11px; padding: 4px } .ted td { padding: 3px 4px; border-top: 1px solid #eef1f5 } .ted input, .ted select { font: inherit; padding: 4px 6px; border: 1px solid #d5dbe3; border-radius: 6px; width: 100%; box-sizing: border-box } .ted input[type=number] { width: 58px } .ted input[type=date] { width: 130px } .ted button, #psEd .tpaste button, .tteams button { font: inherit; font-size: 12px; padding: 4px 9px; border-radius: 6px; border: 1px solid #d5dbe3; background: #fff; cursor: pointer } .ted .eX { color: #b42318 } .ted .eS, .ted .eN { background: var(--red); color: #fff; border-color: var(--red) } .tteams button { padding: 0 5px; border: 0; background: none } @media print { #psEd, .tpaste { display: none } }
+.ted { border-collapse: collapse; font-size: 12.5px; width: 100% } .ted th { text-align: left; color: #6b7684; font-size: 11px; padding: 4px } .ted td { padding: 3px 4px; border-top: 1px solid #eef1f5 } .ted input, .ted select { font: inherit; padding: 4px 6px; border: 1px solid #d5dbe3; border-radius: 6px; width: 100%; box-sizing: border-box } .ted input[type=number] { width: 58px } .ted input[type=date] { width: 130px } .ted button, #psEd .tpaste button, .tteams button, #psXl { font: inherit; font-size: 12px; padding: 4px 9px; border-radius: 6px; border: 1px solid #d5dbe3; background: #fff; cursor: pointer } .ted .eX { color: #b42318 } .ted .eS, .ted .eN { background: var(--red); color: #fff; border-color: var(--red) } .tteams button { padding: 0 5px; border: 0; background: none } @media print { #psEd, .tpaste { display: none } }
 .tteams { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px } .tteams span { font-size: 12px; padding: 4px 9px; background: #eef1f5; border-radius: 99px }
 .tcu { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; margin-bottom: 6px; display: flex; flex-direction: column; gap: 6px } .tcu.off { opacity: .55 } .tcr { display: flex; align-items: center; gap: 8px } .tcr span { flex: 1; font-weight: 700; font-size: 14px } .tcr input { width: 18px; height: 18px; accent-color: var(--red) } .tcr button { font: inherit; border: 1px solid var(--line); background: var(--chip); color: var(--ink); border-radius: 6px; width: 30px; height: 28px; cursor: pointer } .tcr button:disabled { opacity: .3 }
 .drt { width: 100%; border-collapse: collapse; font-size: 13px } .drt th, .drt td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap }
@@ -1551,13 +1551,35 @@ details.more > .rail { margin-top: 8px }
   // =====================================================================================
   var SCORES = {}, HFA = 2.5, CAP = 28, SD = 14;
   function tkey(n) { return String(n || "").toLowerCase().replace(/\b(high school|hs)\b/g, "").replace(/[^a-z0-9]+/g, " ").trim() }
-  function ALI(k) { var A = (SCORES._alias || {}), n = 0; while (A[k] && n++ < 9) k = A[k]; return k }
+  function nk(n) { return tkey(String(n || "").replace(/\((tx|texas)\)|,\s*tx\b/ig, " ")).replace(/\b(high|school|isd|the|tx)\b/g, " ").replace(/\s+/g, " ").trim() }
+  var AUTO = {}, AUTOSIG = "";
+  function autoAlias(names) {
+    var sig = names.join("|"); if (sig === AUTOSIG) return AUTO; AUTOSIG = sig; AUTO = {}; var no = SCORES._noauto || {};
+    names.forEach(function (x) {
+      var tx = x.split(" "), hits = names.filter(function (y) { if (y === x || y.length <= x.length) return false; var ty = y.split(" "); if (ty.length !== tx.length) return false; var full = 0; for (var i = 0; i < tx.length; i++) { if (ty[i].indexOf(tx[i]) !== 0) return false; if (ty[i] === tx[i]) full++ } return full >= 1 && tx.length >= 2 && tx.every(function (w) { return w.length >= 2 }) });
+      if (hits.length === 1 && !no[x]) AUTO[x] = hits[0];
+    });
+    return AUTO;
+  }
+  function ALI(k) { k = nk(k); var A = (SCORES._alias || {}), n = 0; while (A[k] && n++ < 9) k = nk(A[k]); n = 0; while (AUTO[k] && n++ < 9) k = AUTO[k]; return k }
   function srcKeys() { return Object.keys(SCORES).filter(function (k) { return k.charAt(0) !== "_" && SCORES[k] && SCORES[k].games }) }
-  function normG(t, g) { if (t.board) return { date: g.date, a: ALI(g.a), b: ALI(g.b), an: g.an, bn: g.bn, sa: +g.sa, sb: +g.sb, home: +g.home || 0 }; if (g.us == null || g.them == null) return null; var a = ALI(tkey(t.team)), b = ALI(tkey(g.opp)); if (!a || !b) return null; return { date: g.date || "", a: a, b: b, sa: +g.us, sb: +g.them, home: g.ha === "H" ? 1 : g.ha === "A" ? -1 : 0, an: t.team, bn: g.opp } }
+  function rawG(t, g) { if (t.board) return { date: g.date, a: g.a || g.an, b: g.b || g.bn, an: g.an, bn: g.bn, sa: +g.sa, sb: +g.sb, home: +g.home || 0, at: g.at || t.at || 0 }; if (g.us == null || g.them == null) return null; return { date: g.date || "", a: t.team, b: g.opp, sa: +g.us, sb: +g.them, home: g.ha === "H" ? 1 : g.ha === "A" ? -1 : 0, an: t.team, bn: g.opp, at: t.at || 0 } }
   function gKey(g) { return g.date + "|" + [g.a, g.b].sort().join("|") }
-  function allGames(withSrc) {
-    var seen = {}, out = [];
-    srcKeys().forEach(function (k) { var t = SCORES[k]; (t.games || []).forEach(function (g, i) { var n = normG(t, g); if (!n || !n.a || !n.b || n.a === n.b) return; var key = gKey(n); if (seen[key]) { seen[key].src.push([k, i]); return } n.src = [[k, i]]; seen[key] = n; out.push(n) }) });
+  function dd(a, b) { return Math.abs((Date.parse(a) - Date.parse(b)) / 864e5) }
+  var DUPS = 0;
+  function allGames() {
+    var raw = []; srcKeys().forEach(function (k) { var t = SCORES[k]; (t.games || []).forEach(function (g, i) { var n = rawG(t, g); if (n) { n.src = [[k, i]]; raw.push(n) } }) });
+    var nm = {}; raw.forEach(function (g) { var a = nk(g.a), b = nk(g.b); if (a) nm[a] = 1; if (b) nm[b] = 1 });
+    var A = SCORES._alias || {}; Object.keys(A).forEach(function (k) { delete nm[nk(k)] }); autoAlias(Object.keys(nm).sort());
+    var out = [], byPair = {}; DUPS = 0;
+    raw.forEach(function (g) {
+      g.a = ALI(g.a); g.b = ALI(g.b); if (!g.a || !g.b || g.a === g.b || isNaN(g.sa) || isNaN(g.sb)) return;
+      var pk = [g.a, g.b].sort().join("|"), L = byPair[pk] = byPair[pk] || [], m = null;
+      L.forEach(function (o) { if (!m && (o.date === g.date || dd(o.date, g.date) <= 3)) m = o });
+      if (!m) { L.push(g); out.push(g); return }
+      DUPS++; m.src = m.src.concat(g.src);
+      var same = (m.a === g.a ? [g.sa, g.sb] : [g.sb, g.sa]); if (same[0] !== m.sa || same[1] !== m.sb) { m.warn = true; if ((g.at || 0) > (m.at || 0)) { var keep = m.src, w = true; Object.assign(m, g); m.src = keep; m.warn = w } }
+    });
     return out.sort(function (x, y) { return x.date.localeCompare(y.date) });
   }
   function scSave(keys) { keys = keys.filter(function (k, i) { return keys.indexOf(k) === i }); if (ONLINE && solSchoolBase()) keys.forEach(function (k) { wkPut("/scores/" + k, SCORES[k] == null ? null : SCORES[k]).catch(function () { var m = $("psMsg"); if (m) m.textContent = "Couldn't save. Check the connection." }) }) }
@@ -1570,8 +1592,8 @@ details.more > .rail { margin-top: 8px }
   }
   function phi(z) { var t = 1 / (1 + .2316419 * Math.abs(z)), d = .3989423 * Math.exp(-z * z / 2), p = d * t * (.3193815 + t * (-.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274)))); return z > 0 ? 1 - p : p }
   function predictNow() {
-    var us = ALI(tkey((ACC && ACC.profile && ACC.profile.name) || "")), e = WK.cur; if (!e || !us) return null;
-    var them = ALI(tkey(e.opp)), G = allGames(); if (!G.length) return { need: true };
+    var e = WK.cur, G = allGames(), us = ALI((ACC && ACC.profile && ACC.profile.name) || ""); if (!e || !us) return null;
+    var them = ALI(e.opp); if (!G.length) return { need: true };
     var F = fitRatings(G); if (F.R[us] == null || F.R[them] == null) return { need: true, missing: F.R[us] == null ? (ACC.profile.name) : e.opp };
     var home = e.ha === "H" ? 1 : e.ha === "A" ? -1 : 0, m = F.R[us] - F.R[them] + home * HFA, wp = phi(m / SD);
     var pts = G.reduce(function (s, g) { return s + g.sa + g.sb }, 0) / (2 * G.length), su = Math.max(0, Math.round(pts + m / 2)), st = Math.max(0, Math.round(pts - m / 2));
@@ -1585,7 +1607,7 @@ details.more > .rail { margin-top: 8px }
     return { us: ACC.profile.name, them: e.opp, ha: e.ha, m: m, wp: wp, su: su, st: st, ru: F.R[us], rt: F.R[them], sru: sosRank(us), srt: sosRank(them), teams: teams.length, movers: movers, right: right, tot: tot, miss: tot ? miss / tot : null, conf: conf, gu: gu, gt: gt, early: Math.min(gu, gt) < 3 };
   }
   function predHTML() {
-    var p = predictNow(), add = "<div class='tb'>" + secH("Add scores", "paste any team's MaxPreps schedule page, scores included") + "<div class='tpaste'><input id='psTeam' placeholder='Team name — leave blank for a full weekly scoreboard'><textarea id='psText' rows='4' placeholder='Paste their MaxPreps schedule here'></textarea><button type='button' class='big pri' id='psGo'>Add scores</button><span class='tnote' id='psMsg'>" + allGames().length + " games on file. Add your district for the best strength of schedule.</span></div><div class='tteams'>" + srcKeys().map(function (k) { var t = SCORES[k]; return "<span>" + esc(t.manual ? "Added by hand" : t.board ? "Scoreboard " + ((t.games[0] || {}).date || "") : t.team) + " · " + (t.games || []).filter(function (g) { return t.board || g.us != null }).length + " <button type='button' class='psX' data-k='" + esc(k) + "' title='Remove this paste'>×</button></span>" }).join("") + "</div></div>" + edHTML();
+    var p = predictNow(), add = "<div class='tb'>" + secH("Add scores", "paste any team's MaxPreps schedule page, scores included") + "<div class='tpaste'><input id='psTeam' placeholder='Team name — leave blank for a full weekly scoreboard'><textarea id='psText' rows='4' placeholder='Paste their MaxPreps schedule here'></textarea><button type='button' class='big pri' id='psGo'>Add scores</button><span class='tnote'>or <button type='button' id='psXl'>Upload Excel / CSV</button> <a href='#' id='psTpl'>Download blank sheet</a></span><input type='file' id='psXf' accept='.xlsx,.csv' hidden><span class='tnote' id='psMsg'>" + allGames().length + " games on file. Add your district for the best strength of schedule.</span></div><div class='tteams'>" + srcKeys().map(function (k) { var t = SCORES[k]; return "<span>" + esc(t.manual ? "Added by hand" : t.file ? t.file : t.board ? "Scoreboard " + ((t.games[0] || {}).date || "") : t.team) + " · " + (t.games || []).filter(function (g) { return t.board || g.us != null }).length + " <button type='button' class='psX' data-k='" + esc(k) + "' title='Remove this paste'>×</button></span>" }).join("") + "</div></div>" + edHTML();
     if (!p) return "<p class='tnote'>Pick a week with an opponent to predict.</p>" + add;
     if (p.need) return "<div class='tb'><p class='tnote'>" + (p.missing ? "No scores yet for <b>" + esc(p.missing) + "</b>. " : "No scores yet. ") + "Paste schedules with scores below (yours, this week's opponent, and the teams you've both played).</p></div>" + add;
     var w = Math.round(p.wp * 100), fav = w >= 50, ang = Math.PI * (1 - (fav ? w : 100 - w) / 100), x = 150 + 120 * Math.cos(ang), y = 150 - 120 * Math.sin(ang);
@@ -1627,18 +1649,18 @@ details.more > .rail { margin-top: 8px }
   function edHTML() {
     var G = allGames(), f = tkey(EDF), L = G.filter(function (g) { return !f || g.a.indexOf(f) >= 0 || g.b.indexOf(f) >= 0 || g.date.indexOf(EDF) >= 0 }).reverse(), sh = L.slice(0, EDN);
     var nm = function (g, w) { return esc(w === "a" ? (g.an && ALI(tkey(g.an)) === g.a ? g.an : g.a) : (g.bn && ALI(tkey(g.bn)) === g.b ? g.bn : g.b)) };
-    var row = function (g, i) { return "<tr data-i='" + i + "'><td><input type='date' class='eD' value='" + esc(g.date) + "'></td><td><input class='eA' value='" + nm(g, "a") + "'></td><td><input class='eSA' type='number' value='" + g.sa + "'></td><td><input class='eB' value='" + nm(g, "b") + "'></td><td><input class='eSB' type='number' value='" + g.sb + "'></td><td><select class='eH'><option value='1'" + (g.home === 1 ? " selected" : "") + ">1st team home</option><option value='-1'" + (g.home === -1 ? " selected" : "") + ">2nd team home</option><option value='0'" + (!g.home ? " selected" : "") + ">Neutral</option></select></td><td><button type='button' class='eS'>Save</button> <button type='button' class='eX'>Delete</button></td></tr>" };
+    var row = function (g, i) { return "<tr data-i='" + i + "'><td><input type='date' class='eD' value='" + esc(g.date) + "'></td><td><input class='eA' value='" + nm(g, "a") + "'></td><td><input class='eSA' type='number' value='" + g.sa + "'></td><td><input class='eB' value='" + nm(g, "b") + "'></td><td><input class='eSB' type='number' value='" + g.sb + "'></td><td><select class='eH'><option value='1'" + (g.home === 1 ? " selected" : "") + ">1st team home</option><option value='-1'" + (g.home === -1 ? " selected" : "") + ">2nd team home</option><option value='0'" + (!g.home ? " selected" : "") + ">Neutral</option></select></td><td>" + (g.warn ? "<span title='Two sources had different scores for this game. Using the newest. Check it.' style='color:#b54708;font-weight:800'>⚠ </span>" : "") + "<button type='button' class='eS'>Save</button> <button type='button' class='eX'>Delete</button></td></tr>" };
     EDL = sh;
     return "<div class='tb' id='psEd'>" + secH("Games on file", "fix a score, home/away or a name; changes update the prediction") +
-      "<div class='tpaste'><input id='edF' placeholder='Filter by team or date' value='" + esc(EDF) + "'><span class='tnote'>" + L.length + " games" + (L.length > sh.length ? " · showing newest " + sh.length + " <button type='button' id='edMore'>Show more</button>" : "") + "</span></div>" +
+      "<div class='tpaste'><input id='edF' placeholder='Filter by team or date' value='" + esc(EDF) + "'><span class='tnote'>" + L.length + " games" + (DUPS ? " · " + DUPS + " duplicates merged" : "") + (G.filter(function (g) { return g.warn }).length ? " · ⚠ " + G.filter(function (g) { return g.warn }).length + " with different scores, newest used" : "") + (L.length > sh.length ? " · showing newest " + sh.length + " <button type='button' id='edMore'>Show more</button>" : "") + "</span></div>" +
       "<div style='overflow:auto'><table class='ted'><thead><tr><th>Date</th><th>Team</th><th>Pts</th><th>Team</th><th>Pts</th><th>Site</th><th></th></tr></thead><tbody>" + sh.map(row).join("") +
       "<tr class='eNew'><td><input type='date' class='eD'></td><td><input class='eA' placeholder='Add a game…'></td><td><input class='eSA' type='number'></td><td><input class='eB' placeholder='Opponent'></td><td><input class='eSB' type='number'></td><td><select class='eH'><option value='1'>1st team home</option><option value='-1'>2nd team home</option><option value='0'>Neutral</option></select></td><td><button type='button' class='eN'>Add</button></td></tr></tbody></table></div>" +
-      "<div class='tpaste'><span class='tnote'>Same school, two names?</span><input id='mgA' placeholder='Name to replace (e.g. McK North)'><input id='mgB' placeholder='Correct name (e.g. McKinney North)'><button type='button' id='mgGo'>Merge</button>" + (Object.keys(SCORES._alias || {}).length ? " <span class='tnote'>Merged: " + Object.keys(SCORES._alias).map(function (k) { return esc(k) + " → " + esc(SCORES._alias[k]) + " <button type='button' class='mgX' data-k='" + esc(k) + "'>×</button>" }).join(", ") + "</span>" : "") + "</div></div>";
+      "<div class='tpaste'><span class='tnote'>Same school, two names?</span><input id='mgA' placeholder='Name to replace (e.g. McK North)'><input id='mgB' placeholder='Correct name (e.g. McKinney North)'><button type='button' id='mgGo'>Merge</button>" + (Object.keys(SCORES._alias || {}).length ? " <span class='tnote'>Merged: " + Object.keys(SCORES._alias).map(function (k) { return esc(k) + " → " + esc(SCORES._alias[k]) + " <button type='button' class='mgX' data-k='" + esc(k) + "'>×</button>" }).join(", ") + "</span>" : "") + (Object.keys(AUTO).length ? " <span class='tnote'>Auto-merged: " + Object.keys(AUTO).map(function (k) { return esc(k) + " → " + esc(AUTO[k]) + " <button type='button' class='auX' data-k='" + esc(k) + "' title='These are different schools'>×</button>" }).join(", ") + "</span>" : "") + "</div></div>";
   }
   var EDL = [];
   function edRead(tr) { var q = function (c) { return tr.querySelector(c).value }; return { date: q(".eD"), an: q(".eA").trim(), bn: q(".eB").trim(), sa: q(".eSA"), sb: q(".eSB"), home: +q(".eH") } }
   function edValid(v) { if (!v.an || !v.bn || v.sa === "" || v.sb === "" || !v.date) { $("psMsg").textContent = "Fill in the date, both teams and both scores."; return false } if (tkey(v.an) === tkey(v.bn)) { $("psMsg").textContent = "A team can't play itself."; return false } return true }
-  function edPut(v) { var k = "manual"; SCORES[k] = SCORES[k] || { board: true, manual: true, games: [] }; SCORES[k].games.push({ date: v.date, a: tkey(v.an), b: tkey(v.bn), an: v.an, bn: v.bn, sa: +v.sa, sb: +v.sb, home: v.home }); return k }
+  function edPut(v) { var k = "manual"; SCORES[k] = SCORES[k] || { board: true, manual: true, games: [] }; SCORES[k].games.push({ date: v.date, a: tkey(v.an), b: tkey(v.bn), an: v.an, bn: v.bn, sa: +v.sa, sb: +v.sb, home: v.home, at: Date.now() }); return k }
   function edDone(keys, msg) { scSave(keys); renderTemplates(); savePred(); var m = $("psMsg"); if (m) m.textContent = msg }
   function edWire() {
     var box = $("psEd"); if (!box) return;
@@ -1649,12 +1671,50 @@ details.more > .rail { margin-top: 8px }
       if (b.classList.contains("eX")) { var g = EDL[+tr.dataset.i]; if (!g) return; edDone(scDrop(g.src), "Deleted " + g.date + " game.") }
       else if (b.classList.contains("eS")) { var g2 = EDL[+tr.dataset.i], v = edRead(tr); if (!g2 || !edValid(v)) return; var ks = scDrop(g2.src); ks.push(edPut(v)); edDone(ks, "Saved " + v.an + " " + v.sa + ", " + v.bn + " " + v.sb + ".") }
       else if (b.classList.contains("eN")) { var v2 = edRead(tr); if (!edValid(v2)) return; edDone([edPut(v2)], "Added " + v2.an + " vs " + v2.bn + ".") }
-      else if (b.id === "mgGo") { var x = tkey($("mgA").value), y = tkey($("mgB").value); if (!x || !y || x === y) { $("psMsg").textContent = "Type both names."; return } SCORES._alias = SCORES._alias || {}; SCORES._alias[x] = y; edDone(["_alias"], "Merged " + $("mgA").value + " into " + $("mgB").value + ".") }
-      else if (b.classList.contains("mgX")) { delete SCORES._alias[b.dataset.k]; edDone(["_alias"], "Un-merged " + b.dataset.k + ".") }
+      else if (b.id === "mgGo") { var x = nk($("mgA").value), y = nk($("mgB").value); if (!x || !y || x === y) { $("psMsg").textContent = "Type both names."; return } SCORES._alias = SCORES._alias || {}; SCORES._alias[x] = y; AUTOSIG = ""; edDone(["_alias"], "Merged " + $("mgA").value + " into " + $("mgB").value + ".") }
+      else if (b.classList.contains("auX")) { SCORES._noauto = SCORES._noauto || {}; SCORES._noauto[b.dataset.k] = 1; AUTOSIG = ""; edDone(["_noauto"], "Kept " + b.dataset.k + " separate.") }
+      else if (b.classList.contains("mgX")) { delete SCORES._alias[b.dataset.k]; AUTOSIG = ""; edDone(["_alias"], "Un-merged " + b.dataset.k + ".") }
+    };
+  }
+  function xlDate(v) { if (v == null || v === "") return ""; if (typeof v === "number") return new Date(Math.round((v - 25569) * 864e5)).toISOString().slice(0, 10); var t = String(v).trim(), m = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/); if (m) return m[1] + "-" + ("0" + m[2]).slice(-2) + "-" + ("0" + m[3]).slice(-2); m = t.match(/(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?/); if (m) { var y = m[3] ? (+m[3] < 100 ? 2000 + +m[3] : +m[3]) : new Date().getFullYear(); return y + "-" + ("0" + m[1]).slice(-2) + "-" + ("0" + m[2]).slice(-2) } var p = Date.parse(t + (/\d{4}/.test(t) ? "" : " " + new Date().getFullYear())); return isNaN(p) ? "" : new Date(p).toISOString().slice(0, 10) }
+  function xlGames(rows) {
+    var hi = -1, H; for (var i = 0; i < Math.min(15, rows.length); i++) { var h = (rows[i] || []).map(function (x) { return String(x == null ? "" : x).toLowerCase().trim() }); if (h.filter(function (x) { return /date|team|home|away|opp|score|pts|points|result|visitor/.test(x) }).length >= 2) { hi = i; H = h; break } }
+    if (hi < 0) return { err: "Couldn't find a header row. Use columns like Date, Team 1, Score 1, Team 2, Score 2, Home." };
+    var f = function (re, not) { for (var j = 0; j < H.length; j++) if (re.test(H[j]) && !(not && not.test(H[j]))) return j; return -1 }, fAll = function (re, not) { var o = []; H.forEach(function (x, j) { if (re.test(x) && !(not && not.test(x))) o.push(j) }); return o };
+    var cD = f(/date|day/), cR = f(/result|w\/l/), cO = f(/opp/), cHA = f(/^(h\/a|ha|site|loc|location|home\/away|venue|home)$/);
+    var cH = f(/^home team$/) >= 0 ? f(/^home team$/) : f(/^home$/), cA = f(/^(away|visitor|visiting|guest)( team)?$/), cHS = f(/home.*(score|pts|points)/), cAS = f(/(away|visitor|visiting|guest).*(score|pts|points)/);
+    var tc = fAll(/team|school/, /score|pts|points/), sc = fAll(/score|pts|points|final/, /result/), teamCol = f(/^(team|school)$/);
+    var mode;
+    if (cH >= 0 && cA >= 0 && cHS >= 0 && cAS >= 0) mode = "ha"; else if (cO >= 0 && cR >= 0) mode = "sched"; else if (tc.length >= 2 && sc.length >= 2) mode = "two"; else return { err: "Couldn't tell which columns are the teams and scores. Try the blank sheet's layout." };
+    if (mode === "sched" && teamCol < 0 && !$("psTeam").value.trim()) return { err: "This looks like one team's schedule. Type the team name in the box first, then upload." };
+    var out = [], skip = 0, num = function (v) { return v == null || v === "" ? NaN : +v }, siteOf = function (ha) { ha = String(ha || "").trim(); return /^(h|vs|home)/i.test(ha) ? 1 : /^(a|@|at|away)/i.test(ha) ? -1 : 0 };
+    rows.slice(hi + 1).forEach(function (r) {
+      if (!r || !r.some(function (v) { return v != null && v !== "" })) return;
+      var d = cD >= 0 ? xlDate(r[cD]) : new Date().toISOString().slice(0, 10), g = null;
+      if (mode === "ha") g = { an: r[cA], bn: r[cH], sa: num(r[cAS]), sb: num(r[cHS]), home: -1 };
+      else if (mode === "two") { var hv = cHA >= 0 && tc.indexOf(cHA) < 0 ? String(r[cHA] == null ? "" : r[cHA]).toLowerCase().trim() : ""; g = { an: r[tc[0]], bn: r[tc[1]], sa: num(r[sc[0]]), sb: num(r[sc[1]]), home: /^(1|team ?1|1st|first)$/.test(hv) ? 1 : /^(2|team ?2|2nd|second)$/.test(hv) ? -1 : 0 }; if (hv && g.home === 0 && !/^n/.test(hv)) { if (tkey(hv) === tkey(g.an)) g.home = 1; else if (tkey(hv) === tkey(g.bn)) g.home = -1 } }
+      else { var m = String(r[cR] || "").match(/([WLT])\s*\(?(\d+)\s*[-–]\s*(\d+)/i); if (m) { var hi2 = Math.max(+m[2], +m[3]), lo = Math.min(+m[2], +m[3]), L = m[1].toUpperCase() === "L"; g = { an: teamCol >= 0 ? r[teamCol] : $("psTeam").value.trim(), bn: r[cO], sa: L ? lo : hi2, sb: L ? hi2 : lo, home: cHA >= 0 ? siteOf(r[cHA]) : 0 } } }
+      if (!g || !g.an || !g.bn || isNaN(g.sa) || isNaN(g.sb) || !d || tkey(g.an) === tkey(g.bn)) { skip++; return }
+      g.an = String(g.an).trim(); g.bn = String(g.bn).trim(); out.push({ date: d, a: tkey(g.an), b: tkey(g.bn), an: g.an, bn: g.bn, sa: g.sa, sb: g.sb, home: g.home, at: Date.now() });
+    });
+    return { games: out, skip: skip };
+  }
+  function xlWire() {
+    var bt = $("psXl"), fi = $("psXf"), tp = $("psTpl"); if (!bt) return;
+    bt.onclick = function () { fi.value = ""; fi.click() };
+    tp.onclick = function (e) { e.preventDefault(); var csv = "Date,Team 1,Score 1,Team 2,Score 2,Home\n10/23/2026,Melissa,42,Anna,14,Team 1\n10/23/2026,Lovejoy,21,Prosper Walnut Grove,17,Team 2\n", a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" })); a.download = "scores_template.csv"; a.click() };
+    fi.onchange = function () {
+      var f = fi.files[0]; if (!f) return; $("psMsg").textContent = "Reading " + f.name + "…";
+      f.arrayBuffer().then(function (buf) { return /\.csv$/i.test(f.name) ? parseCsv(new TextDecoder().decode(buf)) : parseXlsx(buf) }).then(function (rows) {
+        var r = xlGames(rows); if (r.err) { $("psMsg").textContent = r.err; return } if (!r.games.length) { $("psMsg").textContent = "No usable games found in " + f.name + (r.skip ? " (" + r.skip + " rows were missing a team, score or date)" : "") + "."; return }
+        var before = allGames().length, k = "xl-" + Date.now(); SCORES[k] = { board: true, file: f.name, games: r.games, at: Date.now() };
+        var nw = allGames().length - before, dup = r.games.length - nw;
+        edDone([k], "Added " + nw + " new games from " + f.name + (dup > 0 ? " · " + dup + " duplicates merged" : "") + (r.skip ? " · skipped " + r.skip + " rows missing a team, score or date" : "") + ".");
+      }).catch(function () { $("psMsg").textContent = "Couldn't read " + f.name + ". Save it as .xlsx or .csv and try again." });
     };
   }
   function predWire() {
-    edWire(); document.querySelectorAll(".psX").forEach(function (x) { x.onclick = function () { var k = x.dataset.k; if (!confirm("Remove this paste and all its games?")) return; delete SCORES[k]; edDone([k], "Removed.") } });
+    edWire(); xlWire(); document.querySelectorAll(".psX").forEach(function (x) { x.onclick = function () { var k = x.dataset.k; if (!confirm("Remove this paste and all its games?")) return; delete SCORES[k]; edDone([k], "Removed.") } });
     var go = $("psGo"); if (!go) return;
     go.onclick = function () {
       var team = $("psTeam").value.trim(), txt = $("psText").value;

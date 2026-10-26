@@ -169,6 +169,7 @@ details.more > .rail { margin-top: 8px }
 .tpred { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 12px } @media (max-width: 900px) { .tpred { grid-template-columns: minmax(0, 1fr) } }
 .tpc { background: #fff; border-radius: 12px; padding: 14px } .tps { display: flex; align-items: center; font-size: 18px; padding: 4px 0 } .tps b { flex: 1 } .tps em { font-style: normal; font-family: var(--f-display); font-size: 40px; font-weight: 800 } .twhy { font-size: 13.5px; background: #f3f5f8; border-radius: 8px; padding: 8px 10px }
 .tpaste { display: flex; flex-direction: column; gap: 8px } .tpaste input, .tpaste textarea { font: inherit; padding: 9px; border-radius: 8px; border: 1px solid #c9d1da; background: #fff; color: #141a22 }
+.ted { border-collapse: collapse; font-size: 12.5px; width: 100% } .ted th { text-align: left; color: #6b7684; font-size: 11px; padding: 4px } .ted td { padding: 3px 4px; border-top: 1px solid #eef1f5 } .ted input, .ted select { font: inherit; padding: 4px 6px; border: 1px solid #d5dbe3; border-radius: 6px; width: 100%; box-sizing: border-box } .ted input[type=number] { width: 58px } .ted input[type=date] { width: 130px } .ted button, #psEd .tpaste button, .tteams button { font: inherit; font-size: 12px; padding: 4px 9px; border-radius: 6px; border: 1px solid #d5dbe3; background: #fff; cursor: pointer } .ted .eX { color: #b42318 } .ted .eS, .ted .eN { background: var(--red); color: #fff; border-color: var(--red) } .tteams button { padding: 0 5px; border: 0; background: none } @media print { #psEd, .tpaste { display: none } }
 .tteams { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px } .tteams span { font-size: 12px; padding: 4px 9px; background: #eef1f5; border-radius: 99px }
 .tcu { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; margin-bottom: 6px; display: flex; flex-direction: column; gap: 6px } .tcu.off { opacity: .55 } .tcr { display: flex; align-items: center; gap: 8px } .tcr span { flex: 1; font-weight: 700; font-size: 14px } .tcr input { width: 18px; height: 18px; accent-color: var(--red) } .tcr button { font: inherit; border: 1px solid var(--line); background: var(--chip); color: var(--ink); border-radius: 6px; width: 30px; height: 28px; cursor: pointer } .tcr button:disabled { opacity: .3 }
 .drt { width: 100%; border-collapse: collapse; font-size: 13px } .drt th, .drt td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap }
@@ -1550,11 +1551,17 @@ details.more > .rail { margin-top: 8px }
   // =====================================================================================
   var SCORES = {}, HFA = 2.5, CAP = 28, SD = 14;
   function tkey(n) { return String(n || "").toLowerCase().replace(/\b(high school|hs)\b/g, "").replace(/[^a-z0-9]+/g, " ").trim() }
-  function allGames() {
+  function ALI(k) { var A = (SCORES._alias || {}), n = 0; while (A[k] && n++ < 9) k = A[k]; return k }
+  function srcKeys() { return Object.keys(SCORES).filter(function (k) { return k.charAt(0) !== "_" && SCORES[k] && SCORES[k].games }) }
+  function normG(t, g) { if (t.board) return { date: g.date, a: ALI(g.a), b: ALI(g.b), an: g.an, bn: g.bn, sa: +g.sa, sb: +g.sb, home: +g.home || 0 }; if (g.us == null || g.them == null) return null; var a = ALI(tkey(t.team)), b = ALI(tkey(g.opp)); if (!a || !b) return null; return { date: g.date || "", a: a, b: b, sa: +g.us, sb: +g.them, home: g.ha === "H" ? 1 : g.ha === "A" ? -1 : 0, an: t.team, bn: g.opp } }
+  function gKey(g) { return g.date + "|" + [g.a, g.b].sort().join("|") }
+  function allGames(withSrc) {
     var seen = {}, out = [];
-    Object.keys(SCORES).forEach(function (k) { var t = SCORES[k]; if (t.board) { (t.games || []).forEach(function (g) { var key = g.date + "|" + [g.a, g.b].sort().join("|"); if (!seen[key]) { seen[key] = 1; out.push(g) } }); return } (t.games || []).forEach(function (g) { if (g.us == null || g.them == null) return; var a = tkey(t.team), b = tkey(g.opp); if (!a || !b) return; var key = g.date + "|" + [a, b].sort().join("|"); if (seen[key]) return; seen[key] = 1; out.push({ date: g.date, a: a, b: b, sa: +g.us, sb: +g.them, home: g.ha === "H" ? 1 : g.ha === "A" ? -1 : 0, an: t.team, bn: g.opp }) }) });
+    srcKeys().forEach(function (k) { var t = SCORES[k]; (t.games || []).forEach(function (g, i) { var n = normG(t, g); if (!n || !n.a || !n.b || n.a === n.b) return; var key = gKey(n); if (seen[key]) { seen[key].src.push([k, i]); return } n.src = [[k, i]]; seen[key] = n; out.push(n) }) });
     return out.sort(function (x, y) { return x.date.localeCompare(y.date) });
   }
+  function scSave(keys) { keys = keys.filter(function (k, i) { return keys.indexOf(k) === i }); if (ONLINE && solSchoolBase()) keys.forEach(function (k) { wkPut("/scores/" + k, SCORES[k] == null ? null : SCORES[k]).catch(function () { var m = $("psMsg"); if (m) m.textContent = "Couldn't save. Check the connection." }) }) }
+  function scDrop(src) { var by = {}; src.forEach(function (r) { (by[r[0]] = by[r[0]] || []).push(r[1]) }); Object.keys(by).forEach(function (k) { by[k].sort(function (a, b) { return b - a }).forEach(function (i) { SCORES[k].games.splice(i, 1) }); if (!SCORES[k].games.length) delete SCORES[k] }); return Object.keys(by) }
   function fitRatings(G) {
     var R = {}, cnt = {}; G.forEach(function (g) { R[g.a] = 0; R[g.b] = 0; cnt[g.a] = (cnt[g.a] || 0) + 1; cnt[g.b] = (cnt[g.b] || 0) + 1 });
     for (var it = 0; it < 300; it++) { var acc = {}, n = {}; G.forEach(function (g) { var m = Math.max(-CAP, Math.min(CAP, g.sa - g.sb)) - g.home * HFA; acc[g.a] = (acc[g.a] || 0) + m + R[g.b]; acc[g.b] = (acc[g.b] || 0) - m + R[g.a]; n[g.a] = (n[g.a] || 0) + 1; n[g.b] = (n[g.b] || 0) + 1 });
@@ -1563,8 +1570,8 @@ details.more > .rail { margin-top: 8px }
   }
   function phi(z) { var t = 1 / (1 + .2316419 * Math.abs(z)), d = .3989423 * Math.exp(-z * z / 2), p = d * t * (.3193815 + t * (-.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274)))); return z > 0 ? 1 - p : p }
   function predictNow() {
-    var us = tkey((ACC && ACC.profile && ACC.profile.name) || ""), e = WK.cur; if (!e || !us) return null;
-    var them = tkey(e.opp), G = allGames(); if (!G.length) return { need: true };
+    var us = ALI(tkey((ACC && ACC.profile && ACC.profile.name) || "")), e = WK.cur; if (!e || !us) return null;
+    var them = ALI(tkey(e.opp)), G = allGames(); if (!G.length) return { need: true };
     var F = fitRatings(G); if (F.R[us] == null || F.R[them] == null) return { need: true, missing: F.R[us] == null ? (ACC.profile.name) : e.opp };
     var home = e.ha === "H" ? 1 : e.ha === "A" ? -1 : 0, m = F.R[us] - F.R[them] + home * HFA, wp = phi(m / SD);
     var pts = G.reduce(function (s, g) { return s + g.sa + g.sb }, 0) / (2 * G.length), su = Math.max(0, Math.round(pts + m / 2)), st = Math.max(0, Math.round(pts - m / 2));
@@ -1578,7 +1585,7 @@ details.more > .rail { margin-top: 8px }
     return { us: ACC.profile.name, them: e.opp, ha: e.ha, m: m, wp: wp, su: su, st: st, ru: F.R[us], rt: F.R[them], sru: sosRank(us), srt: sosRank(them), teams: teams.length, movers: movers, right: right, tot: tot, miss: tot ? miss / tot : null, conf: conf, gu: gu, gt: gt, early: Math.min(gu, gt) < 3 };
   }
   function predHTML() {
-    var p = predictNow(), add = "<div class='tb'>" + secH("Add scores", "paste any team's MaxPreps schedule page, scores included") + "<div class='tpaste'><input id='psTeam' placeholder='Team name — leave blank for a full weekly scoreboard'><textarea id='psText' rows='4' placeholder='Paste their MaxPreps schedule here'></textarea><button type='button' class='big pri' id='psGo'>Add scores</button><span class='tnote' id='psMsg'>" + Object.keys(SCORES).length + " teams on file. Add your district for the best strength of schedule.</span></div><div class='tteams'>" + Object.keys(SCORES).map(function (k) { return "<span>" + esc(SCORES[k].team) + " · " + (SCORES[k].games || []).filter(function (g) { return g.us != null }).length + "</span>" }).join("") + "</div></div>";
+    var p = predictNow(), add = "<div class='tb'>" + secH("Add scores", "paste any team's MaxPreps schedule page, scores included") + "<div class='tpaste'><input id='psTeam' placeholder='Team name — leave blank for a full weekly scoreboard'><textarea id='psText' rows='4' placeholder='Paste their MaxPreps schedule here'></textarea><button type='button' class='big pri' id='psGo'>Add scores</button><span class='tnote' id='psMsg'>" + allGames().length + " games on file. Add your district for the best strength of schedule.</span></div><div class='tteams'>" + srcKeys().map(function (k) { var t = SCORES[k]; return "<span>" + esc(t.manual ? "Added by hand" : t.board ? "Scoreboard " + ((t.games[0] || {}).date || "") : t.team) + " · " + (t.games || []).filter(function (g) { return t.board || g.us != null }).length + " <button type='button' class='psX' data-k='" + esc(k) + "' title='Remove this paste'>×</button></span>" }).join("") + "</div></div>" + edHTML();
     if (!p) return "<p class='tnote'>Pick a week with an opponent to predict.</p>" + add;
     if (p.need) return "<div class='tb'><p class='tnote'>" + (p.missing ? "No scores yet for <b>" + esc(p.missing) + "</b>. " : "No scores yet. ") + "Paste schedules with scores below (yours, this week's opponent, and the teams you've both played).</p></div>" + add;
     var w = Math.round(p.wp * 100), fav = w >= 50, ang = Math.PI * (1 - (fav ? w : 100 - w) / 100), x = 150 + 120 * Math.cos(ang), y = 150 - 120 * Math.sin(ang);
@@ -1616,17 +1623,48 @@ details.more > .rail { margin-top: 8px }
     }
     return out;
   }
+  var EDF = "", EDN = 40;
+  function edHTML() {
+    var G = allGames(), f = tkey(EDF), L = G.filter(function (g) { return !f || g.a.indexOf(f) >= 0 || g.b.indexOf(f) >= 0 || g.date.indexOf(EDF) >= 0 }).reverse(), sh = L.slice(0, EDN);
+    var nm = function (g, w) { return esc(w === "a" ? (g.an && ALI(tkey(g.an)) === g.a ? g.an : g.a) : (g.bn && ALI(tkey(g.bn)) === g.b ? g.bn : g.b)) };
+    var row = function (g, i) { return "<tr data-i='" + i + "'><td><input type='date' class='eD' value='" + esc(g.date) + "'></td><td><input class='eA' value='" + nm(g, "a") + "'></td><td><input class='eSA' type='number' value='" + g.sa + "'></td><td><input class='eB' value='" + nm(g, "b") + "'></td><td><input class='eSB' type='number' value='" + g.sb + "'></td><td><select class='eH'><option value='1'" + (g.home === 1 ? " selected" : "") + ">1st team home</option><option value='-1'" + (g.home === -1 ? " selected" : "") + ">2nd team home</option><option value='0'" + (!g.home ? " selected" : "") + ">Neutral</option></select></td><td><button type='button' class='eS'>Save</button> <button type='button' class='eX'>Delete</button></td></tr>" };
+    EDL = sh;
+    return "<div class='tb' id='psEd'>" + secH("Games on file", "fix a score, home/away or a name; changes update the prediction") +
+      "<div class='tpaste'><input id='edF' placeholder='Filter by team or date' value='" + esc(EDF) + "'><span class='tnote'>" + L.length + " games" + (L.length > sh.length ? " · showing newest " + sh.length + " <button type='button' id='edMore'>Show more</button>" : "") + "</span></div>" +
+      "<div style='overflow:auto'><table class='ted'><thead><tr><th>Date</th><th>Team</th><th>Pts</th><th>Team</th><th>Pts</th><th>Site</th><th></th></tr></thead><tbody>" + sh.map(row).join("") +
+      "<tr class='eNew'><td><input type='date' class='eD'></td><td><input class='eA' placeholder='Add a game…'></td><td><input class='eSA' type='number'></td><td><input class='eB' placeholder='Opponent'></td><td><input class='eSB' type='number'></td><td><select class='eH'><option value='1'>1st team home</option><option value='-1'>2nd team home</option><option value='0'>Neutral</option></select></td><td><button type='button' class='eN'>Add</button></td></tr></tbody></table></div>" +
+      "<div class='tpaste'><span class='tnote'>Same school, two names?</span><input id='mgA' placeholder='Name to replace (e.g. McK North)'><input id='mgB' placeholder='Correct name (e.g. McKinney North)'><button type='button' id='mgGo'>Merge</button>" + (Object.keys(SCORES._alias || {}).length ? " <span class='tnote'>Merged: " + Object.keys(SCORES._alias).map(function (k) { return esc(k) + " → " + esc(SCORES._alias[k]) + " <button type='button' class='mgX' data-k='" + esc(k) + "'>×</button>" }).join(", ") + "</span>" : "") + "</div></div>";
+  }
+  var EDL = [];
+  function edRead(tr) { var q = function (c) { return tr.querySelector(c).value }; return { date: q(".eD"), an: q(".eA").trim(), bn: q(".eB").trim(), sa: q(".eSA"), sb: q(".eSB"), home: +q(".eH") } }
+  function edValid(v) { if (!v.an || !v.bn || v.sa === "" || v.sb === "" || !v.date) { $("psMsg").textContent = "Fill in the date, both teams and both scores."; return false } if (tkey(v.an) === tkey(v.bn)) { $("psMsg").textContent = "A team can't play itself."; return false } return true }
+  function edPut(v) { var k = "manual"; SCORES[k] = SCORES[k] || { board: true, manual: true, games: [] }; SCORES[k].games.push({ date: v.date, a: tkey(v.an), b: tkey(v.bn), an: v.an, bn: v.bn, sa: +v.sa, sb: +v.sb, home: v.home }); return k }
+  function edDone(keys, msg) { scSave(keys); renderTemplates(); savePred(); var m = $("psMsg"); if (m) m.textContent = msg }
+  function edWire() {
+    var box = $("psEd"); if (!box) return;
+    var f = $("edF"); f.oninput = function () { EDF = f.value; clearTimeout(edWire.t); edWire.t = setTimeout(function () { renderTemplates(); var n = $("edF"); if (n) { n.focus(); n.setSelectionRange(n.value.length, n.value.length) } }, 350) };
+    if ($("edMore")) $("edMore").onclick = function () { EDN += 60; renderTemplates() };
+    box.onclick = function (e) {
+      var b = e.target, tr = b.closest("tr");
+      if (b.classList.contains("eX")) { var g = EDL[+tr.dataset.i]; if (!g) return; edDone(scDrop(g.src), "Deleted " + g.date + " game.") }
+      else if (b.classList.contains("eS")) { var g2 = EDL[+tr.dataset.i], v = edRead(tr); if (!g2 || !edValid(v)) return; var ks = scDrop(g2.src); ks.push(edPut(v)); edDone(ks, "Saved " + v.an + " " + v.sa + ", " + v.bn + " " + v.sb + ".") }
+      else if (b.classList.contains("eN")) { var v2 = edRead(tr); if (!edValid(v2)) return; edDone([edPut(v2)], "Added " + v2.an + " vs " + v2.bn + ".") }
+      else if (b.id === "mgGo") { var x = tkey($("mgA").value), y = tkey($("mgB").value); if (!x || !y || x === y) { $("psMsg").textContent = "Type both names."; return } SCORES._alias = SCORES._alias || {}; SCORES._alias[x] = y; edDone(["_alias"], "Merged " + $("mgA").value + " into " + $("mgB").value + ".") }
+      else if (b.classList.contains("mgX")) { delete SCORES._alias[b.dataset.k]; edDone(["_alias"], "Un-merged " + b.dataset.k + ".") }
+    };
+  }
   function predWire() {
+    edWire(); document.querySelectorAll(".psX").forEach(function (x) { x.onclick = function () { var k = x.dataset.k; if (!confirm("Remove this paste and all its games?")) return; delete SCORES[k]; edDone([k], "Removed.") } });
     var go = $("psGo"); if (!go) return;
     go.onclick = function () {
       var team = $("psTeam").value.trim(), txt = $("psText").value;
       if (!team) { var B = parseBoard(txt); if (!B.length) { $("psMsg").textContent = "Couldn't find any scores in that paste. Copy the MaxPreps scoreboard with the team names and final scores, or type a team name to paste one team's schedule."; return }
-        var bk = "board-" + B[0].date + "-" + Math.abs(txt.length * 31 + B.length), done = function () { $("psMsg").textContent = "Added " + B.length + " games from the scoreboard (" + B[0].date + ")."; renderTemplates(); savePred() };
+        var bk = "board-" + B[0].date + "-" + Math.abs(txt.length * 31 + B.length), done = function () { renderTemplates(); savePred(); $("psMsg").textContent = "Added " + B.length + " games from the scoreboard (" + B[0].date + ")." };
         SCORES[bk] = { board: true, games: B, at: Date.now() }; if (ONLINE && solSchoolBase()) wkPut("/scores/" + bk, SCORES[bk]).then(done, function () { $("psMsg").textContent = "Couldn't save. Check the connection." }); else done(); return }
       var G = parseScored(txt);
       var scored = G.filter(function (g) { return g.us != null }); if (!scored.length) { $("psMsg").textContent = "Couldn't find any scores. Copy the whole MaxPreps schedule page, results included."; return }
       var k = tkey(team).replace(/\s+/g, "-"); SCORES[k] = { team: team, games: G, at: Date.now() };
-      var fin = function () { $("psMsg").textContent = "Added " + scored.length + " scored games for " + team + "."; renderTemplates(); savePred() };
+      var fin = function () { renderTemplates(); savePred(); $("psMsg").textContent = "Added " + scored.length + " scored games for " + team + "." };
       if (ONLINE && solSchoolBase()) wkPut("/scores/" + k, SCORES[k]).then(fin, function () { $("psMsg").textContent = "Couldn't save. Check the connection." }); else fin();
     };
   }

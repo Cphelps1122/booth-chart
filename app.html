@@ -3248,7 +3248,7 @@ textarea { min-height: 64px }
   function txKey(n) { return String(n || "").toLowerCase().replace(/\((tx|texas)\)/g, " ").replace(/\b(high school|h\.?s\.?|school|schools|senior high|cisd|isd|jr-sr high|jr\/sr high)\b/g, " ").replace(/[^a-z0-9]+/g, " ").trim() }
   function txTable() {
     if (TXP) return TXP; var k = "solutions-tx", c = null; try { c = JSON.parse(localStorage.getItem(k) || "null") } catch (e) {}
-    if (c && Date.now() - c.at < 6 * 3600e3) return (TXP = Promise.resolve(c.d));
+    if (c && c.d && Object.keys(c.d).length && Date.now() - c.at < 30 * 60e3) return (TXP = Promise.resolve(c.d));
     TXP = venLoad("_tx").then(function (d) { d = d || {}; try { localStorage.setItem(k, JSON.stringify({ at: Date.now(), d: d })) } catch (e) {} return d }, function () { return {} }); return TXP;
   }
   function txFind(T, name) { var k = txKey(name), u = k.replace(/ /g, "_"); if (T[u]) return T[u]; if (T[k]) return T[k]; var hit = Object.keys(T).filter(function (x) { return ("_" + x.replace(/ /g, "_")).slice(-(u.length + 1)) === "_" + u }); return hit.length === 1 ? T[hit[0]] : null }
@@ -3271,6 +3271,8 @@ textarea { min-height: 64px }
     var slug = venSlug(name); if (!slug) return Promise.resolve(null);
     var cached = null; try { cached = JSON.parse(localStorage.getItem("solutions-venue-" + slug) || "null") } catch (e) {}
     return txTable().then(function (T) {
+      if (txFind(T, name)) return T; TXP = null; try { localStorage.removeItem("solutions-tx") } catch (x) {} return txTable(); // not in our saved copy: get the latest list once
+    }).then(function (T) {
       var e = txFind(T, name);
       if (e) { if (cached && cached.src === "txb" && cached.stadium === e.s && cached.field) return cached; return venLoad(slug).then(function (v) { if (v && v.src === "txb" && v.stadium === e.s && v.field) return v; return venueTX(name, e).then(function (f) { if (f && f.field) venSave(slug, f); return f }) }) }
       if (cached && cached.field) return cached;

@@ -140,6 +140,14 @@ main { padding-block: 14px 40px }
 .chip[aria-pressed="true"] { background: var(--chip-on); color: var(--chip-on-ink) }
 .chip.res-neg[aria-pressed="true"] { background: var(--red); color: var(--red-ink) }
 .chip:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid var(--red); outline-offset: 2px }
+.lvseg { display: inline-flex; border: 2px solid #c9ced6; border-radius: 9px; overflow: hidden } .lvseg button { font: inherit; font-weight: 800; font-size: 13px; padding: 6px 12px; border: 0; background: #fff; cursor: pointer } .lvseg button[aria-pressed=true] { background: #111; color: #fff }
+.drvline { margin: 6px 2px 0; font-weight: 700; font-size: 14px; color: var(--muted, #555) }
+.wpstrip { margin-top: 8px } .wpsh { display: flex; gap: 10px; align-items: baseline; font-size: 13px } .wpsh b { text-transform: uppercase; letter-spacing: .08em; font-size: 12px } #wpsRead { color: var(--muted, #555); font-weight: 600 }
+#wpsSvg { width: 100%; height: 96px; display: block; touch-action: none; cursor: ew-resize; background: #0f141b; border-radius: 10px; margin-top: 4px }
+.qscore { margin: 0 0 12px } .qscore table { border-collapse: collapse; background: #0f141b; color: #fff; border-radius: 10px; overflow: hidden; font-weight: 800; min-width: 320px } .qscore th, .qscore td { padding: 6px 12px; text-align: center } .qscore th { font-size: 11px; letter-spacing: .1em; color: #9aa7b6 } .qscore td:first-child, .qscore th:first-child { text-align: left } .qscore td.tot { font-size: 18px; background: rgba(255,255,255,.08) }
+.pbp { display: flex; flex-direction: column; gap: 8px } .pbp .it { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 10px 12px; border-radius: 10px; background: #0f141b; color: #e8edf2; cursor: pointer; border-left: 5px solid #5b6a7d }
+.pbp .it.run { border-left-color: #ff4d45 } .pbp .it.pass { border-left-color: #4aa3ff } .pbp .sit { font-size: 12px; font-weight: 800; color: #ff7b72; letter-spacing: .02em } .pbp .tt { font-size: 17px; font-weight: 800 } .pbp .sub { font-size: 13px; color: #9aa7b6 } .pbp .rt { text-align: right; font-size: 12px; color: #9aa7b6; white-space: nowrap }
+.pbp .bd { display: inline-block; font-size: 10px; font-weight: 900; padding: 1px 5px; border-radius: 4px; margin-left: 5px; vertical-align: 1px } .bd-rz { background: #e5403a; color: #fff } .bd-td { background: #2ee6a6; color: #04241a } .bd-to { background: #ffb020; color: #2a1a00 } .bd-1d { background: #ffd400; color: #000 } .pbp .dh { font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--muted, #555); margin-top: 6px }
 .inmode { display: flex; gap: 6px; align-items: center; margin: 0 0 10px; flex-wrap: wrap } .inmode > span:first-child { font-weight: 800; letter-spacing: .08em; font-size: 13px; text-transform: uppercase; margin-right: 4px }
 .inmode button { font: inherit; font-weight: 800; font-size: 15px; padding: 9px 16px; border-radius: 10px; border: 2px solid #c9ced6; background: #fff; cursor: pointer } .inmode button[aria-pressed=true] { background: #111; color: #fff; border-color: #111 }
 .gshead { display: flex; align-items: center; gap: 8px; flex-wrap: wrap } .gshead h3 { margin: 0; flex: 1 } .gspick { font-weight: 800; font-size: 15px; padding: 6px 10px; background: #f1f3f6; border-radius: 8px } .gshead .btn { font-size: 18px; padding: 4px 12px }
@@ -411,13 +419,17 @@ textarea { min-height: 64px }
       <div style="flex:1;min-width:200px"><div id="filmState" class="note" style="margin:0">Point this device at the field. Each play you log gets its own clip; tap ▶ in the Log to watch it.</div></div>
       <button class="btn" id="filmCam" type="button" hidden style="font-size:13px;padding:6px 10px">Switch camera</button>
     </div>
+    <div class="qscore" id="qScore"></div>
     <div class="panel livepanel" id="livePanel">
       <div class="livehead">
         <h3 style="margin:0">Live drive <small id="liveSum"></small></h3>
         <div class="legend lv"><span><i style="background:#ff4d45"></i>Run</span><span><i style="background:#4aa3ff"></i>Pass</span><span><i class="dash"></i>Incomplete</span><span><i style="background:#f08a24"></i>Sack</span><span><i style="background:#ffd400"></i>Penalty</span><span><i style="background:#2f6bff;height:3px"></i>Line</span><span><i style="background:#ffd400;height:3px"></i>1st down</span></div>
-        <button class="btn" id="liveToggle" style="font-size:13px;padding:6px 10px;margin-left:auto">Hide field</button>
+        <span class="lvseg" style="margin-left:auto"><button type="button" id="lvDrive" aria-pressed="true">Drive</button><button type="button" id="lvGame" aria-pressed="false">Game</button></span>
+        <button class="btn" id="liveToggle" style="font-size:13px;padding:6px 10px">Hide field</button>
       </div>
       <div class="fieldwrap live" id="liveWrap"><svg id="liveSvg" role="img" aria-label="Live view of the current drive"></svg></div>
+      <p class="drvline" id="drvLine"></p>
+      <div class="wpstrip" id="wpStrip"><div class="wpsh"><b>Win chance</b><span id="wpsRead">drag across the line to go back through the game</span></div><svg id="wpsSvg" role="img" aria-label="Win chance after every play; drag to scrub"></svg></div>
     </div>
     <div class="panel trypanel" id="tryPanel" hidden style="margin-bottom:14px">
       <h3>Try after the TD <small id="tryHint">for a 2-pt try, tap the formation and play below first</small></h3>
@@ -539,6 +551,7 @@ textarea { min-height: 64px }
   <section id="v-report" hidden>
     <div class="actions" style="margin:0 0 10px;align-items:center"><b style="font-family:var(--f-display);letter-spacing:.06em;text-transform:uppercase;font-size:14px">Export OC reports</b><button class="btn" id="ocPdf" style="font-size:15px;padding:8px 14px">PDF</button><button class="btn" id="ocXlsx" style="font-size:15px;padding:8px 14px">Excel</button><span class="note" style="margin:0">Every between-series report from tonight plus all the tables on this tab.</span></div>
     <div class="oc" id="ocCard"></div>
+    <div class="qscore" id="qScoreR"></div>
     <div class="wpcard" id="wpCard"><h3 style="margin:0 0 6px;font-family:var(--f-display);font-weight:700;font-size:15px;letter-spacing:.08em;text-transform:uppercase">Win probability <small id="wpNow" style="font-family:var(--f-body);text-transform:none;letter-spacing:0;color:var(--muted);font-weight:500"></small></h3><svg id="wpChart" role="img" aria-label="Win probability over the game"></svg><p class="note" id="wpWhy"></p></div>
     <div class="grid2 wide" style="margin-top:14px">
       <div class="panel">
@@ -600,6 +613,8 @@ textarea { min-height: 64px }
   <section id="v-log" hidden>
     <div class="panel"><h3>Snaps by series <small id="logCount"></small></h3>
       <div class="actions" style="margin:0 0 10px"><button class="btn" id="logXlsx" style="font-size:15px;padding:8px 14px">Export Excel</button><button class="btn" id="logPdf" style="font-size:15px;padding:8px 14px">Export PDF</button></div>
+      <div class="lvseg" style="margin:0 0 10px"><button type="button" id="lgFeed" aria-pressed="true">Play-by-play</button><button type="button" id="lgTable" aria-pressed="false">Table</button></div>
+      <div id="logFeed"></div>
       <div id="logList"></div></div>
     <div class="modal" id="clipModal" hidden><div class="mbox" style="max-width:900px;width:100%"><h3 id="clipTitle" style="margin-top:0"></h3><video id="clipVid" controls playsinline></video><div class="actions" style="margin-top:10px"><button class="btn" id="clipPrev">◀ Previous</button><button class="btn" id="clipNext">Next ▶</button><a class="btn" id="clipDl" download>Save clip</a><button class="btn primary" id="clipClose" style="margin-left:auto">Close</button></div></div></div>
   </section>
@@ -1111,7 +1126,7 @@ textarea { min-height: 64px }
   function fresh() { var f = fresh_(); f.gameDate = today(); return f }
   var S = load() || fresh();
   // older saves: drop the old example game and the built-in Lebanon Trail opponent so the schedule decides
-  if (S.example) { var kx = { lists: S.lists, start: S.start, dmode: S.dmode, fast: S.fast, inMode: S.inMode, sheet: S.sheet, sheetGrid: S.sheetGrid, sheetVer: S.sheetVer }; S = fresh(); Object.assign(S, kx) }
+  if (S.example) { var kx = { lists: S.lists, start: S.start, dmode: S.dmode, fast: S.fast, inMode: S.inMode, liveMode: S.liveMode, logView: S.logView, sheet: S.sheet, sheetGrid: S.sheetGrid, sheetVer: S.sheetVer }; S = fresh(); Object.assign(S, kx) }
   if (!S.snaps.length && (S.opp === "Lebanon Trail" || !S.opp)) { S.opp = "Opponent"; S.autoOpp = true; if (!S.scout) S.pre = "" }
   if (!S.gameDate) S.gameDate = today();
   var pick = { form: null, call: null, callType: null, front: null, cov: null, shell: null, box: null, blitz: "No", res: null, td: false, qb: null, pl: null, lastRb: null };
@@ -2543,7 +2558,7 @@ textarea { min-height: 64px }
       h += "</table></div></div>";
     });
     $("logList").innerHTML = h || "<p class='note'>No snaps logged yet.</p>";
-    $("logCount").textContent = S.snaps.length + " snaps";
+    $("logCount").textContent = S.snaps.length + " snaps"; renderFeed();
     document.querySelectorAll(".lookcell").forEach(function (td) { td.addEventListener("click", function () { openCell(+td.dataset.i, td.dataset.k) }) });
     document.querySelectorAll(".edit").forEach(function (b) { b.addEventListener("click", function () { openEdit(+b.dataset.i) }) });
     document.querySelectorAll(".clipbtn").forEach(function (b) { b.addEventListener("click", function () { openClip(+b.dataset.i) }) });
@@ -3289,6 +3304,7 @@ textarea { min-height: 64px }
     return "#4aa3ff";
   }
   function renderLive() {
+    try { renderWpStrip(); renderQScore() } catch (e) {}
     var hidden = liveHidden(); $("liveWrap").hidden = hidden; $("liveToggle").textContent = hidden ? "Show field" : "Hide field";
     if (hidden) return;
     var C = STADIUM, T = C.top, B = C.bot, LR = goesRight((pendingSnap() || S.cur).qtr);
@@ -3310,6 +3326,7 @@ textarea { min-height: 64px }
       var fd = losY + c.dist;
       if (fd < 100) h += "<line x1='" + X(fd, vy0) + "' y1='" + vy0 + "' x2='" + X(fd, vy1) + "' y2='" + vy1 + "' stroke='#ffd400' stroke-width='4' opacity='.95'/>";
     }
+    if (S.liveMode === "game") { liveGame(h, X, vy0, vy1, W); return }
     var top = vy0 + 20, bot = vy1 - 34, n = Math.max(cur.length + 1, 4), lane = Math.min(28, (bot - top) / n);
     var lastS = S.snaps[S.snaps.length - 1], newest = S.snaps.length + ":" + (lastS ? lastS.gain : "") + ":" + (lastS ? lastS.res : "");
     cur.forEach(function (x, i) {
@@ -3359,6 +3376,96 @@ textarea { min-height: 64px }
     var runs = played.filter(function (x) { return x.pt === "Run" }).length;
     var dn = driveList().length;
     $("liveSum").textContent = (faded ? "last drive · " : "drive " + Math.max(1, dn) + " · ") + played.length + (played.length === 1 ? " play" : " plays") + " · " + (yds >= 0 ? "+" : "") + Math.round(yds) + " yds · " + runs + " run / " + (played.length - runs) + " pass";
+    drvLineSet(cur, faded);
+  }
+  // ---------- game-app style extras: drive line, game view, win chance scrubber, score by quarter, play-by-play ----------
+  function sideTxt(y) { y = Math.round(y); return y === 50 ? "the 50" : y < 50 ? "own " + y : "opp " + (100 - y) }
+  function drvLineSet(cur, faded) {
+    var el = $("drvLine"); if (!el) return; if (!cur || !cur.length) { el.textContent = ""; return }
+    var pl = cur.filter(function (x) { return x.res !== "Penalty" && x.gain != null }), ru = pl.filter(function (x) { return x.pt === "Run" }), pa = pl.filter(function (x) { return x.pt === "Pass" }), co = pa.filter(function (x) { return x.res === "Complete" });
+    var sum = function (a) { return a.reduce(function (t, x) { return t + (x.gain || 0) }, 0) }, l = cur[cur.length - 1], d = driveList().filter(function (x) { return x.series === cur[0].series })[0];
+    var res = d ? (d.result === "In progress" ? "" : d.result === "Punt / end" ? "Punt / end" : d.result) : "";
+    el.textContent = (faded ? "Last drive: " : "") + "From " + sideTxt(toY(cur[0].yl)) + ": " + pl.length + (pl.length === 1 ? " play · " : " plays · ") + ru.length + " rush, " + sum(ru) + " yds · " + co.length + "/" + pa.length + " pass, " + sum(co) + " yds" + (res ? " · " + res : "") + (l.td ? " 🏈" : "");
+  }
+  function liveGame(h, X, vy0, vy1, W) {
+    var D = driveList(), top = vy0 + 14, bot = vy1 - 14, n = Math.max(D.length, 6), lane = Math.min(26, (bot - top) / n);
+    if (D.length > n) D = D.slice(-n);
+    D.forEach(function (d, i) {
+      var yy = top + i * lane + lane / 2, x1 = X(d.start, yy), x2 = X(Math.max(0, Math.min(100, d.end)), yy);
+      var col = d.result === "TD" ? "#2ee6a6" : d.result === "Field goal" ? "#ffd400" : d.result === "Turnover" || d.result === "Downs" ? "#ff4d45" : d.result === "In progress" ? "#fff" : "#9aa7b6";
+      var snaps = S.snaps.filter(function (x) { return x.series === d.series && x.kind !== "try" });
+      h += "<line x1='" + x1 + "' y1='" + yy + "' x2='" + x2 + "' y2='" + yy + "' stroke='rgba(0,0,0,.5)' stroke-width='8' stroke-linecap='round'/><line x1='" + x1 + "' y1='" + yy + "' x2='" + x2 + "' y2='" + yy + "' stroke='" + col + "' stroke-width='4' stroke-linecap='round'/>";
+      snaps.forEach(function (x) { var e = snapEnd(x); if (e != null) h += "<circle cx='" + X(Math.max(0, Math.min(100, e)), yy) + "' cy='" + yy + "' r='3.2' fill='#fff'/>" });
+      h += "<circle cx='" + x1 + "' cy='" + yy + "' r='5' fill='" + col + "' stroke='#fff' stroke-width='1.5'/>";
+      var lab = "D" + d.n + " · Q" + d.qtr + " · " + d.plays + " pl · " + d.result;
+      h += "<text x='" + (Math.max(x1, x2) < W - 190 ? Math.max(x1, x2) + 12 : Math.min(x1, x2) - 8) + "' y='" + (yy + 4.5) + "' text-anchor='" + (Math.max(x1, x2) < W - 190 ? "start" : "end") + "' fill='#fff' font-family='Barlow, Arial, sans-serif' font-weight='700' font-size='" + Math.min(14, lane * .62) + "' style='paint-order:stroke' stroke='rgba(0,0,0,.75)' stroke-width='3'>" + esc(lab) + "</text>";
+    });
+    if (!D.length) h += "<text x='" + (W / 2) + "' y='" + ((vy0 + vy1) / 2) + "' fill='#fff' text-anchor='middle' font-family='Barlow, Arial, sans-serif' font-weight='700' font-size='16'>No drives yet</text>";
+    var svg = $("liveSvg"); svg.setAttribute("viewBox", "0 " + vy0 + " " + W + " " + (vy1 - vy0)); svg.innerHTML = h;
+    var td = D.filter(function (d) { return d.result === "TD" }).length, fg = D.filter(function (d) { return d.result === "Field goal" }).length;
+    $("liveSum").textContent = "whole game · " + driveList().length + " drives · " + td + " TD" + (fg ? " · " + fg + " FG" : "");
+    $("drvLine").textContent = "";
+  }
+  var WPS = { pts: [], sel: null };
+  function renderWpStrip() {
+    var svg = $("wpsSvg"); if (!svg) return; var W = 600, H = 96;
+    var ok = S && !S.example && S.snaps.length; $("wpStrip").hidden = !ok; if (!ok) return;
+    var pts = [], lastW = .5; for (var i = 0; i <= S.snaps.length; i++) { var w; try { w = i === S.snaps.length ? wpAt(0, true).wp : (S.snaps[i] && S.snaps[i].kind === "try" ? null : wpAt(i).wp) } catch (e) { w = null } if (w == null || isNaN(w)) w = lastW; lastW = w; pts.push({ i: i, wp: w }) }
+    WPS.pts = pts; var n = pts.length - 1 || 1, X = function (i) { return 8 + (W - 16) * i / n }, Y = function (w) { return 8 + (H - 16) * (1 - w) };
+    var d = pts.map(function (p, k) { return (k ? "L" : "M") + X(p.i).toFixed(1) + " " + Y(p.wp).toFixed(1) }).join(" ");
+    var qs = ""; S.snaps.forEach(function (x, k) { var pv = S.snaps[k - 1]; if (pv && pv.qtr !== x.qtr) qs += "<line x1='" + X(k) + "' y1='4' x2='" + X(k) + "' y2='" + (H - 4) + "' stroke='rgba(255,255,255,.15)'/><text x='" + (X(k) + 3) + "' y='14' fill='#6b7a8c' font-size='10' font-family='Arial'>Q" + x.qtr + "</text>" });
+    var sel = WPS.sel == null ? pts.length - 1 : Math.min(WPS.sel, pts.length - 1), sp = pts[sel];
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H); svg.setAttribute("preserveAspectRatio", "none");
+    svg.innerHTML = "<line x1='0' y1='" + Y(.5) + "' x2='" + W + "' y2='" + Y(.5) + "' stroke='rgba(255,255,255,.25)' stroke-dasharray='4 4'/>" + qs +
+      "<path d='" + d + " L" + X(n) + " " + Y(.5) + " L" + X(0) + " " + Y(.5) + " Z' fill='var(--red, #e5403a)' opacity='.18'/><path d='" + d + "' fill='none' stroke='#e8edf2' stroke-width='2' vector-effect='non-scaling-stroke'/>" +
+      "<line x1='" + X(sp.i) + "' y1='0' x2='" + X(sp.i) + "' y2='" + H + "' stroke='#fff' stroke-width='1.5' vector-effect='non-scaling-stroke'/><circle cx='" + X(sp.i) + "' cy='" + Y(sp.wp) + "' r='4' fill='#fff'/>";
+    var pct = Math.round(sp.wp * 100), us = (ACC && ACC.profile && ACC.profile.name) || "Us", them = S.opp || "Opponent";
+    if (sel === pts.length - 1 && WPS.sel == null) $("wpsRead").textContent = "Now: " + us + " " + pct + "% · " + them + " " + (100 - pct) + "% · drag to go back";
+    else { var x = S.snaps[sp.i - 1]; $("wpsRead").textContent = (x ? "After #" + x.n + " (Q" + x.qtr + " " + ddText(x) + ", " + ((x.form ? x.form + " " : "") + (x.call || x.res || "")).trim() + (x.gain != null && x.res !== "Penalty" ? " " + (x.gain >= 0 ? "+" : "") + x.gain : "") + (x.td ? " TD" : "") + ")" : "Kickoff") + ": " + us + " " + pct + "%" }
+  }
+  function wpsWire() {
+    var svg = $("wpsSvg"); if (!svg) return; var on = false;
+    var at = function (e) { var r = svg.getBoundingClientRect(), t = Math.max(0, Math.min(1, ((e.touches ? e.touches[0].clientX : e.clientX) - r.left) / r.width)), n = (WPS.pts.length - 1) || 1; WPS.sel = Math.round(t * n); if (WPS.sel >= WPS.pts.length - 1) WPS.sel = null; renderWpStrip() };
+    svg.addEventListener("pointerdown", function (e) { on = true; try { svg.setPointerCapture(e.pointerId) } catch (x) {} at(e) });
+    svg.addEventListener("pointermove", function (e) { if (on) at(e) });
+    var end = function () { on = false }; svg.addEventListener("pointerup", end); svg.addEventListener("pointercancel", end);
+    svg.addEventListener("dblclick", function () { WPS.sel = null; renderWpStrip() });
+    var setL = function (m) { S.liveMode = m; save(); $("lvDrive").setAttribute("aria-pressed", m !== "game"); $("lvGame").setAttribute("aria-pressed", m === "game"); renderLive() };
+    $("lvDrive").addEventListener("click", function () { setL("drive") }); $("lvGame").addEventListener("click", function () { setL("game") });
+    $("lvDrive").setAttribute("aria-pressed", S.liveMode !== "game"); $("lvGame").setAttribute("aria-pressed", S.liveMode === "game");
+    var setF = function (f) { S.logView = f; save(); renderLog() };
+    $("lgFeed").addEventListener("click", function () { setF("feed") }); $("lgTable").addEventListener("click", function () { setF("table") });
+  }
+  function qScoreHTML() {
+    if (!S || S.example) return ""; var Q = [1, 2, 3, 4], us = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }, th = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    S.snaps.forEach(function (x) { var q = Math.min(5, x.qtr || 1); if (x.td) us[q] += 6; if (x.kind === "try" && x.good) us[q] += x.res === "PAT" ? 1 : 2 });
+    (S.scoreLog || []).forEach(function (e) { var q = Math.min(5, e.qtr || 1); if (e.side === "them") th[q] += e.pts; else us[q] += e.pts });
+    var ot = us[5] || th[5] || S.cur.qtr >= 5; if (ot) Q.push(5);
+    var cq = S.cur.qtr || 1, cell = function (o, q) { return "<td>" + (q > cq ? "" : o[q]) + "</td>" }, tot = function (o) { return Q.reduce(function (t, q) { return t + o[q] }, 0) };
+    var un = (ACC && ACC.profile && ACC.profile.name) || "Us";
+    return "<table><tr><th>Team</th>" + Q.map(function (q) { return "<th>" + (q === 5 ? "OT" : "Q" + q) + "</th>" }).join("") + "<th>T</th></tr>" +
+      "<tr><td>" + esc(un) + "</td>" + Q.map(function (q) { return cell(us, q) }).join("") + "<td class='tot'>" + tot(us) + "</td></tr>" +
+      "<tr><td>" + esc(S.opp || "Opponent") + "</td>" + Q.map(function (q) { return cell(th, q) }).join("") + "<td class='tot'>" + tot(th) + "</td></tr></table>";
+  }
+  function renderQScore() { var h = qScoreHTML(); ["qScore", "qScoreR"].forEach(function (id) { var el = $(id); if (el) { el.innerHTML = h; el.hidden = !h || !S.snaps.length && !(S.scoreLog || []).length } }) }
+  function renderFeed() {
+    var el = $("logFeed"); if (!el) return; var feed = S.logView !== "table";
+    $("lgFeed").setAttribute("aria-pressed", feed); $("lgTable").setAttribute("aria-pressed", !feed); el.hidden = !feed; $("logList").hidden = feed;
+    if (!feed) return;
+    var h = "", lastSer = null;
+    S.snaps.map(function (x, i) { return [x, i] }).reverse().forEach(function (p) {
+      var x = p[0], i = p[1];
+      if (x.series !== lastSer) { lastSer = x.series; h += "<div class='dh'>Series " + x.series + "</div>" }
+      var y = toY(x.yl), isT = x.kind === "try", typ = x.pt === "Run" ? "run" : x.pt === "Pass" ? "pass" : "";
+      var badges = (!isT && y >= 80 ? "<span class='bd bd-rz'>RZ</span>" : "") + (x.td ? "<span class='bd bd-td'>TD</span>" : "") + (x.res === "Interception" || x.res === "Fumble" ? "<span class='bd bd-to'>TURNOVER</span>" : "") + (!isT && !x.td && x.gain != null && x.res !== "Penalty" && x.gain >= x.dist ? "<span class='bd bd-1d'>1ST</span>" : "");
+      var sit = isT ? "Try after TD" : (ddText(x) + " @ " + (y >= 50 ? "OPP " + (100 - Math.round(y)) : "OWN " + Math.round(y))) + (x.hash ? " · " + x.hash + " hash" : "");
+      var call = ((x.form ? x.form + " " : "") + (x.call || "") + (x.motion ? " · " + x.motion : "") + (x.rpo ? " + " + x.rpo : "")).trim();
+      var out = x.res === "Penalty" ? (x.pen ? x.pen.n : "Penalty") : isT ? (x.res + (x.good ? " good" : " no good")) : (x.res || "") + (x.res === "Incomplete" || x.res === "Interception" ? "" : x.gain != null ? " " + (x.gain >= 0 ? "+" : "") + x.gain : " · spot pending") + (playerText(x) ? " · " + playerText(x) : "");
+      var look = [x.shell, x.front, x.cov ? covName(x.cov) : "", x.blitz && x.blitz !== "No" ? "blitz " + x.blitz : ""].filter(Boolean).join(" · ");
+      h += "<div class='it " + typ + "' data-i='" + i + "'><div><div class='sit'>" + esc(sit) + badges + "</div><div class='tt'>" + esc(call || out) + "</div><div class='sub'>" + esc(call ? out : "") + (look ? " · vs " + esc(look) : "") + (x.mulligan ? " · ↻" : "") + "</div></div><div class='rt'>Q" + (x.qtr || "") + " · #" + x.n + "<br>" + (x.id && FILM.have[filmKey(x.id)] ? "<button class='clipbtn' data-i='" + i + "' aria-label='Watch play'>▶</button>" : "") + "</div></div>";
+    });
+    el.innerHTML = "<div class='pbp'>" + (h || "<p class='note'>No snaps logged yet.</p>") + "</div>";
+    el.querySelectorAll(".it").forEach(function (d) { d.addEventListener("click", function (e) { if (e.target.closest(".clipbtn")) { openClip(+d.dataset.i); return } openEdit(+d.dataset.i) }) });
   }
   // which way we drive on the field picture: teams switch ends after Q1 and Q3
   function goesRight(q) { var d = S.dir || {}, q1 = d.q1 !== "L", q3 = d.q3 ? d.q3 !== "L" : q1; return q === 1 || q === 5 ? q1 : q === 2 ? !q1 : q === 3 ? q3 : !q3 }
@@ -3739,7 +3846,7 @@ textarea { min-height: 64px }
   $("penDecline").addEventListener("click", function () { if (!penSel) return; pick.declined = penSel.n + (penSel.side === "O" ? " on us" : " on them"); $("penModal").hidden = true; renderChips(); toast("Declined. Now tap the play's result and yards.") });
   $("pcGo").addEventListener("click", function () { var side = $("pcSide").value; pickPen({ k: "custom", n: "Penalty", side: side, y: Math.abs(parseInt($("pcYds").value, 10) || 0), afd: $("pcAfd").checked, lod: $("pcLod").checked }) });
   $("sMode").addEventListener("change", function () { S.dmode = $("sMode").value; save(); renderAll(); toast(S.dmode === "full" ? "Full defense tags on" : "Fast defense tags on") });
-  gsWire();
+  gsWire(); wpsWire();
   $("fastLog").checked = S.fast !== false;
   $("fastLog").addEventListener("change", function () { S.fast = $("fastLog").checked; save() });
   $("logBtn").addEventListener("click", logSnap);

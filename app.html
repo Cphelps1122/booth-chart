@@ -14,7 +14,8 @@
     if (document.getElementById("solTheme")) return;
     var b = document.createElement("button"); b.id = "solTheme"; b.type = "button";
     b.addEventListener("click", function () { var n = cur() === "dark" ? "light" : "dark"; try { localStorage.setItem(K, n) } catch (e) {} apply(); try { window.dispatchEvent(new Event("solthemechange")) } catch (e) {} });
-    var h = document.querySelector("header"); (h || document.body).appendChild(b); if (!h) b.classList.add("float");
+    var slot = document.getElementById("solThemeSlot"), h = document.querySelector("header");
+    if (slot) { slot.appendChild(b); b.classList.add("inline") } else { (h || document.body).appendChild(b); if (!h) b.classList.add("float") }
     apply();
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mount); else mount();
@@ -24,6 +25,7 @@
 <style>
 #solTheme { font: 700 13px/1 "Barlow", "Segoe UI", Arial, sans-serif; letter-spacing: .04em; padding: 7px 11px; border-radius: 999px; border: 1px solid rgba(255,255,255,.35); background: rgba(255,255,255,.1); color: #f4f4f5; cursor: pointer; white-space: nowrap; position: absolute; top: calc(env(safe-area-inset-top, 0px) + 8px); right: 10px; z-index: 50 }
 #solTheme:hover { background: rgba(255,255,255,.2) }
+#solTheme.inline { position: static; margin-left: 8px; align-self: center }
 #solTheme.float { position: fixed; background: #111; }
 header { position: relative }
 @media print { #solTheme { display: none } }
@@ -3241,13 +3243,41 @@ textarea { min-height: 64px }
     homeLocP = c ? Promise.resolve(c) : geocodeSchool(SCHOOL_NAME_H, null).then(function (l) { if (l) try { localStorage.setItem(k, JSON.stringify(l)) } catch (e) {} return l }, function () { return null });
     return homeLocP;
   }
+  // Texas Bob stadium list (Admin → Stadiums), shared by every school
+  var TXP = null;
+  function txKey(n) { return String(n || "").toLowerCase().replace(/\((tx|texas)\)/g, " ").replace(/\b(high school|h\.?s\.?|school|schools|senior high|cisd|isd|jr-sr high|jr\/sr high)\b/g, " ").replace(/[^a-z0-9]+/g, " ").trim() }
+  function txTable() {
+    if (TXP) return TXP; var k = "solutions-tx", c = null; try { c = JSON.parse(localStorage.getItem(k) || "null") } catch (e) {}
+    if (c && Date.now() - c.at < 6 * 3600e3) return (TXP = Promise.resolve(c.d));
+    TXP = venLoad("_tx").then(function (d) { d = d || {}; try { localStorage.setItem(k, JSON.stringify({ at: Date.now(), d: d })) } catch (e) {} return d }, function () { return {} }); return TXP;
+  }
+  function txFind(T, name) { var k = txKey(name), u = k.replace(/ /g, "_"); if (T[u]) return T[u]; if (T[k]) return T[k]; var hit = Object.keys(T).filter(function (x) { return ("_" + x.replace(/ /g, "_")).slice(-(u.length + 1)) === "_" + u }); return hit.length === 1 ? T[hit[0]] : null }
+  function geoQ(q) { return jget("https://nominatim.openstreetmap.org/search?format=json&limit=3&countrycodes=us&q=" + encodeURIComponent(q)).then(function (r) { return r && r.length ? [+r[0].lat, +r[0].lon] : null }, function () { return null }) }
+  function fieldNear(loc, nm) {
+    var a = "(around:900," + loc[0] + "," + loc[1] + ")";
+    return overpass("way[leisure=pitch][sport~\"american_football\"]" + a + ";out tags geom;way[leisure=stadium]" + a + ";out tags geom;").then(function (d) {
+      var P = ((d && d.elements) || []).filter(function (e) { return (e.tags || {}).leisure === "pitch" }).map(function (e) { var g = pitchGeo(e); return { g: g, c: centroid(g), f: fieldFromPitch(g) } }).filter(function (x) { return x.f });
+      P.sort(function (x, y) { return distM(x.c, loc) - distM(y.c, loc) }); return P[0] ? P[0].f : null;
+    }, function () { return null });
+  }
+  function venueTX(name, e) {
+    var q1 = e.a ? e.a.replace(/--/g, ",") : null, q2 = e.s + ", " + (e.c || "") + ", Texas";
+    return (q1 ? geoQ(q1) : Promise.resolve(null)).then(function (l) { return l || geoQ(q2) }).then(function (l) { return l || geocodeSchool(name, null) }).then(function (loc) {
+      if (!loc) return { school: name, stadium: e.s, city: e.c, src: "txb", field: null };
+      return fieldNear(loc, e.s).then(function (f) { return { school: name, stadium: e.s, city: e.c, loc: loc, field: f, src: "txb" } });
+    });
+  }
   function venueFor(name) {
     var slug = venSlug(name); if (!slug) return Promise.resolve(null);
     var cached = null; try { cached = JSON.parse(localStorage.getItem("solutions-venue-" + slug) || "null") } catch (e) {}
-    if (cached && cached.field) return Promise.resolve(cached);
-    return venLoad(slug).then(function (v) {
+    return txTable().then(function (T) {
+      var e = txFind(T, name);
+      if (e) { if (cached && cached.src === "txb" && cached.stadium === e.s && cached.field) return cached; return venLoad(slug).then(function (v) { if (v && v.src === "txb" && v.stadium === e.s && v.field) return v; return venueTX(name, e).then(function (f) { if (f && f.field) venSave(slug, f); return f }) }) }
+      if (cached && cached.field) return cached;
+      return venLoad(slug).then(function (v) {
       if (v && (v.field || v.src === "none")) return v;
       return homeLocation().then(function (near) { return findVenue(name, name === SCHOOL_NAME_H ? null : near) }).then(function (f) { if (f) { venSave(slug, f) } return f });
+      });
     }).then(function (v) { if (v) { try { localStorage.setItem("solutions-venue-" + slug, JSON.stringify(v)) } catch (e) {} } return v }, function () { return null });
   }
   function gameEntry() { if (!WK.list) return null; return WK.list.filter(function (x) { return x.date === S.gameDate })[0] || null }
@@ -3794,7 +3824,8 @@ textarea { min-height: 64px }
   // ---------- header / setup ----------
   function renderHead() {
     var c = S.cur;
-    $("oppLabel").textContent = "vs " + S.opp;
+    var ge = typeof gameEntry === "function" ? gameEntry() : null, away = ge && ge.ha === "A";
+    $("oppLabel").textContent = (away ? "at " : "vs ") + S.opp + (typeof VEN !== "undefined" && VEN && VEN.info && VEN.info.src === "txb" && VEN.info.stadium ? " · " + VEN.info.stadium + (VEN.info.city ? ", " + VEN.info.city : "") : "");
     $("pQtr").textContent = c.qtr === 5 ? "OT" : "Q" + c.qtr;
     $("pSer").textContent = "S" + c.series;
     var ps = pendingSnap();

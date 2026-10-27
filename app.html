@@ -3847,6 +3847,11 @@ textarea { min-height: 64px }
   $("pcGo").addEventListener("click", function () { var side = $("pcSide").value; pickPen({ k: "custom", n: "Penalty", side: side, y: Math.abs(parseInt($("pcYds").value, 10) || 0), afd: $("pcAfd").checked, lod: $("pcLod").checked }) });
   $("sMode").addEventListener("change", function () { S.dmode = $("sMode").value; save(); renderAll(); toast(S.dmode === "full" ? "Full defense tags on" : "Fast defense tags on") });
   gsWire(); wpsWire();
+  if (!IS_HOME) { // other schools get generic examples, never Melissa's play names or opponents
+    [["ceNew", "e.g. 2*3 ZONE  or  4*5 POWER / COUNTER"], ["cbName", "e.g. TRIPS or RED ZONE 20-10"], ["csSearch", "Or find any play: zone, power, mesh…"]].forEach(function (x) { var el = $(x[0]); if (el) el.placeholder = x[1] });
+    document.querySelectorAll('input[placeholder="e.g. Anna"]').forEach(function (el) { el.placeholder = "e.g. Rival High" });
+    document.querySelectorAll('input[placeholder="e.g. Cardinals"]').forEach(function (el) { el.placeholder = "e.g. Panthers" });
+  }
   $("fastLog").checked = S.fast !== false;
   $("fastLog").addEventListener("change", function () { S.fast = $("fastLog").checked; save() });
   $("logBtn").addEventListener("click", logSnap);

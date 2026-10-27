@@ -1637,12 +1637,64 @@ details.more > .rail { margin-top: 8px }
   // margin that counts: full value up to 21, then 40% per extra point, topping out at 35
   function soft(m) { var a = Math.abs(m), v = Math.min(a, 21) + .4 * Math.max(0, a - 21); return (m < 0 ? -1 : 1) * Math.min(v, 35) }
   function gWeight(g, ref) { var age = ref ? Math.max(0, dd(ref, g.date)) : 0; return .5 + Math.exp(-age / 35) } // last ~4 weeks count about twice as much
+  // starting point for each team: UIL class and (optional) last season's final rating
+  var CLS = { "6A": 8, "5A": 3, "4A": -3, "3A": -8, "2A": -13, "1A": -18 };
+  function priorOf(k) { var P = SCORES._prior || {}, x = P[k]; if (!x) return 0; var c = CLS[x.cls] != null ? CLS[x.cls] : 0; return x.last != null && x.last !== "" && !isNaN(+x.last) ? (x.cls ? .5 * c + .5 * +x.last : +x.last) : c }
+  // model 1: margin ratings (Massey / SRS style), recent games weighted up, pulled toward the starting point when a team has few games
   function fitRatings(G, ref) {
-    var R = {}, cnt = {}; ref = ref || (G.length ? G[G.length - 1].date : null);
-    G.forEach(function (g) { R[g.a] = 0; R[g.b] = 0; cnt[g.a] = (cnt[g.a] || 0) + 1; cnt[g.b] = (cnt[g.b] || 0) + 1; g._w = gWeight(g, ref) });
-    for (var it = 0; it < 250; it++) { var acc = {}, n = {}; G.forEach(function (g) { var m = soft(g.sa - g.sb) - g.home * HFA, w = g._w; acc[g.a] = (acc[g.a] || 0) + w * (m + R[g.b]); acc[g.b] = (acc[g.b] || 0) + w * (-m + R[g.a]); n[g.a] = (n[g.a] || 0) + w; n[g.b] = (n[g.b] || 0) + w });
-      Object.keys(R).forEach(function (k) { R[k] = acc[k] / (n[k] + 1.5) }); var mean = 0, kk = Object.keys(R); kk.forEach(function (k) { mean += R[k] }); mean /= kk.length || 1; kk.forEach(function (k) { R[k] -= mean }) }
+    var R = {}, cnt = {}, P = {}; ref = ref || (G.length ? G[G.length - 1].date : null);
+    G.forEach(function (g) { [g.a, g.b].forEach(function (k) { if (R[k] == null) { P[k] = priorOf(k); R[k] = P[k] } cnt[k] = (cnt[k] || 0) + 1 }); g._w = gWeight(g, ref) });
+    for (var it = 0; it < 200; it++) { var acc = {}, n = {}; G.forEach(function (g) { var m = soft(g.sa - g.sb) - g.home * HFA, w = g._w; acc[g.a] = (acc[g.a] || 0) + w * (m + R[g.b]); acc[g.b] = (acc[g.b] || 0) + w * (-m + R[g.a]); n[g.a] = (n[g.a] || 0) + w; n[g.b] = (n[g.b] || 0) + w });
+      Object.keys(R).forEach(function (k) { R[k] = (acc[k] + 2 * P[k]) / (n[k] + 2) }) }
     return { R: R, n: cnt };
+  }
+  // model 2: Elo with margin of victory, game by game in date order (so a team that's improving shows up fast)
+  function eloRun(G, onGame) {
+    var R = {}, n = {}; G.forEach(function (g) {
+      [g.a, g.b].forEach(function (k) { if (R[k] == null) { R[k] = priorOf(k); n[k] = 0 } });
+      var exp = R[g.a] - R[g.b] + g.home * HFA; if (onGame) onGame(g, exp, n[g.a], n[g.b]);
+      var err = soft(g.sa - g.sb) - exp, k = .08 + .3 / (1 + Math.min(n[g.a], n[g.b]) / 3);
+      R[g.a] += k * err; R[g.b] -= k * err; n[g.a]++; n[g.b]++;
+    }); return { R: R, n: n };
+  }
+  // model 3: points scored / allowed split, for the projected score
+  function offDef(G, ref) {
+    var mu = G.reduce(function (s, g) { return s + g.sa + g.sb }, 0) / (2 * G.length || 1), O = {}, D = {};
+    G.forEach(function (g) { O[g.a] = O[g.a] || 0; O[g.b] = O[g.b] || 0; D[g.a] = D[g.a] || 0; D[g.b] = D[g.b] || 0; g._w = gWeight(g, ref) });
+    for (var it = 0; it < 60; it++) {
+      var ao = {}, no = {}, ad = {}, nd = {};
+      G.forEach(function (g) { var w = g._w, h = g.home * HFA / 2;
+        ao[g.a] = (ao[g.a] || 0) + w * (g.sa - mu - h + D[g.b]); no[g.a] = (no[g.a] || 0) + w; ao[g.b] = (ao[g.b] || 0) + w * (g.sb - mu + h + D[g.a]); no[g.b] = (no[g.b] || 0) + w;
+        ad[g.b] = (ad[g.b] || 0) + w * (mu + h + O[g.a] - g.sa); nd[g.b] = (nd[g.b] || 0) + w; ad[g.a] = (ad[g.a] || 0) + w * (mu - h + O[g.b] - g.sb); nd[g.a] = (nd[g.a] || 0) + w });
+      Object.keys(O).forEach(function (k) { O[k] = ao[k] / (no[k] + 2); D[k] = ad[k] / (nd[k] + 2) });
+    }
+    return { mu: mu, O: O, D: D };
+  }
+  // grade the models on every game, predicting each one only from games before it; pick the blend that misses least
+  var BT = { key: null };
+  function backtest(G) {
+    var key = G.length + "|" + (G.length ? G[G.length - 1].date + G[0].date : "") + "|" + JSON.stringify(SCORES._prior || {}).length;
+    if (BT.key === key) return BT;
+    var rows = [], elo = {}; eloRun(G, function (g, exp, na, nb) { elo[G.indexOf(g)] = na >= 2 && nb >= 2 ? exp : null });
+    var dates = G.map(function (g) { return g.date }).filter(function (d, i, a) { return a.indexOf(d) === i });
+    dates.forEach(function (d) { var prior = G.filter(function (g) { return g.date < d }); if (prior.length < 8) return; var P = fitRatings(prior, d);
+      G.forEach(function (g, i) { if (g.date !== d || (P.n[g.a] || 0) < 2 || (P.n[g.b] || 0) < 2 || elo[i] == null) return; rows.push({ m1: P.R[g.a] - P.R[g.b] + g.home * HFA, m2: elo[i], act: soft(g.sa - g.sb), won: g.sa > g.sb ? 1 : g.sa < g.sb ? 0 : .5 }) }) });
+    var grade = function (f) { var r = 0, t = 0, e = 0; rows.forEach(function (x) { var p = f(x); if (x.won === .5) return; t++; if ((p > 0) === (x.won === 1)) r++; e += Math.abs(x.act - p) }); return { right: r, tot: t, miss: t ? e / t : null } };
+    var best = { w: .6, miss: 1e9 }; for (var w = 0; w <= 1.001; w += .1) { var gr = grade(function (x) { return w * x.m1 + (1 - w) * x.m2 }); if (gr.tot >= 10 && gr.miss < best.miss) best = { w: Math.round(w * 10) / 10, miss: gr.miss } }
+    var W = rows.length >= 10 ? best.w : .6, bl = function (x) { return W * x.m1 + (1 - W) * x.m2 };
+    var res = rows.map(function (x) { return x.act - bl(x) }), sd = res.length >= 15 ? Math.sqrt(res.reduce(function (s, v) { return s + v * v }, 0) / res.length) : SD; sd = Math.max(10, Math.min(18, sd));
+    // calibration: when the blend says 70%+, how often did that team win?
+    var hi = rows.filter(function (x) { return x.won !== .5 && Math.abs(phi(bl(x) / sd) - .5) >= .2 }), hiR = hi.filter(function (x) { return (bl(x) > 0) === (x.won === 1) }).length;
+    BT = { key: key, w: W, sd: sd, m1: grade(function (x) { return x.m1 }), m2: grade(function (x) { return x.m2 }), bl: grade(bl), hiN: hi.length, hiR: hiR, n: rows.length };
+    return BT;
+  }
+  // film check: this week's Hudl files say the opponent is better or worse than their scores
+  function filmCheck(rt) {
+    if (typeof SAMPLE !== "undefined" && SAMPLE) return null; var A = typeof active === "function" ? active() : []; if (!A.length) return null;
+    var base = { sr: +(setVal("filmSR") || 45), ypp: +(setVal("filmYPP") || 5.5) }, part = function (rows) { if (rows.length < 60) return null; return { n: rows.length, sr: 100 * rows.filter(function (r) { return r.eff }).length / rows.length, ypp: rows.reduce(function (s, r) { return s + (r.gain || 0) }, 0) / rows.length } };
+    var off = part(A.filter(function (r) { return r.odk === "O" })), def = part(A.filter(function (r) { return r.odk === "D" })); if (!off && !def) return null;
+    var str = 0; if (off) str += (off.sr - base.sr) * .3 + (off.ypp - base.ypp) * 1.1; if (def) str += (base.sr - def.sr) * .3 + (base.ypp - def.ypp) * 1.1;
+    var adj = Math.max(-4, Math.min(4, .3 * (str - rt))); return { off: off, def: def, str: str, adj: adj, base: base };
   }
   // how well two teams are tied together by games on file
   function links(G, a, b) {
@@ -1664,21 +1716,21 @@ details.more > .rail { margin-top: 8px }
     var e = WK.cur, G = allGames(), us = ALI((ACC && ACC.profile && ACC.profile.name) || ""); if (!e || !us) return null;
     var them = ALI(e.opp); if (!G.length) return { need: true };
     var F = fitRatings(G); if (F.R[us] == null || F.R[them] == null) return { need: true, missing: F.R[us] == null ? (ACC.profile.name) : e.opp };
-    var home = e.ha === "H" ? 1 : e.ha === "A" ? -1 : 0, mr = F.R[us] - F.R[them] + home * HFA;
+    var BTr = backtest(G), E = eloRun(G), OD = offDef(G), home = e.ha === "H" ? 1 : e.ha === "A" ? -1 : 0;
+    var m1 = F.R[us] - F.R[them] + home * HFA, m2 = E.R[us] - E.R[them] + home * HFA, mr = BTr.w * m1 + (1 - BTr.w) * m2, FC = filmCheck(F.R[them]);
     var CO = commonOpp(G, us, them, F), L = links(G, us, them), cw = CO.length >= 2 ? Math.min(.4, .12 * CO.length) : 0, cm = CO.length ? avg(CO.map(function (x) { return x.edge })) + home * HFA : 0;
-    var adj = predAdj(), m = (1 - cw) * mr + cw * cm + adj, sd = SD + (L.level === "Weak" ? 4 : L.level === "Medium" ? 1.5 : 0), wp = phi(m / sd);
-    var pts = G.reduce(function (s, g) { return s + g.sa + g.sb }, 0) / (2 * G.length), su = Math.max(0, Math.round(pts + m / 2)), st = Math.max(0, Math.round(pts - m / 2));
+    var adj = predAdj(), fa = FC ? -FC.adj : 0, m = (1 - cw) * mr + cw * cm + fa + adj, sd = BTr.sd + (L.level === "Weak" ? 4 : L.level === "Medium" ? 1.5 : 0), wp = phi(m / sd);
+    var ps = OD.mu + (OD.O[us] || 0) - (OD.D[them] || 0) + home * HFA / 2, pt = OD.mu + (OD.O[them] || 0) - (OD.D[us] || 0) - home * HFA / 2, sh = (m - (ps - pt)) / 2;
+    var su = Math.max(0, Math.round(ps + sh)), st = Math.max(0, Math.round(pt - sh));
     var sos = function (k) { var o = G.filter(function (g) { return g.a === k || g.b === k }).map(function (g) { return F.R[g.a === k ? g.b : g.a] }); return o.length ? avg(o) : 0 };
     var teams = Object.keys(F.R).filter(function (k) { return (F.n[k] || 0) >= 4 }), sosRank = function (k) { var s = sos(k); return 1 + teams.filter(function (t) { return t !== k && sos(t) > s }).length };
     var nmOf = function (k) { var g = G.filter(function (x) { return x.a === k || x.b === k })[0]; return g ? (g.a === k ? g.an : g.bn) : k };
     var resid = function (team) { return G.filter(function (g) { return g.a === team || g.b === team }).map(function (g) { var mine = g.a === team, my = mine ? g.sa : g.sb, th = mine ? g.sb : g.sa, opp = mine ? g.b : g.a, oppN = mine ? g.bn : g.an, act = soft(my - th), exp = F.R[team] - F.R[opp] + (mine ? g.home : -g.home) * HFA; return { t: (my > th ? "W " : my < th ? "L " : "T ") + my + "–" + th + " vs " + oppN, d: act - exp, g: g } }) };
     var movers = resid(us).sort(function (a, b) { return Math.abs(b.d) - Math.abs(a.d) }).slice(0, 3), moversT = resid(them).sort(function (a, b) { return Math.abs(b.d) - Math.abs(a.d) }).slice(0, 3);
     var odd = resid(us).concat(resid(them)).filter(function (x) { return Math.abs(x.d) >= 30 });
-    // the model's record: predict each game using only games played before it
-    var right = 0, tot = 0, miss = 0, dates = G.map(function (g) { return g.date }).filter(function (d, i, a) { return a.indexOf(d) === i });
-    dates.forEach(function (d) { var prior = G.filter(function (g) { return g.date < d }); if (prior.length < 6) return; var P = fitRatings(prior, d); G.filter(function (g) { return g.date === d }).forEach(function (g) { if ((P.n[g.a] || 0) < 2 || (P.n[g.b] || 0) < 2 || g.sa === g.sb) return; var pm = P.R[g.a] - P.R[g.b] + g.home * HFA; tot++; if ((pm > 0) === (g.sa > g.sb)) right++; miss += Math.abs(soft(g.sa - g.sb) - pm) }) });
+    var right = BTr.bl.right, tot = BTr.bl.tot, miss = BTr.bl.miss || 0;
     var gu = F.n[us] || 0, gt = F.n[them] || 0, conf = Math.min(gu, gt) < 3 ? "Early-season estimate" : L.level === "Weak" ? "Low" : L.level === "Medium" || Math.min(gu, gt) < 6 ? "Medium" : "High";
-    return { us: ACC.profile.name, them: e.opp, ha: e.ha, m: m, mr: mr, cm: cm, cw: cw, adj: adj, sd: sd, wp: wp, su: su, st: st, ru: F.R[us], rt: F.R[them], sru: sosRank(us), srt: sosRank(them), teams: teams.length, movers: movers, moversT: moversT, odd: odd, CO: CO, L: L, nmOf: nmOf, right: right, tot: tot, miss: tot ? miss / tot : null, conf: conf, gu: gu, gt: gt, early: Math.min(gu, gt) < 3 };
+    return { BT: BTr, m1: m1, m2: m2, FC: FC, fa: fa, us: ACC.profile.name, them: e.opp, ha: e.ha, m: m, mr: mr, cm: cm, cw: cw, adj: adj, sd: sd, wp: wp, su: su, st: st, ru: F.R[us], rt: F.R[them], sru: sosRank(us), srt: sosRank(them), teams: teams.length, movers: movers, moversT: moversT, odd: odd, CO: CO, L: L, nmOf: nmOf, right: right, tot: tot, miss: tot ? miss : null, conf: conf, gu: gu, gt: gt, early: Math.min(gu, gt) < 3 };
   }
   function predHTML() {
     var p = predictNow(), add = "<div class='tb'>" + secH("Add scores", "paste any team's MaxPreps schedule page, scores included") + "<div class='tpaste'><input id='psTeam' placeholder='Team name — leave blank for a full weekly scoreboard'><textarea id='psText' rows='4' placeholder='Paste their MaxPreps schedule here'></textarea><button type='button' class='big pri' id='psGo'>Add scores</button><span class='tnote'>or <button type='button' id='psXl'>Upload Excel / CSV</button> <a href='#' id='psTpl'>Download blank sheet</a></span><input type='file' id='psXf' accept='.xlsx,.csv' hidden><span class='tnote' id='psMsg'>" + allGames().length + " games on file. Add your district for the best strength of schedule.</span></div><div class='tteams'>" + srcKeys().map(function (k) { var t = SCORES[k]; return "<span>" + esc(t.manual ? "Added by hand" : t.file ? t.file : t.board ? "Scoreboard " + ((t.games[0] || {}).date || "") : t.team) + " · " + (t.games || []).filter(function (g) { return t.board || g.us != null }).length + " <button type='button' class='psX' data-k='" + esc(k) + "' title='Remove this paste'>×</button></span>" }).join("") + "</div></div>" + edHTML();
@@ -1686,7 +1738,8 @@ details.more > .rail { margin-top: 8px }
     if (p.need) return "<div class='tb'><p class='tnote'>" + (p.missing ? "No scores yet for <b>" + esc(p.missing) + "</b>. " : "No scores yet. ") + "Paste schedules with scores below (yours, this week's opponent, and the teams you've both played).</p></div>" + add;
     var w = Math.round(p.wp * 100), fav = w >= 50, ang = Math.PI * (1 - (fav ? w : 100 - w) / 100), x = 150 + 120 * Math.cos(ang), y = 150 - 120 * Math.sin(ang);
     var gauge = "<svg width='300' height='170' viewBox='0 0 300 170' role='img' aria-label='" + w + " percent'><path d='M30 150 A120 120 0 0 1 270 150' fill='none' stroke='#2c3a4c' stroke-width='26' stroke-linecap='round'/><path d='M30 150 A120 120 0 0 1 " + x.toFixed(1) + " " + y.toFixed(1) + "' fill='none' stroke='" + (fav ? "var(--red)" : "#8a96a6") + "' stroke-width='26' stroke-linecap='round'/><text x='150' y='128' text-anchor='middle' font-weight='800' font-size='52' fill='currentColor'>" + (fav ? w : 100 - w) + "%</text><text x='150' y='156' text-anchor='middle' font-size='14' fill='currentColor' opacity='.7'>" + esc(fav ? p.us : p.them) + " wins</text></svg>";
-    var why = (p.ru > p.rt ? p.us : p.them) + " rates " + Math.abs(p.ru - p.rt).toFixed(1) + " points better on the schedules played" + (p.ha === "H" ? ", plus home field" : p.ha === "A" ? ", minus playing on the road" : "") + "." + (p.cw ? " Common opponents say " + (p.cm >= 0 ? p.us + " by " + Math.abs(p.cm).toFixed(0) : p.them + " by " + Math.abs(p.cm).toFixed(0)) + " (counts " + Math.round(p.cw * 100) + "%)." : "") + (p.adj ? " Coach adjustment " + (p.adj > 0 ? "+" : "") + p.adj + "." : "");
+    var fav2 = function (v) { return (v >= 0 ? p.us : p.them) + " by " + Math.abs(v).toFixed(0) };
+    var why = "Margin ratings: " + fav2(p.m1) + " · Elo: " + fav2(p.m2) + " (blend " + Math.round(p.BT.w * 100) + "/" + Math.round(100 - p.BT.w * 100) + ")" + (p.ha === "H" ? ", home field included" : p.ha === "A" ? ", road game included" : "") + "." + (p.FC && Math.abs(p.fa) >= .5 ? " Film check " + (p.fa > 0 ? "+" : "") + p.fa.toFixed(1) + "." : "");
     return "<div class='tpred'><div class='tpc'><div class='tsub'>Win probability</div>" + gauge + "<div class='tnote'>Confidence: <b>" + esc(p.conf) + "</b> · " + p.gu + " and " + p.gt + " games of scores · connection " + p.L.level.toLowerCase() + "</div></div>" +
       "<div class='tpc'><div class='tsub'>Projected score</div>" + (p.early ? "<p class='tnote'>Shown after each team has 3 scored games.</p>" : "<div class='tps'><b>" + esc(p.us) + "</b><em>" + p.su + "</em></div><div class='tps'><b>" + esc(p.them) + "</b><em>" + p.st + "</em></div><div class='tnote'>" + (p.m >= 0 ? esc(p.us) + " by " + Math.round(p.m) : esc(p.them) + " by " + Math.round(-p.m)) + " · likely range " + Math.round(p.m - p.sd) + " to " + Math.round(p.m + p.sd) + "</div>") + "<p class='twhy'>" + esc(why) + "</p></div>" +
       "<div class='tpc'><div class='tsub'>Power ratings</div><div class='trow'><span><b>" + esc(p.us) + "</b></span><b>" + (p.ru >= 0 ? "+" : "") + p.ru.toFixed(1) + "</b><em>schedule #" + p.sru + " of " + p.teams + "</em></div><div class='trow'><span><b>" + esc(p.them) + "</b></span><b>" + (p.rt >= 0 ? "+" : "") + p.rt.toFixed(1) + "</b><em>schedule #" + p.srt + " of " + p.teams + "</em></div><p class='tnote'>Points better than an average team on file. Schedule rank is among the " + p.teams + " teams with 4+ games on file. Home field is worth " + HFA + ".</p></div>" +
@@ -1695,7 +1748,11 @@ details.more > .rail { margin-top: 8px }
       "<div class='tpc'><div class='tsub'>Coach adjustment</div><div class='tadj'><button type='button' data-adj='-1'>−</button><b>" + (p.adj > 0 ? "+" : "") + p.adj + "</b><button type='button' data-adj='1'>+</button></div><p class='tnote'>Points for " + esc(p.us) + " the scores can't know (injuries, weather, a QB out). Saved for this week.</p></div>" +
       "<div class='tpc'><div class='tsub'>Games that moved " + esc(p.us) + " most</div>" + p.movers.map(function (mv) { return "<div class='trow'><span>" + esc(mv.t) + "</span><b class='" + (mv.d >= 0 ? "" : "neg") + "'>" + (mv.d >= 0 ? "+" : "") + mv.d.toFixed(1) + "</b></div>" }).join("") + "<p class='tnote'>Better or worse than the model expected. Big wins count less after 21.</p></div>" +
       "<div class='tpc'><div class='tsub'>Games that moved " + esc(p.them) + " most</div>" + p.moversT.map(function (mv) { return "<div class='trow'><span>" + esc(mv.t) + "</span><b class='" + (mv.d >= 0 ? "" : "neg") + "'>" + (mv.d >= 0 ? "+" : "") + mv.d.toFixed(1) + "</b></div>" }).join("") + (p.odd.length ? "<p class='tnote'>⚠ Check these scores (way off what the model expects): " + p.odd.slice(0, 4).map(function (x) { return esc(x.t) }).join("; ") + "</p>" : "") + "</div>" +
-      "<div class='tpc'><div class='tsub'>How the model is doing</div>" + (p.tot ? "<div class='tbig'>" + p.right + "–" + (p.tot - p.right) + "</div><div class='tnote'>winners picked (" + pc(p.right, p.tot) + "%) · average miss " + p.miss.toFixed(1) + " points</div>" : "<p class='tnote'>Needs more weeks of scores to grade itself.</p>") + "<p class='tnote'>A planning tool, not betting odds.</p></div></div>" + add;
+      "<div class='tpc'><div class='tsub'>How the models are doing</div>" + (p.tot ? "<div class='tbig'>" + p.right + "–" + (p.tot - p.right) + "</div><div class='tnote'>blend: winners picked (" + pc(p.right, p.tot) + "%) · average miss " + p.miss.toFixed(1) + " points</div>" +
+        "<table class='tco' style='margin-top:6px'><tr><th>Model</th><th>Record</th><th>Miss</th></tr>" + [["Margin ratings", p.BT.m1], ["Elo", p.BT.m2], ["Blend", p.BT.bl]].map(function (x) { return "<tr><td>" + x[0] + "</td><td>" + x[1].right + "–" + (x[1].tot - x[1].right) + " (" + pc(x[1].right, x[1].tot) + "%)</td><td>" + (x[1].miss != null ? x[1].miss.toFixed(1) : "–") + "</td></tr>" }).join("") + "</table>" +
+        (p.BT.hiN ? "<p class='tnote'>When it said 70%+ the pick won " + p.BT.hiR + " of " + p.BT.hiN + " (" + pc(p.BT.hiR, p.BT.hiN) + "%).</p>" : "") + "<p class='tnote'>Every past game re-predicted using only earlier games. Blend weights and the win-chance spread (" + p.BT.sd.toFixed(1) + " pts) are set from these results.</p>" : "<p class='tnote'>Needs more weeks of scores to grade itself.</p>") + "<p class='tnote'>A planning tool, not betting odds.</p></div>" +
+      "<div class='tpc'><div class='tsub'>Film check</div>" + (p.FC ? (p.FC.off ? "<div class='trow'><span>Their offense</span><b>" + p.FC.off.sr.toFixed(0) + "% success · " + p.FC.off.ypp.toFixed(1) + " ypp</b></div>" : "") + (p.FC.def ? "<div class='trow'><span>Their defense allows</span><b>" + p.FC.def.sr.toFixed(0) + "% · " + p.FC.def.ypp.toFixed(1) + " ypp</b></div>" : "") + "<p class='tnote'>Average is " + p.FC.base.sr + "% and " + p.FC.base.ypp + " ypp. Film says " + esc(p.them) + " is " + (p.FC.str - p.rt >= 0 ? "better" : "worse") + " than their scores, so the pick moves " + Math.abs(p.fa).toFixed(1) + " pts" + (p.fa >= 0 ? " toward " + esc(p.us) : " toward " + esc(p.them)) + " (max 4).</p>" : "<p class='tnote'>Add this week's Hudl files for " + esc(p.them) + " (offense, defense or both) and the film's success rate and yards per play get compared to their scores.</p>") + "</div>" +
+      "<div class='tpc'><div class='tsub'>Starting ratings</div><p class='tnote'>Optional. One team per line: <b>Team, Class, Last season rating</b> (e.g. Central, 5A, 12.5). Class alone works too. Keeps early-season and thin schedules from swinging.</p><textarea id='prTxt' rows='4' style='width:100%;box-sizing:border-box;font:inherit;font-size:13px;padding:8px;border:1px solid #c9d1da;border-radius:8px;background:#fff;color:#141a22'>" + esc(Object.keys(SCORES._prior || {}).map(function (k) { var x = SCORES._prior[k]; return (x.n || k) + ", " + (x.cls || "") + (x.last != null && x.last !== "" ? ", " + x.last : "") }).join("\n")) + "</textarea><button type='button' id='prSave' style='margin-top:6px;font:inherit;font-weight:800;padding:7px 14px;border-radius:8px;border:0;background:var(--red);color:#fff;cursor:pointer'>Save starting ratings</button> <span class='tnote' id='prMsg'>" + Object.keys(SCORES._prior || {}).length + " teams set</span></div></div>" + add;
   }
   function parseScored(text) {
     var games = (typeof parseSchedule === "function" ? parseSchedule(text) : []), lines = String(text).split(/[\n\t]+/), out = [];
@@ -1792,6 +1849,7 @@ details.more > .rail { margin-top: 8px }
     };
   }
   function predWire() {
+    if ($("prSave")) $("prSave").onclick = function () { var P = {}, bad = 0; $("prTxt").value.split(/\n/).forEach(function (ln) { var a = ln.split(/[,\t]/).map(function (x) { return x.trim() }); if (!a[0]) return; var c = (a[1] || "").toUpperCase().replace(/\s/g, ""); if (c && !/^[1-6]A$/.test(c)) { if (!isNaN(+a[1]) && a[1] !== "") { a[2] = a[1]; c = "" } else { bad++; return } } P[ALI(a[0])] = { n: a[0], cls: c || null, last: a[2] != null && a[2] !== "" && !isNaN(+a[2]) ? +a[2] : null } }); SCORES._prior = P; BT.key = null; scSave(["_prior"]); renderTemplates(); savePred(); var mm = $("prMsg"); if (mm) mm.textContent = Object.keys(P).length + " teams set" + (bad ? " · " + bad + " lines skipped (class should look like 5A)" : "") };
     edWire(); xlWire(); document.querySelectorAll("[data-adj]").forEach(function (b) { b.onclick = function () { if (!WK.cur) return; SCORES._adj = SCORES._adj || {}; SCORES._adj[WK.cur.date] = Math.max(-14, Math.min(14, predAdj() + +b.dataset.adj)); scSave(["_adj"]); renderTemplates(); savePred() } }); document.querySelectorAll(".psX").forEach(function (x) { x.onclick = function () { var k = x.dataset.k; if (!confirm("Remove this paste and all its games?")) return; delete SCORES[k]; edDone([k], "Removed.") } });
     var go = $("psGo"); if (!go) return;
     go.onclick = function () {

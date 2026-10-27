@@ -263,7 +263,7 @@ function txParse(t){
     schools.split(/[;,]| and /).map(function(x){return x.replace(/\b(Eagles|Cougars|[A-Z][a-z]+s)$/,"").trim()}).filter(Boolean).forEach(function(sc){out.push({city:city.trim(),school:sc,stadium:nm.trim(),address:addr.replace("--",",").trim()})});
     if(out.length)return out}
   t.split(/\n/).forEach(function(l){var x=txSplit(l);if(x)out.push(x)});return out}
-function txRender(){var f=txKey($("txFind").value),ks=Object.keys(TX).sort(),sh=ks.filter(function(k){return !f||k.indexOf(f)>=0||(TX[k].c||"").toLowerCase().indexOf(f)>=0}).slice(0,150);
+function txRender(){var f=txKey($("txFind").value),ks=Object.keys(TX).sort(),sh=ks.filter(function(k){return !f||k.indexOf(f)>=0||(TX[k].c||"").toLowerCase().indexOf(f)>=0}).slice(0,3000);
   $("txCount").textContent="· "+ks.length+" schools";$("txRows").innerHTML=sh.map(function(k){var e=TX[k];return "<tr><td>"+esc(e.n||k)+"</td><td>"+esc(e.c||"")+"</td><td><input data-txs='"+esc(k)+"' value='"+esc(e.s||"")+"'></td><td><input data-txa='"+esc(k)+"' value='"+esc(e.a||"")+"'></td><td><button class='se-b' data-txd='"+esc(k)+"'>×</button></td></tr>"}).join("")||"<tr><td colspan=5 class='se-n'>None yet.</td></tr>"}
 function txLoad(){api("venues/_tx").then(function(d){TX=d||{};txRender()},function(){TX={};txRender()})}
 function txPrev(list,src){TXP=list;$("txMsg").textContent=list.length?("Found "+list.length+" schools in "+src+". Check a few, then save."):"Couldn't find any schools in that. Paste a Texas Bob “Stadiums by City and School” page or a stadium page.";

@@ -180,6 +180,7 @@ main { padding-block: 14px 40px }
 .pbp { display: flex; flex-direction: column; gap: 8px } .pbp .it { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 10px 12px; border-radius: 10px; background: #0f141b; color: #e8edf2; cursor: pointer; border-left: 5px solid #5b6a7d }
 .pbp .it.run { border-left-color: #ff4d45 } .pbp .it.pass { border-left-color: #4aa3ff } .pbp .sit { font-size: 12px; font-weight: 800; color: #ff7b72; letter-spacing: .02em } .pbp .tt { font-size: 17px; font-weight: 800 } .pbp .sub { font-size: 13px; color: #9aa7b6 } .pbp .rt { text-align: right; font-size: 12px; color: #9aa7b6; white-space: nowrap }
 .pbp .bd { display: inline-block; font-size: 10px; font-weight: 900; padding: 1px 5px; border-radius: 4px; margin-left: 5px; vertical-align: 1px } .bd-rz { background: #e5403a; color: #fff } .bd-td { background: #2ee6a6; color: #04241a } .bd-to { background: #ffb020; color: #2a1a00 } .bd-1d { background: #ffd400; color: #000 } .pbp .dh { font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--muted, #555); margin-top: 6px }
+.luhead { display: block; margin-top: 2px; background: none; border: 0; padding: 0; color: #ffd400; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; text-decoration: underline; text-align: left }
 .inmode { display: flex; gap: 6px; align-items: center; margin: 0 0 10px; flex-wrap: wrap } .inmode > span:first-child { font-weight: 800; letter-spacing: .08em; font-size: 13px; text-transform: uppercase; margin-right: 4px }
 .inmode button { font: inherit; font-weight: 800; font-size: 15px; padding: 9px 16px; border-radius: 10px; border: 2px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer } .inmode button[aria-pressed=true] { background: var(--chip-on); color: var(--chip-on-ink); border-color: var(--chip-on) }
 .gshead { display: flex; align-items: center; gap: 8px; flex-wrap: wrap } .gshead h3 { margin: 0; flex: 1 } .gspick { font-weight: 800; font-size: 15px; padding: 6px 10px; background: var(--chip); color: var(--ink); border-radius: 8px } .gshead .btn { font-size: 18px; padding: 4px 12px }
@@ -637,7 +638,7 @@ textarea { min-height: 64px }
           <button class="btn" id="fvStadium">Melissa stadium (photo)</button>
           <button class="btn" id="fvDrawn">Drawn field</button>
         </div>
-        <p class="note" id="venueNote"></p><p class="note">The field picture follows the schedule: home games use your stadium, away games theirs, from satellite maps. Wrong stadium? Pick a photo instead and it shows behind the drawn field (saved on this device).</p>
+        <p class="note" id="venueNote"></p><div class="actions" style="margin:4px 0 8px"><button class="btn" id="luOpen" type="button" style="font-size:15px;padding:8px 14px">Line up this game's field</button></div><p class="note">The field picture follows the schedule: home games use your stadium, away games theirs, from satellite maps. Wrong stadium? Pick a photo instead and it shows behind the drawn field (saved on this device).</p>
         <div class="actions"><label class="btn" for="stadiumFile" style="cursor:pointer">Choose photo<input type="file" id="stadiumFile" accept="image/*" hidden></label><button class="btn" id="stadiumClear">Remove photo</button></div>
       </details>
     </div>
@@ -799,6 +800,15 @@ textarea { min-height: 64px }
     </div>
   </section>
 </main>
+<div class="modal" id="luModal" hidden role="dialog" aria-modal="true" aria-labelledby="luTitle"><div class="mbox" style="max-width:860px;width:100%">
+  <h3 id="luTitle" style="margin-top:0">Line up the field</h3>
+  <p class="note" id="luHelp" style="margin:0 0 8px">Tap the middle of one <b>goal line</b>, then the middle of the other goal line. Drag the picture or use the arrows if the stadium isn't in view.</p>
+  <div class="custom" style="margin:0 0 8px"><input id="luFind" type="text" placeholder="Search an address or place" style="flex:1 1 260px"><button class="btn" id="luGo" type="button" style="font-size:14px;padding:8px 12px">Go</button>
+    <button class="btn" id="luOut" type="button" style="font-size:16px;padding:6px 12px" aria-label="Zoom out">−</button><button class="btn" id="luIn" type="button" style="font-size:16px;padding:6px 12px" aria-label="Zoom in">+</button></div>
+  <div id="luWrap" style="position:relative;width:100%;max-width:820px;aspect-ratio:1/1;background:#173f22;border-radius:10px;overflow:hidden;touch-action:none;cursor:crosshair"><img id="luImg" alt="Satellite view" style="position:absolute;inset:0;width:100%;height:100%;user-select:none;-webkit-user-drag:none" draggable="false"><svg id="luSvg" viewBox="0 0 1000 1000" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none"></svg></div>
+  <p class="note" id="luMsg" style="margin:8px 0 0"></p>
+  <div class="actions" style="margin-top:8px"><button class="btn primary" id="luSave" type="button" disabled>Save this field</button><button class="btn" id="luReset" type="button">Start over</button><button class="btn" id="luClose" type="button">Close</button></div>
+</div></div>
 <div class="modal" id="lookModal" hidden role="dialog" aria-modal="true" aria-labelledby="lookTitle">
   <div class="mbox" style="max-width:640px">
     <h3 id="lookTitle">Edit play <small id="lkSub"></small></h3>
@@ -3253,18 +3263,28 @@ textarea { min-height: 64px }
   }
   function txFind(T, name) { var k = txKey(name), u = k.replace(/ /g, "_"); if (T[u]) return T[u]; if (T[k]) return T[k]; var hit = Object.keys(T).filter(function (x) { return ("_" + x.replace(/ /g, "_")).slice(-(u.length + 1)) === "_" + u }); return hit.length === 1 ? T[hit[0]] : null }
   function geoQ(q) { return jget("https://nominatim.openstreetmap.org/search?format=json&limit=3&countrycodes=us&q=" + encodeURIComponent(q)).then(function (r) { return r && r.length ? [+r[0].lat, +r[0].lon] : null }, function () { return null }) }
+  // any football-sized field near the point: football pitches first, then soccer / multi-use pitches, then a stadium's own outline
   function fieldNear(loc, nm) {
-    var a = "(around:900," + loc[0] + "," + loc[1] + ")";
-    return overpass("way[leisure=pitch][sport~\"american_football\"]" + a + ";out tags geom;way[leisure=stadium]" + a + ";out tags geom;").then(function (d) {
-      var P = ((d && d.elements) || []).filter(function (e) { return (e.tags || {}).leisure === "pitch" }).map(function (e) { var g = pitchGeo(e); return { g: g, c: centroid(g), f: fieldFromPitch(g) } }).filter(function (x) { return x.f });
-      P.sort(function (x, y) { return distM(x.c, loc) - distM(y.c, loc) }); return P[0] ? P[0].f : null;
+    var a = "(around:1500," + loc[0] + "," + loc[1] + ")", low = String(nm || "").toLowerCase();
+    return overpass("(way[leisure=pitch]" + a + ";way[leisure=stadium]" + a + ";relation[leisure=stadium]" + a + ";);out tags geom;").then(function (d) {
+      var C = [];
+      ((d && d.elements) || []).forEach(function (e) {
+        var t = e.tags || {}, g = pitchGeo(e); if (!g.length && e.members) e.members.forEach(function (m) { if (m.geometry) g = g.concat(m.geometry.map(function (x) { return [x.lat, x.lon] })) }); if (g.length < 4) return;
+        var f = fieldFromPitch(g); if (!f) return; var c = centroid(g), sp = String(t.sport || ""), nmTxt = String(t.name || "").toLowerCase();
+        var score = distM(c, loc) + (t.leisure === "pitch" ? (/american_football/.test(sp) ? 0 : /soccer|multi|rugby/.test(sp) || !sp ? 250 : 600) : 400) - (low && nmTxt && (low.indexOf(nmTxt) >= 0 || nmTxt.indexOf(low.split(" ")[0]) >= 0) ? 500 : 0);
+        C.push({ f: f, score: score });
+      });
+      C.sort(function (x, y) { return x.score - y.score }); return C[0] ? C[0].f : null;
     }, function () { return null });
   }
   function venueTX(name, e) {
-    var q1 = e.a ? e.a.replace(/--/g, ",") : null, q2 = e.s + ", " + (e.c || "") + ", Texas";
-    return (q1 ? geoQ(q1) : Promise.resolve(null)).then(function (l) { return l || geoQ(q2) }).then(function (l) { return l || geocodeSchool(name, null) }).then(function (loc) {
-      if (!loc) return { school: name, stadium: e.s, city: e.c, src: "txb", field: null };
-      return fieldNear(loc, e.s).then(function (f) { return { school: name, stadium: e.s, city: e.c, loc: loc, field: f, src: "txb" } });
+    var q1 = e.a ? e.a.replace(/--/g, ",") : null, q2 = e.s + ", " + (e.c || "") + ", Texas", q3 = e.s + ", " + (e.c || "");
+    return luShared(e).then(function (sh) {
+      if (sh && sh.field) return { school: name, stadium: e.s, city: e.c, loc: sh.loc, field: sh.field, src: "txb", manual: true };
+      return geoQ(q2).then(function (l) { return l || (q1 ? geoQ(q1) : null) }).then(function (l) { return l || geoQ(q3) }).then(function (l) { return l || geocodeSchool(name, null) }).then(function (loc) {
+        if (!loc) return { school: name, stadium: e.s, city: e.c, src: "txb", field: null, why: "couldn't find the address on the map" };
+        return fieldNear(loc, e.s).then(function (f) { return { school: name, stadium: e.s, city: e.c, loc: loc, field: f, src: "txb", why: f ? "" : "couldn't find the field on the map" } });
+      });
     });
   }
   function venueFor(name) {
@@ -3274,13 +3294,66 @@ textarea { min-height: 64px }
       if (txFind(T, name)) return T; TXP = null; try { localStorage.removeItem("solutions-tx") } catch (x) {} return txTable(); // not in our saved copy: get the latest list once
     }).then(function (T) {
       var e = txFind(T, name);
-      if (e) { if (cached && cached.src === "txb" && cached.stadium === e.s && cached.field) return cached; return venLoad(slug).then(function (v) { if (v && v.src === "txb" && v.stadium === e.s && v.field) return v; return venueTX(name, e).then(function (f) { if (f && f.field) venSave(slug, f); return f }) }) }
+      if (e) { if (cached && cached.src === "txb" && cached.stadium === e.s && cached.field && (cached.manual || !LU_FIX[e.s])) return cached; return venLoad(slug).then(function (v) { if (v && v.src === "txb" && v.stadium === e.s && v.field && (v.manual || !LU_FIX[e.s])) return v; return venueTX(name, e).then(function (f) { if (f && f.field) venSave(slug, f); return f }) }) }
       if (cached && cached.field) return cached;
       return venLoad(slug).then(function (v) {
       if (v && (v.field || v.src === "none")) return v;
       return homeLocation().then(function (near) { return findVenue(name, name === SCHOOL_NAME_H ? null : near) }).then(function (f) { if (f) { venSave(slug, f) } return f });
       });
     }).then(function (v) { if (v) { try { localStorage.setItem("solutions-venue-" + slug, JSON.stringify(v)) } catch (e) {} } return v }, function () { return null });
+  }
+
+  // ---------- line up a field by hand: tap both goal lines on the satellite picture; saved for everyone ----------
+  var LU = { c: null, half: 160, pts: [], name: "", stadium: "", city: "", key: "" }, LU_FIX = {};
+  function luSlug(e) { return "_f_" + txKey((e.s || "") + " " + (e.c || "")).replace(/ /g, "_") }
+  function luShared(e) { return venLoad(luSlug(e)).then(function (v) { return v && v.field ? v : null }, function () { return null }) }
+  function luURL() { var N = 1000, h = LU.half / Math.cos(LU.c[0] * Math.PI / 180) * 1, m = merc(LU.c[0], LU.c[1]); LU.bb = [m[0] - h, m[1] - h, m[0] + h, m[1] + h]; return "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=" + LU.bb.map(function (v) { return v.toFixed(2) }).join(",") + "&bboxSR=3857&imageSR=3857&size=" + N + "," + N + "&format=jpg&f=image" }
+  function unmerc(x, y) { return [(2 * Math.atan(Math.exp(y / R_EARTH)) - Math.PI / 2) * 180 / Math.PI, x / R_EARTH * 180 / Math.PI] }
+  function luPx2ll(px, py) { var b = LU.bb; return unmerc(b[0] + (b[2] - b[0]) * px / 1000, b[3] - (b[3] - b[1]) * py / 1000) }
+  function luLl2px(ll) { var m = merc(ll[0], ll[1]), b = LU.bb; return [(m[0] - b[0]) / (b[2] - b[0]) * 1000, (b[3] - m[1]) / (b[3] - b[1]) * 1000] }
+  function luDraw() {
+    $("luImg").src = luURL(); var h = "";
+    LU.pts.forEach(function (p, i) { var q = luLl2px(p); h += "<circle cx='" + q[0] + "' cy='" + q[1] + "' r='14' fill='none' stroke='#ffd400' stroke-width='5'/><text x='" + (q[0] + 18) + "' y='" + (q[1] - 12) + "' fill='#ffd400' font-size='34' font-weight='800' font-family='Arial' style='paint-order:stroke' stroke='#000' stroke-width='5'>" + (i ? "Goal line 2" : "Goal line 1") + "</text>" });
+    if (LU.pts.length === 2) { var a = luLl2px(LU.pts[0]), b = luLl2px(LU.pts[1]); h += "<line x1='" + a[0] + "' y1='" + a[1] + "' x2='" + b[0] + "' y2='" + b[1] + "' stroke='#ffd400' stroke-width='4' stroke-dasharray='14 10'/>" }
+    $("luSvg").innerHTML = h;
+    var d = LU.pts.length === 2 ? distM(LU.pts[0], LU.pts[1]) : 0, ok = d >= 80 && d <= 105;
+    $("luSave").disabled = !ok;
+    $("luMsg").textContent = LU.pts.length < 2 ? (LU.pts.length ? "Now tap the other goal line." : "Tap the middle of one goal line.") : ok ? "Goal lines are " + Math.round(d / .9144) + " yards apart. Looks right — save it." : "Those are " + Math.round(d / .9144) + " yards apart; goal lines should be about 100. Zoom in and try again.";
+  }
+  function luOpen() {
+    var e = gameEntry(), away = e && e.ha === "A", who = away ? e.opp : SCHOOL_NAME_H, v = VEN.info || {};
+    LU.name = (e && e.venue) || who; LU.stadium = v.stadium && v.src === "txb" ? v.stadium : ""; LU.city = v.city || ""; LU.pts = []; LU.half = 160;
+    $("luTitle").textContent = "Line up the field: " + (LU.stadium || LU.name) + (LU.city ? ", " + LU.city : "");
+    $("luModal").hidden = false; $("luMsg").textContent = "Finding the stadium…";
+    var start = v.loc || (v.field ? [(v.field.g1[0] + v.field.g2[0]) / 2, (v.field.g1[1] + v.field.g2[1]) / 2] : null);
+    (start ? Promise.resolve(start) : txTable().then(function (T) { var t = txFind(T, LU.name); return t ? geoQ(t.s + ", " + (t.c || "") + ", Texas").then(function (l) { return l || (t.a ? geoQ(t.a.replace(/--/g, ",")) : null) }) : null }).then(function (l) { return l || geocodeSchool(LU.name, null) }))
+      .then(function (l) { LU.c = l || [31.0, -97.5]; if (!l) LU.half = 3000; luDraw(); if (!l) $("luMsg").textContent = "Couldn't find it on the map. Search the address above, then tap the goal lines." });
+  }
+  function luSave() {
+    if (LU.pts.length !== 2) return; var f = { g1: LU.pts[0], g2: LU.pts[1] }, loc = [(f.g1[0] + f.g2[0]) / 2, (f.g1[1] + f.g2[1]) / 2];
+    var rec = { school: LU.name, stadium: LU.stadium || LU.name, city: LU.city, loc: loc, field: f, src: LU.stadium ? "txb" : "manual", manual: true, at: Date.now() };
+    var slug = venSlug(LU.name); venSave(slug, rec); try { localStorage.setItem("solutions-venue-" + slug, JSON.stringify(rec)) } catch (x) {}
+    if (LU.stadium) venSave(luSlug({ s: LU.stadium, c: LU.city }), rec); // every school that plays there gets it too
+    STADIUM = satStadium(f); VEN.info = rec; $("luModal").hidden = true; renderAll(); renderVenueNote(); toast("Field saved for " + (LU.stadium || LU.name));
+  }
+  function luWire() {
+    var w = $("luWrap"), down = null, moved = false;
+    var pt = function (ev) { var r = w.getBoundingClientRect(), t = ev.touches ? ev.touches[0] : ev; return [(t.clientX - r.left) / r.width * 1000, (t.clientY - r.top) / r.height * 1000] };
+    w.addEventListener("pointerdown", function (ev) { down = pt(ev); moved = false; try { w.setPointerCapture(ev.pointerId) } catch (x) {} });
+    w.addEventListener("pointermove", function (ev) { if (!down) return; var p = pt(ev); if (Math.abs(p[0] - down[0]) + Math.abs(p[1] - down[1]) > 12) { moved = true; $("luImg").style.transform = "translate(" + (p[0] - down[0]) / 10 + "%," + (p[1] - down[1]) / 10 + "%)" } });
+    w.addEventListener("pointerup", function (ev) {
+      if (!down) return; var p = pt(ev), d = down; down = null; $("luImg").style.transform = "";
+      if (moved) { var a = luPx2ll(500 - (p[0] - d[0]), 500 - (p[1] - d[1])); LU.c = a; luDraw(); return }
+      if (LU.pts.length >= 2) LU.pts = []; LU.pts.push(luPx2ll(p[0], p[1])); luDraw();
+    });
+    $("luIn").addEventListener("click", function () { LU.half = Math.max(70, LU.half / 1.5); luDraw() });
+    $("luOut").addEventListener("click", function () { LU.half = Math.min(6000, LU.half * 1.5); luDraw() });
+    $("luReset").addEventListener("click", function () { LU.pts = []; luDraw() });
+    $("luClose").addEventListener("click", function () { $("luModal").hidden = true });
+    $("luSave").addEventListener("click", luSave);
+    var go = function () { var q = $("luFind").value.trim(); if (!q) return; $("luMsg").textContent = "Searching…"; geoQ(q + (/texas|\btx\b/i.test(q) ? "" : ", Texas")).then(function (l) { if (!l) { $("luMsg").textContent = "Couldn't find that. Try a street address."; return } LU.c = l; LU.half = 200; LU.pts = []; luDraw() }) };
+    $("luGo").addEventListener("click", go); $("luFind").addEventListener("keydown", function (ev) { if (ev.key === "Enter") go() });
+    $("luOpen").addEventListener("click", luOpen);
   }
   function gameEntry() { if (!WK.list) return null; return WK.list.filter(function (x) { return x.date === S.gameDate })[0] || null }
   function venueUpdate() {
@@ -3292,11 +3365,11 @@ textarea { min-height: 64px }
     STADIUM = IS_HOME && home ? HOME_STADIUM : drawnStadium(schoolColor()); VEN.info = { stadium: "Looking up " + who + "'s stadium…" }; renderVenueNote();
     venueFor(e && e.venue ? e.venue : who).then(function (v) {
       if (VEN.key !== key) return;
-      if (v && v.field) { STADIUM = satStadium(v.field); VEN.info = v } else VEN.info = { stadium: "Couldn't find " + who + "'s stadium on the map. Showing the drawn field." };
+      if (v && v.field) { STADIUM = satStadium(v.field); VEN.info = v } else VEN.info = v && v.src === "txb" ? v : { stadium: "Couldn't find " + who + "'s stadium on the map. Showing the drawn field.", src: "none", why: "couldn't find the stadium" };
       renderAll(); renderVenueNote();
     });
   }
-  function renderVenueNote() { var el = $("venueNote"); if (!el) return; el.textContent = VEN.info ? (VEN.info.field ? "This game: " + (VEN.info.stadium || VEN.info.school) + " (satellite view)." : VEN.info.stadium || "") : "" }
+  function renderVenueNote() { var el = $("venueNote"); if (!el) return; var v = VEN.info; el.textContent = v ? (v.field ? "This game: " + (v.stadium || v.school) + (v.city ? ", " + v.city : "") + " (satellite view" + (v.manual ? ", lined up by hand" : "") + ")." : v.src === "txb" ? "This game: " + v.stadium + (v.city ? ", " + v.city : "") + " — " + (v.why || "field not lined up yet") + ". Tap “Line up this game's field”." : v.stadium || "") : ""; if (typeof renderHead === "function") try { renderHead() } catch (e) {} }
   setInterval(venueUpdate, 4000);
   function fieldMode() { try { return localStorage.getItem(FIELD_KEY) || "stadium" } catch (e) { return "stadium" } }
   function ourScore() {
@@ -3827,7 +3900,10 @@ textarea { min-height: 64px }
   function renderHead() {
     var c = S.cur;
     var ge = typeof gameEntry === "function" ? gameEntry() : null, away = ge && ge.ha === "A";
-    $("oppLabel").textContent = (away ? "at " : "vs ") + S.opp + (typeof VEN !== "undefined" && VEN && VEN.info && VEN.info.src === "txb" && VEN.info.stadium ? " · " + VEN.info.stadium + (VEN.info.city ? ", " + VEN.info.city : "") : "");
+    var vi = typeof VEN !== "undefined" && VEN ? VEN.info : null;
+    $("oppLabel").textContent = (away ? "at " : "vs ") + S.opp + (vi && vi.src === "txb" && vi.stadium ? " · " + vi.stadium + (vi.city ? ", " + vi.city : "") : "");
+    var lb = $("luHead"); if (!lb) { lb = document.createElement("button"); lb.id = "luHead"; lb.type = "button"; lb.className = "luhead"; lb.addEventListener("click", luOpen); $("oppLabel").insertAdjacentElement("afterend", lb) }
+    lb.hidden = !(vi && (vi.src === "txb" || vi.src === "none") && !vi.field); lb.textContent = vi && vi.why ? vi.why + " · tap to line it up" : "tap to line up the field";
     $("pQtr").textContent = c.qtr === 5 ? "OT" : "Q" + c.qtr;
     $("pSer").textContent = "S" + c.series;
     var ps = pendingSnap();
@@ -3912,7 +3988,7 @@ textarea { min-height: 64px }
   $("penDecline").addEventListener("click", function () { if (!penSel) return; pick.declined = penSel.n + (penSel.side === "O" ? " on us" : " on them"); $("penModal").hidden = true; renderChips(); toast("Declined. Now tap the play's result and yards.") });
   $("pcGo").addEventListener("click", function () { var side = $("pcSide").value; pickPen({ k: "custom", n: "Penalty", side: side, y: Math.abs(parseInt($("pcYds").value, 10) || 0), afd: $("pcAfd").checked, lod: $("pcLod").checked }) });
   $("sMode").addEventListener("change", function () { S.dmode = $("sMode").value; save(); renderAll(); toast(S.dmode === "full" ? "Full defense tags on" : "Fast defense tags on") });
-  gsWire(); wpsWire();
+  gsWire(); wpsWire(); luWire();
   if (!IS_HOME) { // other schools get generic examples, never Melissa's play names or opponents
     [["ceNew", "e.g. 2*3 ZONE  or  4*5 POWER / COUNTER"], ["cbName", "e.g. TRIPS or RED ZONE 20-10"], ["csSearch", "Or find any play: zone, power, mesh…"]].forEach(function (x) { var el = $(x[0]); if (el) el.placeholder = x[1] });
     document.querySelectorAll('input[placeholder="e.g. Anna"]').forEach(function (el) { el.placeholder = "e.g. Rival High" });

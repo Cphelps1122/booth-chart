@@ -3284,7 +3284,7 @@ textarea { min-height: 64px }
   }
   function gameEntry() { if (!WK.list) return null; return WK.list.filter(function (x) { return x.date === S.gameDate })[0] || null }
   function venueUpdate() {
-    if (!ONLINE || fieldMode() !== "stadium") return;
+    if (!ONLINE) return; // the game's real stadium always drives the live field (a saved photo only changes the Drives picture)
     var e = gameEntry(), home = !e || e.ha !== "A", who = home ? SCHOOL_NAME_H : e.opp, key = (e ? e.date : "") + "|" + who;
     if (e && e.ha === "N" && !e.venue) { if (VEN.key !== key) { VEN.key = key; VEN.info = null; STADIUM = IS_HOME ? HOME_STADIUM : drawnStadium(schoolColor()); renderAll() } return }
     if (VEN.key === key) return; VEN.key = key;

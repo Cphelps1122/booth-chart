@@ -201,6 +201,7 @@ details.more > .rail { margin-top: 8px }
 .talarm { padding: 9px 12px; border-radius: 8px; background: color-mix(in srgb, var(--red) 10%, #fff); margin-bottom: 6px; font-size: 14.5px; font-weight: 600 }
 .tpred { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 12px } @media (max-width: 900px) { .tpred { grid-template-columns: minmax(0, 1fr) } }
 .tsample { background: #fff4cc; color: #4a3500; border: 1px solid #f0d27a; border-radius: 10px; padding: 10px 14px; margin-bottom: 12px; font-size: 14px } .tsample .back { color: #4a3500; text-decoration: underline; font-size: 14px }
+@media print { .tpred { grid-template-columns: 1fr 1fr !important } .tpred .tpc { break-inside: avoid } .tpc[style*="span 2"] { grid-column: 1 / -1 !important } }
 @media print { .tsample { display: none } }
 .tco { width: 100%; border-collapse: collapse; font-size: 13px } .tco th { text-align: left; font-size: 11px; color: #5b6676; padding: 4px 6px; border-bottom: 1px solid #e3e7ec } .tco td { padding: 5px 6px; border-bottom: 1px solid #eef1f4 } .tco b.neg, .trow b.neg { color: #8a96a6 }
 .tadj { display: flex; align-items: center; gap: 14px; margin: 6px 0 } .tadj b { font-size: 28px; min-width: 50px; text-align: center } .tadj button { font: inherit; font-size: 22px; font-weight: 800; width: 44px; height: 44px; border-radius: 10px; border: 1px solid #c9d1da; background: #fff; color: #141a22; cursor: pointer }
@@ -1615,6 +1616,10 @@ details.more > .rail { margin-top: 8px }
     var raw = []; srcKeys().forEach(function (k) { var t = SCORES[k]; (t.games || []).forEach(function (g, i) { var n = rawG(t, g); if (n) { n.src = [[k, i]]; raw.push(n) } }) });
     var nm = {}; raw.forEach(function (g) { var a = nk(g.a), b = nk(g.b); if (a) nm[a] = 1; if (b) nm[b] = 1 });
     var A = SCORES._alias || {}; Object.keys(A).forEach(function (k) { delete nm[nk(k)] }); autoAlias(Object.keys(nm).sort());
+    // same game listed under two names ("Heritage" vs "Frisco Heritage", "Centennial" vs "Frisco Centennial"): same opponent, same score → same school
+    var sig = {}, no = SCORES._noauto || {}; raw.forEach(function (g) { var a = ALI(g.a), b = ALI(g.b); if (!a || !b) return; [[a, b, g.sa, g.sb], [b, a, g.sb, g.sa]].forEach(function (x) { var k = x[1] + "|" + x[2] + "-" + x[3]; (sig[k] = sig[k] || {})[x[0]] = 1 }) });
+    var subOf = function (x, y) { var tx = x.split(" "), ty = y.split(" "); return tx.length < ty.length && tx.every(function (w) { return ty.indexOf(w) >= 0 }) };
+    Object.keys(sig).forEach(function (k) { var names = Object.keys(sig[k]); if (names.length < 2) return; names.forEach(function (x) { if (no[x] || AUTO[x]) return; var hit = names.filter(function (y) { return y !== x && subOf(x, y) }); if (hit.length === 1) AUTO[x] = hit[0] }) });
     var out = [], byPair = {}; DUPS = 0;
     raw.forEach(function (g) {
       g.a = ALI(g.a); g.b = ALI(g.b); if (!g.a || !g.b || g.a === g.b || isNaN(g.sa) || isNaN(g.sb)) return;

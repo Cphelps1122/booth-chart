@@ -189,7 +189,23 @@ main { padding-block: 14px 40px }
 .nc-card:first-child { border-color: color-mix(in srgb, var(--red) 70%, #fff) } .nc-card.on { background: #e8edf2; color: #0f141b; border-color: #fff }
 .nc-t { display: flex; align-items: baseline; gap: 8px } .nc-t b { flex: 1; font-size: 16px; line-height: 1.15 } .nc-t em { font-style: normal; font-weight: 900; font-size: 18px; color: #ffd400 } .nc-card.on .nc-t em { color: #8a5a00 }
 .nc-w { font-size: 12.5px; color: #b8c4d2; margin-top: 2px } .nc-card.on .nc-w { color: #3a4656 }
-.nc-look { margin-top: 7px; font-size: 13px; font-weight: 700; color: #ffd400 } .nc-empty { margin: 6px 0 0; color: #9aa7b6; font-size: 13px }
+.nc-look { margin-top: 7px; font-size: 13px; font-weight: 700; color: #ffd400 } .nc-al { margin-top: 6px; font-size: 13.5px; font-weight: 800; padding: 5px 9px; border-radius: 7px } .nc-al-tend { background: rgba(255,212,0,.14); color: #ffd400 } .nc-al-chg { background: rgba(74,163,255,.16); color: #9cc8ff } .nc-al-self { background: rgba(255,138,0,.16); color: #ffb35c }
+.ncres { font-weight: 700; margin: 0 0 10px } .nc-h .nc-ht { background: var(--red); border-color: var(--red); color: #fff }
+.ht { color: var(--ink) } .ht h2 { font-family: var(--f-display); font-size: 28px; margin: 2px 0 10px } .ht h3 { font-family: var(--f-display); letter-spacing: .08em; text-transform: uppercase; font-size: 15px; margin: 16px 0 6px } .ht-k { font-weight: 800; letter-spacing: .1em; text-transform: uppercase; font-size: 12px; color: var(--red-txt, var(--red)) }
+.ht-kpis { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px } @media (max-width: 640px) { .ht-kpis { grid-template-columns: repeat(3, 1fr) } } .ht-kpis div { background: var(--chip); border-radius: 10px; padding: 8px; text-align: center } .ht-kpis b { display: block; font-size: 24px; font-family: var(--f-display) } .ht-kpis span { font-size: 12px; color: var(--muted) }
+.ht-adj { margin: 0; padding-left: 22px; font-size: 16px; line-height: 1.4 } .ht-adj li { margin: 4px 0 } .ht-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px } @media (max-width: 640px) { .ht-2 { grid-template-columns: 1fr } }
+.ht table { width: 100%; border-collapse: collapse; font-size: 14px } .ht td { padding: 5px 6px; border-top: 1px solid var(--line) } .ht-chg { color: var(--warn); font-weight: 700 }
+@media print { body.ht-printing > *:not(#htModal) { display: none !important } body.ht-printing #htModal { position: static; background: none; display: block !important } body.ht-printing #htModal .actions { display: none } body.ht-printing .mbox { box-shadow: none; max-width: none } }
+.gp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px } .gp-card { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; background: var(--panel) } .gp-card h3 { margin: 0 0 2px; font-size: 14px; font-family: var(--f-display); letter-spacing: .06em; text-transform: uppercase }
+.gp-look { font-size: 11.5px; color: var(--muted); margin-bottom: 4px } .gp-card ol { margin: 0; padding-left: 20px } .gp-card li { margin: 3px 0; font-size: 14px } .gp-l { font-weight: 800 } .gp-s { color: var(--muted); font-size: 12px; margin-left: 6px } .gp-b { float: right } .gp-b button { font: inherit; font-size: 11px; padding: 1px 5px; border: 1px solid var(--line); background: var(--chip); color: var(--ink); border-radius: 5px; cursor: pointer; margin-left: 2px }
+.gp-w { font-size: 11.5px; color: var(--muted) } .gp-add select { width: 100%; margin-top: 6px; font: inherit; font-size: 13px }
+@media print { body.gp-printing > *:not(#gpModal) { display: none !important } body.gp-printing #gpModal { position: static; background: none; display: block !important } body.gp-printing #gpModal .actions, body.gp-printing .gp-b, body.gp-printing .gp-add { display: none !important } body.gp-printing .gp-grid { grid-template-columns: repeat(3, 1fr) } body.gp-printing .gp-card { break-inside: avoid } }
+.gm-big { font-family: var(--f-display); font-size: 30px; font-weight: 800; padding: 8px 14px; border-radius: 10px; background: var(--chip); display: inline-block } .gm-big.go { background: #ffd400; color: #111 }
+.gm-chart { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; text-align: center } .gm-chart th, .gm-chart td { border: 1px solid var(--line); padding: 4px 3px } .gm-chart td:first-child, .gm-chart th:first-child { text-align: left; white-space: nowrap } .gm-chart td.go { background: #ffd400; color: #111; font-weight: 900 } .gm-chart td.tie { outline: 2px dashed var(--muted); outline-offset: -3px }
+.gm-set, .gm-to { margin: 8px 0; font-weight: 700 } .gm-set input { width: 64px; font: inherit; margin-right: 10px } .gm-set button, .gm-to button { font: inherit; padding: 3px 10px; border-radius: 7px; border: 1px solid var(--line); background: var(--chip); color: var(--ink); cursor: pointer } .gm-to b { display: inline-block; min-width: 22px; text-align: center; font-size: 18px }
+.gm-list { padding-left: 20px; font-size: 15.5px; line-height: 1.45 } .gm-list li { margin: 4px 0 } .gm-go { color: var(--go); font-size: 18px } .gm-warn { color: var(--warn); font-weight: 800 }
+.gm-try { font-weight: 900; font-size: 18px; margin: 0 0 6px } .gm-try.go { color: #b07c00 } :root[data-theme="dark"] .gm-try.go { color: #ffd400 }
+.nc-empty { margin: 6px 0 0; color: #9aa7b6; font-size: 13px }
 .nc-mini { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px } .nc-pick { font: inherit; font-weight: 800; font-size: 13px; background: #182230; color: #e8edf2; border: 1px solid #26354a; border-radius: 8px; padding: 5px 9px; cursor: pointer } .nc-pick em { font-style: normal; color: #ffd400 }
 .nc-detail { margin-top: 8px; overflow: auto } .nc-detail table { width: 100%; border-collapse: collapse; font-size: 12.5px } .nc-detail th { text-align: left; color: #9aa7b6; font-size: 11px; padding: 3px 6px } .nc-detail td { padding: 4px 6px; border-top: 1px solid #26354a } .nc-detail .note { color: #9aa7b6 }
 .inmode { display: flex; gap: 6px; align-items: center; margin: 0 0 10px; flex-wrap: wrap } .inmode > span:first-child { font-weight: 800; letter-spacing: .08em; font-size: 13px; text-transform: uppercase; margin-right: 4px }
@@ -478,6 +494,7 @@ textarea { min-height: 64px }
       <div class="wpstrip" id="wpStrip"><div class="wpsh"><b>Win chance</b><span id="wpsRead">drag across the line to go back through the game</span></div><svg id="wpsSvg" role="img" aria-label="Win chance after every play; drag to scrub"></svg></div>
     </div>
     <div class="panel trypanel" id="tryPanel" hidden style="margin-bottom:14px">
+      <div id="tryGM" class="gm-try"></div>
       <h3>Try after the TD <small id="tryHint">for a 2-pt try, tap the formation and play below first</small></h3>
       <div class="chips">
         <button class="chip try-good" id="patGood">PAT good</button>
@@ -595,9 +612,11 @@ textarea { min-height: 64px }
 
   <!-- REPORT -->
   <section id="v-report" hidden>
+    <div class="actions" style="margin:0 0 10px"><button class="btn primary" id="htBtn" type="button">Halftime report</button><button class="btn" id="gpBtn2" type="button">Game plan</button><button class="btn" id="gmBtn2" type="button">Clock · 2-pt</button></div>
     <div class="actions" style="margin:0 0 10px;align-items:center"><b style="font-family:var(--f-display);letter-spacing:.06em;text-transform:uppercase;font-size:14px">Export OC reports</b><button class="btn" id="ocPdf" style="font-size:15px;padding:8px 14px">PDF</button><button class="btn" id="ocXlsx" style="font-size:15px;padding:8px 14px">Excel</button><span class="note" style="margin:0">Every between-series report from tonight plus all the tables on this tab.</span></div>
     <div class="oc" id="ocCard"></div>
     <div class="qscore" id="qScoreR"></div>
+    <p class="note ncres" id="ncResRep" hidden></p>
     <div class="wpcard" id="wpCard"><h3 style="margin:0 0 6px;font-family:var(--f-display);font-weight:700;font-size:15px;letter-spacing:.08em;text-transform:uppercase">Win probability <small id="wpNow" style="font-family:var(--f-body);text-transform:none;letter-spacing:0;color:var(--muted);font-weight:500"></small></h3><svg id="wpChart" role="img" aria-label="Win probability over the game"></svg><p class="note" id="wpWhy"></p></div>
     <div class="grid2 wide" style="margin-top:14px">
       <div class="panel">
@@ -660,6 +679,7 @@ textarea { min-height: 64px }
     <div class="panel"><h3>Snaps by series <small id="logCount"></small></h3>
       <div class="actions" style="margin:0 0 10px"><button class="btn" id="logXlsx" style="font-size:15px;padding:8px 14px">Export Excel</button><button class="btn" id="logPdf" style="font-size:15px;padding:8px 14px">Export PDF</button></div>
       <div class="lvseg" style="margin:0 0 10px"><button type="button" id="lgFeed" aria-pressed="true">Play-by-play</button><button type="button" id="lgTable" aria-pressed="false">Table</button></div>
+      <p class="note ncres" id="ncResLog" hidden></p>
       <div id="logFeed"></div>
       <div id="logList"></div></div>
     <div class="modal" id="clipModal" hidden><div class="mbox" style="max-width:900px;width:100%"><h3 id="clipTitle" style="margin-top:0"></h3><video id="clipVid" controls playsinline></video><div class="actions" style="margin-top:10px"><button class="btn" id="clipPrev">◀ Previous</button><button class="btn" id="clipNext">Next ▶</button><a class="btn" id="clipDl" download>Save clip</a><button class="btn primary" id="clipClose" style="margin-left:auto">Close</button></div></div></div>
@@ -767,9 +787,14 @@ textarea { min-height: 64px }
         <p class="note" id="wpNote">Starts even: 24 points a side. Set your expected points and theirs before kickoff. Both update live from tonight&#39;s drives.</p>
       </div>
       <div class="panel" style="grid-column:1/-1">
+        <h3>Game plan <small>build Thursday · Next Call follows it Friday</small></h3>
+        <div class="actions" style="margin:0 0 6px"><button class="btn primary" id="gpBtn" type="button">Build / edit this week's game plan</button><span class="note" id="gpState"></span></div>
+      </div>
+      <div class="panel" style="grid-column:1/-1">
         <h3>Next Call <small>top 3 calls for each situation, on every device</small></h3>
         <div class="custom" style="align-items:center">
           <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="ncOn"> Show Next Call on this device</label>
+          <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="ncAl"> Live alerts (their tendencies, changes from the scout, our predictability)</label>
           <label>Style<select id="ncBold"><option value="safe">Safe: favor plays that stay on schedule</option><option value="bold">Aggressive: favor explosive plays</option></select></label>
           <label style="flex:1 1 260px">Never suggest (comma-separated)<input id="ncHide" type="text" style="width:100%" placeholder="e.g. trick plays, a play you're saving"></label>
         </div>
@@ -820,6 +845,18 @@ textarea { min-height: 64px }
     </div>
   </section>
 </main>
+<div class="modal" id="gmModal" hidden role="dialog" aria-modal="true" aria-label="Game management"><div class="mbox" style="max-width:900px;width:100%">
+  <div class="actions" style="margin:0 0 8px"><button class="btn" id="gmClose" type="button">Close</button></div>
+  <div id="gmBody"></div>
+</div></div>
+<div class="modal" id="gpModal" hidden role="dialog" aria-modal="true" aria-label="Game plan"><div class="mbox" style="max-width:1100px;width:100%">
+  <div class="actions" style="margin:0 0 8px"><button class="btn primary" id="gpSave" type="button">Save game plan</button><button class="btn" id="gpPrint" type="button">Print</button><button class="btn" id="gpShare" type="button">Send</button><button class="btn" id="gpRebuild" type="button">Rebuild from data</button><button class="btn" id="gpClose" type="button">Close</button></div>
+  <div id="gpBody"></div>
+</div></div>
+<div class="modal" id="htModal" hidden role="dialog" aria-modal="true" aria-label="Halftime report"><div class="mbox" style="max-width:900px;width:100%">
+  <div class="actions" style="margin:0 0 8px"><button class="btn primary" id="htShare" type="button">Send to head coach</button><button class="btn" id="htPrint" type="button">Print</button><button class="btn" id="htClose" type="button">Close</button></div>
+  <div id="htBody"></div>
+</div></div>
 <div class="modal" id="luModal" hidden role="dialog" aria-modal="true" aria-labelledby="luTitle"><div class="mbox" style="max-width:860px;width:100%">
   <h3 id="luTitle" style="margin-top:0">Line up the field</h3>
   <p class="note" id="luHelp" style="margin:0 0 8px">Tap the middle of one <b>goal line</b>, then the middle of the other goal line. Drag the picture or use the arrows if the stadium isn't in view.</p>
@@ -1321,7 +1358,7 @@ textarea { min-height: 64px }
       $("syncChoice").hidden = true;
       if (rs && preferLocal !== true) { SY.last = { snaps: {}, meta: "" }; applyMirror() }
       else { SY.last = { snaps: {}, meta: "" }; Object.keys((remote && remote.snaps) || {}).forEach(function (k) { SY.last.snaps[k] = "?" }); schedulePush() }
-      openStream(); renderAll(); wkScout(); wkHudlLists(); wkPred(); wkCallSheet();
+      openStream(); renderAll(); wkScout(); wkHudlLists(); wkPred(); wkCallSheet(); wkGamePlan();
       toast("Live sync on · " + cfg.code);
     }, function (e) {
       if (String(e.message) === "denied") setStatus("err", "the database refused access · check the rules and the game code (16+ letters)");
@@ -1396,7 +1433,7 @@ textarea { min-height: 64px }
   function schedUrl() { var b = ONLINE && solSchoolBase(); return b ? b + "/schedule.json" + solAuthQ() : null }
   function loadSched() {
     var u = schedUrl(); if (!u) return;
-    if (!WK.list) wkLoad().then(function () { wkBar($("wkBar"), "Week"); drawNext(); renderHome(); wkScout(); wkHudlLists(); wkPred(); wkCallSheet() });
+    if (!WK.list) wkLoad().then(function () { wkBar($("wkBar"), "Week"); drawNext(); renderHome(); wkScout(); wkHudlLists(); wkPred(); wkCallSheet(); wkGamePlan() });
     fetch(u).then(function (r) { if (!r.ok) throw 0; return r.json() }).then(function (l) { SCHED = Array.isArray(l) ? l : (l ? Object.keys(l).map(function (k) { return l[k] }) : []); drawNext() }, function () {});
   }
   function drawNext() {
@@ -1728,7 +1765,9 @@ textarea { min-height: 64px }
     if (!out.length) { var m = {}; S.snaps.concat(NC.season).forEach(function (s) { if (s.call && s.kind !== "try") add(s.form, s.call) }) }
     return out;
   }
-  function ncScore(c) {
+  function ncScore(c, opt) {
+    opt = opt || {};
+    var planK = !opt.noPlan && S.plan && S.plan.sits ? gpKeysFor(c) : [];
     var look = ncLook(c), C = ncCands(c), bold = ncPref("bold", "safe") === "bold";
     var hist = S.snaps.filter(function (s) { return s.call && s.kind !== "try" && s.res !== "Penalty" && s.gain != null }).map(function (s) { var o = Object.assign({}, s); o._tn = 1; return o }).concat(NC.season);
     var recent = S.snaps.filter(function (s) { return s.kind !== "try" }).slice(-6), y = toY(c.yl), need = c.dn <= 1 ? .4 : c.dn === 2 ? .5 : 1;
@@ -1747,13 +1786,14 @@ textarea { min-height: 64px }
       var T = H.filter(function (s) { return s._tn }), tsc = T.filter(eff).length;
       var lastUse = -1; S.snaps.forEach(function (s, i) { if (s.call === cd.call) lastUse = i });
       var rep = recent.filter(function (s) { return s.call === cd.call }).length, repF = cd.form ? recent.filter(function (s) { return s.form === cd.form && s.dn === c.dn }).length : 0;
-      var score = 100 * ((bold ? .3 : .42) * srA + .26 * (vs == null ? srA : vs) + .22 * fit + (bold ? .22 : .1) * Math.min(1, exA * 3)) + (cd.sit ? 8 : 0) - Math.max(0, rep - 1) * 7 - Math.max(0, repF - 2) * 4;
+      var score = 100 * ((bold ? .3 : .42) * srA + .26 * (vs == null ? srA : vs) + .22 * fit + (bold ? .22 : .1) * Math.min(1, exA * 3)) + (cd.sit ? 8 : 0) + (function () { var b = 0; planK.forEach(function (k) { var L = (S.plan.sits[k] || {}).items || []; L.forEach(function (it, ix) { if (it.c === cd.call && (!it.f || !cd.form || it.f === cd.form)) { b = Math.max(b, 16 - ix * 1.5); cd.gp = cd.gp || ((GP_SITS.filter(function (d) { return d[0] === k })[0] || [0, k])[1] + " #" + (ix + 1)) } }) }); return b })() - Math.max(0, rep - 1) * 7 - Math.max(0, repF - 2) * 4;
       var conf = Math.max(5, Math.min(97, Math.round(score * (n >= 6 ? 1 : .85 + n * .025))));
       var why = [];
       if (vsTxt) why.push(vsTxt);
       if (T.length) why.push("tonight " + tsc + "/" + T.length + (T.length ? " · " + (T.reduce(function (s, x) { return s + (x.gain || 0) }, 0) / T.length).toFixed(1) + "/play" : ""));
       else if (H.length) why.push("season " + H.filter(eff).length + "/" + H.length + (ypp != null ? " · " + ypp.toFixed(1) + "/play" : ""));
       if (c.dn >= 3 && H.length) why.push("gets " + c.dist + "+: " + G + "/" + H.length);
+      if (cd.gp) why.unshift("game plan: " + cd.gp);
       if (cd.sit) why.push(cd.sit.toLowerCase() + " call");
       if (!H.length) why.push("on this week's sheet · not run yet");
       if (lastUse >= 0 && S.snaps.length - lastUse > 12 && srA > .5) why.push("unused for " + (S.snaps.length - lastUse - 1) + " plays");
@@ -1763,7 +1803,7 @@ textarea { min-height: 64px }
     R.sort(function (a, b) { return b.conf - a.conf || b.score - a.score });
     // keep variety: no two suggestions with the same play
     var con = function (c) { return String(c).toUpperCase().replace(/\([^)]*\)/g, " ").replace(/\b\d+\b/g, " ").replace(/\s+/g, " ").trim() };
-    var pick3 = [], calls = {}; R.forEach(function (r) { var k = con(r.cd.call); if (pick3.length < 3 && !calls[k]) { calls[k] = 1; pick3.push(r) } });
+    var pick3 = [], calls = {}; R.forEach(function (r) { var k = con(r.cd.call); if (pick3.length < (opt.n || 3) && !calls[k]) { calls[k] = 1; pick3.push(r) } });
     return { list: pick3, look: look };
   }
   function ncLookTxt(L) {
@@ -1777,25 +1817,347 @@ textarea { min-height: 64px }
     var on = ncPref("on", "1") === "1" && !S.example; box.hidden = !on; if (!on) return;
     var c = S.cur, ps = typeof pendingSnap === "function" ? pendingSnap() : null;
     if (ps) { box.innerHTML = "<div class='nc-h'><b>NEXT CALL</b><span>spot the ball first</span></div>"; return }
-    var key = [S.snaps.length, c.dn, c.dist, c.yl, c.hash, S.tryPending ? 1 : 0, SHEET.length, NC.season.length, ncPref("bold", "safe"), ncPref("hide", ""), JSON.stringify(SCOUT_NAME)].join("|");
+    var ls = S.snaps[S.snaps.length - 1] || {}, key = [S.snaps.length, ls.shell, ls.blitz, ls.cov, pick.form, c.dn, c.dist, c.yl, c.hash, S.tryPending ? 1 : 0, SHEET.length, NC.season.length, ncPref("bold", "safe"), ncPref("hide", ""), S.plan ? S.plan.at : 0, JSON.stringify(SCOUT_NAME)].join("|");
     if (NC.key !== key) { var r = ncScore(c); NC.list = r.list; NC.look = r.look; NC.key = key }
     var mini = ncPref("mini", "0") === "1", sit = S.tryPending ? "2-pt try" : ddText(c) + " · " + ballText(c.yl) + (c.hash ? " · " + c.hash + " hash" : "");
-    var h = "<div class='nc-h'><b>NEXT CALL</b><span>" + esc(sit) + "</span><button type='button' id='ncWhy'>" + (NC.why ? "hide why" : "why?") + "</button><button type='button' id='ncMin'>" + (mini ? "▾ show" : "▴ hide") + "</button></div>";
+    var h = "<div class='nc-h'><b>NEXT CALL</b><span>" + esc(sit) + "</span><button type='button' id='htBtnNC' class='nc-ht'>Halftime report</button><button type='button' id='gmBtnNC'>Clock · 2-pt</button><button type='button' id='ncWhy'>" + (NC.why ? "hide why" : "why?") + "</button><button type='button' id='ncMin'>" + (mini ? "▾ show" : "▴ hide") + "</button></div>";
     if (!NC.list.length) { box.innerHTML = h + "<p class='nc-empty'>Load this week's call sheet (Setup) or log a few plays and suggestions show up here.</p>"; ncWire(); return }
-    if (mini) { box.innerHTML = h + "<div class='nc-mini'>" + NC.list.map(function (r, i) { return "<button type='button' class='nc-pick' data-i='" + i + "'>" + (i ? "" : "★ ") + esc(r.label) + " <em>" + r.conf + "</em></button>" }).join("") + "</div>"; ncWire(); return }
+    if (mini) { box.innerHTML = h + ncAlertHTML() + "<div class='nc-mini'>" + NC.list.map(function (r, i) { return "<button type='button' class='nc-pick' data-i='" + i + "'>" + (i ? "" : "★ ") + esc(r.label) + " <em>" + r.conf + "</em></button>" }).join("") + "</div>"; ncWire(); return }
     var sel = function (r) { return pick.call === r.cd.call && (!r.cd.form || pick.form === r.cd.form) };
     box.innerHTML = h + "<div class='nc-row'>" + NC.list.map(function (r, i) {
       return "<button type='button' class='nc-card" + (sel(r) ? " on" : "") + "' data-i='" + i + "'><div class='nc-t'><b>" + (i ? "" : "★ ") + esc(r.label) + "</b><em>" + r.conf + "</em></div>" + r.why.map(function (w) { return "<div class='nc-w'>" + esc(w) + "</div>" }).join("") + "</button>" }).join("") + "</div>" +
-      "<div class='nc-look'>" + esc(ncLookTxt(NC.look)) + "</div>" +
+      "<div class='nc-look'>" + esc(ncLookTxt(NC.look)) + "</div>" + ncAlertHTML() +
       (NC.why ? "<div class='nc-detail'><table><tr><th>Call</th><th>Score</th><th>Plays</th><th>Success</th><th>Yds/play</th><th>Reasons</th></tr>" + NC.list.map(function (r) { return "<tr><td>" + esc(r.label) + "</td><td>" + r.conf + "</td><td>" + r.n + "</td><td>" + (r.sr != null ? r.sr + "%" : "—") + "</td><td>" + (r.ypp != null ? r.ypp.toFixed(1) : "—") + "</td><td>" + esc(r.allWhy.join(" · ")) + "</td></tr>" }).join("") + "</table><p class='note'>Score blends: your success with this play (season + tonight, tonight counts double), how it does vs the look they show here (scout + tonight), whether it usually gains enough for this down & distance, and a nudge away from calls you've leaned on. Small samples are pulled toward average.</p></div>" : "");
     ncWire();
   }
+  function ncAlertHTML() {
+    if (ncPref("alerts", "1") !== "1") return ""; var A = []; try { A = ncAlerts(S.cur) } catch (e) {}
+    return A.map(function (a) { return "<div class='nc-al nc-al-" + a.t + "'>" + (a.t === "self" ? "⚠ " : a.t === "chg" ? "↺ " : "◉ ") + esc(a.txt) + "</div>" }).join("");
+  }
   function ncWire() {
+    var hb = $("htBtnNC"); if (hb) hb.onclick = htOpen; var gb = $("gmBtnNC"); if (gb) gb.onclick = gmOpen;
     var w = $("ncWhy"), m = $("ncMin"); if (w) w.onclick = function () { NC.why = !NC.why; renderNC() }; if (m) m.onclick = function () { ncSet("mini", ncPref("mini", "0") === "1" ? "0" : "1"); renderNC() };
     document.querySelectorAll("#ncBox [data-i]").forEach(function (b) { b.onclick = function () { var r = NC.list[+b.dataset.i]; if (!r) return; var cd = r.cd; pick.mull = false; pick.form = cd.form || pick.form; pick.call = cd.call; pick.callType = "sheet"; pick.motion = cd.motion; pick.rpo = cd.rpo; pick.nc = +b.dataset.i + 1; renderChips() } });
   }
+  // ---------- Next Call step 2: live tendency alerts, predictability warning, suggested-call results ----------
+  function ncAlerts(c) {
+    var out = [], P = S.snaps.filter(function (s) { return s.kind !== "try" && s.res !== "Penalty" });
+    var lab = ncSit(c), y = toY(c.yl);
+    var groups = [];
+    if (lab) groups.push([lab, function (s) { var d = DD_SITS.filter(function (r) { return r[1](s) })[0]; return d && d[0] === lab }]);
+    if (c.dn === 3) groups.push(["3rd down", function (s) { return s.dn === 3 }]);
+    if (c.dn === 1) groups.push(["1st down", function (s) { return s.dn === 1 }]);
+    if (y >= 80) groups.push(["the red zone", function (s) { return toY(s.yl) >= 80 }]);
+    if (y >= 90) groups.push(["inside the 10", function (s) { return toY(s.yl) >= 90 }]);
+    groups.reverse(); // tightest area first
+    var seen = {};
+    groups.forEach(function (g) {
+      var A = P.filter(g[1]); if (A.length < 4) return;
+      // what they show tonight
+      [["shell", function (v) { return v.toLowerCase() }], ["cov", function (v) { return covName(v) }], ["blitz", function (v) { return v === "No" ? "no blitz" : "blitz" }]].forEach(function (f) {
+        var vals = A.map(function (s) { var v = s[f[0]]; return v == null || v === "" ? null : (f[0] === "blitz" ? (v === "No" ? "No" : "Yes") : v) }).filter(function (v) { return v != null }); if (vals.length < 4) return;
+        var m = {}; vals.forEach(function (v) { m[v] = (m[v] || 0) + 1 }); var top = Object.keys(m).sort(function (a, b) { return m[b] - m[a] })[0], k = m[top];
+        if (k / vals.length < .8 || seen[f[0] + top]) return; seen[f[0] + top] = 1;
+        var name = f[0] === "blitz" ? (top === "Yes" ? "blitzed" : "sat back (no blitz)") : f[1](top);
+        out.push({ t: "tend", pr: k + vals.length, txt: "Tonight on " + g[0] + ": " + (f[0] === "blitz" ? "they " + name + " " : name + " ") + k + " of " + vals.length });
+      });
+      // changed from the scout
+      var sh = SCOUT_SHELL.sits && SCOUT_SHELL.sits[g[0]], T = A.filter(function (s) { return s.shell });
+      if (sh && sh[2] >= 6 && T.length >= 4) { var sp = sh[1] / sh[2], tp = T.filter(function (s) { return s.shell === sh[0] }).length / T.length; if (Math.abs(sp - tp) >= .35 && !seen["chg" + g[0]]) { seen["chg" + g[0]] = 1; out.push({ t: "chg", pr: 50, txt: "Changed on " + g[0] + ": scout said " + sh[0].toLowerCase() + " " + Math.round(sp * 100) + "% · tonight " + Math.round(tp * 100) + "% (" + T.filter(function (s) { return s.shell === sh[0] }).length + " of " + T.length + ")" }) } }
+      var sc = SCOUT.sits && SCOUT.sits[g[0]], B = A.filter(function (s) { return s.blitz });
+      if (sc && sc.n >= 6 && B.length >= 4) { var sb = sc.bl / sc.n, tb = B.filter(function (s) { return s.blitz !== "No" }).length / B.length; if (Math.abs(sb - tb) >= .35 && !seen["chb" + g[0]]) { seen["chb" + g[0]] = 1; out.push({ t: "chg", pr: 49, txt: "Changed on " + g[0] + ": scout blitz " + Math.round(sb * 100) + "% · tonight " + Math.round(tb * 100) + "% (" + B.filter(function (s) { return s.blitz !== "No" }).length + " of " + B.length + ")" }) } }
+    });
+    // are WE predictable?
+    var O = P.filter(function (s) { return s.pt });
+    var d1 = O.filter(function (s) { return s.dn === c.dn && (c.dn !== 3 || Math.abs(s.dist - c.dist) <= 3) }).slice(-8);
+    if (d1.length >= 6) { var r = d1.filter(function (s) { return s.pt === "Run" }).length, p = d1.length - r, hi = Math.max(r, p); if (hi / d1.length >= .85) out.push({ t: "self", pr: 60, txt: "You're " + (r > p ? "run" : "pass") + " " + hi + " of your last " + d1.length + " on " + (["", "1st", "2nd", "3rd", "4th"][c.dn] || "this") + " down" }) }
+    var last8 = O.slice(-8), cnt = {}; last8.forEach(function (s) { if (s.call) cnt[s.call] = (cnt[s.call] || 0) + 1 });
+    Object.keys(cnt).forEach(function (k) { if (cnt[k] >= 4) out.push({ t: "self", pr: 55, txt: k + " " + cnt[k] + " of your last " + last8.length + " plays" }) });
+    var F = {}; O.forEach(function (s) { if (!s.form) return; var f = F[s.form] = F[s.form] || { r: 0, n: 0 }; f.n++; if (s.pt === "Run") f.r++ });
+    var cf = pick.form; if (cf && F[cf] && F[cf].n >= 6) { var fr = F[cf].r / F[cf].n; if (fr >= .9 || fr <= .1) out.push({ t: "self", pr: 58, txt: cf + " tell: " + (fr >= .9 ? "run " + F[cf].r : "pass " + (F[cf].n - F[cf].r)) + " of " + F[cf].n + " tonight" }) }
+    out.sort(function (a, b) { return (b.t === "self") - (a.t === "self") || b.pr - a.pr });
+    var T1 = out.filter(function (a) { return a.t !== "self" })[0], S1 = out.filter(function (a) { return a.t === "self" })[0];
+    return [T1, S1].filter(Boolean);
+  }
+  function ncResults() {
+    var P = S.snaps.filter(function (s) { return s.kind !== "try" && s.res !== "Penalty" && s.gain != null && s.call });
+    var U = P.filter(function (s) { return s.nc }), O = P.filter(function (s) { return !s.nc });
+    var st = function (A) { return A.length ? { n: A.length, ypp: A.reduce(function (t, s) { return t + (s.gain || 0) }, 0) / A.length, sr: Math.round(100 * A.filter(eff).length / A.length) } : null };
+    return { u: st(U), o: st(O) };
+  }
+  function ncResultsTxt() {
+    var R = ncResults(); if (!R.u) return "";
+    return "Next Call: " + R.u.n + " suggested call" + (R.u.n === 1 ? "" : "s") + " used · " + R.u.ypp.toFixed(1) + " yds/play · " + R.u.sr + "% success" + (R.o ? "  vs  " + R.o.ypp.toFixed(1) + " / " + R.o.sr + "% on the other " + R.o.n : "");
+  }
+  function renderNCResults() {
+    var t = ncResultsTxt();
+    ["ncResLog", "ncResRep"].forEach(function (id) { var el = $(id); if (el) { el.textContent = t; el.hidden = !t } });
+  }
+  // ---------- one-tap halftime report ----------
+  function htBuild() {
+    var P = S.snaps.filter(function (s) { return s.kind !== "try" && s.res !== "Penalty" && s.gain != null }), us = SCHOOL_NAME_H || "Us", them = S.opp || "Opponent";
+    var sum = function (A) { var n = A.length, y = A.reduce(function (t, s) { return t + (s.gain || 0) }, 0), ef = A.filter(eff).length, ex = A.filter(function (s) { return (s.pt === "Run" && s.gain >= 10) || (s.pt === "Pass" && s.gain >= 15) || s.td }).length; return { n: n, ypp: n ? y / n : 0, sr: n ? Math.round(100 * ef / n) : 0, ex: ex, yds: y } };
+    var all = sum(P), run = sum(P.filter(function (s) { return s.pt === "Run" })), pass = sum(P.filter(function (s) { return s.pt === "Pass" }));
+    var D = typeof driveList === "function" ? driveList() : [], pts = D.reduce(function (t, d) { return t + (d.pts || 0) }, 0);
+    var sc = typeof scoreAt === "function" ? scoreAt(S.snaps.length) : { us: 0, them: S.oppScore || 0 };
+    var rz = P.filter(function (s) { return toY(s.yl) >= 80 }), rzD = D.filter(function (d) { return d.end >= 80 || d.start >= 80 }), rzTD = rzD.filter(function (d) { return d.result === "TD" }).length;
+    var third = P.filter(function (s) { return s.dn === 3 }), thirdC = third.filter(function (s) { return s.gain >= s.dist || s.td }).length;
+    // calls: what's working, what isn't
+    var by = {}; P.forEach(function (s) { if (!s.call) return; var k = ((s.form ? s.form + " " : "") + s.call).trim(); (by[k] = by[k] || []).push(s) });
+    var rows = Object.keys(by).map(function (k) { var a = by[k], m = sum(a); m.k = k; return m }).filter(function (m) { return m.n >= 2 });
+    var good = rows.slice().sort(function (a, b) { return b.sr - a.sr || b.ypp - a.ypp }).filter(function (m) { return m.sr >= 50 }).slice(0, 5);
+    var bad = rows.slice().sort(function (a, b) { return a.sr - b.sr || a.ypp - b.ypp }).filter(function (m) { return m.sr < 40 }).slice(0, 3);
+    // their looks tonight vs the scout
+    var looks = [];
+    [["1st down", function (s) { return s.dn === 1 }, ["1st & 10"]], ["2nd down", function (s) { return s.dn === 2 }, ["2nd & 7-9", "2nd & 3-6", "2nd & 10+"]], ["3rd & short", function (s) { return s.dn === 3 && s.dist <= 3 }, ["3rd & 1-2", "3rd & 3-6"]], ["3rd & medium/long", function (s) { return s.dn === 3 && s.dist >= 4 }, ["3rd & 7-9", "3rd & 10+"]], ["Red zone", function (s) { return toY(s.yl) >= 80 }, ["Score zone", "High red zone"]]].forEach(function (g) {
+      var A = P.filter(g[1]); if (A.length < 3) return;
+      var Sh = A.filter(function (s) { return s.shell }), B = A.filter(function (s) { return s.blitz });
+      var topSh = null; if (Sh.length) { var m = {}; Sh.forEach(function (s) { m[s.shell] = (m[s.shell] || 0) + 1 }); topSh = Object.keys(m).sort(function (a, b) { return m[b] - m[a] })[0]; topSh = [topSh, m[topSh], Sh.length] }
+      var bl = B.length ? [B.filter(function (s) { return s.blitz !== "No" }).length, B.length] : null;
+      var scS = null, scB = null; g[2].forEach(function (lab) { var a = SCOUT_SHELL.sits && SCOUT_SHELL.sits[lab], b = SCOUT.sits && SCOUT.sits[lab]; if (a && !scS) scS = a; if (b && !scB) scB = b });
+      var chg = [];
+      if (topSh && scS && scS[2] >= 5) { var sp = scS[1] / scS[2], tp = Sh.filter(function (s) { return s.shell === scS[0] }).length / Sh.length; if (Math.abs(sp - tp) >= .3) chg.push("scout " + scS[0].toLowerCase() + " " + Math.round(sp * 100) + "% → tonight " + Math.round(tp * 100) + "%") }
+      if (bl && scB && scB.n >= 5) { var sb = scB.bl / scB.n, tb = bl[0] / bl[1]; if (Math.abs(sb - tb) >= .3) chg.push("scout blitz " + Math.round(sb * 100) + "% → tonight " + Math.round(tb * 100) + "%") }
+      looks.push({ g: g[0], n: A.length, sh: topSh, bl: bl, chg: chg });
+    });
+    // what beat their pressure / shells
+    var vs = function (f) { var A = P.filter(f); return A.length ? sum(A) : null };
+    var vB = vs(function (s) { return s.blitz && s.blitz !== "No" }), vN = vs(function (s) { return s.blitz === "No" }), v1 = vs(function (s) { return s.shell === "1-HIGH" }), v2 = vs(function (s) { return s.shell === "2-HIGH" });
+    var bestVs = function (f) { var m = {}; P.filter(f).forEach(function (s) { if (!s.call) return; var k = ((s.form ? s.form + " " : "") + s.call).trim(); (m[k] = m[k] || []).push(s) }); return Object.keys(m).map(function (k) { var x = sum(m[k]); x.k = k; return x }).filter(function (x) { return x.n >= 2 && x.sr >= 50 }).sort(function (a, b) { return b.sr - a.sr || b.ypp - a.ypp }).slice(0, 2) };
+    // adjustments
+    var adj = [], blRate = vB && (vB.n + (vN ? vN.n : 0)) ? vB.n / (vB.n + (vN ? vN.n : 0)) : 0;
+    if (vB && vB.n >= 4 && blRate >= .35) { var bv = bestVs(function (s) { return s.blitz && s.blitz !== "No" }); adj.push("They're blitzing " + Math.round(blRate * 100) + "% of snaps. We're " + vB.sr + "% successful against it (" + vB.ypp.toFixed(1) + "/play)" + (bv.length ? ". Best vs pressure: " + bv.map(function (x) { return x.k + " (" + x.sr + "%, " + x.n + ")" }).join(", ") : ". Get the ball out quick: screens, quick game, hot routes") + ".") }
+    looks.filter(function (l) { return l.chg.length }).slice(0, 2).forEach(function (l) { adj.push("Not what we scouted on " + l.g + ": " + l.chg.join(", ") + ". Re-check the calls we planned for it.") });
+    if (run.n >= 6 && pass.n >= 4) { var better = run.sr >= pass.sr + 15 ? "run" : pass.sr >= run.sr + 15 ? "pass" : null; if (better) adj.push("Our " + better + " game is winning (" + (better === "run" ? run.sr + "% vs " + pass.sr : pass.sr + "% vs " + run.sr) + "% success). Lean on it, but watch the tells below.") }
+    var tells = []; try { tells = ncAlerts({ dn: 1, dist: 10, yl: -25 }).filter(function (a) { return a.t === "self" }) } catch (e) {}
+    var F = {}; P.forEach(function (s) { if (!s.form) return; var f = F[s.form] = F[s.form] || { r: 0, n: 0 }; f.n++; if (s.pt === "Run") f.r++ });
+    Object.keys(F).forEach(function (k) { var f = F[k]; if (f.n >= 5 && (f.r / f.n >= .9 || f.r / f.n <= .1)) tells.push({ txt: k + " tell: " + (f.r / f.n >= .9 ? "run " + f.r : "pass " + (f.n - f.r)) + " of " + f.n }) });
+    if (tells.length) adj.push("Break our tendencies: " + tells.slice(0, 2).map(function (t) { return t.txt }).join(" · ") + ".");
+    var unused = good.filter(function (g) { return g.n <= 3 }); if (unused.length) adj.push("Working but barely used: " + unused.slice(0, 2).map(function (g) { return g.k + " (" + g.sr + "%, " + g.n + " plays)" }).join(", ") + ".");
+    if (!adj.length) adj.push("No big red flags yet. Stay on schedule and keep charting their looks.");
+    // second-half openers
+    var open = []; try { open = ncScore({ dn: 1, dist: 10, yl: -25, hash: "M", qtr: 3 }).list } catch (e) {}
+    return { us: us, them: them, sc: sc, all: all, run: run, pass: pass, D: D, rz: rz, rzD: rzD.length, rzTD: rzTD, third: third.length, thirdC: thirdC, good: good, bad: bad, looks: looks, vB: vB, vN: vN, v1: v1, v2: v2, adj: adj.slice(0, 3), open: open };
+  }
+  function htHTML(R) {
+    var st = function (x) { return x ? x.sr + "% · " + x.ypp.toFixed(1) + "/play (" + x.n + ")" : "—" };
+    var h = "<div class='ht'><div class='ht-top'><div><div class='ht-k'>Halftime report · " + esc(ddText ? "" : "") + "through Q" + Math.min(4, S.cur.qtr || 2) + "</div><h2>" + esc(R.us) + " " + R.sc.us + " · " + esc(R.them) + " " + R.sc.them + "</h2></div></div>";
+    h += "<div class='ht-kpis'>" + [["Plays", R.all.n], ["Yds/play", R.all.ypp.toFixed(1)], ["Success", R.all.sr + "%"], ["Explosives", R.all.ex], ["3rd down", R.thirdC + "/" + R.third], ["Red zone TDs", R.rzTD + "/" + R.rzD]].map(function (k) { return "<div><b>" + k[1] + "</b><span>" + k[0] + "</span></div>" }).join("") + "</div>";
+    h += "<h3>3 adjustments</h3><ol class='ht-adj'>" + R.adj.map(function (a) { return "<li>" + esc(a) + "</li>" }).join("") + "</ol>";
+    h += "<div class='ht-2'><div><h3>What's working</h3>" + (R.good.length ? "<table>" + R.good.map(function (g) { return "<tr><td>" + esc(g.k) + "</td><td>" + g.sr + "%</td><td>" + g.ypp.toFixed(1) + "/play</td><td>" + g.n + "</td></tr>" }).join("") + "</table>" : "<p class='note'>Need 2+ plays of a call.</p>") + "</div>";
+    h += "<div><h3>What isn't</h3>" + (R.bad.length ? "<table>" + R.bad.map(function (g) { return "<tr><td>" + esc(g.k) + "</td><td>" + g.sr + "%</td><td>" + g.ypp.toFixed(1) + "/play</td><td>" + g.n + "</td></tr>" }).join("") + "</table>" : "<p class='note'>Nothing below 40% success on 2+ plays.</p>") + "</div></div>";
+    h += "<div class='ht-2'><div><h3>Run / pass</h3><table><tr><td>Run</td><td>" + st(R.run) + "</td></tr><tr><td>Pass</td><td>" + st(R.pass) + "</td></tr><tr><td>vs blitz</td><td>" + st(R.vB) + "</td></tr><tr><td>vs no blitz</td><td>" + st(R.vN) + "</td></tr><tr><td>vs 1-high</td><td>" + st(R.v1) + "</td></tr><tr><td>vs 2-high</td><td>" + st(R.v2) + "</td></tr></table></div>";
+    h += "<div><h3>Their defense tonight</h3>" + (R.looks.length ? "<table>" + R.looks.map(function (l) { return "<tr><td>" + esc(l.g) + "</td><td>" + (l.sh ? esc(l.sh[0].toLowerCase()) + " " + l.sh[1] + "/" + l.sh[2] : "—") + "</td><td>" + (l.bl ? "blitz " + l.bl[0] + "/" + l.bl[1] : "—") + "</td><td class='ht-chg'>" + esc(l.chg.join(" · ")) + "</td></tr>" }).join("") + "</table>" : "<p class='note'>Chart their shell and pressure to see this.</p>") + "</div></div>";
+    if (R.open.length) h += "<h3>2nd-half openers (1st & 10, own 25)</h3><ol class='ht-adj'>" + R.open.map(function (r) { return "<li><b>" + esc(r.label) + "</b> · " + r.conf + " · " + esc(r.why.join(" · ")) + "</li>" }).join("") + "</ol>";
+    h += "<h3>Drives</h3><table>" + R.D.map(function (d) { return "<tr><td>D" + d.n + " · Q" + d.qtr + "</td><td>" + d.plays + " plays · " + d.yds + " yds</td><td>" + esc(d.result) + "</td></tr>" }).join("") + "</table></div>";
+    return h;
+  }
+  function htText(R) {
+    var L = [R.us + " " + R.sc.us + " - " + R.them + " " + R.sc.them + " · HALFTIME", R.all.n + " plays · " + R.all.ypp.toFixed(1) + "/play · " + R.all.sr + "% success · 3rd " + R.thirdC + "/" + R.third + " · RZ TD " + R.rzTD + "/" + R.rzD, "", "ADJUSTMENTS:"];
+    R.adj.forEach(function (a, i) { L.push((i + 1) + ". " + a) });
+    if (R.good.length) { L.push("", "WORKING: " + R.good.map(function (g) { return g.k + " " + g.sr + "%" }).join(", ")) }
+    if (R.bad.length) L.push("NOT: " + R.bad.map(function (g) { return g.k + " " + g.sr + "%" }).join(", "));
+    if (R.open.length) L.push("", "2ND HALF OPENERS: " + R.open.map(function (r) { return r.label }).join(" / "));
+    return L.join("\n");
+  }
+  function htOpen() {
+    var R = htBuild(); HT_LAST = R; $("htBody").innerHTML = htHTML(R); $("htModal").hidden = false;
+  }
+  var HT_LAST = null;
+  function htWire() {
+    ["htBtn", "htBtn2"].forEach(function (id) { var b = $(id); if (b) b.addEventListener("click", htOpen) });
+    $("htClose").addEventListener("click", function () { $("htModal").hidden = true });
+    $("htPrint").addEventListener("click", function () { document.body.classList.add("ht-printing"); window.print(); setTimeout(function () { document.body.classList.remove("ht-printing") }, 500) });
+    $("htShare").addEventListener("click", function () {
+      var t = htText(HT_LAST || htBuild());
+      if (navigator.share) navigator.share({ title: "Halftime report", text: t }).catch(function () {});
+      else if (navigator.clipboard) navigator.clipboard.writeText(t).then(function () { toast("Copied. Paste it in a text to the head coach.") }, function () { toast("Couldn't copy on this device") });
+    });
+  }
+  // ---------- GAME PLAN BUILDER (Thursday): ranked calls per situation from the scout + our season; edit, print, and it steers Next Call on Friday ----------
+  var GP_SITS = [
+    ["openers", "Openers (script)", { dn: 1, dist: 10, yl: -25 }],
+    ["1st", "1st & 10", { dn: 1, dist: 10, yl: -35 }],
+    ["2nd-long", "2nd & 7+", { dn: 2, dist: 8, yl: -35 }],
+    ["2nd-med", "2nd & 3-6", { dn: 2, dist: 5, yl: -35 }],
+    ["2nd-short", "2nd & 1-2", { dn: 2, dist: 2, yl: -35 }],
+    ["3rd-short", "3rd & 1-3", { dn: 3, dist: 2, yl: -35 }],
+    ["3rd-med", "3rd & 4-6", { dn: 3, dist: 5, yl: -35 }],
+    ["3rd-long", "3rd & 7+", { dn: 3, dist: 9, yl: -35 }],
+    ["4th", "4th & short", { dn: 4, dist: 2, yl: 40 }],
+    ["rz", "Red zone (opp 20-11)", { dn: 1, dist: 10, yl: 17 }],
+    ["gl", "Goal line (inside 10)", { dn: 1, dist: 5, yl: 5 }],
+    ["2pt", "2-point plays", { dn: 3, dist: 3, yl: 3, two: true }],
+    ["blitz", "Blitz beaters", { dn: 2, dist: 7, yl: -35, blitz: true }],
+    ["shots", "Shot plays", { dn: 1, dist: 10, yl: 45, shots: true }]
+  ];
+  function gpKeysFor(c) {
+    var y = toY(c.yl), k = [];
+    if (S.tryPending) return ["2pt"];
+    if (y >= 90) k.push("gl"); else if (y >= 80) k.push("rz");
+    if (c.dn === 1 || c.dn === 0) k.push("1st"); else if (c.dn === 2) k.push(c.dist >= 7 ? "2nd-long" : c.dist >= 3 ? "2nd-med" : "2nd-short");
+    else if (c.dn === 3) k.push(c.dist <= 3 ? "3rd-short" : c.dist <= 6 ? "3rd-med" : "3rd-long"); else if (c.dn === 4) k.push(c.dist <= 3 ? "4th" : "3rd-long");
+    if (c.dn <= 2 && y < 80 && S.snaps.filter(function (s) { return s.kind !== "try" }).length < 12) k.push("openers");
+    return k;
+  }
+  // score every call for a situation using the whole season (none of it counted as "tonight")
+  function gpRank(def, n) {
+    var keepSnaps = S.snaps, keepSeason = NC.season, keepTry = S.tryPending;
+    try {
+      var past = keepSnaps.filter(function (s) { return s.call && s.kind !== "try" && s.res !== "Penalty" && s.gain != null }).map(function (s) { var o = Object.assign({}, s); delete o._tn; o._past = 1; return o });
+      S.snaps = []; NC.season = keepSeason.concat(past); S.tryPending = !!def.two;
+      var c = { dn: def.dn, dist: def.dist, yl: def.yl, hash: "M", qtr: 1 }, r = ncScore(c, { n: n || 8, noPlan: true });
+      var list = r.list;
+      if (def.blitz || def.shots) {
+        var H = NC.season, m = {};
+        H.forEach(function (s) { if (!s.call) return; if (def.blitz && !(s.blitz && s.blitz !== "No")) return; var k = (s.form || "") + "|" + s.call; var o = m[k] = m[k] || { form: s.form, call: s.call, n: 0, ok: 0, ex: 0, y: 0 }; o.n++; if (eff(s)) o.ok++; if ((s.pt === "Run" && s.gain >= 10) || (s.pt === "Pass" && s.gain >= 15) || s.td) o.ex++; o.y += s.gain || 0 });
+        var arr = Object.keys(m).map(function (k) { return m[k] }).filter(function (o) { return o.n >= 2 });
+        arr.forEach(function (o) { o.sc = def.blitz ? (o.ok + 1.8) / (o.n + 4) : (o.ex + .4) / (o.n + 4) });
+        arr.sort(function (a, b) { return b.sc - a.sc });
+        var seen = {}; list = arr.filter(function (o) { var k = o.call.replace(/\b\d+\b/g, "").trim(); if (seen[k]) return false; seen[k] = 1; return true }).slice(0, n || 8).map(function (o) { return { label: ((o.form ? o.form + " " : "") + o.call).trim(), conf: Math.round(o.sc * 100), why: [def.blitz ? "vs blitz " + o.ok + "/" + o.n : "explosive " + o.ex + "/" + o.n + " · " + (o.y / o.n).toFixed(1) + "/play"], cd: { form: o.form, call: o.call } } });
+        if (!list.length) list = r.list;
+      }
+      return { list: list, look: r.look };
+    } finally { S.snaps = keepSnaps; NC.season = keepSeason; S.tryPending = keepTry }
+  }
+  function gpBuild() {
+    var plan = { at: Date.now(), opp: S.opp || "", sits: {} };
+    GP_SITS.forEach(function (d) {
+      var r = gpRank(d[2], d[0] === "openers" ? 14 : 6), items = r.list.map(function (x) { return { l: x.label, f: x.cd.form || null, c: x.cd.call, m: x.cd.motion || null, r: x.cd.rpo || null, s: x.conf, w: (x.why || []).join(" · ") } });
+      if (d[0] === "openers") { // script: alternate run / pass, mix formations
+        var runs = items.filter(function (i) { return /POWER|ZONE|ZIP|SPLIT|COUNTER|TRAP|DRAW|SWEEP|DUO|INSERT|ISO|TOSS|STRETCH|MIKE|ACE/i.test(i.c) }), passes = items.filter(function (i) { return runs.indexOf(i) < 0 }), out = [];
+        while (out.length < 12 && (runs.length || passes.length)) { var a = out.length % 2 ? passes : runs; out.push((a.length ? a : (a === runs ? passes : runs)).shift()) }
+        items = out;
+      }
+      plan.sits[d[0]] = { look: ncLookTxt(r.look), items: items };
+    });
+    return plan;
+  }
+  function gpSave() {
+    S.plan = GP.plan; save(); NC.key = null; try { renderNC(); gpStateTxt() } catch (e) {}
+    if (ONLINE && S.gameDate && !S.example) wkPut("/weeks/" + S.gameDate + "/gameplan", GP.plan).catch(function () {});
+  }
+  function wkGamePlan() {
+    if (!ONLINE || !S || !S.gameDate || S.example) return;
+    wkGet("/weeks/" + S.gameDate + "/gameplan").then(function (p) { if (!p || !p.sits) return; Object.keys(p.sits).forEach(function (k) { var it = p.sits[k].items; if (it && !Array.isArray(it)) p.sits[k].items = Object.keys(it).map(function (x) { return it[x] }) }); if (!S.plan || (p.at || 0) > (S.plan.at || 0)) { S.plan = p; save(); NC.key = null; try { renderNC() } catch (e) {} } }, function () {});
+  }
+  var GP = { plan: null };
+  function gpRender() {
+    var p = GP.plan, all = {};
+    GP_SITS.forEach(function (d) { (p.sits[d[0]] || { items: [] }).items.forEach(function (i) { all[i.l] = i }) });
+    var opts = ncCands({ dn: 1, dist: 10, yl: -35 }).map(function (c) { return ((c.form ? c.form + " " : "") + c.call).trim() });
+    $("gpBody").innerHTML = "<div class='gp-head'><div><div class='ht-k'>Game plan · " + esc(p.opp || S.opp || "this week") + "</div><p class='note' style='margin:2px 0 0'>Ranked from the scout and every game you've charted. Reorder, remove or add calls, then save. On game night, Next Call puts these first.</p></div></div>" +
+      "<div class='gp-grid'>" + GP_SITS.map(function (d) {
+        var S0 = p.sits[d[0]] || { items: [], look: "" };
+        return "<div class='gp-card'><h3>" + esc(d[1]) + "</h3><div class='gp-look'>" + esc(S0.look || "") + "</div><ol>" + S0.items.map(function (i, k) {
+          return "<li><span class='gp-l'>" + esc(i.l) + "</span><span class='gp-s'>" + (i.s != null ? i.s : "") + "</span><span class='gp-b'><button type='button' data-gp='up' data-k='" + d[0] + "' data-i='" + k + "' aria-label='Move up'>▲</button><button type='button' data-gp='dn' data-k='" + d[0] + "' data-i='" + k + "' aria-label='Move down'>▼</button><button type='button' data-gp='x' data-k='" + d[0] + "' data-i='" + k + "' aria-label='Remove'>✕</button></span>" + (i.w ? "<div class='gp-w'>" + esc(i.w) + "</div>" : "") + "</li>" }).join("") + "</ol>" +
+          "<div class='gp-add'><select data-gpadd='" + d[0] + "'><option value=''>+ add a call…</option>" + opts.map(function (o) { return "<option>" + esc(o) + "</option>" }).join("") + "</select></div></div>" }).join("") + "</div>";
+  }
+  function gpOpen(rebuild) {
+    if (rebuild || !S.plan) GP.plan = gpBuild(); else GP.plan = JSON.parse(JSON.stringify(S.plan));
+    gpRender(); $("gpModal").hidden = false;
+  }
+  function gpText() {
+    var p = GP.plan || S.plan; if (!p) return "";
+    return GP_SITS.map(function (d) { var s = p.sits[d[0]]; if (!s || !s.items.length) return ""; return d[1].toUpperCase() + "\n" + s.items.map(function (i, k) { return (k + 1) + ". " + i.l }).join("\n") }).filter(Boolean).join("\n\n");
+  }
+  function gpWire() {
+    ["gpBtn", "gpBtn2"].forEach(function (id) { var b = $(id); if (b) b.addEventListener("click", function () { gpOpen(false) }) });
+    $("gpClose").addEventListener("click", function () { $("gpModal").hidden = true });
+    $("gpRebuild").addEventListener("click", function () { if (!confirm("Rebuild the whole plan from the latest scout and results? Your edits will be replaced.")) return; GP.plan = gpBuild(); gpRender() });
+    $("gpSave").addEventListener("click", function () { GP.plan.at = Date.now(); gpSave(); $("gpModal").hidden = true; toast("Game plan saved for " + (S.opp || "this game") + " · every device gets it") });
+    $("gpPrint").addEventListener("click", function () { document.body.classList.add("gp-printing"); window.print(); setTimeout(function () { document.body.classList.remove("gp-printing") }, 500) });
+    $("gpShare").addEventListener("click", function () { var t = "GAME PLAN vs " + (S.opp || "") + "\n\n" + gpText(); if (navigator.share) navigator.share({ title: "Game plan", text: t }).catch(function () {}); else if (navigator.clipboard) navigator.clipboard.writeText(t).then(function () { toast("Copied") }) });
+    $("gpBody").addEventListener("click", function (e) {
+      var b = e.target.closest("[data-gp]"); if (!b) return; var L = GP.plan.sits[b.dataset.k].items, i = +b.dataset.i;
+      if (b.dataset.gp === "x") L.splice(i, 1); else if (b.dataset.gp === "up" && i > 0) L.splice(i - 1, 0, L.splice(i, 1)[0]); else if (b.dataset.gp === "dn" && i < L.length - 1) L.splice(i + 1, 0, L.splice(i, 1)[0]);
+      gpRender();
+    });
+    $("gpBody").addEventListener("change", function (e) {
+      var sel = e.target.closest("[data-gpadd]"); if (!sel || !sel.value) return; var k = sel.dataset.gpadd, v = sel.value, cands = ncCands({ dn: 1, dist: 10, yl: -35 }), cd = cands.filter(function (c) { return ((c.form ? c.form + " " : "") + c.call).trim() === v })[0] || { call: v };
+      GP.plan.sits[k].items.push({ l: v, f: cd.form || null, c: cd.call, m: cd.motion || null, r: cd.rpo || null, s: null, w: "added by coach" }); gpRender();
+    });
+  }
+  function gpStateTxt() { var el = $("gpState"); if (!el) return; var p = S.plan; el.textContent = p && p.sits ? "Saved " + new Date(p.at || Date.now()).toLocaleDateString() + (p.opp ? " for " + p.opp : "") + " · " + Object.keys(p.sits).reduce(function (t, k) { return t + ((p.sits[k].items || []).length) }, 0) + " calls" : "No plan yet for this game." }
+  // ---------- GAME MANAGEMENT: 2-point decision, clock / possessions, timeouts, 4th down ----------
+  function gmMins() { try { return minsLeftAt(S.cur.qtr, S.snaps.length) } catch (e) { return 24 } }
+  // chance to win from a margin with this much time left: each remaining possession is roughly a 7-or-nothing coin
+  function gmWP(m, mins, theyNext) {
+    // remaining drives: each one is a field goal, a TD (with the try) or nothing; ties go to overtime (50/50)
+    var T = Math.max(0, Math.round(mins * DRIVES_PER_GAME * 2 / 48)), nThem = theyNext === false ? Math.floor(T / 2) : Math.ceil(T / 2), nUs = T - nThem;
+    var one = [[0, .62], [3, .08], [7, .30]], dist = function (n) { var d = { 0: 1 }; for (var i = 0; i < n; i++) { var x = {}; Object.keys(d).forEach(function (k) { one.forEach(function (o) { var v = +k + o[0]; x[v] = (x[v] || 0) + d[k] * o[1] }) }); d = x } return d };
+    var U = dist(nUs), H = dist(nThem), w = 0;
+    Object.keys(U).forEach(function (a) { Object.keys(H).forEach(function (b) { var f = m + (+a) - (+b), p = U[a] * H[b]; w += p * (f > 0 ? 1 : f === 0 ? .5 : 0) }) });
+    return w;
+  }
+  function gmRates() {
+    var T = S.snaps.filter(function (s) { return s.kind === "try" }), pat = T.filter(function (s) { return s.res === "PAT" }), two = T.filter(function (s) { return s.res !== "PAT" });
+    var G = S.gm || {}, sh = function (ok, n, p, k) { return (ok + p * k) / (n + k) };
+    return { pat: G.pat != null ? G.pat / 100 : sh(pat.filter(function (s) { return s.good }).length, pat.length, .9, 10), two: G.two != null ? G.two / 100 : sh(two.filter(function (s) { return s.good }).length, two.length, .45, 6) };
+  }
+  // decide the try right after our TD: margin is us minus them BEFORE the try
+  function gmTwo(margin, mins) {
+    var r = gmRates(), kick = r.pat * gmWP(margin + 1, mins) + (1 - r.pat) * gmWP(margin, mins), two = r.two * gmWP(margin + 2, mins) + (1 - r.two) * gmWP(margin, mins);
+    var go = two > kick + .005, close = Math.abs(two - kick) < .01;
+    return { go: go, close: close, kick: kick, two: two, r: r, txt: (close ? "Toss-up · " : "") + (go ? "GO FOR 2" : "KICK") + " · win " + Math.round((go ? two : kick) * 100) + "% vs " + Math.round((go ? kick : two) * 100) + "%" };
+  }
+  function gmTOs() { var t = S.tos || { us: 3, them: 3 }; return { us: +t.us, them: +t.them } }
+  function gmClock() {
+    var mins = gmMins(), sec = Math.round(mins * 60), c = S.cur, sc = scoreAt(S.snaps.length), m = sc.us - sc.them, to = gmTOs();
+    var downs = c.dn >= 1 ? Math.max(1, 4 - c.dn) : 3; // snaps before we'd have to punt (not counting 4th)
+    var burnRun = function (plays, theirTO) { var stop = Math.min(plays, theirTO); return plays * 6 + (plays - stop) * 34 }; // ~6s a play, +34s runoff when they can't stop it
+    var burn = burnRun(downs, to.them), backWith = Math.max(0, sec - burn);
+    var kneels = Math.max(0, downs), kneelBurn = kneels * 1 + Math.max(0, kneels - to.them) * 39 + Math.min(kneels, to.them) * 1;
+    var canKneel = m > 0 && sec <= kneelBurn + 2 && c.dn >= 1;
+    var pace = (function () { var P = S.snaps.filter(function (s) { return s.kind !== "try" }); return P.length >= 6 && S.cur.qtr ? Math.max(20, Math.min(45, ((4 * 12 * 60 - sec) / Math.max(1, P.length)) * .55)) : 32 })();
+    var poss = Math.max(0, sec / 60 * DRIVES_PER_GAME / 48);
+    var need = m < 0 ? Math.ceil(-m / 8) : 0;
+    return { sec: sec, m: m, to: to, downs: downs, burn: burn, backWith: backWith, canKneel: canKneel, poss: poss, need: need, sc: sc };
+  }
+  function mmss(s) { s = Math.max(0, Math.round(s)); return Math.floor(s / 60) + ":" + ("0" + s % 60).slice(-2) }
+  function gmHTML() {
+    var C = gmClock(), r = gmRates(), mins = C.sec / 60, us = SCHOOL_NAME_H || "Us", c = S.cur;
+    var h = "<div class='ht'><div class='ht-k'>Game management</div><h2>" + esc(us) + " " + C.sc.us + " · " + esc(S.opp || "Opponent") + " " + C.sc.them + " · " + (S.cur.qtr >= 5 ? "OT" : "Q" + S.cur.qtr) + " " + mmss(C.sec - (4 - Math.min(4, S.cur.qtr)) * 720) + "</h2>";
+    // 2-point
+    var two = gmTwo(C.m + 6, mins);
+    h += "<h3>After our next TD: kick or go for 2?</h3><div class='gm-big " + (two.go ? "go" : "") + "'>" + esc(two.txt) + "</div><p class='note'>Score before the try would be " + (C.m + 6 >= 0 ? "+" : "") + (C.m + 6) + ". Using PAT " + Math.round(r.pat * 100) + "% and 2-pt " + Math.round(r.two * 100) + "% (yours this season shrunk toward 90 / 45 until there's enough data).</p>";
+    h += "<table class='gm-chart'><tr><th>Margin before try</th>" + [-14, -10, -9, -8, -5, -4, -2, -1, 0, 1, 2, 4, 5, 7, 8, 11, 12].map(function (x) { return "<th>" + (x > 0 ? "+" + x : x) + "</th>" }).join("") + "</tr><tr><td>" + (mins > 12 ? "Now (" + Math.round(mins) + " min left)" : "Now") + "</td>" + [-14, -10, -9, -8, -5, -4, -2, -1, 0, 1, 2, 4, 5, 7, 8, 11, 12].map(function (x) { var d = gmTwo(x, mins); return "<td class='" + (d.go ? "go" : "") + (d.close ? " tie" : "") + "'>" + (d.go ? "2" : "K") + "</td>" }).join("") + "</tr><tr><td>Last 4 min</td>" + [-14, -10, -9, -8, -5, -4, -2, -1, 0, 1, 2, 4, 5, 7, 8, 11, 12].map(function (x) { var d = gmTwo(x, 4); return "<td class='" + (d.go ? "go" : "") + (d.close ? " tie" : "") + "'>" + (d.go ? "2" : "K") + "</td>" }).join("") + "</tr></table><p class='note'>2 = go for two, K = kick. Margin is our score minus theirs after the TD, before the try.</p>";
+    h += "<div class='gm-set'>PAT % <input type='number' id='gmPat' value='" + Math.round(r.pat * 100) + "' min='0' max='100'> 2-pt % <input type='number' id='gmTwoP' value='" + Math.round(r.two * 100) + "' min='0' max='100'> <button type='button' id='gmAuto'>Use season numbers</button></div>";
+    // clock
+    h += "<h3>Clock</h3><div class='gm-to'>Our timeouts <button type='button' data-to='us|-1'>−</button><b>" + C.to.us + "</b><button type='button' data-to='us|1'>+</button> &nbsp; Their timeouts <button type='button' data-to='them|-1'>−</button><b>" + C.to.them + "</b><button type='button' data-to='them|1'>+</button> <button type='button' id='gmToReset'>Reset to 3 / 3</button></div><ul class='gm-list'>";
+    h += "<li><b>" + mmss(C.sec) + "</b> left in the game · about <b>" + C.poss.toFixed(1) + "</b> possessions each</li>";
+    if (C.m > 0) {
+      h += "<li>If we run it " + C.downs + " more time" + (C.downs === 1 ? "" : "s") + " and they use their timeouts: we burn about <b>" + mmss(C.burn) + "</b>, they get it back with about <b>" + mmss(C.backWith) + "</b>.</li>";
+      if (C.canKneel) h += "<li class='gm-go'><b>You can kneel it out.</b></li>";
+      else if (C.sec < 240) h += "<li>Not kneel-out yet: they still have time after " + C.downs + " snaps. Each first down burns ~" + mmss(40 * (C.to.them ? 1 : 3)) + " more.</li>";
+    } else if (C.m < 0) {
+      h += "<li>Down " + (-C.m) + ": you need <b>" + C.need + "</b> score" + (C.need === 1 ? "" : "s") + (C.need > 1 ? " (" + Math.ceil(-C.m / 7) + " if every one is a TD + try)" : "") + ". " + (C.poss < C.need + .5 ? "<span class='gm-warn'>That's more than the possessions left at a normal pace: speed up, save timeouts, think onside.</span>" : "Time is there at a normal pace.") + "</li>";
+      h += "<li>If they get the ball with a lead and run it, they can burn about <b>" + mmss(3 * 6 + Math.max(0, 3 - C.to.us) * 34) + "</b> with your " + C.to.us + " timeout" + (C.to.us === 1 ? "" : "s") + ".</li>";
+    } else h += "<li>Tied: play to have the last possession. Every 1st down late burns about 40 seconds if they're out of timeouts.</li>";
+    h += "</ul>";
+    // 4th down
+    var f = $("p4th") ? $("p4th").textContent : ""; if (f) h += "<h3>4th down</h3><p style='font-size:16px;font-weight:800;margin:0'>" + esc(f.replace(/^4th:\s*/, "At this spot: ")) + "</p><p class='note'>From the chart's 4th-down model for this field position.</p>";
+    return h + "</div>";
+  }
+  function gmOpen() { $("gmBody").innerHTML = gmHTML(); $("gmModal").hidden = false }
+  function gmWire() {
+    ["gmBtn", "gmBtn2"].forEach(function (id) { var b = $(id); if (b) b.addEventListener("click", gmOpen) });
+    $("gmClose").addEventListener("click", function () { $("gmModal").hidden = true });
+    $("gmBody").addEventListener("click", function (e) {
+      var b = e.target.closest("[data-to]"); if (b) { var p = b.dataset.to.split("|"), t = gmTOs(); t[p[0]] = Math.max(0, Math.min(3, t[p[0]] + +p[1])); S.tos = t; save(); gmOpen(); return }
+      if (e.target.id === "gmToReset") { S.tos = { us: 3, them: 3 }; save(); gmOpen(); return }
+      if (e.target.id === "gmAuto") { S.gm = {}; save(); gmOpen(); renderTryHint() }
+    });
+    $("gmBody").addEventListener("change", function (e) { if (e.target.id === "gmPat" || e.target.id === "gmTwoP") { S.gm = S.gm || {}; S.gm[e.target.id === "gmPat" ? "pat" : "two"] = Math.max(0, Math.min(100, +e.target.value || 0)); save(); gmOpen(); renderTryHint() } });
+  }
+  // the try panel says kick or go the moment we score
+  function renderTryHint() {
+    var el = $("tryGM"); if (!el) return; if (!S.tryPending) { el.textContent = ""; return }
+    var sc = scoreAt(S.snaps.length), d = gmTwo(sc.us - sc.them, gmMins()); el.textContent = "Chart says: " + d.txt; el.className = "gm-try" + (d.go ? " go" : "");
+  }
   function ncSetupWire() {
     var on = $("ncOn"), bo = $("ncBold"), hi = $("ncHide"); if (!on) return;
+    var al = $("ncAl"); al.checked = ncPref("alerts", "1") === "1"; al.onchange = function () { ncSet("alerts", al.checked ? "1" : "0"); NC.key = null; renderNC() };
     on.checked = ncPref("on", "1") === "1"; bo.value = ncPref("bold", "safe"); hi.value = ncPref("hide", "");
     on.onchange = function () { ncSet("on", on.checked ? "1" : "0"); renderNC() }; bo.onchange = function () { ncSet("bold", bo.value); renderNC() }; hi.onchange = function () { ncSet("hide", hi.value); renderNC() };
   }
@@ -1984,6 +2346,7 @@ textarea { min-height: 64px }
     var on = !!S.tryPending; $("tryPanel").hidden = !on;
     if (!on) { pick.tryJump = false; return }
     if (!pick.tryJump) { pick.tryJump = true; pick.sec = formSections().length }
+    try { renderTryHint() } catch (e) {}
     $("tryNote").textContent = "2-pt call: " + (pick.call ? (pick.form ? pick.form + " " : "") + pick.call : "none picked yet (tap formation and play below, or log it without a call)") + ".";
   }
   function renderQtr() {
@@ -2137,7 +2500,7 @@ textarea { min-height: 64px }
   }
   function renderChips() {
     renderSpot();
-    renderSheet(); renderGrid(); try { renderNC() } catch (e) {}
+    renderSheet(); renderGrid(); try { renderNC(); renderNCResults(); gpStateTxt() } catch (e) {}
     renderPlayers();
     var full = S.dmode === "full";
     $("fastD").hidden = full; $("fullD").hidden = !full;
@@ -4139,7 +4502,7 @@ textarea { min-height: 64px }
   $("penDecline").addEventListener("click", function () { if (!penSel) return; pick.declined = penSel.n + (penSel.side === "O" ? " on us" : " on them"); $("penModal").hidden = true; renderChips(); toast("Declined. Now tap the play's result and yards.") });
   $("pcGo").addEventListener("click", function () { var side = $("pcSide").value; pickPen({ k: "custom", n: "Penalty", side: side, y: Math.abs(parseInt($("pcYds").value, 10) || 0), afd: $("pcAfd").checked, lod: $("pcLod").checked }) });
   $("sMode").addEventListener("change", function () { S.dmode = $("sMode").value; save(); renderAll(); toast(S.dmode === "full" ? "Full defense tags on" : "Fast defense tags on") });
-  gsWire(); wpsWire(); luWire(); setTimeout(ncLoadSeason, 3000); setInterval(ncLoadSeason, 60000); ncSetupWire();
+  gsWire(); wpsWire(); luWire(); htWire(); gpWire(); gmWire(); setTimeout(ncLoadSeason, 3000); setInterval(ncLoadSeason, 60000); ncSetupWire();
   if (!IS_HOME) { // other schools get generic examples, never Melissa's play names or opponents
     [["ceNew", "e.g. 2*3 ZONE  or  4*5 POWER / COUNTER"], ["cbName", "e.g. TRIPS or RED ZONE 20-10"], ["csSearch", "Or find any play: zone, power, mesh…"]].forEach(function (x) { var el = $(x[0]); if (el) el.placeholder = x[1] });
     document.querySelectorAll('input[placeholder="e.g. Anna"]').forEach(function (el) { el.placeholder = "e.g. Rival High" });

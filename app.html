@@ -288,6 +288,9 @@ main { padding-block: 14px 40px }
 .trypanel { border: 2px solid var(--amber); background: color-mix(in srgb, var(--amber) 22%, var(--panel)) }
 .chip.try-good { border-color: var(--go) } .chip.try-bad { border-color: var(--red) }
 .chip.try-good, .chip.try-bad { min-height: 52px; font-size: 18px; padding: 0 18px }
+.hashrow { margin-top: 10px; padding: 8px 10px; border: 2px solid var(--line); border-radius: 12px; display: flex; justify-content: center }
+.hashrow .chip.hs { min-width: 64px; font-size: 18px }
+.hashrow .chip.hs[aria-pressed="true"] { background: #facc15; color: #111; border-color: #facc15 }
 .chips.hashes { align-items: center; gap: 5px; padding-left: 10px; border-left: 1px solid var(--line) }
 .chips.hashes .hlbl { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-right: 2px }
 .chip.hs { min-width: 52px; font-size: 18px }
@@ -508,7 +511,7 @@ textarea { min-height: 64px }
     <div class="panel spotpanel" style="margin-bottom:14px">
       <h3>1 · Ball on <small id="spotHint">tap the field where the ball is spotted</small></h3>
       <div class="spothead">
-        <div class="chips hashes" style="border-left:0;padding-left:0" aria-label="Hash"><span class="hlbl">Hash</span><button class="chip hs" data-h="L">L</button><button class="chip hs" data-h="M">M</button><button class="chip hs" data-h="R">R</button></div>
+        
         <span class="readout" id="spotRead"></span>
         <div class="chips qtrs" id="cQtr" style="margin-left:auto" aria-label="Quarter"></div><button class="chip" id="flipFld" type="button" title="Field going the wrong way? Tap to turn it around for this half">⇄ Flip field</button>
       </div>
@@ -524,6 +527,7 @@ textarea { min-height: 64px }
         <button class="btn nb" id="nudNG">No gain</button>
         <button class="btn nb" id="nudR" aria-label="Forward one yard">1 yd ▶</button>
       </div>
+      <div class="hashrow"><div class="chips hashes" style="border-left:0;padding-left:0" aria-label="Hash"><span class="hlbl">Hash for the next snap</span><button class="chip hs" data-h="L">L</button><button class="chip hs" data-h="M">M</button><button class="chip hs" data-h="R">R</button></div></div>
       <details style="margin-top:8px"><summary style="cursor:pointer;font-size:13px;font-weight:700">Number grid</summary>
         <div class="chips" style="margin:8px 0"><button class="chip side" id="sideOwn">Own</button><button class="chip side" id="sideOpp">Opp</button></div>
         <div class="ygrid" id="yGrid"></div>
@@ -791,6 +795,10 @@ textarea { min-height: 64px }
         <div class="actions" style="margin:0 0 6px"><button class="btn primary" id="gpBtn" type="button">Build / edit this week's game plan</button><span class="note" id="gpState"></span></div>
       </div>
       <div class="panel" style="grid-column:1/-1">
+        <h3>Chart input <small>how the screen moves while you log</small></h3>
+        <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="autoAdv"> Auto-advance after each tap: play → result → player → spot the ball (defense skipped, fill it in between drives)</label>
+      </div>
+            <div class="panel" style="grid-column:1/-1">
         <h3>Next Call <small>top 3 calls for each situation, on every device</small></h3>
         <div class="custom" style="align-items:center">
           <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="ncOn"> Show Next Call on this device</label>
@@ -1559,7 +1567,7 @@ textarea { min-height: 64px }
     var k = newCode(), e = { opp: opp, date: date, us: 0, them: 0, plays: 0, updated: Date.now(), lock: lockOf(code) };
     fetch(homeListUrl(k), { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(e) }).then(function (r) { if (!r.ok) throw 0; $("hsOpp").value = ""; $("hsCode").value = ""; toast("Scheduled vs " + opp + ". Game code: " + code.toUpperCase()); $("hsBox").hidden = true; loadHome() }, function () { toast("Couldn't reach the database. Check the connection.") });
   }
-  function keepSettings() { return { lists: S.lists, start: S.start, dmode: S.dmode, fast: S.fast, inMode: S.inMode, sheet: S.sheet, sheetGrid: S.sheetGrid, sheetPrev: S.sheetPrev, sheetPrevGrid: S.sheetPrevGrid } }
+  function keepSettings() { return { lists: S.lists, start: S.start, dmode: S.dmode, fast: S.fast, autoAdv: S.autoAdv, inMode: S.inMode, sheet: S.sheet, sheetGrid: S.sheetGrid, sheetPrev: S.sheetPrev, sheetPrevGrid: S.sheetPrevGrid } }
   function openGame(code) {
     if (!SY.cfg || code === SY.cfg.code) return;
     // other games open through Home with their game code
@@ -4514,6 +4522,23 @@ textarea { min-height: 64px }
     document.querySelectorAll('input[placeholder="e.g. Cardinals"]').forEach(function (el) { el.placeholder = "e.g. Panthers" });
   }
   $("fastLog").checked = S.fast !== false;
+  // auto-advance: after a tap sets the play or result, scroll to the next input
+  $("autoAdv").checked = S.autoAdv !== false;
+  $("autoAdv").addEventListener("change", function () { S.autoAdv = $("autoAdv").checked; save(); toast("Auto-advance " + (S.autoAdv ? "on" : "off")) });
+  (function () {
+    var before = null, chart = $("v-chart");
+    var go = function (el) { if (el && !el.hidden && el.offsetParent) el.scrollIntoView({ behavior: "smooth", block: "center" }) };
+    chart.addEventListener("click", function () { before = { call: pick.call, res: pick.res, snaps: S.snaps.length } }, true);
+    chart.addEventListener("click", function (e) {
+      if (S.autoAdv === false || !before) return; var b = before; before = null;
+      if (e.target.closest("#spotSvg, .spotpanel, .nc-h")) return;
+      setTimeout(function () {
+        if (S.snaps.length !== b.snaps || pendingSnap()) return; // it logged: the spot jump already happens
+        if (pick.res && pick.res !== b.res) { if (!$("rowPlayer").hidden) go($("rowPlayer")); return }
+        if (pick.call && pick.call !== b.call && !pick.res) go($("cRes"));
+      }, 30);
+    });
+  })();
   $("fastLog").addEventListener("change", function () { S.fast = $("fastLog").checked; save() });
   $("logBtn").addEventListener("click", logSnap);
   $("undoBtn").addEventListener("click", undo);

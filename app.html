@@ -3234,7 +3234,7 @@ textarea { min-height: 64px }
   }
   function satStadium(f) {
     var a = merc(f.g1[0], f.g1[1]), b = merc(f.g2[0], f.g2[1]), cx = (a[0] + b[0]) / 2, cy = (a[1] + b[1]) / 2;
-    var k = 1 / Math.cos(((f.g1[0] + f.g2[0]) / 2) * Math.PI / 180), half = 72 * k, N = 1024;
+    var k = 1 / Math.cos(((f.g1[0] + f.g2[0]) / 2) * Math.PI / 180), half = 72 * k, N = 512;
     var bb = [cx - half, cy - half, cx + half, cy + half];
     var href = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=" + bb.map(function (v) { return v.toFixed(2) }).join(",") + "&bboxSR=3857&imageSR=3857&size=" + N + "," + N + "&format=jpg&f=image";
     var px = function (m) { return [(m[0] - bb[0]) / (2 * half) * N, (bb[3] - m[1]) / (2 * half) * N] };

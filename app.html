@@ -181,6 +181,17 @@ main { padding-block: 14px 40px }
 .pbp .it.run { border-left-color: #ff4d45 } .pbp .it.pass { border-left-color: #4aa3ff } .pbp .sit { font-size: 12px; font-weight: 800; color: #ff7b72; letter-spacing: .02em } .pbp .tt { font-size: 17px; font-weight: 800 } .pbp .sub { font-size: 13px; color: #9aa7b6 } .pbp .rt { text-align: right; font-size: 12px; color: #9aa7b6; white-space: nowrap }
 .pbp .bd { display: inline-block; font-size: 10px; font-weight: 900; padding: 1px 5px; border-radius: 4px; margin-left: 5px; vertical-align: 1px } .bd-rz { background: #e5403a; color: #fff } .bd-td { background: #2ee6a6; color: #04241a } .bd-to { background: #ffb020; color: #2a1a00 } .bd-1d { background: #ffd400; color: #000 } .pbp .dh { font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--muted, #555); margin-top: 6px }
 .luhead { display: block; margin-top: 2px; background: none; border: 0; padding: 0; color: #ffd400; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; text-decoration: underline; text-align: left }
+.nc { position: sticky; top: 0; z-index: 6; margin: 0 0 12px; background: #0f141b; color: #e8edf2; border-radius: 12px; padding: 10px 12px; border-left: 5px solid var(--red); box-shadow: 0 6px 18px rgba(0,0,0,.25) }
+.nc-h { display: flex; align-items: center; gap: 10px; flex-wrap: wrap } .nc-h b { font-family: var(--f-display); letter-spacing: .1em; font-size: 15px; color: #fff } .nc-h span { color: #9aa7b6; font-weight: 700; font-size: 14px; flex: 1 }
+.nc-h button { font: inherit; font-size: 12px; font-weight: 800; background: rgba(255,255,255,.08); color: #e8edf2; border: 1px solid rgba(255,255,255,.2); border-radius: 7px; padding: 4px 9px; cursor: pointer }
+.nc-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 8px } @media (max-width: 640px) { .nc-row { grid-template-columns: 1fr } }
+.nc-card { text-align: left; font: inherit; background: #182230; color: #e8edf2; border: 2px solid #26354a; border-radius: 10px; padding: 8px 10px; cursor: pointer; min-height: 70px }
+.nc-card:first-child { border-color: color-mix(in srgb, var(--red) 70%, #fff) } .nc-card.on { background: #e8edf2; color: #0f141b; border-color: #fff }
+.nc-t { display: flex; align-items: baseline; gap: 8px } .nc-t b { flex: 1; font-size: 16px; line-height: 1.15 } .nc-t em { font-style: normal; font-weight: 900; font-size: 18px; color: #ffd400 } .nc-card.on .nc-t em { color: #8a5a00 }
+.nc-w { font-size: 12.5px; color: #b8c4d2; margin-top: 2px } .nc-card.on .nc-w { color: #3a4656 }
+.nc-look { margin-top: 7px; font-size: 13px; font-weight: 700; color: #ffd400 } .nc-empty { margin: 6px 0 0; color: #9aa7b6; font-size: 13px }
+.nc-mini { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px } .nc-pick { font: inherit; font-weight: 800; font-size: 13px; background: #182230; color: #e8edf2; border: 1px solid #26354a; border-radius: 8px; padding: 5px 9px; cursor: pointer } .nc-pick em { font-style: normal; color: #ffd400 }
+.nc-detail { margin-top: 8px; overflow: auto } .nc-detail table { width: 100%; border-collapse: collapse; font-size: 12.5px } .nc-detail th { text-align: left; color: #9aa7b6; font-size: 11px; padding: 3px 6px } .nc-detail td { padding: 4px 6px; border-top: 1px solid #26354a } .nc-detail .note { color: #9aa7b6 }
 .inmode { display: flex; gap: 6px; align-items: center; margin: 0 0 10px; flex-wrap: wrap } .inmode > span:first-child { font-weight: 800; letter-spacing: .08em; font-size: 13px; text-transform: uppercase; margin-right: 4px }
 .inmode button { font: inherit; font-weight: 800; font-size: 15px; padding: 9px 16px; border-radius: 10px; border: 2px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer } .inmode button[aria-pressed=true] { background: var(--chip-on); color: var(--chip-on-ink); border-color: var(--chip-on) }
 .gshead { display: flex; align-items: center; gap: 8px; flex-wrap: wrap } .gshead h3 { margin: 0; flex: 1 } .gspick { font-weight: 800; font-size: 15px; padding: 6px 10px; background: var(--chip); color: var(--ink); border-radius: 8px } .gshead .btn { font-size: 18px; padding: 4px 12px }
@@ -447,6 +458,7 @@ textarea { min-height: 64px }
 
   <!-- CHART -->
   <section id="v-chart">
+    <div class="nc" id="ncBox" hidden></div>
     <div class="panel filmbar" id="filmBar">
       <button class="btn" id="filmGo" type="button">🎥 Film this game</button>
       <video id="filmPrev" muted playsinline autoplay hidden></video>
@@ -753,6 +765,14 @@ textarea { min-height: 64px }
           <button class="btn" id="wpReset" style="font-size:15px;padding:8px 12px">Use our data</button>
         </div>
         <p class="note" id="wpNote">Starts even: 24 points a side. Set your expected points and theirs before kickoff. Both update live from tonight&#39;s drives.</p>
+      </div>
+      <div class="panel" style="grid-column:1/-1">
+        <h3>Next Call <small>top 3 calls for each situation, on every device</small></h3>
+        <div class="custom" style="align-items:center">
+          <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="ncOn"> Show Next Call on this device</label>
+          <label>Style<select id="ncBold"><option value="safe">Safe: favor plays that stay on schedule</option><option value="bold">Aggressive: favor explosive plays</option></select></label>
+          <label style="flex:1 1 260px">Never suggest (comma-separated)<input id="ncHide" type="text" style="width:100%" placeholder="e.g. trick plays, a play you're saving"></label>
+        </div>
       </div>
       <div class="panel" id="cePanel" style="grid-column:1/-1">
         <h3>Call sheet <small id="ceState"></small></h3>
@@ -1661,6 +1681,125 @@ textarea { min-height: 64px }
     });
     return n;
   }
+  // ---------- NEXT CALL: top 3 calls from this week's call sheet for the exact situation, with reasons ----------
+  var NC = { key: null, list: [], look: null, why: false, season: [], seasonAt: 0 };
+  function ncPref(k, d) { try { var v = localStorage.getItem("solutions-nc-" + k + NS); return v == null ? d : v } catch (e) { return d } }
+  function ncSet(k, v) { try { localStorage.setItem("solutions-nc-" + k + NS, v) } catch (e) {} }
+  // every other game this season (offense snaps), so suggestions use the whole year, not just tonight
+  function ncLoadSeason() {
+    if (!ONLINE || !SY || !SY.cfg || S.example) return;
+    if (Date.now() - NC.seasonAt < 10 * 60e3) return; NC.seasonAt = Date.now();
+    var L = (typeof HOME !== "undefined" && HOME.list) || gamesCache() || {}, codes = Object.keys(L).filter(function (k) { return k !== SY.cfg.code && (L[k] || {}).plays });
+    var out = [], left = codes.length; if (!left) return;
+    codes.slice(0, 20).forEach(function (code) {
+      var ck = "solutions-ncg-" + code + NS, c = null; try { c = JSON.parse(localStorage.getItem(ck) || "null") } catch (e) {}
+      var live = (L[code] || {}).updated && Date.now() - L[code].updated < 6 * 3600e3;
+      var done = function (arr) { (arr || []).forEach(function (x) { x._past = 1; out.push(x) }); if (--left <= 0 || out.length) { NC.season = out; NC.key = null; try { renderNC() } catch (e) {} } };
+      if (c && !live) { done(c); return }
+      fetch(dbBase() + "/games/" + encodeURIComponent(code) + "/snaps.json" + solAuthQ()).then(function (r) { return r.ok ? r.json() : null }).then(function (d) {
+        var arr = d ? Object.keys(d).map(function (k) { return d[k] }).filter(function (x) { return x && x.call && x.kind !== "try" && x.res !== "Penalty" && x.gain != null }).map(function (x) { return { form: x.form, call: x.call, dn: x.dn, dist: x.dist, yl: x.yl, gain: x.gain, td: x.td, res: x.res, pt: x.pt, shell: x.shell, box: x.box, blitz: x.blitz, cov: x.cov } }) : [];
+        try { localStorage.setItem(ck, JSON.stringify(arr)) } catch (e) {} done(arr);
+      }, function () { done([]) });
+    });
+  }
+  function ncSit(c) { var d = DD_SITS.filter(function (r) { return r[1](c) })[0]; return d ? d[0] : null }
+  // their expected look here: the scout plus tonight (tonight counts more as the game goes)
+  function ncLook(c) {
+    var lab = ncSit(c), sc = lab && SCOUT.sits ? SCOUT.sits[lab] : null, sh = lab && SCOUT_SHELL.sits ? SCOUT_SHELL.sits[lab] : null;
+    var band = function (s) { return s.dn === c.dn && (c.dn === 0 || Math.abs((s.dist || 10) - c.dist) <= (c.dist <= 3 ? 1 : c.dist <= 6 ? 2 : 4)) };
+    var T = S.snaps.filter(function (s) { return s.kind !== "try" && s.res !== "Penalty" && band(s) });
+    var shellN = {}, tn = 0, bl = 0, bn = 0, box = {};
+    T.forEach(function (s) { if (s.shell) { shellN[s.shell] = (shellN[s.shell] || 0) + 2; tn += 2 } if (s.blitz) { bn++; if (s.blitz !== "No") bl++ } if (s.box) box[s.box] = (box[s.box] || 0) + 1 });
+    if (sh) { shellN[sh[0]] = (shellN[sh[0]] || 0) + sh[1]; tn += sh[2] }
+    var top = Object.keys(shellN).sort(function (a, b) { return shellN[b] - shellN[a] })[0] || null;
+    if (sc) { bl += sc.bl || 0; bn += sc.n || 0 }
+    var bx = Object.keys(box).sort(function (a, b) { return box[b] - box[a] })[0] || null;
+    return { lab: lab, shell: top, shellP: top && tn ? Math.round(100 * shellN[top] / tn) : null, blitz: bn ? bl / bn : null, bl: bl, bn: bn, cov: sc && sc.cov ? sc.cov[0] : null, box: bx, tonight: T.length };
+  }
+  function ncCands(c) {
+    var keys = sitKeys(c), out = [], seen = {}, hidden = String(ncPref("hide", "")).toUpperCase().split(",").map(function (x) { return x.trim() }).filter(Boolean);
+    var add = function (form, call, sitBox, motion, rpo) { if (!call) return; var k = (form || "") + "|" + call + "|" + (motion || "") + "|" + (rpo || ""); if (seen[k]) { if (sitBox) seen[k].sit = sitBox; return } if (hidden.some(function (h) { return call.toUpperCase().indexOf(h) >= 0 })) return; seen[k] = { form: form || null, call: call, motion: motion || null, rpo: rpo || null, sit: sitBox || null }; out.push(seen[k]) };
+    SHEET.forEach(function (sec) {
+      var sitHit = sec.kind === "sit" && keys.indexOf(sec.key) >= 0 ? sec.name : null;
+      if (sec.kind === "sit" && !sitHit) return;
+      if (S.tryPending && sec.key !== "2PT") return;
+      sec.plays.forEach(function (pl) { (typeof otVariants === "function" ? otVariants(sec, pl) : [{ form: sec.form, call: pl.t }]).forEach(function (v) { add(v.form, v.call, sitHit, v.motion, v.rpo) }) });
+    });
+    if (!out.length) { var m = {}; S.snaps.concat(NC.season).forEach(function (s) { if (s.call && s.kind !== "try") add(s.form, s.call) }) }
+    return out;
+  }
+  function ncScore(c) {
+    var look = ncLook(c), C = ncCands(c), bold = ncPref("bold", "safe") === "bold";
+    var hist = S.snaps.filter(function (s) { return s.call && s.kind !== "try" && s.res !== "Penalty" && s.gain != null }).map(function (s) { var o = Object.assign({}, s); o._tn = 1; return o }).concat(NC.season);
+    var recent = S.snaps.filter(function (s) { return s.kind !== "try" }).slice(-6), y = toY(c.yl), need = c.dn <= 1 ? .4 : c.dn === 2 ? .5 : 1;
+    var shr = function (a, n, p, k) { return (a + p * k) / (n + k) };
+    var R = C.map(function (cd) {
+      var H = hist.filter(function (s) { return s.call === cd.call }), Hf = cd.form ? H.filter(function (s) { return s.form === cd.form }) : H; if (Hf.length >= 3) H = Hf;
+      var w = function (s) { return s._tn ? 2 : 1 }, n = 0, sc = 0, ex = 0, yds = 0; H.forEach(function (s) { var ww = w(s); n += ww; if (eff(s)) sc += ww; if ((s.pt === "Run" && s.gain >= 10) || (s.pt === "Pass" && s.gain >= 15) || s.td) ex += ww; yds += ww * (s.gain || 0) });
+      var srA = n ? shr(sc, n, .45, 4) : .38, exA = shr(ex, n, .1, 6), ypp = n ? yds / n : null, run = H.length ? H.filter(function (s) { return s.pt === "Run" }).length / H.length > .5 : null;
+      // vs the look they're likely to show
+      var vs = null, vsTxt = "";
+      if (look.shell) { var V = H.filter(function (s) { return s.shell === look.shell }); if (V.length) { var vsc = V.filter(eff).length; vs = shr(vsc, V.length, srA, 3); vsTxt = "vs " + look.shell.toLowerCase() + ": " + vsc + "/" + V.length } }
+      if (look.blitz != null && look.blitz >= .35) { var B = H.filter(function (s) { return s.blitz && s.blitz !== "No" }); if (B.length) { var bsc = B.filter(eff).length, bv = shr(bsc, B.length, srA, 3); vs = vs == null ? bv : (vs + bv) / 2; vsTxt = (vsTxt ? vsTxt + " · " : "") + "vs pressure " + bsc + "/" + B.length } }
+      // does it usually gain enough here?
+      var G = H.filter(function (s) { return s.gain >= Math.ceil(need * c.dist) || s.td }).length, fit = shr(G, H.length, srA, 4);
+      if ((c.dn >= 3) && c.dist >= 7 && run && ypp != null && ypp < c.dist * .5) fit *= .6;
+      var T = H.filter(function (s) { return s._tn }), tsc = T.filter(eff).length;
+      var lastUse = -1; S.snaps.forEach(function (s, i) { if (s.call === cd.call) lastUse = i });
+      var rep = recent.filter(function (s) { return s.call === cd.call }).length, repF = cd.form ? recent.filter(function (s) { return s.form === cd.form && s.dn === c.dn }).length : 0;
+      var score = 100 * ((bold ? .3 : .42) * srA + .26 * (vs == null ? srA : vs) + .22 * fit + (bold ? .22 : .1) * Math.min(1, exA * 3)) + (cd.sit ? 8 : 0) - Math.max(0, rep - 1) * 7 - Math.max(0, repF - 2) * 4;
+      var conf = Math.max(5, Math.min(97, Math.round(score * (n >= 6 ? 1 : .85 + n * .025))));
+      var why = [];
+      if (vsTxt) why.push(vsTxt);
+      if (T.length) why.push("tonight " + tsc + "/" + T.length + (T.length ? " · " + (T.reduce(function (s, x) { return s + (x.gain || 0) }, 0) / T.length).toFixed(1) + "/play" : ""));
+      else if (H.length) why.push("season " + H.filter(eff).length + "/" + H.length + (ypp != null ? " · " + ypp.toFixed(1) + "/play" : ""));
+      if (c.dn >= 3 && H.length) why.push("gets " + c.dist + "+: " + G + "/" + H.length);
+      if (cd.sit) why.push(cd.sit.toLowerCase() + " call");
+      if (!H.length) why.push("on this week's sheet · not run yet");
+      if (lastUse >= 0 && S.snaps.length - lastUse > 12 && srA > .5) why.push("unused for " + (S.snaps.length - lastUse - 1) + " plays");
+      if (rep >= 2) why.push("⚠ called " + rep + " of last 6");
+      return { cd: cd, conf: conf, score: score, why: why.slice(0, 2), allWhy: why, n: H.length, sr: n ? Math.round(100 * sc / n) : null, ypp: ypp, label: ((cd.form ? cd.form + " " : "") + cd.call + (cd.motion ? " · " + cd.motion : "") + (cd.rpo ? " · " + cd.rpo : "")).trim() };
+    });
+    R.sort(function (a, b) { return b.conf - a.conf || b.score - a.score });
+    // keep variety: no two suggestions with the same play
+    var con = function (c) { return String(c).toUpperCase().replace(/\([^)]*\)/g, " ").replace(/\b\d+\b/g, " ").replace(/\s+/g, " ").trim() };
+    var pick3 = [], calls = {}; R.forEach(function (r) { var k = con(r.cd.call); if (pick3.length < 3 && !calls[k]) { calls[k] = 1; pick3.push(r) } });
+    return { list: pick3, look: look };
+  }
+  function ncLookTxt(L) {
+    var p = []; if (L.shell) p.push(L.shell.toLowerCase() + (L.shellP != null ? " " + L.shellP + "%" : ""));
+    if (L.blitz != null && L.bn) p.push("blitz " + Math.round(L.blitz * 100) + "% (" + L.bl + "/" + L.bn + ")");
+    if (L.cov && S.dmode === "full") p.push((/^\d/.test(L.cov) ? "Cov " : "") + L.cov + " most"); if (L.box) p.push(L.box + "-man box");
+    return p.length ? "Their look here: " + p.join(" · ") : "No scout or plays yet for this down & distance";
+  }
+  function renderNC() {
+    var box = $("ncBox"); if (!box) return;
+    var on = ncPref("on", "1") === "1" && !S.example; box.hidden = !on; if (!on) return;
+    var c = S.cur, ps = typeof pendingSnap === "function" ? pendingSnap() : null;
+    if (ps) { box.innerHTML = "<div class='nc-h'><b>NEXT CALL</b><span>spot the ball first</span></div>"; return }
+    var key = [S.snaps.length, c.dn, c.dist, c.yl, c.hash, S.tryPending ? 1 : 0, SHEET.length, NC.season.length, ncPref("bold", "safe"), ncPref("hide", ""), JSON.stringify(SCOUT_NAME)].join("|");
+    if (NC.key !== key) { var r = ncScore(c); NC.list = r.list; NC.look = r.look; NC.key = key }
+    var mini = ncPref("mini", "0") === "1", sit = S.tryPending ? "2-pt try" : ddText(c) + " · " + ballText(c.yl) + (c.hash ? " · " + c.hash + " hash" : "");
+    var h = "<div class='nc-h'><b>NEXT CALL</b><span>" + esc(sit) + "</span><button type='button' id='ncWhy'>" + (NC.why ? "hide why" : "why?") + "</button><button type='button' id='ncMin'>" + (mini ? "▾ show" : "▴ hide") + "</button></div>";
+    if (!NC.list.length) { box.innerHTML = h + "<p class='nc-empty'>Load this week's call sheet (Setup) or log a few plays and suggestions show up here.</p>"; ncWire(); return }
+    if (mini) { box.innerHTML = h + "<div class='nc-mini'>" + NC.list.map(function (r, i) { return "<button type='button' class='nc-pick' data-i='" + i + "'>" + (i ? "" : "★ ") + esc(r.label) + " <em>" + r.conf + "</em></button>" }).join("") + "</div>"; ncWire(); return }
+    var sel = function (r) { return pick.call === r.cd.call && (!r.cd.form || pick.form === r.cd.form) };
+    box.innerHTML = h + "<div class='nc-row'>" + NC.list.map(function (r, i) {
+      return "<button type='button' class='nc-card" + (sel(r) ? " on" : "") + "' data-i='" + i + "'><div class='nc-t'><b>" + (i ? "" : "★ ") + esc(r.label) + "</b><em>" + r.conf + "</em></div>" + r.why.map(function (w) { return "<div class='nc-w'>" + esc(w) + "</div>" }).join("") + "</button>" }).join("") + "</div>" +
+      "<div class='nc-look'>" + esc(ncLookTxt(NC.look)) + "</div>" +
+      (NC.why ? "<div class='nc-detail'><table><tr><th>Call</th><th>Score</th><th>Plays</th><th>Success</th><th>Yds/play</th><th>Reasons</th></tr>" + NC.list.map(function (r) { return "<tr><td>" + esc(r.label) + "</td><td>" + r.conf + "</td><td>" + r.n + "</td><td>" + (r.sr != null ? r.sr + "%" : "—") + "</td><td>" + (r.ypp != null ? r.ypp.toFixed(1) : "—") + "</td><td>" + esc(r.allWhy.join(" · ")) + "</td></tr>" }).join("") + "</table><p class='note'>Score blends: your success with this play (season + tonight, tonight counts double), how it does vs the look they show here (scout + tonight), whether it usually gains enough for this down & distance, and a nudge away from calls you've leaned on. Small samples are pulled toward average.</p></div>" : "");
+    ncWire();
+  }
+  function ncWire() {
+    var w = $("ncWhy"), m = $("ncMin"); if (w) w.onclick = function () { NC.why = !NC.why; renderNC() }; if (m) m.onclick = function () { ncSet("mini", ncPref("mini", "0") === "1" ? "0" : "1"); renderNC() };
+    document.querySelectorAll("#ncBox [data-i]").forEach(function (b) { b.onclick = function () { var r = NC.list[+b.dataset.i]; if (!r) return; var cd = r.cd; pick.mull = false; pick.form = cd.form || pick.form; pick.call = cd.call; pick.callType = "sheet"; pick.motion = cd.motion; pick.rpo = cd.rpo; pick.nc = +b.dataset.i + 1; renderChips() } });
+  }
+  function ncSetupWire() {
+    var on = $("ncOn"), bo = $("ncBold"), hi = $("ncHide"); if (!on) return;
+    on.checked = ncPref("on", "1") === "1"; bo.value = ncPref("bold", "safe"); hi.value = ncPref("hide", "");
+    on.onchange = function () { ncSet("on", on.checked ? "1" : "0"); renderNC() }; bo.onchange = function () { ncSet("bold", bo.value); renderNC() }; hi.onchange = function () { ncSet("hide", hi.value); renderNC() };
+  }
+  function ncMatch(snap) { var i = -1; NC.list.forEach(function (r, k) { if (i < 0 && r.cd.call === snap.call && (!r.cd.form || r.cd.form === snap.form)) i = k }); return i >= 0 ? i + 1 : 0 }
   // ---------- call sheet mode: the uploaded sheet on screen, tap a play ----------
   var GS_Z = 1;
   try { GS_Z = +localStorage.getItem("solutions-gsz" + (typeof NS === "string" ? NS : "")) || 1 } catch (e) {}
@@ -1998,7 +2137,7 @@ textarea { min-height: 64px }
   }
   function renderChips() {
     renderSpot();
-    renderSheet(); renderGrid();
+    renderSheet(); renderGrid(); try { renderNC() } catch (e) {}
     renderPlayers();
     var full = S.dmode === "full";
     $("fastD").hidden = full; $("fullD").hidden = !full;
@@ -2042,6 +2181,7 @@ textarea { min-height: 64px }
       form: pick.form, call: pick.call, callType: pick.callType, motion: pick.motion || null, rpo: pick.rpo || null, mulligan: !!pick.mull, front: pick.front, cov: pick.cov, shell: pick.shell, box: pick.box, blitz: pick.blitz,
       res: pick.res, td: pick.td, gain: g, prev: JSON.parse(JSON.stringify(c)) };
     snap.pt = playType(snap);
+    try { var ncm = ncMatch(snap); if (ncm) snap.nc = ncm } catch (e) {}
     if (pick.declined) { snap.declined = pick.declined; pick.declined = null }
     var role = playerRole(snap.res);
     snap.qb = pick.qb || null;
@@ -3999,7 +4139,7 @@ textarea { min-height: 64px }
   $("penDecline").addEventListener("click", function () { if (!penSel) return; pick.declined = penSel.n + (penSel.side === "O" ? " on us" : " on them"); $("penModal").hidden = true; renderChips(); toast("Declined. Now tap the play's result and yards.") });
   $("pcGo").addEventListener("click", function () { var side = $("pcSide").value; pickPen({ k: "custom", n: "Penalty", side: side, y: Math.abs(parseInt($("pcYds").value, 10) || 0), afd: $("pcAfd").checked, lod: $("pcLod").checked }) });
   $("sMode").addEventListener("change", function () { S.dmode = $("sMode").value; save(); renderAll(); toast(S.dmode === "full" ? "Full defense tags on" : "Fast defense tags on") });
-  gsWire(); wpsWire(); luWire();
+  gsWire(); wpsWire(); luWire(); setTimeout(ncLoadSeason, 3000); setInterval(ncLoadSeason, 60000); ncSetupWire();
   if (!IS_HOME) { // other schools get generic examples, never Melissa's play names or opponents
     [["ceNew", "e.g. 2*3 ZONE  or  4*5 POWER / COUNTER"], ["cbName", "e.g. TRIPS or RED ZONE 20-10"], ["csSearch", "Or find any play: zone, power, mesh…"]].forEach(function (x) { var el = $(x[0]); if (el) el.placeholder = x[1] });
     document.querySelectorAll('input[placeholder="e.g. Anna"]').forEach(function (el) { el.placeholder = "e.g. Rival High" });
@@ -4091,7 +4231,7 @@ textarea { min-height: 64px }
   $("clipPrev").addEventListener("click", function () { var L = clipList(), at = L.indexOf(clipIdx); if (at > 0) openClip(L[at - 1]) });
   $("clipNext").addEventListener("click", function () { var L = clipList(), at = L.indexOf(clipIdx); if (at >= 0 && at < L.length - 1) openClip(L[at + 1]) });
   filmLoadKeys();
-  if (location.hash === "#selftest") window.__sol = { S: function () { return S }, save: save, renderAll: renderAll, FILM: FILM };
+  if (location.hash === "#selftest") window.__sol = { NC: function () { return ncScore(S.cur) }, S: function () { return S }, save: save, renderAll: renderAll, FILM: FILM };
   $("hnEd").addEventListener("click", openSchedEd); $("hnImp").addEventListener("click", openSchedEd);
   $("hnGo").addEventListener("click", function () { var n = WK.cur || schedNext(SCHED); if (!n) return; $("hsOpp").value = n.opp; $("hsDate").value = n.date; $("hsBox").hidden = false; $("hsCode").focus(); toast("Pick a game code, then Schedule") });
   $("hsToggle").addEventListener("click", function () { $("hsBox").hidden = !$("hsBox").hidden; if (!$("hsBox").hidden) $("hsOpp").focus() });

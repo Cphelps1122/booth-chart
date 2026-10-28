@@ -510,7 +510,7 @@ textarea { min-height: 64px }
       <div class="spothead">
         <div class="chips hashes" style="border-left:0;padding-left:0" aria-label="Hash"><span class="hlbl">Hash</span><button class="chip hs" data-h="L">L</button><button class="chip hs" data-h="M">M</button><button class="chip hs" data-h="R">R</button></div>
         <span class="readout" id="spotRead"></span>
-        <div class="chips qtrs" id="cQtr" style="margin-left:auto" aria-label="Quarter"></div>
+        <div class="chips qtrs" id="cQtr" style="margin-left:auto" aria-label="Quarter"></div><button class="chip" id="flipFld" type="button" title="Field going the wrong way? Tap to turn it around for this half">⇄ Flip field</button>
       </div>
       <div class="chips quick" id="quickStart" hidden>
         <button class="chip qs" id="qsKo">Kickoff touchback · Own 25</button>
@@ -2383,17 +2383,20 @@ textarea { min-height: 64px }
   }
   // ---------- tap-the-field spot ----------
   var FX0 = 70, FX1 = 930, PXY = (FX1 - FX0) / 100, lastSpot = null, dragY = null;
-  function yToX(y) { return FX0 + y * PXY }
-  function xToY(x) { return Math.round((x - FX0) / PXY) }
+  var SF = false; // true when we're driving right-to-left on the spot field
+  function stripFlip() { try { SF = !goesRight((pendingSnap() || S.cur).qtr) } catch (e) { SF = false } return SF }
+  function yToX(y) { return SF ? FX1 - y * PXY : FX0 + y * PXY }
+  function xToY(x) { return Math.round(SF ? (FX1 - x) / PXY : (x - FX0) / PXY) }
   function spotBase() { var ps = pendingSnap(); return ps ? toY(ps.yl) : (lastSpot && lastSpot.snap ? toY(lastSpot.snap.yl) : toY(S.cur.yl)) }
   function drawStrip() {
-    var ps = pendingSnap(), los = ps ? toY(ps.yl) : toY(S.cur.yl), c = S.cur, H = 150;
+    var ps = pendingSnap(), los = ps ? toY(ps.yl) : toY(S.cur.yl), c = S.cur, H = 150; stripFlip();
+    var UX0 = SF ? FX1 : 0, UX1 = SF ? 1000 : FX0, TX0 = SF ? 0 : FX1, TX1 = SF ? FX0 : 1000;
     var h = "<defs><linearGradient id='tf' x1='0' x2='0' y1='0' y2='1'><stop offset='0' stop-color='#2f7d3a'/><stop offset='1' stop-color='#1f5e2a'/></linearGradient></defs>";
     h += "<rect x='0' y='0' width='1000' height='" + H + "' fill='url(#tf)'/>";
-    for (var k = 0; k < 10; k++) if (k % 2 === 0) h += "<rect x='" + yToX(k * 10) + "' y='0' width='" + (PXY * 10) + "' height='" + H + "' fill='rgba(255,255,255,.035)'/>";
-    h += "<rect x='0' y='0' width='" + FX0 + "' height='" + H + "' fill='" + (getComputedStyle(document.documentElement).getPropertyValue("--school").trim() || "#0d0e12") + "'/><rect x='" + FX1 + "' y='0' width='" + (1000 - FX1) + "' height='" + H + "' fill='#2b2e35'/>";
-    h += "<text x='" + (FX0 / 2) + "' y='" + (H / 2) + "' fill='#fff' font-family='Barlow Condensed, Arial Narrow, sans-serif' font-weight='800' font-size='17' letter-spacing='3' text-anchor='middle' dominant-baseline='middle' transform='rotate(-90 " + (FX0 / 2) + " " + (H / 2) + ")'>US</text>";
-    h += "<text x='" + ((FX1 + 1000) / 2) + "' y='" + (H / 2) + "' fill='#fff' font-family='Barlow Condensed, Arial Narrow, sans-serif' font-weight='800' font-size='15' letter-spacing='2' text-anchor='middle' dominant-baseline='middle' transform='rotate(90 " + ((FX1 + 1000) / 2) + " " + (H / 2) + ")'>" + (ps ? "TD" : "THEM") + "</text>";
+    for (var k = 0; k < 10; k++) if (k % 2 === 0) h += "<rect x='" + Math.min(yToX(k * 10), yToX(k * 10 + 10)) + "' y='0' width='" + (PXY * 10) + "' height='" + H + "' fill='rgba(255,255,255,.035)'/>";
+    h += "<rect x='" + UX0 + "' y='0' width='" + (UX1 - UX0) + "' height='" + H + "' fill='" + (getComputedStyle(document.documentElement).getPropertyValue("--school").trim() || "#0d0e12") + "'/><rect x='" + TX0 + "' y='0' width='" + (TX1 - TX0) + "' height='" + H + "' fill='#2b2e35'/>";
+    var ucx = (UX0 + UX1) / 2, tcx = (TX0 + TX1) / 2; h += "<text x='" + ucx + "' y='" + (H / 2) + "' fill='#fff' font-family='Barlow Condensed, Arial Narrow, sans-serif' font-weight='800' font-size='17' letter-spacing='3' text-anchor='middle' dominant-baseline='middle' transform='rotate(" + (SF ? 90 : -90) + " " + ucx + " " + (H / 2) + ")'>US</text>";
+    h += "<text x='" + tcx + "' y='" + (H / 2) + "' fill='#fff' font-family='Barlow Condensed, Arial Narrow, sans-serif' font-weight='800' font-size='15' letter-spacing='2' text-anchor='middle' dominant-baseline='middle' transform='rotate(" + (SF ? -90 : 90) + " " + tcx + " " + (H / 2) + ")'>" + (ps ? "TD" : "THEM") + "</text>";
     for (var y = 0; y <= 100; y++) {
       var x = yToX(y);
       if (y % 5 === 0) h += "<line x1='" + x + "' y1='0' x2='" + x + "' y2='" + H + "' stroke='rgba(255,255,255," + (y % 10 === 0 ? .55 : .3) + ")' stroke-width='" + (y === 0 || y === 100 ? 3 : y === 50 ? 2.2 : 1.3) + "'/>";
@@ -2427,7 +2430,7 @@ textarea { min-height: 64px }
   }
   function stripY(ev) {
     var svg = $("spotSvg"), r = svg.getBoundingClientRect(), x = (ev.clientX - r.left) * 1000 / r.width;
-    if (x >= FX1) return 100;
+    stripFlip(); if (SF ? x <= FX0 : x >= FX1) return 100;
     return Math.max(1, Math.min(99, xToY(x)));
   }
   function commitSpot(y) {
@@ -4532,8 +4535,13 @@ textarea { min-height: 64px }
     var end = function (e) { if (!down) return; down = false; var y = dragY; dragY = null; if (y != null) commitSpot(y); else drawStrip() };
     svg.addEventListener("pointerup", end); svg.addEventListener("pointercancel", function () { down = false; dragY = null; drawStrip() });
   })();
-  $("nudL").addEventListener("click", function () { nudge(-1) });
-  $("nudR").addEventListener("click", function () { nudge(1) });
+  $("nudL").addEventListener("click", function () { nudge(stripFlip() ? 1 : -1) });
+  $("nudR").addEventListener("click", function () { nudge(stripFlip() ? -1 : 1) });
+  $("flipFld").addEventListener("click", function () {
+    var q = (pendingSnap() || S.cur).qtr || 1, k = (q <= 2 || q === 5) ? "q1" : "q3"; S.dir = S.dir || {};
+    var cur = k === "q1" ? (S.dir.q1 || "R") : (S.dir.q3 || S.dir.q1 || "R"); S.dir[k] = cur === "L" ? "R" : "L";
+    save(); renderAll(); try { renderDirBtns() } catch (e) {} toast("Field flipped · we're going " + (goesRight(q) ? "right →" : "← left") + " this quarter");
+  });
   $("nudNG").addEventListener("click", function () { var ps = pendingSnap(); if (ps) { lastSpot = { snap: ps }; finishPending(ps, 0) } });
   $("sideOpp").addEventListener("click", function () { pick.spotSide = "opp"; renderSpot() });
   $("applyOvr").addEventListener("click", function () {

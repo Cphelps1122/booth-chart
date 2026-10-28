@@ -1132,6 +1132,8 @@ textarea { min-height: 64px }
   if (!IS_HOME) DEFAULT_SHEET = [];
   var SHEET_VER = 3;
   var SHEET = DEFAULT_SHEET, CONCEPT = {};
+  var MULL_NAME = IS_HOME ? "Mulligan" : "Run it again";
+  document.querySelectorAll(".mull .mt").forEach(function (e) { e.textContent = "↻ " + MULL_NAME });
   function refreshSheet() {
     if (S && S.sheet && S.sheetVer !== SHEET_VER) { S.sheet = null } // new call sheet loaded in the app replaces older edits
     if (S && S.sheetVer !== SHEET_VER) S.sheetVer = SHEET_VER;
@@ -2496,7 +2498,7 @@ textarea { min-height: 64px }
     pick.form = pv.form || pick.form; pick.call = pv.call ? pv.call.replace(/\s+Q$/, "") : null; pick.callType = pv.callType || (pv.call ? "sheet" : null);
     pick.motion = pv.motion || null; pick.rpo = pv.rpo || null; pick.mull = true;
     var gs = formSections(); gs.forEach(function (p, gi) { if (p[0].form === pick.form && p[0].plays.some(function (pl) { return pl.t === pick.call })) pick.sec = gi });
-    renderChips(); toast("Mulligan: " + callText(pv));
+    renderChips(); toast(MULL_NAME + ": " + callText(pv));
   }
   function renderChips() {
     renderSpot();
@@ -3007,7 +3009,7 @@ textarea { min-height: 64px }
     if (s.res !== "Interception" && s.res !== "Fumble") t.push(eff(s) ? "<span class='tag'>Eff ✓</span>" : "<span class='tag'>Not eff</span>");
     if (s.gain < 0) t.push("<span class='tag bad'>Loss</span>");
     if (s.declined) t.push("<span class='tag'>Declined: " + esc(s.declined) + "</span>");
-    if (s.mulligan) t.push("<span class='tag mul'>Mulligan</span>");
+    if (s.mulligan) t.push("<span class='tag mul'>" + MULL_NAME + "</span>");
     return t.join("");
   }
 

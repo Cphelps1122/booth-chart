@@ -3255,6 +3255,15 @@ textarea { min-height: 64px }
   }
   // Texas Bob stadium list (Admin → Stadiums), shared by every school
   var TXP = null;
+  // a usable field: real numbers, inside Texas-ish, about a football field long (bad map data once put fields in the ocean)
+  function okField(f, near) {
+    if (!f || !f.g1 || !f.g2) return false; var a = f.g1, b = f.g2;
+    if (![a[0], a[1], b[0], b[1]].every(function (v) { return typeof v === "number" && isFinite(v) })) return false;
+    if (a[0] < 24 || a[0] > 38 || a[1] < -108 || a[1] > -92) return false;
+    var d = distM(a, b); if (d < 75 || d > 115) return false;
+    if (near && isFinite(near[0]) && distM(a, near) > 3000) return false;
+    return true;
+  }
   function txKey(n) { return String(n || "").toLowerCase().replace(/\((tx|texas)\)/g, " ").replace(/\b(high school|h\.?s\.?|school|schools|senior high|cisd|isd|jr-sr high|jr\/sr high)\b/g, " ").replace(/[^a-z0-9]+/g, " ").trim() }
   function txTable() {
     if (TXP) return TXP; var k = "solutions-tx", c = null; try { c = JSON.parse(localStorage.getItem(k) || "null") } catch (e) {}
@@ -3270,7 +3279,8 @@ textarea { min-height: 64px }
       var C = [];
       ((d && d.elements) || []).forEach(function (e) {
         var t = e.tags || {}, g = pitchGeo(e); if (!g.length && e.members) e.members.forEach(function (m) { if (m.geometry) g = g.concat(m.geometry.map(function (x) { return [x.lat, x.lon] })) }); if (g.length < 4) return;
-        var f = fieldFromPitch(g); if (!f) return; var c = centroid(g), sp = String(t.sport || ""), nmTxt = String(t.name || "").toLowerCase();
+        g = g.filter(function (p) { return p && isFinite(p[0]) && isFinite(p[1]) }); if (g.length < 4) return;
+        var f = fieldFromPitch(g); if (!okField(f, loc)) return; var c = centroid(g), sp = String(t.sport || ""), nmTxt = String(t.name || "").toLowerCase();
         var score = distM(c, loc) + (t.leisure === "pitch" ? (/american_football/.test(sp) ? 0 : /soccer|multi|rugby/.test(sp) || !sp ? 250 : 600) : 400) - (low && nmTxt && (low.indexOf(nmTxt) >= 0 || nmTxt.indexOf(low.split(" ")[0]) >= 0) ? 500 : 0);
         C.push({ f: f, score: score });
       });
@@ -3294,8 +3304,8 @@ textarea { min-height: 64px }
       if (txFind(T, name)) return T; TXP = null; try { localStorage.removeItem("solutions-tx") } catch (x) {} return txTable(); // not in our saved copy: get the latest list once
     }).then(function (T) {
       var e = txFind(T, name);
-      if (e) { if (cached && cached.src === "txb" && cached.stadium === e.s && cached.field && (cached.manual || !LU_FIX[e.s])) return cached; return venLoad(slug).then(function (v) { if (v && v.src === "txb" && v.stadium === e.s && v.field && (v.manual || !LU_FIX[e.s])) return v; return venueTX(name, e).then(function (f) { if (f && f.field) venSave(slug, f); return f }) }) }
-      if (cached && cached.field) return cached;
+      if (e) { if (cached && cached.src === "txb" && cached.stadium === e.s && okField(cached.field) && (cached.manual || !LU_FIX[e.s])) return cached; return venLoad(slug).then(function (v) { if (v && v.src === "txb" && v.stadium === e.s && okField(v.field) && (v.manual || !LU_FIX[e.s])) return v; return venueTX(name, e).then(function (f) { if (f && okField(f.field)) venSave(slug, f); return f }) }) }
+      if (cached && okField(cached.field)) return cached;
       return venLoad(slug).then(function (v) {
       if (v && (v.field || v.src === "none")) return v;
       return homeLocation().then(function (near) { return findVenue(name, name === SCHOOL_NAME_H ? null : near) }).then(function (f) { if (f) { venSave(slug, f) } return f });
@@ -3306,7 +3316,7 @@ textarea { min-height: 64px }
   // ---------- line up a field by hand: tap both goal lines on the satellite picture; saved for everyone ----------
   var LU = { c: null, half: 160, pts: [], name: "", stadium: "", city: "", key: "" }, LU_FIX = {};
   function luSlug(e) { return "_f_" + txKey((e.s || "") + " " + (e.c || "")).replace(/ /g, "_") }
-  function luShared(e) { return venLoad(luSlug(e)).then(function (v) { return v && v.field ? v : null }, function () { return null }) }
+  function luShared(e) { return venLoad(luSlug(e)).then(function (v) { return v && okField(v.field) ? v : null }, function () { return null }) }
   function luURL() { var N = 1000, h = LU.half / Math.cos(LU.c[0] * Math.PI / 180) * 1, m = merc(LU.c[0], LU.c[1]); LU.bb = [m[0] - h, m[1] - h, m[0] + h, m[1] + h]; return "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=" + LU.bb.map(function (v) { return v.toFixed(2) }).join(",") + "&bboxSR=3857&imageSR=3857&size=" + N + "," + N + "&format=jpg&f=image" }
   function unmerc(x, y) { return [(2 * Math.atan(Math.exp(y / R_EARTH)) - Math.PI / 2) * 180 / Math.PI, x / R_EARTH * 180 / Math.PI] }
   function luPx2ll(px, py) { var b = LU.bb; return unmerc(b[0] + (b[2] - b[0]) * px / 1000, b[3] - (b[3] - b[1]) * py / 1000) }
@@ -3365,6 +3375,7 @@ textarea { min-height: 64px }
     STADIUM = IS_HOME && home ? HOME_STADIUM : drawnStadium(schoolColor()); VEN.info = { stadium: "Looking up " + who + "'s stadium…" }; renderVenueNote();
     venueFor(e && e.venue ? e.venue : who).then(function (v) {
       if (VEN.key !== key) return;
+      if (v && v.field && !okField(v.field)) { v.field = null; v.why = "the map gave a bad spot for this field" }
       if (v && v.field) { STADIUM = satStadium(v.field); VEN.info = v } else VEN.info = v && v.src === "txb" ? v : { stadium: "Couldn't find " + who + "'s stadium on the map. Showing the drawn field.", src: "none", why: "couldn't find the stadium" };
       renderAll(); renderVenueNote();
     });
@@ -3903,7 +3914,7 @@ textarea { min-height: 64px }
     var vi = typeof VEN !== "undefined" && VEN ? VEN.info : null;
     $("oppLabel").textContent = (away ? "at " : "vs ") + S.opp + (vi && vi.src === "txb" && vi.stadium ? " · " + vi.stadium + (vi.city ? ", " + vi.city : "") : "");
     var lb = $("luHead"); if (!lb) { lb = document.createElement("button"); lb.id = "luHead"; lb.type = "button"; lb.className = "luhead"; lb.addEventListener("click", luOpen); $("oppLabel").insertAdjacentElement("afterend", lb) }
-    lb.hidden = !(vi && (vi.src === "txb" || vi.src === "none") && !vi.field); lb.textContent = vi && vi.why ? vi.why + " · tap to line it up" : "tap to line up the field";
+    lb.hidden = !vi || !(vi.src === "txb" || vi.src === "none" || vi.field); lb.textContent = vi && vi.field ? "wrong field? tap to line it up" : vi && vi.why ? vi.why + " · tap to line it up" : "tap to line up the field"; lb.style.color = vi && vi.field ? "#9aa7b6" : "#ffd400";
     $("pQtr").textContent = c.qtr === 5 ? "OT" : "Q" + c.qtr;
     $("pSer").textContent = "S" + c.series;
     var ps = pendingSnap();

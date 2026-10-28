@@ -14,7 +14,8 @@
     if (document.getElementById("solTheme")) return;
     var b = document.createElement("button"); b.id = "solTheme"; b.type = "button";
     b.addEventListener("click", function () { var n = cur() === "dark" ? "light" : "dark"; try { localStorage.setItem(K, n) } catch (e) {} apply(); try { window.dispatchEvent(new Event("solthemechange")) } catch (e) {} });
-    var h = document.querySelector("header"); (h || document.body).appendChild(b); if (!h) b.classList.add("float");
+    var slot = document.getElementById("solThemeSlot"), h = document.querySelector("header");
+    if (slot) { slot.appendChild(b); b.classList.add("inline") } else { (h || document.body).appendChild(b); if (!h) b.classList.add("float") }
     apply();
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mount); else mount();
@@ -24,6 +25,7 @@
 <style>
 #solTheme { font: 700 13px/1 "Barlow", "Segoe UI", Arial, sans-serif; letter-spacing: .04em; padding: 7px 11px; border-radius: 999px; border: 1px solid rgba(255,255,255,.35); background: rgba(255,255,255,.1); color: #f4f4f5; cursor: pointer; white-space: nowrap; position: absolute; top: calc(env(safe-area-inset-top, 0px) + 8px); right: 10px; z-index: 50 }
 #solTheme:hover { background: rgba(255,255,255,.2) }
+#solTheme.inline { position: static; margin-left: 8px; align-self: center }
 #solTheme.float { position: fixed; background: #111; }
 header { position: relative }
 @media print { #solTheme { display: none } }
@@ -319,6 +321,7 @@ label.f { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font
     runp: "INSIDE ZONE, OUTSIDE ZONE, POWER, COUNTER, QB RUN, JET SWEEP, DRAW, OPTION", passp: "QUICK GAME, SCREEN, DROPBACK, PLAY ACTION, RPO, BOOT",
     num: "1, 2, 3, 4, 5, 7, 10, 11, 22, 80"
   };
+  if (NS) { DEF_LISTS.cov = "COV 0, COV 1, COV 2, COV 3, COV 4, COV 6, 2 MAN"; DEF_LISTS.blz = "MIKE A-GAP, NICKEL SIDE, SAM EDGE, DOUBLE A, FIRE ZONE"; DEF_LISTS.front = "4-3 OVER, 4-3 UNDER, 3-4 ODD, TITE, BEAR, EAGLE" }
   var FIXED = { str: "FIELD, BOUNDARY, BALANCED", fb: "FIELD, BOUNDARY", sw: "STRONG, WEAK", gap: "E,D,C,B,A,B,C,D,E", pdir: "FIELD, BOUNDARY, MIDDLE, SHORT, DEEP" };
   var RES = ["Run", "Complete", "Incomplete", "Sack", "Interception", "Fumble"];
   function fresh() { return { snaps: [], cur: { qtr: 1, drive: 1, dn: 1, dist: 10, y: 25, hash: "M", ready: false }, lists: JSON.parse(JSON.stringify(DEF_LISTS)), opp: "" } }

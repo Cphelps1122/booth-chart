@@ -525,7 +525,7 @@ textarea { min-height: 64px }
         <div class="chips" id="csPlays"></div>
         <h3 style="margin-top:12px">RPO <small>resets each play</small></h3>
         <div class="chips" id="cRpoTag"></div>
-        <input id="csSearch" type="search" placeholder="Or find any play: zip, gang, wiz…" autocomplete="off" aria-label="Find any play on the call sheet" style="margin-top:10px">
+        <input id="csSearch" type="search" placeholder="Or find any play: zone, power, mesh…" autocomplete="off" aria-label="Find any play on the call sheet" style="margin-top:10px">
         <details style="margin-top:10px">
           <summary style="cursor:pointer;font-weight:700">Not on the sheet / change formation</summary>
           <div class="sub">Formation</div><div class="chips" id="cForm"></div>
@@ -767,14 +767,14 @@ textarea { min-height: 64px }
         </div>
         <div class="tbl" style="margin-top:10px"><table id="cePlays"></table></div>
         <div class="custom" style="margin-top:10px">
-          <label for="ceNew" style="flex:1 1 300px">Add plays (pairs and slashes split on their own)<input id="ceNew" type="text" style="width:100%" placeholder="e.g. 2*3 AB  or  4*5 ZIP / SPLIT ZONE"></label>
+          <label for="ceNew" style="flex:1 1 300px">Add plays (pairs and slashes split on their own)<input id="ceNew" type="text" style="width:100%" placeholder="e.g. 2*3 ZONE  or  4*5 POWER / COUNTER"></label>
           <label for="ceNewC">Color<select id="ceNewC"></select></label>
           <button class="btn primary" id="ceAdd" style="flex:0 0 auto;font-size:17px;padding:10px 16px">Add</button>
         </div>
         <p class="note" id="cePreview"></p>
         <details style="margin-top:6px"><summary style="cursor:pointer;font-weight:700">Add a new box</summary>
           <div class="custom">
-            <label for="cbName" style="flex:1 1 200px">Name<input id="cbName" type="text" style="width:100%" placeholder="e.g. BONE or RED ZONE 25-16"></label>
+            <label for="cbName" style="flex:1 1 200px">Name<input id="cbName" type="text" style="width:100%" placeholder="e.g. TRIPS or RED ZONE 20-10"></label>
             <label for="cbType">Type<select id="cbType"><option value="form">Formation box</option><option value="sit">Situation box</option></select></label>
             <label for="cbForm" id="cbFormL">Formation it sets<input id="cbForm" type="text" style="width:150px" placeholder="same as name"></label>
             <label for="cbWhen" id="cbWhenL" hidden>Shows up on<select id="cbWhen"></select></label>
@@ -1084,7 +1084,7 @@ textarea { min-height: 64px }
     CONCEPT = {}; SHEET.forEach(function (sec) { sec.plays.forEach(function (pl) { if (!CONCEPT[pl.t]) CONCEPT[pl.t] = pl.g || pl.t }) });
   }
   function conceptOf(call) { return call ? (CONCEPT[call] || call) : null }
-  var FORMS_KNOWN = ["SLOT TRIG", "SLOT DIP", "HEAVY AGGIE", "GOLD", "RED", "BLUE", "GRAY", "CREW", "EMPTY", "TEXAS", "BOSTON", "PRO", "AGGIE", "BONE"];
+  var FORMS_KNOWN = !IS_HOME ? [] : ["SLOT TRIG", "SLOT DIP", "HEAVY AGGIE", "GOLD", "RED", "BLUE", "GRAY", "CREW", "EMPTY", "TEXAS", "BOSTON", "PRO", "AGGIE", "BONE"];
   var SCOUT_CALLS = [["POWER", -1, "LT held Power to 1.7 (7)"], ["CHOICE", 1, "Choice hurt LT: 9.3 a play (12)"]];
   var SCOUT = {"sits":{"P&10":{"n":45,"cov":["4",20],"cn":40,"front":["HEADS",13],"fn":37,"bl":3,"ypp":10.3},"1st & 10":{"n":50,"cov":["4",22],"cn":47,"front":["OVER",19],"fn":39,"bl":5,"ypp":5.4},"1st & 11+":{"n":9,"cov":["1",2],"cn":6,"front":["OVER",2],"fn":5,"bl":1,"ypp":5.7},"1st & 1-9":{"n":10,"cov":["0",6],"cn":8,"front":["BEAR",2],"fn":5,"bl":0,"ypp":5.9},"2nd & 10+":{"n":36,"cov":["4",12],"cn":32,"front":["HEADS",12],"fn":28,"bl":7,"ypp":9.7},"2nd & 7-9":{"n":10,"cov":["0",3],"cn":8,"front":["HEADS",4],"fn":7,"bl":1,"ypp":8.5},"2nd & 3-6":{"n":22,"cov":["4",7],"cn":21,"front":["OVER",6],"fn":18,"bl":3,"ypp":2.9},"2nd & 1-2":{"n":9,"cov":["4",4],"cn":8,"front":["HEADS",3],"fn":8,"bl":0,"ypp":8.2},"3rd & 10+":{"n":13,"cov":["0",5],"cn":12,"front":["OVER",5],"fn":12,"bl":5,"ypp":10.8},"3rd & 7-9":{"n":15,"cov":["4",6],"cn":15,"front":["HEADS",6],"fn":13,"bl":5,"ypp":8.9},"3rd & 3-6":{"n":10,"cov":["4",3],"cn":8,"front":["OVER",3],"fn":8,"bl":2,"ypp":5.0},"3rd & 1-2":{"n":7,"cov":["1",3],"cn":6,"front":["HEADS",3],"fn":7,"bl":2,"ypp":6.7},"4th & 3+":{"n":11,"cov":["0",4],"cn":9,"front":["HEADS",3],"fn":8,"bl":3,"ypp":11.4},"4th & 1-2":{"n":5,"cov":["0",4],"cn":4,"front":["HEADS",3],"fn":5,"bl":5,"ypp":-1.0},"Coming out":{"n":18,"cov":["0",5],"cn":17,"front":["OVER",5],"fn":14,"bl":1,"ypp":10.5},"Open field":{"n":195,"cov":["4",76],"cn":173,"front":["HEADS",58],"fn":154,"bl":30,"ypp":8.0},"High red zone":{"n":16,"cov":["1",6],"cn":13,"front":["OVER",5],"fn":13,"bl":5,"ypp":3.1},"Score zone":{"n":14,"cov":["0",9],"cn":13,"front":["HEADS",4],"fn":11,"bl":4,"ypp":6.2},"Goal line":{"n":9,"cov":["0",8],"cn":8,"front":["BEAR",4],"fn":8,"bl":2,"ypp":1.8},"ALL":{"n":252,"cov":["4",83],"cn":224,"front":["HEADS",67],"fn":200,"bl":42,"ypp":7.6}},"forms":{"BLUE":{"n":24,"cov":["4",13],"cn":23,"bl":0,"ypp":9.3},"BONE":{"n":37,"cov":["3",15],"cn":20,"bl":0,"ypp":11.3},"BOSTON":{"n":19,"cov":["0",6],"cn":19,"bl":7,"ypp":5.7},"CREW":{"n":18,"cov":["0",7],"cn":17,"bl":4,"ypp":4.4},"EMPTY":{"n":10,"cov":["0",9],"cn":10,"bl":4,"ypp":14.4},"GRAY":{"n":9,"cov":["4",6],"cn":9,"bl":2,"ypp":2.8},"RED":{"n":28,"cov":["4",17],"cn":26,"bl":4,"ypp":6.7},"SLOT DIP":{"n":43,"cov":["4",20],"cn":42,"bl":7,"ypp":7.0},"SLOT TRIG":{"n":42,"cov":["4",13],"cn":40,"bl":8,"ypp":7.3}}};
   var SCOUT_SHELL = {"sits":{"P&10":["1-HIGH",43,45],"1st & 10":["1-HIGH",42,50],"1st & 11+":["1-HIGH",6,9],"1st & 1-9":["1-HIGH",8,10],"2nd & 10+":["1-HIGH",33,36],"2nd & 7-9":["1-HIGH",9,10],"2nd & 3-6":["1-HIGH",19,22],"2nd & 1-2":["1-HIGH",7,9],"3rd & 10+":["1-HIGH",12,13],"3rd & 7-9":["1-HIGH",14,15],"3rd & 3-6":["1-HIGH",10,10],"3rd & 1-2":["1-HIGH",5,7],"4th & 3+":["1-HIGH",8,10],"4th & 1-2":["1-HIGH",2,4],"Coming out":["1-HIGH",18,18],"Open field":["1-HIGH",176,194],"High red zone":["1-HIGH",11,16],"Score zone":["1-HIGH",11,14],"Goal line":["ZERO",4,8],"ALL":["1-HIGH",218,250]},"forms":{"BLUE":["1-HIGH",20,24],"BONE":["1-HIGH",26,36],"BOSTON":["1-HIGH",19,19],"CREW":["1-HIGH",9,17],"EMPTY":["1-HIGH",9,10],"GRAY":["1-HIGH",9,9],"RED":["1-HIGH",26,28],"SLOT DIP":["1-HIGH",42,43],"SLOT TRIG":["1-HIGH",41,42]}};
@@ -1126,6 +1126,7 @@ textarea { min-height: 64px }
   function who(num) { var r = roster().filter(function (x) { return x.n === String(num) })[0]; return "#" + num + (r ? " " + (r.name || r.pos) : "") }
   var SCOUT_NAME = "No scout loaded";
   // ---------- opponent scout: built-in Lebanon Trail, or one sent from the Report Builder ----------
+  if (!IS_HOME) { SCOUT = { sits: {}, forms: {} }; SCOUT_SHELL = { sits: {}, forms: {} }; SCOUT_CALLS = [] }
   var SCOUT_KEY = "cardinals-scout-v1" + NS, BUILTIN_SCOUT = { sits: SCOUT.sits, forms: SCOUT.forms, shell: SCOUT_SHELL, calls: SCOUT_CALLS, name: SCOUT_NAME };
   function applyScout() {
     var sc = S && S.scout && S.scout.sits ? S.scout : null;
@@ -1157,7 +1158,7 @@ textarea { min-height: 64px }
     cov: "0, 1, 2, 3, 4, 6, TAMPA, ?",
     blitz: "M PLUG, BULLETS, DBL EDGE, OTHER"
   };
-  if (!IS_HOME) { DEF_LISTS.form = ""; DEF_LISTS.run = ""; DEF_LISTS.pass = ""; DEF_LISTS.rpo = ""; DEF_LISTS.motion = "" }
+  if (!IS_HOME) { DEF_LISTS.form = ""; DEF_LISTS.run = ""; DEF_LISTS.pass = ""; DEF_LISTS.rpo = ""; DEF_LISTS.motion = ""; DEF_LISTS.front = "4-3 OVER, 4-3 UNDER, 3-4 ODD, TITE, BEAR, EAGLE"; DEF_LISTS.cov = "0, 1, 2, 3, 4, 6, ?"; DEF_LISTS.blitz = "MIKE A-GAP, NICKEL SIDE, FIRE ZONE, OTHER" }
   var RESULTS = ["Rush", "Complete", "Incomplete", "Scramble", "Sack", "Interception", "Fumble", "Penalty"];
   var NEG = { Sack: 1, Interception: 1, Fumble: 1, Penalty: 1, Incomplete: 1 };
 
@@ -3845,7 +3846,7 @@ textarea { min-height: 64px }
   var CE_COLORS = [["run", "Run (red)"], ["pass", "Pass (blue)"], ["scr", "Screen (black)"], ["w", "White"], ["g", "Gray"], ["y", "Yellow"], ["o", "Orange"], ["gn", "Green"]];
   var CE_WHEN = [["", "Always listed"], ["3L11", "3rd & 11+"], ["3L7", "3rd & 7-10"], ["3M", "3rd & 4-6"], ["3S", "3rd & 1-3"], ["3FD", "3rd & 4-9 (4-down zone)"], ["2L", "2nd & 8+"], ["RZ", "Red zone (opp 25-16)"], ["SZ", "Score zone (opp 15-6)"], ["CO", "Coming out (own 1-10)"], ["TZ", "Tight zone (inside the 6)"], ["2PT", "2-point try"], ["4TH", "4th down"]];
   var ceSel = 0, ceDelArm = null;
-  var FORM_WORDS = ["SLOT TRIG", "SLOT DIP", "HEAVY AGGIE", "GOLD", "RED", "BLUE", "GRAY", "TEXAS", "PRO", "EMPTY", "SLOT", "BONE", "CREW", "BOSTON", "AGGIE"];
+  var FORM_WORDS = !IS_HOME ? [] : ["SLOT TRIG", "SLOT DIP", "HEAVY AGGIE", "GOLD", "RED", "BLUE", "GRAY", "TEXAS", "PRO", "EMPTY", "SLOT", "BONE", "CREW", "BOSTON", "AGGIE"];
   function expandCall(text) {
     var t = String(text || "").toUpperCase().replace(/\s+/g, " ").trim(); if (!t) return [];
     var orig = [], prot = [];
@@ -3946,17 +3947,16 @@ textarea { min-height: 64px }
   function exampleState() {
     var st = fresh(); st.example = true;
     var seq = [
-      ["GOLD", "INSERT", "run", "HEADS", "3", "No", "Rush", 6], ["SLOT DIP", "CHOICE", "pass", "HEADS", "3", "No", "Complete", 9],
-      ["SLOT TRIG", "GIFT", "rpo", "OVER", "1", "M PLUG", "Rush", 2], ["GOLD", "POWER", "run", "HEADS", "3", "No", "Rush", 12],
-      ["RED", "ACE", "run", "HEADS", "3", "M PLUG", "Rush", -2], ["SLOT DIP", "QK GAME", "pass", "OVER", "1", "BULLETS", "Complete", 7],
-      ["GOLD", "INSERT", "run", "HEADS", "3", "No", "Rush", 4], ["SLOT TRIG", "CHOICE", "pass", "HEADS", "4", "No", "Incomplete", 0],
-      ["GOLD", "INSIDE ZONE", "run", "HEADS", "3", "No", "Rush", 5], ["SLOT DIP", "STAB", "rpo", "OVER", "1", "BULLETS", "Complete", 16],
-      ["GOLD", "INSERT", "run", "HEADS", "3", "No", "Rush", 8], ["RED", "POWER", "run", "BEAR", "0", "M PLUG", "Rush", 1],
-      ["SLOT TRIG", "SCREEN", "pass", "OVER", "1", "BULLETS", "Complete", 11], ["GOLD", "INSERT", "run", "HEADS", "3", "No", "Rush", 3]
+      ["DOUBLES", "INSIDE ZONE", "run", "4-3 OVER", "3", "No", "Rush", 6], ["TRIPS", "MESH", "pass", "4-3 OVER", "3", "No", "Complete", 9],
+      ["TRIPS", "BUBBLE", "rpo", "4-3 UNDER", "1", "MIKE A-GAP", "Rush", 2], ["DOUBLES", "POWER", "run", "4-3 OVER", "3", "No", "Rush", 12],
+      ["ACE", "OUTSIDE ZONE", "run", "4-3 OVER", "3", "MIKE A-GAP", "Rush", -2], ["TRIPS", "STICK", "pass", "4-3 UNDER", "1", "FIRE ZONE", "Complete", 7],
+      ["DOUBLES", "INSIDE ZONE", "run", "4-3 OVER", "3", "No", "Rush", 4], ["EMPTY", "SMASH", "pass", "4-3 OVER", "4", "No", "Incomplete", 0],
+      ["DOUBLES", "COUNTER", "run", "4-3 OVER", "3", "No", "Rush", 5], ["TRIPS", "GLANCE", "rpo", "4-3 UNDER", "1", "FIRE ZONE", "Complete", 16],
+      ["DOUBLES", "INSIDE ZONE", "run", "4-3 OVER", "3", "No", "Rush", 8], ["ACE", "POWER", "run", "BEAR", "0", "MIKE A-GAP", "Rush", 1],
+      ["TRIPS", "SCREEN", "pass", "4-3 UNDER", "1", "FIRE ZONE", "Complete", 11], ["DOUBLES", "INSIDE ZONE", "run", "4-3 OVER", "3", "No", "Rush", 3]
     ];
     S = st;
-    var MAP = { "INSERT": ["4 ZIP", "5 ZIP"], "CHOICE": ["GANG"], "GIFT": ["GIFT"], "POWER": ["2 POWER", "3 POWER"], "ACE": ["ACES (BND)"], "QK GAME": ["SLANTS", "TINY"],
-      "INSIDE ZONE": ["2 SMACK", "3 SMACK"], "STAB": ["LARRY", "RICKY"], "SCREEN": ["FLARE (GO)"] };
+    var MAP = {};
     seq.forEach(function (q, i) { var m = MAP[q[1]]; q[1] = m ? m[i % m.length] : q[1]; q[2] = "sheet" });
     seq.forEach(function (q, i) {
       if (i === 7) S.cur.qtr = 2;

@@ -220,6 +220,7 @@ main { padding-block: 14px 40px }
 .gsgrid .gc button { font: inherit; font-size: 1em; border: 1px solid transparent; background: none; padding: 3px 5px; border-radius: 5px; cursor: pointer; flex: 1 1 auto; text-align: left; white-space: nowrap; line-height: 1.15 }
 .gsgrid .gc button:hover { border-color: #9aa3ad } .gsgrid .gc button[aria-pressed=true] { background: #111 !important; color: #fff !important } .gsgrid .k-run { color: #d00000 } .gsgrid .k-pass { color: #0030d0 } .gsgrid .k-scr { color: #000 }
 .gsgrid .gc button .gm { font-size: .72em; opacity: .75; margin-left: 4px; border: 1px solid currentColor; border-radius: 4px; padding: 0 3px }
+.gsgrid .gsch button.last { outline: 2px dashed currentColor; outline-offset: -3px }
 .gsgrid .gsch { display: inline-flex; gap: 3px; flex: 0 0 auto } .gsgrid .gsch button { flex: 0 0 auto !important; font-size: 1.15em !important; font-weight: 900; padding: 5px 10px !important; border: 2px solid #111 !important; background: #fff !important; color: #111 !important } .gsgrid .gsch button[aria-pressed=true] { background: #ffd400 !important; color: #000 !important }
 .gsgrid .gc button .n { font-size: .78em; background: #ffd400; color: #000; border-radius: 4px; padding: 0 3px; margin-left: 3px } .gsgrid .gc .d { font-size: .8em; opacity: .7; margin-right: 3px }
 .cs-run { background: #fde2e2; color: #b40000 } .cs-pass { background: #dde7ff; color: #0b2fb3 } .cs-scr { background: #e9e9ea; color: #111 }
@@ -2220,9 +2221,10 @@ textarea { min-height: 64px }
           var cur = all.filter(function (v) { return pick.call === v.call && pick.form === v.form && (pick.motion || null) === v.motion && (pick.rpo || null) === v.rpo })[0];
           var lab = (SHEET[c.b].kind === "sit" && v0.form ? v0.form + " " : "") + v0.call + (v0.motion ? " · " + v0.motion : "") + (v0.rpo ? " · " + v0.rpo : "");
           if (all.length === 1) lab = v0.short;
+          lab = lab.replace(/\s*\(Q\)/g, "").replace(/\s+/g, " ").trim();
           var n = all.reduce(function (t, v) { return t + usedCount(v.call, v.form) }, 0), b = document.createElement("button");
-          b.type = "button"; b.className = "k-" + (c.k || "scr"); b.setAttribute("aria-pressed", cur ? "true" : "false"); b.title = all.map(function (v) { return v.label }).join(" / ");
-          b.innerHTML = (v0.d ? "<span class='d'>" + esc(v0.d) + "</span>" : "") + esc(lab) + (all.length > 1 ? "<span class='gm'>" + esc(all.map(extra).join("/")) + "</span>" : "") + (n ? "<span class='n'>×" + n + "</span>" : "");
+          b.type = "button"; if (all.length > 1) b.setAttribute("data-noadv", "1"); b.className = "k-" + (c.k || "scr"); b.setAttribute("aria-pressed", cur ? "true" : "false"); b.title = all.map(function (v) { return v.label }).join(" / ");
+          b.innerHTML = (v0.d ? "<span class='d'>" + esc(v0.d) + "</span>" : "") + esc(lab) + "" + (n ? "<span class='n'>×" + n + "</span>" : "");
           var setV = function (v) { pick.mull = false; pick.form = v.form || pick.form; pick.call = v.call; pick.callType = "sheet"; pick.motion = v.motion; pick.rpo = v.rpo; if (all.length > 1 && base) { S.gsMod = S.gsMod || {}; S.gsMod[base] = extra(v) } renderChips() };
           b.addEventListener("click", function () {
             if (cur) { pick.call = null; pick.callType = null; pick.motion = null; pick.rpo = null; renderChips(); return }
@@ -2230,9 +2232,9 @@ textarea { min-height: 64px }
             setV(pf);
           });
           el.appendChild(b);
-          if (cur && all.length > 1) {
-            var ch = document.createElement("span"); ch.className = "gsch";
-            all.forEach(function (v) { var x = document.createElement("button"); x.type = "button"; x.textContent = extra(v); x.setAttribute("aria-pressed", v === cur ? "true" : "false"); x.addEventListener("click", function (e) { e.stopPropagation(); setV(v) }); ch.appendChild(x) });
+          if (all.length > 1) {
+            var ch = document.createElement("span"); ch.className = "gsch"; var lastM = base && S.gsMod && S.gsMod[base];
+            all.forEach(function (v) { var x = document.createElement("button"); x.type = "button"; x.textContent = extra(v); x.setAttribute("aria-pressed", v === cur ? "true" : "false"); if (!cur && lastM && extra(v) === lastM) x.className = "last"; x.addEventListener("click", function () { setV(v) }); ch.appendChild(x) });
             el.appendChild(ch);
           }
         });
@@ -2500,9 +2502,9 @@ textarea { min-height: 64px }
   function isQB(num) { return roster().some(function (x) { return x.n === String(num) && x.pos === "QB" }) }
   function qTag(sn) {
     if (!sn.call) return;
-    var base = sn.call.replace(/\s+Q$/, "");
+    var base = sn.call.replace(/\s*\(Q\)/g, "").replace(/\s+/g, " ").trim().replace(/\s+Q$/, "");
     var qrun = sn.carrier && (sn.res === "Rush" || (sn.res === "Fumble" && sn.pt === "Run")) && isQB(sn.carrier);
-    sn.call = qrun && !/\(Q\)/.test(base) ? base + " Q" : base;
+    sn.call = qrun ? base + " Q" : base;
   }
   function mulligan() {
     var pv = prevCall(); if (!pv) return;
@@ -4528,14 +4530,14 @@ textarea { min-height: 64px }
   (function () {
     var before = null, chart = $("v-chart");
     var go = function (el) { if (el && !el.hidden && el.offsetParent) el.scrollIntoView({ behavior: "smooth", block: "center" }) };
-    chart.addEventListener("click", function () { before = { call: pick.call, res: pick.res, snaps: S.snaps.length } }, true);
+    chart.addEventListener("click", function () { before = { call: pick.call, form: pick.form, res: pick.res, snaps: S.snaps.length } }, true);
     chart.addEventListener("click", function (e) {
       if (S.autoAdv === false || !before) return; var b = before; before = null;
-      if (e.target.closest("#spotSvg, .spotpanel, .nc-h")) return;
+      if (e.target.closest("#spotSvg, .spotpanel, .nc-h, [data-noadv]")) return;
       setTimeout(function () {
         if (S.snaps.length !== b.snaps || pendingSnap()) return; // it logged: the spot jump already happens
         if (pick.res && pick.res !== b.res) { if (!$("rowPlayer").hidden) go($("rowPlayer")); return }
-        if (pick.call && pick.call !== b.call && !pick.res) go($("cRes"));
+        if (pick.call && (pick.call !== b.call || pick.form !== b.form) && !pick.res) go($("cRes"));
       }, 30);
     });
   })();

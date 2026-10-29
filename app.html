@@ -1972,7 +1972,7 @@ textarea { min-height: 64px }
     return L.join("\n");
   }
   function htOpen() {
-    var R = htBuild(); HT_LAST = R; $("htBody").innerHTML = htHTML(R); $("htModal").hidden = false;
+    var R = htBuild(); HT_LAST = R; $("htBody").innerHTML = htHTML(R); try { addPctIn($("htBody")) } catch (e) {} $("htModal").hidden = false;
   }
   var HT_LAST = null;
   function htWire() {
@@ -4631,6 +4631,18 @@ textarea { min-height: 64px }
   $("clipPrev").addEventListener("click", function () { var L = clipList(), at = L.indexOf(clipIdx); if (at > 0) openClip(L[at - 1]) });
   $("clipNext").addEventListener("click", function () { var L = clipList(), at = L.indexOf(clipIdx); if (at >= 0 && at < L.length - 1) openClip(L[at + 1]) });
   filmLoadKeys();
+  // every fraction on the OC reports gets its percentage: 9/16 -> 9/16 (56%)
+  function addPct(t) {
+    return t.replace(/(^|[^\d\/.:])(\d{1,3})\/(\d{1,3})(?![\d\/]|\s*\(\d{1,3}%\)|\s*[·-]?\s*\d{1,3}%|%)/g, function (m, pre, a, b, off, str) { a = +a; b = +b; if (!b || a > b) return m; if (/\d%\s*\(\s*$/.test(str.slice(Math.max(0, off - 8), off + pre.length))) return m; return pre + a + "/" + b + " (" + Math.round(100 * a / b) + "%)" });
+  }
+  function addPctIn(root) {
+    if (!root) return; var w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null), n, L = [];
+    while ((n = w.nextNode())) { var p = n.parentNode; if (p && /^(SCRIPT|STYLE|TEXTAREA|OPTION)$/.test(p.nodeName)) continue; if (/\d\/\d/.test(n.nodeValue)) L.push(n) }
+    L.forEach(function (x) { var v = addPct(x.nodeValue); if (v !== x.nodeValue) x.nodeValue = v });
+  }
+  (function () {
+    var rr = renderReport; renderReport = function () { var r = rr.apply(this, arguments); try { addPctIn($("v-report")) } catch (e) {} return r };
+  })();
   if (location.hash === "#selftest") window.__sol = { NC: function () { return ncScore(S.cur) }, S: function () { return S }, save: save, renderAll: renderAll, FILM: FILM };
   $("hnEd").addEventListener("click", openSchedEd); $("hnImp").addEventListener("click", openSchedEd);
   $("hnGo").addEventListener("click", function () { var n = WK.cur || schedNext(SCHED); if (!n) return; $("hsOpp").value = n.opp; $("hsDate").value = n.date; $("hsBox").hidden = false; $("hsCode").focus(); toast("Pick a game code, then Schedule") });

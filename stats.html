@@ -228,7 +228,7 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
   function showDiag(extra) {
     var el = document.getElementById("diag"); if (!el) { el = document.createElement("details"); el.id = "diag"; el.style.cssText = "margin-top:8px;font-size:12.5px;color:var(--muted)"; $("loadNote").closest(".panel").appendChild(el) }
     var a = authGet() || {};
-    el.innerHTML = "<summary style='cursor:pointer'>Details (stats v4)</summary><div style='white-space:pre-wrap;font-family:ui-monospace,monospace;margin-top:6px'>" + esc(["School: " + (a.school || "none") + " · signed in: " + (a.email || a.uid || "no")].concat(DIAG, extra || []).join("\n")) + "</div>";
+    el.innerHTML = "<summary style='cursor:pointer'>Details (stats v5)</summary><div style='white-space:pre-wrap;font-family:ui-monospace,monospace;margin-top:6px'>" + esc(["School: " + (a.school || "none") + " · signed in: " + (a.email || a.uid || "no")].concat(DIAG, extra || []).join("\n")) + "</div>";
   }
   function vals(o) { if (!o) return []; if (Array.isArray(o)) return o.filter(Boolean); return Object.keys(o).map(function (k) { var x = o[k]; if (typeof x === "string") { try { x = JSON.parse(x) } catch (e) { return null } } if (x && typeof x === "object") x.id = x.id || k; return x }).filter(Boolean) }
   function parseRoster(t) {
@@ -304,7 +304,10 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
       return Promise.all(Object.keys(ks).map(function (k) { return get("/games/" + encodeURIComponent(k) + "/list") }));
     }).then(function (lists) {
       var L = {}; (lists || []).forEach(function (l) { Object.keys(l || {}).forEach(function (code) { var e = l[code]; if (e && (!L[code] || (e.updated || 0) > (L[code].updated || 0))) L[code] = e }) });
-      if (dev.sync && dev.sync.code && !L[dev.sync.code]) L[dev.sync.code] = { opp: "", date: "", us: 0, them: 0 }; // the game open on this device, even if it never made the list
+      if (dev.sync && dev.sync.code && dev.sync.code !== "practice" && !L[dev.sync.code]) L[dev.sync.code] = { opp: "", date: "", us: 0, them: 0 }; // the game open on this device, even if it never made the list
+      // only real games count: skip Unfiled games, and on a week that has a real game skip the extras
+      var realDay = {}; Object.keys(L).forEach(function (c) { if (L[c].real && !L[c].unfiled) realDay[L[c].date] = 1 });
+      Object.keys(L).forEach(function (c) { var e = L[c]; if (e.unfiled || (realDay[e.date] && !e.real)) { DIAG.push("skipped " + c.slice(0, 8) + "… (" + (e.unfiled ? "unfiled" : "extra game that week") + ")"); delete L[c] } });
       var codes = Object.keys(L);
       $("loadNote").textContent = codes.length ? "Loading " + codes.length + " game" + (codes.length === 1 ? "" : "s") + "…" : "";
       return Promise.all(codes.map(function (code) {

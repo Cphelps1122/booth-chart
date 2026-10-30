@@ -631,6 +631,7 @@ label.f { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font
     ["chart", "dc", "log", "setup"].forEach(function (t) { $("v-" + t).hidden = t !== b.dataset.t }); window.scrollTo(0, 0);
   }) });
   renderAll(); connect(); lockCheck(); setInterval(lockCheck, 10000);
+  (function () { var c = syncCfg(); if (!c || c.code !== "practice") return; var b = document.createElement("div"); b.className = "lockbar"; b.style.background = "repeating-linear-gradient(135deg, #a5e3ff 0 14px, #8fd6f5 14px 28px)"; b.textContent = "PRACTICE · nothing here counts"; document.body.insertBefore(b, document.body.firstChild) })();
   function mergeList(k, vals) { if (!vals || !vals.length) return false; var cur = (S.lists[k] || DEF_LISTS[k] || "").split(",").map(function (x) { return x.trim() }).filter(Boolean), U = vals.map(function (x) { return String(x).toUpperCase() }), str = vals.concat(cur.filter(function (v) { return U.indexOf(v.toUpperCase()) < 0 })).join(", "); if (str === S.lists[k]) return false; S.lists[k] = str; return true }
   function wkHudlLists() {
     var e = WK.list && (WK.cur || wkNext(WK.list)); if (!e) return;

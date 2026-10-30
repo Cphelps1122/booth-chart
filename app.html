@@ -130,6 +130,20 @@ nav .navlink { font-family: var(--f-display); font-weight: 700; letter-spacing: 
 .hgame .btn { font-size: 15px; padding: 8px 16px; background: var(--hp); color: #e8edf2; border-color: var(--hl) } .hgame .btn.primary { background: var(--hi); color: #0c1117; border-color: var(--hi) }
 .hst { display: inline-block; font-family: var(--f-body); font-size: 10.5px; font-weight: 800; letter-spacing: .1em; padding: 2px 7px; border-radius: 5px; margin-left: 8px; vertical-align: middle; background: #223040; color: #cfd8e2 }
 .hst.live { background: #16a34a; color: #fff } .hst.sched { background: #1d4ed8; color: #fff } .hst.mine { background: var(--hi); color: #0c1117 }
+.fold { border: 1px solid var(--hl); border-radius: 12px; background: #0f161e; overflow: hidden }
+.fold > summary { list-style: none; cursor: pointer; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 12px 14px; font-family: var(--f-display); font-weight: 800; font-size: 19px; letter-spacing: .03em; text-transform: uppercase; color: #e8edf2 }
+.fold > summary::-webkit-details-marker { display: none } .fold > summary::before { content: "▸"; color: var(--hi); transition: transform .15s } .fold[open] > summary::before { transform: rotate(90deg) }
+.fold > summary small { font-family: var(--f-body); font-weight: 600; font-size: 13px; letter-spacing: 0; text-transform: none; color: #9aa7b6 }
+.fold.cur { border-color: var(--hi) } .fold.prac > summary { color: #a5e3ff } .fold.unf > summary { color: #9aa7b6 }
+.fbody { padding: 0 14px 14px; display: flex; flex-direction: column; gap: 8px }
+.frow { border: 1px solid var(--hl); border-radius: 10px; padding: 10px 12px; display: flex; gap: 8px 12px; align-items: center; flex-wrap: wrap; background: #0b1117 }
+.frow .ft { flex: 1 1 260px; min-width: 0 } .frow .ft b { font-size: 17px; color: #e8edf2 } .frow .fm { font-size: 13px; color: #9aa7b6; margin-top: 2px }
+.gcode { display: inline-block; font-family: var(--f-display); font-weight: 800; font-size: 18px; letter-spacing: .12em; padding: 2px 10px; border-radius: 7px; background: #a5e3ff; color: #0c1117; margin-left: 6px; vertical-align: middle }
+.frow .h-btn { padding: 8px 14px; font-size: 15px } .frow select { font: inherit; font-size: 14px; padding: 7px; border-radius: 8px; background: #0f161e; color: #e8edf2; border: 1px solid var(--hl) }
+.fnote { font-size: 13.5px; color: #cfd8e2; padding: 8px 10px; border-radius: 8px; background: #1b2633 }
+.pracbar { position: sticky; top: 0; z-index: 9996; display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap; padding: 8px 14px; background: repeating-linear-gradient(135deg, #a5e3ff 0 14px, #8fd6f5 14px 28px); color: #0c1117; font: 800 15px Inter, system-ui, sans-serif; letter-spacing: .04em }
+.pracbar button { font: 800 14px Inter, system-ui, sans-serif; padding: 6px 12px; border-radius: 8px; border: 1px solid #0c1117; background: #0c1117; color: #a5e3ff; cursor: pointer }
+.pill.gamepill { background: #a5e3ff; color: #0c1117 } .pill.gamepill.prac { background: repeating-linear-gradient(135deg, #a5e3ff 0 8px, #8fd6f5 8px 16px) }
 .hcode { grid-column: 1 / -1; display: flex; gap: 8px; flex-wrap: wrap; align-items: center }
 .hcode input { width: 180px; text-transform: uppercase; letter-spacing: .08em }
 .h-foot { display: flex; align-items: center; gap: 10px; justify-content: center; padding: 26px 16px 28px; font-size: 11.5px; letter-spacing: .2em; color: var(--hm); font-weight: 700 }
@@ -417,6 +431,7 @@ textarea { min-height: 64px }
       </div>
       <div class="sit" aria-live="polite">
         <span class="pill" id="pQtr">Q1</span>
+        <span class="pill gamepill" id="pGame" hidden></span>
         <span class="pill" id="pSer">S1</span>
         <span class="pill dd" id="pDD">P&amp;10</span>
         <span class="pill" id="pBall">Own 30</span>
@@ -457,6 +472,7 @@ textarea { min-height: 64px }
     <div class="h-now" id="homeCur" hidden>
       <div class="h-now-l"><span class="h-live-dot" aria-hidden="true"></span><div><div class="hk">On this device</div><div class="hbig" id="homeCurTxt"></div><div class="h-sub" id="homeCurSub"></div></div></div>
       <button class="h-btn pri" id="homeContinue">Continue charting</button>
+      <button class="h-btn" id="homeSend" title="Re-send every play and the score from this device to its online game">Send this game online</button>
       <div class="hcode" id="homeLock" hidden><span class="h-sub">This game has no game code yet.</span><input type="text" id="hlIn" autocomplete="off" autocapitalize="characters" placeholder="Set a game code" aria-label="Set a game code"><button class="h-btn" id="hlGo">Set code</button></div>
     </div>
 
@@ -494,7 +510,7 @@ textarea { min-height: 64px }
     </div>
 
     <div class="h-games">
-      <div class="h-gh"><div><div class="hk">Season</div><div class="h-gt">Games <span id="homeState"></span></div></div><button class="h-btn" id="hsToggle">+ Schedule a game</button></div>
+      <div class="h-gh"><div><div class="hk">Season</div><div class="h-gt">Games <span id="homeState"></span></div></div><button class="h-btn" id="hsToggle">+ Add a game to the schedule</button></div>
       <div class="wkbar" id="wkBar"></div>
       <div class="h-next" id="homeNext" hidden><div style="flex:1;min-width:200px"><div class="hk">Next game</div><div class="hn-t" id="hnTxt"></div><div class="h-sub" id="hnSub"></div></div><button class="h-btn pri" id="hnGo">Set up this game</button><button class="h-btn" id="hnEd">Season schedule</button></div>
       <div id="homeNoSched" class="h-sub" hidden style="margin:8px 0">Add your season schedule and the next opponent fills in automatically. <button class="h-btn" id="hnImp" style="margin-left:8px">Import schedule</button></div>
@@ -506,7 +522,7 @@ textarea { min-height: 64px }
         <button class="h-btn pri" id="hsGo">Schedule</button>
       </div>
       <div id="homeList" class="hlist"></div>
-      <p class="h-sub" style="margin-top:10px">Tap a game and type its game code to open it. The code keeps a wrong link or a wrong tap from switching this device to another game.</p>
+      <p class="h-sub" style="margin-top:10px">Each week on your schedule has one real game with one game code. Every device, offense and defense, joins that game. Use Practice to try things out: nothing in it counts.</p>
     </div>
     <div class="h-foot"><span class="h-foot-mark"><svg viewBox="0 0 96 96" aria-hidden="true"><g fill="#d9dee5"><rect x="16" y="32" width="26" height="9" rx="1"/><rect x="54" y="32" width="26" height="9" rx="1"/><rect x="16" y="56" width="26" height="9" rx="1"/><rect x="54" y="56" width="26" height="9" rx="1"/></g><rect x="45" y="12" width="6" height="72" rx="1" fill="#a5e3ff"/></svg></span>SOLUTIONS ANALYTICS · built in the press box, for coaches</div>
   </section>
@@ -744,7 +760,7 @@ textarea { min-height: 64px }
       </div>
       <p class="note">Opening another game goes through Home and asks for its game code. The share link only brings staff to Home; they pick the game and type its code. Export any game from the Log tab.</p>
     </div>
-    <div class="panel" style="margin-top:14px">
+    <div class="panel" style="margin-top:14px" hidden>
       <h3>Start a new game <small>the current game stays saved in the list</small></h3>
       <div class="custom">
         <label for="ngOpp" style="flex:1 1 240px">Opponent<input id="ngOpp" type="text" style="width:100%" placeholder="e.g. Anna"></label>
@@ -808,6 +824,7 @@ textarea { min-height: 64px }
           <button class="btn" id="syncNew">New game code</button>
           <button class="btn" id="syncShare">Copy share link</button>
           <button class="btn" id="syncOff">Disconnect</button>
+          <button class="btn" id="syncSend">Send this game online</button>
         </div>
         <div class="confirm" id="syncChoice" hidden>
           <span id="syncChoiceTxt"></span>
@@ -1317,7 +1334,7 @@ textarea { min-height: 64px }
   var DEFAULT_DB = "https://cardinal-booth-default-rtdb.firebaseio.com";
   var SYNC_KEY = "cardinals-booth-sync-v1" + NS, DEVICE = Math.random().toString(36).slice(2, 10);
   var SY = { cfg: null, es: null, status: "off", mirror: null, last: null, pushing: false, dirty: false, needApply: false, timer: null, retry: null, applying: false };
-  var META_KEYS = ["final", "lock", "dir", "wp", "clock", "clocks", "clk", "sheet", "sheetVer", "scout", "gameDate", "opp", "pre", "start", "lists", "dmode", "fast", "oppScore", "ourAdj", "scoreLog", "tryPending", "endAfter", "example", "cur"];
+  var META_KEYS = ["gc", "final", "lock", "dir", "wp", "clock", "clocks", "clk", "sheet", "sheetVer", "scout", "gameDate", "opp", "pre", "start", "lists", "dmode", "fast", "oppScore", "ourAdj", "scoreLog", "tryPending", "endAfter", "example", "cur"];
   function syncCfg() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || "null") } catch (e) { return null } }
   function setSyncCfg(c) { try { if (c) localStorage.setItem(SYNC_KEY, JSON.stringify(c)); else localStorage.removeItem(SYNC_KEY) } catch (e) {} }
   function newCode() { var a = "abcdefghjkmnpqrstuvwxyz23456789", t = ""; var r = new Uint8Array(18); (window.crypto || window.msCrypto).getRandomValues(r); for (var i = 0; i < 18; i++) t += a[r[i] % a.length]; return "mel-" + t }
@@ -1373,7 +1390,7 @@ textarea { min-height: 64px }
   function lockApi(path, method, body) { return solToken().then(function (t) { return fetch(SOL_DB + "/" + path + ".json?auth=" + encodeURIComponent(t), { method: method || "GET", body: body === undefined ? undefined : JSON.stringify(body) }) }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json() }) }
   function lockAdminInit() {
     if (!ONLINE) return; var a = authGet(); if (!a || !a.uid) return;
-    lockApi("admins/" + a.uid).then(function (v) { if (v !== true) return; LOCK.admin = true; lockApply(false); $("lockPanel").hidden = false; lockLoadUsers() }, function () {});
+    lockApi("admins/" + a.uid).then(function (v) { if (v !== true) return; LOCK.admin = true; lockApply(false); $("lockPanel").hidden = false; lockLoadUsers(); if (!$("v-home").hidden) renderHome() }, function () {});
   }
   function lockLoadUsers() {
     var a = authGet() || {}; if (!a.school) return;
@@ -1473,16 +1490,31 @@ textarea { min-height: 64px }
       if (S.example) { var o_ = S.opp, l_ = S.lists, p_ = S.pre, st_ = S.start, dm_ = S.dmode; S = fresh(); S.opp = o_; S.lists = l_; S.pre = p_; S.start = st_; S.dmode = dm_; try { localStorage.setItem(KEY, JSON.stringify(S)) } catch (e) {} }
       var rs = remote && remote.snaps ? Object.keys(remote.snaps).length : 0, ls = S.snaps.length;
       SY.mirror = remote || {};
-      if (!remote && ls && preferLocal !== true) { gameGone(); return }
-      if (rs && ls && !preferLocal && preferLocal !== false) {
-        $("syncChoiceTxt").textContent = "The online game has " + rs + " snaps and this device has " + ls + ".";
-        $("syncChoice").hidden = false; SY.last = null; return;
+      // this device has plays the online game doesn't: send them (never wipe a device's game on reconnect)
+      if (!remote && ls && preferLocal !== true) preferLocal = true;
+      // reconnecting with plays on both sides: merge them so nothing is lost and sync keeps running
+      if (rs && ls && preferLocal !== true && preferLocal !== false) {
+        var R = remote.snaps, have = {}, extra = 0;
+        S.snaps.forEach(function (x) { if (x && x.id) have[x.id] = 1 });
+        Object.keys(R).forEach(function (k) { var x = R[k]; if (x && typeof x === "object" && !have[k]) { x.id = k; S.snaps.push(x) } });
+        S.snaps.forEach(function (x) { if (x && x.id && !R[x.id]) extra++ });
+        S.snaps.sort(function (a, b) { return (a.t || 0) - (b.t || 0) || (a.id < b.id ? -1 : 1) }); S.snaps.forEach(function (x, i) { x.n = i + 1 });
+        SY.last = { snaps: {}, meta: "" }; Object.keys(R).forEach(function (k) { if (R[k] && typeof R[k] === "object") SY.last.snaps[k] = JSON.stringify(clean(R[k])) });
+        var ms = {}; S.snaps.forEach(function (x) { ms[x.id] = x }); SY.mirror = Object.assign({}, remote, { snaps: ms });
+        $("syncChoice").hidden = true;
+        try { localStorage.setItem(KEY, JSON.stringify(S)) } catch (e) {}
+        SY.dirty = true; schedulePush();
+        openStream(); renderAll(); wkScout(); wkHudlLists(); wkPred(); wkCallSheet(); wkGamePlan();
+        lastIdx = null; setTimeout(function () { lastIdx = null; updateIndex() }, 2500);
+        toast(extra ? "Reconnected · sending " + extra + " play" + (extra === 1 ? "" : "s") + " from this device" : "Reconnected" + (S.gc ? " · " + S.gc : ""));
+        return;
       }
       $("syncChoice").hidden = true;
       if (rs && preferLocal !== true) { SY.last = { snaps: {}, meta: "" }; applyMirror() }
       else { SY.last = { snaps: {}, meta: "" }; Object.keys((remote && remote.snaps) || {}).forEach(function (k) { SY.last.snaps[k] = "?" }); schedulePush() }
       openStream(); renderAll(); wkScout(); wkHudlLists(); wkPred(); wkCallSheet(); wkGamePlan();
-      toast("Live sync on · " + cfg.code);
+      lastIdx = null; setTimeout(function () { lastIdx = null; updateIndex() }, 2500); // always (re)file this game in the school's season list
+      toast(cfg.code === PRACTICE ? "Practice game · nothing here counts" : "Live sync on" + (S.gc ? " · " + S.gc : ""));
     }, function (e) {
       if (String(e.message) === "denied") setStatus("err", "the database refused access · check the rules and the game code (16+ letters)");
       else { setStatus("err", "couldn't reach the database · check the URL (and that this isn't the Claude app view)"); setSyncCfg(cfg) }
@@ -1490,6 +1522,7 @@ textarea { min-height: 64px }
   }
   // the game was deleted online (by the school or the admin): drop it from this device instead of re-uploading it
   function gameGone() {
+    if (SY.cfg && SY.cfg.code === PRACTICE) { practiceFresh(); toast("Practice was reset"); return }
     try { SY.es && SY.es.close() } catch (e) {} SY.es = null; SY.cfg = null; SY.last = null; setSyncCfg(null); setStatus("off");
     var k = IS_HOME ? keepSettings() : {}; S = fresh(); Object.assign(S, k); S.example = false; S.autoOpp = true; lastIdx = null; save(); renderAll();
     if (typeof loadSched === "function") loadSched();
@@ -1508,13 +1541,13 @@ textarea { min-height: 64px }
   function setSeason(k) { if (!k || k.length < 16) return; try { localStorage.setItem(SEASON_KEY, k) } catch (e) {} }
   function today() { var d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0") }
   function listUrl(code) { return dbBase() + "/games/" + encodeURIComponent(seasonKey(true)) + "/list" + (code ? "/" + encodeURIComponent(code) : "") + ".json" + (ONLINE ? solAuthQ() : "") }
-  function indexEntry() { var e = { opp: S.opp || "Opponent", date: S.gameDate || today(), us: ourScore(), them: S.oppScore || 0, plays: plays().length, updated: Date.now() }; if (S.lock) e.lock = S.lock; if (S.final) { e.final = 1; e.us = +S.final.us || 0; e.them = +S.final.them || 0 } return e }
+  function indexEntry() { var e = { opp: S.opp || "Opponent", date: S.gameDate || today(), us: ourScore(), them: S.oppScore || 0, plays: plays().length, updated: Date.now() }; if (S.lock) e.lock = S.lock; if (S.gc) e.gc = S.gc; if (S.final) { e.final = 1; e.us = +S.final.us || 0; e.them = +S.final.them || 0 } return e }
   var lastIdx = null;
   function updateIndex() {
-    if (!SY.cfg || S.example) return;
-    var e = indexEntry(), key = JSON.stringify([e.opp, e.date, e.us, e.them, e.plays, e.lock || "", e.final || 0]);
+    if (!SY.cfg || S.example || SY.cfg.code === PRACTICE) return;
+    var e = indexEntry(), key = JSON.stringify([seasonKey(false), e.opp, e.date, e.us, e.them, e.plays, e.lock || "", e.gc || "", e.final || 0]);
     if (key === lastIdx) return;
-    fetch(listUrl(SY.cfg.code), { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(e) }).then(function (r) { if (r.ok) lastIdx = key }, function () {});
+    fetch(listUrl(SY.cfg.code), { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(e) }).then(function (r) { if (r.ok) lastIdx = key }, function () {});
   }
   function gamesCache(v) { try { if (v) localStorage.setItem(GLIST_KEY, JSON.stringify(v)); else return JSON.parse(localStorage.getItem(GLIST_KEY) || "{}") } catch (e) { return {} } }
   var removeArm = null;
@@ -1566,8 +1599,8 @@ textarea { min-height: 64px }
       $("hnTxt").innerHTML = esc(n.ha === "A" ? us + " at " : us + " vs ") + "<b>" + esc(n.opp) + "</b>";
       var dd = Math.round((new Date(n.date + "T12:00") - new Date(today() + "T12:00")) / 864e5);
       $("hnSub").textContent = schedNice(n.date) + (n.ha === "H" ? " · Home" : n.ha === "A" ? " · Away" : n.ha === "N" ? " · Neutral site" : "") + (dd === 0 ? " · Today" : dd === 1 ? " · Tomorrow" : " · in " + dd + " days");
-      var L = HOME.list || {}, has = Object.keys(L).some(function (k) { var g = L[k] || {}; return g.date === n.date && String(g.opp || "").toLowerCase() === n.opp.toLowerCase() });
-      $("hnGo").hidden = has;
+      var L = HOME.list || {}, rk = realOf(L, n.date), mineHere = rk && SY.cfg && SY.cfg.code === rk;
+      $("hnGo").hidden = !!mineHere; $("hnGo").textContent = rk ? "Join this game" : "Set up this game";
       var nn = schedNext(SCHED) || n;
       if (nn && S.autoOpp && !S.snaps.length && !S.example && (S.opp !== nn.opp || S.gameDate !== nn.date)) { S.opp = nn.opp; S.gameDate = nn.date; save(); renderAll() }
       if (!$("ngOpp").value) { $("ngOpp").placeholder = n.opp; $("ngOpp").value = n.opp; $("ngDate").value = n.date }
@@ -1636,37 +1669,163 @@ textarea { min-height: 64px }
     if (!g.plays) return ["sched", g.date && g.date >= today() ? "Scheduled" : "No plays"];
     return ["", "Final " + (g.us > g.them ? "W" : g.us < g.them ? "L" : "T")];
   }
+  // ---------- game folders: one real game per scheduled week, a Practice sandbox, Unfiled for strays ----------
+  var PRACTICE = "practice";
+  function isPractice() { return !!(SY.cfg && SY.cfg.code === PRACTICE) }
+  function wkIdx(date) { var L = WK.list || []; for (var i = 0; i < L.length; i++) if (L[i].date === date) return i; return -1 }
+  function wkLab(date) { var i = wkIdx(date); return i < 0 ? null : "Wk " + (i + 1) }
+  function makeGC(opp, date) {
+    var ini = String(opp || "G").toUpperCase().replace(/[^A-Z0-9 ]/g, " ").split(/\s+/).filter(Boolean).map(function (w) { return w[0] }).join("").slice(0, 3) || "G", p = String(date || today()).split("-");
+    return ini + (p[1] || "") + (p[2] || "");
+  }
+  function weekKeys(L, date) { return Object.keys(L).filter(function (k) { var g = L[k] || {}; return g.date === date && !g.unfiled }) }
+  function realOf(L, date) { var ks = weekKeys(L, date), r = ks.filter(function (k) { return L[k].real })[0]; return r || (ks.length === 1 ? ks[0] : null) }
+  function listPatch(k, o) { return fetch(homeListUrl(k), { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(o) }).then(function (r) { if (!r.ok) throw 0 }) }
+  var FOLD_OPEN = {};
   function renderHome(note) {
-    var L0 = HOME.list || {}, L = {};
-    Object.keys(L0).forEach(function (k) { var g = L0[k] || {}; if (!WK.cur || g.date === WK.cur.date || (SY.cfg && k === SY.cfg.code && !S.example)) L[k] = g });
-    var keys = Object.keys(L).sort(function (a, b) { var A = L[a] || {}, B = L[b] || {}; var la = gameStatus(A, a)[0] === "live" ? 1 : 0, lb = gameStatus(B, b)[0] === "live" ? 1 : 0; return lb - la || (B.date || "").localeCompare(A.date || "") || (B.updated || 0) - (A.updated || 0) });
-    $("homeState").textContent = note || (keys.length + (keys.length === 1 ? " game" : " games"));
-    var box = $("homeList"); box.innerHTML = "";
-    if (!keys.length) { box.innerHTML = "<p class='note'>" + esc(note && /Open your/.test(note) ? note : WK.cur ? "No game charted for " + wkNice(WK.cur) + " yet. Set it up above." : "No games yet. Schedule one below.") + "</p>"; return }
-    keys.forEach(function (k) {
-      var g = L[k] || {}, st = gameStatus(g, k), el = document.createElement("div"); el.className = "hgame";
-      var upd = g.updated ? new Date(g.updated) : null;
-      el.innerHTML = "<div><div class='t'>vs " + esc(g.opp || "Opponent") + "<span class='hst " + st[0] + "'>" + esc(st[1]) + "</span></div><div class='m'>" + esc(g.date || "") + (g.plays ? " · " + (g.us || 0) + "–" + (g.them || 0) + " · " + g.plays + " plays" : "") + (upd ? " · updated " + upd.toLocaleString([], { month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit" }) : "") + (g.lock ? "" : " · no game code yet") + "</div></div>";
-      var btn = document.createElement("button"); btn.className = "btn" + (st[0] === "mine" ? " primary" : ""); btn.textContent = st[0] === "mine" ? "Continue" : "Open";
-      btn.addEventListener("click", function () { if (st[0] === "mine") { document.getElementById("t-chart").click(); return } HOME.open = HOME.open === k ? null : k; renderHome(note) });
-      el.appendChild(btn);
-      if (HOME.open === k) {
-        var c = document.createElement("div"); c.className = "hcode";
-        c.innerHTML = (g.lock ? "<input type='text' id='hcIn' autocomplete='off' autocapitalize='characters' placeholder='Game code' aria-label='Game code'><button class='btn primary' id='hcGo'>Open game</button>" : "<span class='note' style='margin:0'>This game was made before game codes.</span><button class='btn primary' id='hcGo'>Open it</button>") + "<span class='note' id='hcMsg' style='margin:0'></span>";
-        el.appendChild(c);
+    var L = HOME.list || {}, box = $("homeList"), weeks = WK.list || [], mine = SY.cfg && !S.example ? SY.cfg.code : null, adm = typeof LOCK !== "undefined" && LOCK.admin;
+    var nGames = Object.keys(L).filter(function (k) { return !(L[k] || {}).unfiled }).length;
+    $("homeState").textContent = note || (nGames + (nGames === 1 ? " game" : " games"));
+    if ($("wkBar")) $("wkBar").hidden = true; if ($("hsBox")) $("hsBox").hidden = true;
+    var row = function (k, g, opts) {
+      opts = opts || {}; var st = gameStatus(g, k), isMine = k === mine, upd = g.updated ? new Date(g.updated) : null;
+      var h = "<div class='frow'><div class='ft'><b>" + esc(opts.title || ("vs " + (g.opp || "Opponent"))) + "</b>" + (g.gc ? "<span class='gcode'>" + esc(g.gc) + "</span>" : "") + "<span class='hst " + st[0] + "'>" + esc(st[1]) + "</span>" +
+        "<div class='fm'>" + esc(g.date || "") + (g.plays ? " · " + (g.us || 0) + "–" + (g.them || 0) + " · " + g.plays + " plays" : " · no plays yet") + (upd ? " · updated " + upd.toLocaleString([], { month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit" }) : "") + "</div></div>";
+      h += isMine ? "<button class='h-btn pri' data-act='cont'>Continue</button>" : "<button class='h-btn" + (HOME.arm === k ? " pri" : "") + "' data-act='join' data-k='" + esc(k) + "'>" + (HOME.arm === k ? "Tap again to switch this device" : "Join") + "</button>";
+      if (g.plays) h += "<a class='h-btn' href='impact.html?game=" + encodeURIComponent(k) + "'>Postgame</a>";
+      if (adm && opts.admin) {
+        if (opts.admin.real) h += "<button class='h-btn' data-act='real' data-k='" + esc(k) + "'>Make this the real game</button>";
+        if (opts.admin.unfile) h += "<button class='h-btn' data-act='unfile' data-k='" + esc(k) + "'>Move to Unfiled</button>";
+        if (opts.admin.move && weeks.length) h += "<select data-move='" + esc(k) + "'><option value=''>Move to week…</option>" + weeks.map(function (w, i) { return "<option value='" + w.date + "'>Wk " + (i + 1) + " · " + esc(wkNice(w)) + "</option>" }).join("") + "</select>";
+        if (opts.admin.del) h += "<button class='h-btn' data-act='del' data-k='" + esc(k) + "'>" + (HOME.delArm === k ? "Tap again to remove" : "Remove") + "</button>";
       }
-      box.appendChild(el);
-      if (HOME.open === k) {
-        var go = function () {
-          if (g.lock) { var v = $("hcIn").value; if (lockOf(v) !== g.lock) { $("hcMsg").textContent = "That code doesn't match this game."; $("hcIn").select(); return } }
-          openFromHome(k, g);
-        };
-        $("hcGo").addEventListener("click", go); if ($("hcIn")) { $("hcIn").focus(); $("hcIn").addEventListener("keydown", function (e) { if (e.key === "Enter") go() }) }
+      if (HOME.open === k) h += "<div class='hcode' style='flex-basis:100%'><input type='text' id='hcIn' autocomplete='off' autocapitalize='characters' placeholder='Game code' aria-label='Game code'><button class='h-btn pri' id='hcGo'>Open game</button><span class='note' id='hcMsg' style='margin:0'></span></div>";
+      return h + "</div>";
+    };
+    var fold = function (id, cls, open, summ, body) {
+      var o = FOLD_OPEN[id] != null ? FOLD_OPEN[id] : open;
+      return "<details class='fold " + cls + "' data-f='" + esc(id) + "'" + (o ? " open" : "") + "><summary>" + summ + "</summary><div class='fbody'>" + body + "</div></details>";
+    };
+    var h = "", used = {}, nx = wkNext(weeks), curD = WK.cur ? WK.cur.date : (nx ? nx.date : null);
+    weeks.forEach(function (w, i) {
+      var ks = weekKeys(L, w.date), r = realOf(L, w.date), g = r ? L[r] : null, body = "";
+      ks.forEach(function (k) { used[k] = 1 });
+      var tag = g ? gameStatus(g, r) : null, pill = g ? "<span class='hst " + tag[0] + "'>" + esc(g.final || g.plays ? tag[1] + (g.plays ? " " + (g.us || 0) + "–" + (g.them || 0) : "") : tag[1]) + "</span>" : (w.date >= today() ? "<span class='hst sched'>Not set up</span>" : "");
+      if (g) body += row(r, g, { title: "Game · " + (w.ha === "A" ? "at " : "vs ") + w.opp, admin: { unfile: ks.length > 1, del: ks.length > 1 } });
+      else if (!ks.length) body += "<div class='frow'><div class='ft'><b>No game set up yet</b><div class='fm'>One tap creates this week's real game and its game code. Every device joins that one game.</div></div><button class='h-btn pri' data-act='setup' data-d='" + w.date + "'>Set up game</button></div>";
+      var others = ks.filter(function (k) { return k !== r });
+      if (others.length) {
+        body += "<div class='fnote'>" + (g ? others.length + " other game" + (others.length === 1 ? " is" : "s are") + " filed under this week." : ks.length + " games are filed under this week.") + (adm ? (g ? " Move the extras to Unfiled so they don't count." : " Pick the real game; the others go to Unfiled.") : " Your admin can pick the real one.") + "</div>";
+        others.forEach(function (k) { body += row(k, L[k], { admin: { real: true, unfile: true, del: true } }) });
       }
+      var isCur = (mine && L[mine] && L[mine].date === w.date && !L[mine].unfiled) || (!mine && w.date === curD);
+      h += fold("wk:" + w.date, isCur ? "cur" : "", isCur || w.date === curD, "Wk " + (i + 1) + " · " + esc(wkNice(w)) + pill + (g && g.gc ? "<span class='gcode'>" + esc(g.gc) + "</span>" : ""), body);
     });
+    // practice
+    var pBody = isPractice() ? "<div class='frow'><div class='ft'><b>Practice game</b><div class='fm'>This device is in Practice. Charting here never shows up in Stats, Impact or the season.</div></div><button class='h-btn pri' data-act='cont'>Continue</button><button class='h-btn' data-act='preset'>" + (HOME.resetArm ? "Tap again to wipe it" : "Reset practice") + "</button></div>"
+      : "<div class='frow'><div class='ft'><b>Practice game</b><div class='fm'>Try new features or train a charter. Every device that opens Practice shares it, so you can test live sync too. Nothing here counts.</div></div><button class='h-btn" + (HOME.arm === PRACTICE ? " pri" : "") + "' data-act='practice'>" + (HOME.arm === PRACTICE ? "Tap again to switch this device" : "Open practice") + "</button></div>";
+    h += fold("practice", "prac", isPractice(), "Practice <small>sandbox · nothing here counts</small>", pBody);
+    // unfiled
+    var un = Object.keys(L).filter(function (k) { return !used[k] }).sort(function (a, b) { return ((L[b] || {}).updated || 0) - ((L[a] || {}).updated || 0) });
+    if (un.length) h += fold("unfiled", "unf", !weeks.length || (mine && un.indexOf(mine) >= 0), "Unfiled <small>" + un.length + " game" + (un.length === 1 ? "" : "s") + " · never counted in Stats or Impact</small>", (adm ? "" : "<div class='fnote'>Old, test and duplicate games. Your admin can move them into a week or remove them.</div>") + un.map(function (k) { return row(k, L[k], { admin: { move: true, del: true } }) }).join(""));
+    if (!weeks.length) h = "<div class='fnote'>Add your season schedule (Season schedule above) and each week gets its own folder with one real game.</div>" + h;
+    box.innerHTML = h;
+    box.querySelectorAll("details.fold").forEach(function (d) { d.addEventListener("toggle", function () { FOLD_OPEN[d.dataset.f] = d.open }) });
+    box.querySelectorAll("[data-move]").forEach(function (sel) { sel.addEventListener("change", function () { if (sel.value) homeMove(sel.dataset.move, sel.value) }) });
+    box.querySelectorAll("[data-act]").forEach(function (b) { b.addEventListener("click", function (e) { e.preventDefault(); homeAct(b.dataset.act, b.dataset.k, b.dataset.d) }) });
+    if (HOME.open && $("hcGo")) {
+      var k0 = HOME.open, g0 = L[k0] || {};
+      var go = function () { if (lockOf($("hcIn").value) !== g0.lock) { $("hcMsg").textContent = "That code doesn't match this game."; $("hcIn").select(); return } openFromHome(k0, g0) };
+      $("hcGo").addEventListener("click", go); $("hcIn").focus(); $("hcIn").addEventListener("keydown", function (e) { if (e.key === "Enter") go() });
+    }
+  }
+  function homeAct(act, k, d) {
+    var L = HOME.list || {};
+    if (act === "cont") { document.getElementById("t-chart").click(); return }
+    if (act === "join") {
+      var g = L[k] || {};
+      if (HOME.arm !== k) { HOME.arm = k; HOME.open = null; renderHome(); setTimeout(function () { if (HOME.arm === k) { HOME.arm = null; renderHome() } }, 5000); return }
+      HOME.arm = null;
+      if (g.lock && !g.gc) { HOME.open = k; renderHome(); return } // older games: type the code once
+      openFromHome(k, g); return;
+    }
+    if (act === "setup") { setupWeek(d); return }
+    if (act === "practice") { if (HOME.arm !== PRACTICE) { HOME.arm = PRACTICE; renderHome(); return } HOME.arm = null; openPractice(); return }
+    if (act === "preset") { if (!HOME.resetArm) { HOME.resetArm = true; renderHome(); setTimeout(function () { HOME.resetArm = false; renderHome() }, 4000); return } HOME.resetArm = false; resetPractice(); return }
+    if (act === "real") {
+      var g2 = L[k] || {}, gc2 = g2.gc || makeGC(g2.opp, g2.date), ops = [listPatch(k, { real: 1, unfiled: null, gc: gc2, lock: lockOf(gc2) })];
+      if (SY.cfg && SY.cfg.code === k && !S.gc) { S.gc = gc2; S.lock = lockOf(gc2); save(); renderAll() }
+      weekKeys(L, g2.date).forEach(function (o) { if (o !== k) ops.push(listPatch(o, { real: null, unfiled: 1 })) });
+      Promise.all(ops).then(function () { toast("That's the real game now. The others moved to Unfiled."); loadHome() }, function () { toast("Couldn't save. Check the connection.") }); return;
+    }
+    if (act === "unfile") { listPatch(k, { real: null, unfiled: 1 }).then(function () { toast("Moved to Unfiled"); loadHome() }, function () { toast("Couldn't save. Check the connection.") }); return }
+    if (act === "del") {
+      if (HOME.delArm !== k) { HOME.delArm = k; renderHome(); return } HOME.delArm = null;
+      fetch(homeListUrl(k), { method: "DELETE" }).then(function () { toast("Removed from the list. The plays are still saved online."); loadHome() }, function () { toast("Couldn't reach the database") });
+    }
+  }
+  function homeMove(k, date) {
+    var L = HOME.list || {}, w = (WK.list || []).filter(function (x) { return x.date === date })[0]; if (!w) return;
+    var hasReal = weekKeys(L, date).some(function (o) { return L[o].real });
+    listPatch(k, { date: date, opp: w.opp, unfiled: null, real: hasReal ? null : 1 }).then(function () { toast("Moved to " + wkLab(date) + (hasReal ? " (the week already has a real game)" : " as the real game")); loadHome() }, function () { toast("Couldn't save. Check the connection.") });
+  }
+  function setupWeek(date) {
+    var w = (WK.list || []).filter(function (x) { return x.date === date })[0]; if (!w) return;
+    if (!seasonKey(false)) { toast("Open your staff link once on this device first."); return }
+    fetch(homeListUrl()).then(function (r) { if (!r.ok) throw 0; return r.json() }).then(function (l) {
+      HOME.list = l || {}; var r0 = realOf(HOME.list, date);
+      if (r0) { toast("This week already has a game. Tap Join."); renderHome(); return }
+      var gc = makeGC(w.opp, date), k = newCode(), e = { opp: w.opp, date: date, ha: w.ha || null, us: 0, them: 0, plays: 0, updated: Date.now(), gc: gc, lock: lockOf(gc), real: 1 };
+      return fetch(homeListUrl(k), { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(e) }).then(function (r) { if (!r.ok) throw 0; HOME.list[k] = e; openFromHome(k, e); toast(wkLab(date) + " game is set up · game code " + gc) });
+    }).catch(function () { toast("Couldn't reach the database. Check the connection.") });
+  }
+  function practiceFresh() {
+    var k = keepSettings(); S = fresh(); Object.assign(S, k); S.example = false; S.autoOpp = false; S.opp = "Practice"; S.gameDate = today(); S.gc = "PRACTICE";
+    SY.last = { snaps: {}, meta: "" }; SY.mirror = {}; save(); renderAll();
+  }
+  function openPractice() {
+    var url = homeDb(), k2 = keepSettings(); S = fresh(); Object.assign(S, k2); S.example = false; S.autoOpp = false; S.opp = "Practice"; S.gameDate = today(); S.gc = "PRACTICE"; lastIdx = null; HOME.open = null;
+    try { localStorage.setItem(KEY, JSON.stringify(S)) } catch (e) {}
+    $("syncUrl").value = url; $("syncCode").value = PRACTICE;
+    connectSync({ url: url, code: PRACTICE }, false);
+    document.getElementById("t-chart").click();
+  }
+  function resetPractice() {
+    if (!isPractice()) return;
+    fetch(gameUrl(""), { method: "DELETE" }).then(function () { practiceFresh(); toast("Practice wiped clean") }, function () { toast("Couldn't reach the database") });
+  }
+  function practiceApply() {
+    var on = isPractice(), b = $("pracBar");
+    if (on && !b) {
+      b = document.createElement("div"); b.id = "pracBar"; b.className = "pracbar";
+      b.innerHTML = "<span>PRACTICE · nothing here counts</span><button type='button' id='pracReset'>Reset practice</button><button type='button' id='pracHome'>Back to Home</button>";
+      document.body.insertBefore(b, document.body.firstChild);
+      var arm = false;
+      $("pracReset").addEventListener("click", function () { if (!arm) { arm = true; this.textContent = "Tap again to wipe it"; var me = this; setTimeout(function () { arm = false; me.textContent = "Reset practice" }, 4000); return } arm = false; this.textContent = "Reset practice"; resetPractice() });
+      $("pracHome").addEventListener("click", function () { document.getElementById("t-home").click(); window.scrollTo(0, 0) });
+    }
+    if (b) b.hidden = !on;
+    var p = $("pGame");
+    if (p) {
+      if (!SY.cfg || S.example) { p.hidden = true }
+      else { p.hidden = false; p.classList.toggle("prac", on); p.textContent = on ? "PRACTICE" : ((wkLab(S.gameDate) || "Game") + (S.gc ? " · " + S.gc : "")) }
+    }
+  }
+  // re-send every play, the score and the list entry from this device (for nights with no signal)
+  function sendOnline() {
+    if (!SY.cfg) { toast("This device isn't in a game yet. Join or set up a game on Home first."); return }
+    if (isPractice()) { toast("Practice doesn't go online as a real game."); return }
+    SY.last = { snaps: {}, meta: "" }; SY.dirty = true; schedulePush();
+    var t0 = Date.now(), n = S.snaps.length; toast("Sending " + n + " snaps…");
+    (function wait() {
+      if ((SY.dirty || SY.pushing) && Date.now() - t0 < 30000) { setTimeout(wait, 400); return }
+      if (SY.dirty || SY.pushing) { toast("Still sending. Keep this page open; it finishes when the signal comes back."); return }
+      lastIdx = null; updateIndex(); toast("Sent " + n + " snaps online · it'll show in Stats and Impact");
+      setTimeout(function () { if (!$("v-home").hidden) loadHome() }, 1500);
+    })();
   }
   function openFromHome(k, g) {
-    var url = homeDb(), k2 = keepSettings(); S = fresh(); Object.assign(S, k2); S.example = false; S.autoOpp = false; S.opp = g.opp || "Opponent"; S.gameDate = g.date || today(); S.lock = g.lock || null; lastIdx = null; HOME.open = null;
+    var url = homeDb(), k2 = keepSettings(); S = fresh(); Object.assign(S, k2); S.example = false; S.autoOpp = false; S.opp = g.opp || "Opponent"; S.gameDate = g.date || today(); S.lock = g.lock || null; S.gc = g.gc || null; lastIdx = null; HOME.open = null; HOME.arm = null;
     try { localStorage.setItem(KEY, JSON.stringify(S)) } catch (e) {}
     $("syncUrl").value = url; $("syncCode").value = k;
     connectSync({ url: url, code: k }, false);
@@ -4752,7 +4911,7 @@ textarea { min-height: 64px }
     $("sOpp").value = S.opp; $("sPre").value = S.pre; $("sStart").value = S.start; $("sMode").value = S.dmode === "full" ? "full" : "fast";
     ["form", "run", "pass", "rpo", "motion", "front", "cov", "blitz"].forEach(function (k) { $("l" + k[0].toUpperCase() + k.slice(1)).value = list(k) });
   }
-  function renderAll() { refreshSheet(); renderHead(); renderClock(); renderWP(); renderScore(); renderChips(); renderReport(); renderLog(); renderDrives(); renderLive(); finalApply() }
+  function renderAll() { refreshSheet(); renderHead(); renderClock(); renderWP(); renderScore(); renderChips(); renderReport(); renderLog(); renderDrives(); renderLive(); finalApply(); practiceApply() }
 
   function csv() {
     var cols = ["PLAY #", "ODK", "QTR", "SERIES", "DN", "DIST", "YARD LN", "PLAY TYPE", "RESULT", "GN/LS", "HASH", "O FORMATION", "MOTION", "RUN FAMILY", "PASS FAMILY", "RPO", "FRONT", "BLITZ", "COVERAGE", "MFC/MFO/0", "BOX", "TARGET", "BALL CARRIER", "QB", "TEAM"];
@@ -4965,8 +5124,9 @@ textarea { min-height: 64px }
   })();
   if (location.hash === "#selftest") window.__sol = { NC: function () { return ncScore(S.cur) }, S: function () { return S }, save: save, renderAll: renderAll, FILM: FILM };
   $("hnEd").addEventListener("click", openSchedEd); $("hnImp").addEventListener("click", openSchedEd);
-  $("hnGo").addEventListener("click", function () { var n = WK.cur || schedNext(SCHED); if (!n) return; $("hsOpp").value = n.opp; $("hsDate").value = n.date; $("hsBox").hidden = false; $("hsCode").focus(); toast("Pick a game code, then Schedule") });
-  $("hsToggle").addEventListener("click", function () { $("hsBox").hidden = !$("hsBox").hidden; if (!$("hsBox").hidden) $("hsOpp").focus() });
+  $("hnGo").addEventListener("click", function () { var n = WK.cur || schedNext(SCHED); if (!n) return; var r = realOf(HOME.list || {}, n.date); if (r) { FOLD_OPEN["wk:" + n.date] = true; homeAct("join", r); return } setupWeek(n.date) });
+  $("hsToggle").addEventListener("click", openSchedEd);
+  $("homeSend").addEventListener("click", sendOnline); $("syncSend").addEventListener("click", sendOnline);
   $("homeOff").addEventListener("click", function () { document.getElementById("t-chart").click() });
   var PROF = (ONLINE && ACC && ACC.profile) || {};
   if (ONLINE) { SCHOOL_NAME_H = PROF.name || (ACC.school || "").replace(/(^|-)([a-z])/g, function (m, d, c) { return (d ? " " : "") + c.toUpperCase() }) }

@@ -1481,6 +1481,7 @@ textarea { min-height: 64px }
     SY.last = rep;
     try { localStorage.setItem(KEY, JSON.stringify(S)) } catch (e) {}
     renderAll(); SY.applying = false;
+    try { filmCheck(true) } catch (e) {}
   }
   function setPath(obj, parts, val) {
     if (!parts.length) return val;
@@ -3606,39 +3607,55 @@ textarea { min-height: 64px }
     r.ondataavailable = function (e) { if (e.data && e.data.size) mine.push(e.data) };
     r.start(1000); FILM.rec = r;
   }
+  function filmSaveBlob(snapId, blob) {
+    if (!blob || blob.size <= 2000 || !snapId) return;
+    var k = filmKey(snapId); fput(k, blob).then(function () { FILM.have[k] = 1; FILM.n++; filmStatus(); renderLog() }, function () { toast("Couldn't save the clip. The device may be out of storage.") });
+  }
   function filmCut(snapId) {
     var r = FILM.rec; if (!r || r.state === "inactive") return;
     var chunks = r._chunks;
-    r.onstop = function () {
-      var blob = new Blob(chunks, { type: FILM.mime.split(";")[0] || "video/webm" });
-      if (blob.size > 2000 && snapId) { var k = filmKey(snapId); fput(k, blob).then(function () { FILM.have[k] = 1; FILM.n++; filmStatus(); renderLog() }, function () { toast("Couldn't save the clip. The device may be out of storage.") }) }
-    };
+    r.onstop = function () { filmSaveBlob(snapId, new Blob(chunks, { type: FILM.mime.split(";")[0] || "video/webm" })) };
     r.stop();
     if (FILM.on) filmStartRec();
   }
-  function filmCheck() {
-    if (!FILM.on || !S || !S.snaps || !S.snaps.length) return;
-    var last = S.snaps[S.snaps.length - 1];
-    if (last.id && last.id !== FILM.lastId && !FILM.have[filmKey(last.id)]) { FILM.lastId = last.id; filmCut(last.id) }
+  // a new play from ANY device (this one or another one on the same game) closes the running clip and starts the next.
+  // Plays that were already in the game when filming started, or that load in on a reconnect, never take a clip.
+  function filmCheck(remote) {
+    if (!S || !S.snaps || !S.snaps.length || !FILM.known) return;
+    var tailOk = FILM.tail && Date.now() - FILM.tail.at < 10000;
+    if (!FILM.on && !tailOk) return;
+    var fresh = S.snaps.filter(function (x) { return x && x.id && !FILM.known[x.id] });
+    if (!fresh.length) return;
+    fresh.forEach(function (x) { FILM.known[x.id] = 1 });
+    var newer = fresh.filter(function (x) { return !x.t || x.t > FILM.since - 60000 });
+    if (!newer.length) return;
+    newer.sort(function (a, b) { return (a.t || 0) - (b.t || 0) });
+    var last = newer[newer.length - 1]; if (FILM.have[filmKey(last.id)]) return;
+    FILM.lastId = last.id; FILM.lastCut = { n: S.snaps.indexOf(last) + 1, remote: !!remote, call: last.call || last.res || "" };
+    if (FILM.on) filmCut(last.id);
+    else { filmSaveBlob(last.id, FILM.tail.blob); FILM.tail = null; toast("Saved the last clip to play #" + FILM.lastCut.n) }
+    filmStatus();
   }
   function filmStatus() {
     $("filmGo").textContent = FILM.on ? "■ Stop filming" : "🎥 Film this game";
     $("filmPrev").hidden = !FILM.on; $("filmCam").hidden = !FILM.on;
-    $("filmState").innerHTML = FILM.on ? "<span class='filmdot'></span><b>Filming</b> · " + FILM.n + " clip" + (FILM.n === 1 ? "" : "s") + " saved tonight. Keep this screen on and the device steady."
+    $("filmState").innerHTML = FILM.on ? "<span class='filmdot'></span><b>Filming</b> · " + FILM.n + " clip" + (FILM.n === 1 ? "" : "s") + " saved" + (FILM.lastCut ? " · last cut: play #" + FILM.lastCut.n + (FILM.lastCut.call ? " " + esc(FILM.lastCut.call) : "") + (FILM.lastCut.remote ? " (logged on another device)" : "") : " · waiting for the first play") + ". A clip cuts every time any device logs a play. Keep this screen on and the device steady."
       : "Point this device at the field. Each play you log gets its own clip; tap ▶ in the Log to watch it.";
   }
   function filmOn() {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) { toast("This browser can't record video. Use Safari on iPhone/iPad or Chrome."); return }
     navigator.mediaDevices.getUserMedia({ video: { facingMode: FILM.facing, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false }).then(function (st) {
       FILM.stream = st; FILM.mime = filmPickMime(); $("filmPrev").srcObject = st;
-      FILM.on = true; FILM.lastId = S.snaps.length ? S.snaps[S.snaps.length - 1].id : null; filmStartRec(); filmStatus();
+      FILM.on = true; FILM.lastId = S.snaps.length ? S.snaps[S.snaps.length - 1].id : null; FILM.since = Date.now(); FILM.known = {}; FILM.tail = null; FILM.lastCut = null;
+      ensureIds(); S.snaps.forEach(function (x) { if (x && x.id) FILM.known[x.id] = 1 }); filmStartRec(); filmStatus();
       try { navigator.wakeLock && navigator.wakeLock.request("screen").then(function (l) { FILM.lock = l }, function () {}) } catch (e) {}
       toast("Filming. Log plays as usual; each one saves a clip.");
     }, function () { toast("Camera blocked. Allow camera access for this site in your browser settings.") });
   }
   function filmOff() {
     FILM.on = false;
-    if (FILM.rec && FILM.rec.state !== "inactive") { FILM.rec.onstop = null; FILM.rec.stop() }
+    // keep the footage since the last cut for a few seconds: if the play gets logged right after Stop, it still gets its clip
+    if (FILM.rec && FILM.rec.state !== "inactive") { var ch = FILM.rec._chunks; FILM.rec.onstop = function () { var b = new Blob(ch, { type: FILM.mime.split(";")[0] || "video/webm" }); FILM.tail = b.size > 2000 ? { blob: b, at: Date.now() } : null }; FILM.rec.stop() }
     FILM.rec = null; if (FILM.stream) FILM.stream.getTracks().forEach(function (t) { t.stop() }); FILM.stream = null;
     try { FILM.lock && FILM.lock.release() } catch (e) {} FILM.lock = null; filmStatus();
   }

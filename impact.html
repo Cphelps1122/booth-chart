@@ -160,6 +160,7 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
     <div id="out" class="stack"></div>
   </div>
 </main>
+<script src="sim.js"></script>
 <script>window.SOL_CONFIG = window.SOL_CONFIG || {"db": "https://cardinal-booth-default-rtdb.firebaseio.com", "apiKey": "AIzaSyDm0t01_w92gL5sm4_1RnVLip7xWkjb9ME"};</script>
 <script>
 (function () {
@@ -221,7 +222,7 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
   function showDiag(extra) {
     var el = document.getElementById("diag"); if (!el) { el = document.createElement("details"); el.id = "diag"; el.style.cssText = "margin-top:8px;font-size:12.5px;color:var(--muted)"; $("loadNote").closest(".panel").appendChild(el) }
     var a = authGet() || {};
-    el.innerHTML = "<summary style='cursor:pointer'>Details (impact v5)</summary><div style='white-space:pre-wrap;font-family:ui-monospace,monospace;margin-top:6px'>" + esc(["School: " + (a.school || "none") + " · signed in: " + (a.email || a.uid || "no")].concat(DIAG, extra || []).join("\n")) + "</div>";
+    el.innerHTML = "<summary style='cursor:pointer'>Details (impact v6)</summary><div style='white-space:pre-wrap;font-family:ui-monospace,monospace;margin-top:6px'>" + esc(["School: " + (a.school || "none") + " · signed in: " + (a.email || a.uid || "no")].concat(DIAG, extra || []).join("\n")) + "</div>";
   }
   function vals(o) { if (!o) return []; if (Array.isArray(o)) return o.filter(Boolean); return Object.keys(o).map(function (k) { var x = o[k]; if (typeof x === "string") { try { x = JSON.parse(x) } catch (e) { return null } } if (x && typeof x === "object") x.id = x.id || k; return x }).filter(Boolean) }
   function obj(x) { if (typeof x === "string") { try { return JSON.parse(x) } catch (e) { return null } } return x }
@@ -363,6 +364,57 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
     return { n: n, look: look, form: form, call: call, pl: pl, npl: needPl.length };
   }
 
+  // ---------- pregame sim vs what happened ----------
+  function actualOff(g) {
+    var S = g.off, P = S.filter(isPlay), ser = {}, pts = 0;
+    S.forEach(function (s) { if (s.kind !== "try" && s.series != null) ser[s.series] = 1; if (s.td) pts += 6; if (s.kind === "try" && s.good) pts += s.res === "PAT" ? 1 : 2 });
+    (g.scoreLog || []).forEach(function (e) { if (e.side !== "them" && e.label === "FG") pts += e.pts });
+    var drives = Math.max(1, Object.keys(ser).length), t3 = P.filter(function (s) { return s.dn === 3 }), yd = P.reduce(function (t, s) { return t + s.gain }, 0);
+    var tdDr = {}; S.forEach(function (s) { if (s.td) tdDr[s.series] = 1 });
+    return { pts: pts, drives: drives, ppd: pts / drives, ypp: P.length ? yd / P.length : 0, eff: P.length ? 100 * P.filter(eff).length / P.length : 0, third: t3.length ? 100 * t3.filter(function (s) { return s.td || (s.gain >= s.dist && s.res !== "Interception" && s.res !== "Fumble") }).length / t3.length : null,
+      expl: P.filter(expl).length, to: P.filter(function (s) { return s.res === "Interception" || s.res === "Fumble" }).length, tdDrive: 100 * Object.keys(tdDr).length / drives, n: P.length };
+  }
+  function simVsActual(g) {
+    var f = g.sim; if (!f || !window.SolSim) return null;
+    var a = actualOff(g), T = f.tend, scale = a.drives / (T.drives || 11);
+    // per-game totals scale with how many drives we really had
+    var M = [["Points", "pts", T.pts, a.pts, scale, 1], ["Points a drive", "ppd", T.ppd, a.ppd, 1, 1], ["TD drives", "tdDrive", T.tdDrive, a.tdDrive, 1, 0, "%"], ["Yards a play", "ypp", T.ypp, a.ypp, 1, 1], ["Efficient plays", "eff", T.eff, a.eff, 1, 0, "%"], ["3rd down", "third", T.third, a.third, 1, 0, "%"], ["Explosive plays", "expl", T.expl, a.expl, scale, 1], ["Turnovers", "to", T.to, a.to, scale, 1]];
+    var rows = M.filter(function (m) { return m[3] != null }).map(function (m) { var b = m[2], k = m[4]; var lo = b.lo * k, hi = b.hi * k, mid = b.mid * k; return { lab: m[0], key: m[1], lo: lo, hi: hi, mid: mid, act: m[3], inR: m[3] >= lo - 1e-9 && m[3] <= hi + 1e-9, dec: m[5], u: m[6] || "" } });
+    // looks: did their most likely shell / coverage per situation show up most?
+    var P = g.off.filter(isPlay), lookHit = 0, lookN = 0, lookRows = [];
+    Object.keys(f.looks || {}).forEach(function (b) {
+      var A = P.filter(function (s) { return b === "Red zone" ? SolSim.toY(s.yl) >= 80 : SolSim.bucket(s.dn, s.dist) === b }), L = f.looks[b];
+      [["shell", SolSim.shellN, "Shell"], ["cov", SolSim.covN, "Coverage"]].forEach(function (x) {
+        var pr = L[x[0]]; if (!pr || pr.n < 6) return;
+        var t = tally(A, function (s) { return x[1](s[x[0]]) }); if (t.n < 4) return;
+        var hit = t.top[0] === pr.v; lookN++; if (hit) lookHit++;
+        lookRows.push({ b: b, lab: x[2], said: pr.v, saidP: pr.p, top: t.top[0], topP: Math.round(100 * t.m[t.top[0]] / t.n), n: t.n, hit: hit });
+      });
+    });
+    // best-rated calls: how did they do when we ran them, vs everything else
+    var inBest = function (s) { var L = (f.bestCalls || {})[SolSim.bucket(s.dn, s.dist)] || [], c = SolSim.concept(s.call); return !!c && L.some(function (x) { return x.c === c }) };
+    var C = P.filter(function (s) { return s.call && s.callType !== "freeze" }), Bp = C.filter(inBest), Op = C.filter(function (s) { return !inBest(s) });
+    var st = function (A) { return { n: A.length, ef: A.filter(eff).length, yd: A.reduce(function (t, s) { return t + s.gain }, 0), ex: A.filter(expl).length } };
+    return { a: a, rows: rows, inR: rows.filter(function (r) { return r.inR }).length, lookHit: lookHit, lookN: lookN, lookRows: lookRows, best: st(Bp), other: st(Op), f: f };
+  }
+  // training: every graded game nudges the next sim's yards a play toward what really happened
+  function simCalibrate() {
+    var G = GAMES.filter(function (g) { return g.sv && g.final && g.sv.a.n >= 20 });
+    if (!G.length || !ONLINE) return;
+    var errs = G.map(function (g) { var used = (g.sim.cal && g.sim.cal.g) || 0; return g.sv.a.ypp - (g.sim.tend.ypp.m - used) });
+    var cal = { g: Math.round(100 * errs.reduce(function (t, e) { return t + e }, 0) / (errs.length + 2)) / 100, n: G.length, at: Date.now() };
+    get("/simCal").then(function (cur) { if (cur && cur.n === cal.n && Math.abs((cur.g || 0) - cal.g) < 0.01) return; return solToken().then(function (t) { return fetch(SOL_DB + "/schools/" + encodeURIComponent(ACC.school) + "/simCal.json?auth=" + encodeURIComponent(t), { method: "PUT", body: JSON.stringify(cal) }) }) }).catch(function () {});
+  }
+  function simGameHTML(g) {
+    var v = g.sv;
+    if (!v) return "<section class='panel'><h2>Pregame sim vs tonight</h2><p class='note'>No pregame sim was run for this week. Open Reports → Pregame Sim with their defense film loaded before the next game, and it's graded here after End game.</p></section>";
+    var fmt = function (x, r) { return (r.dec ? (Math.round(x * 10) / 10) : Math.round(x)) + r.u };
+    var h = "<section class='panel'><h2>Pregame sim vs tonight <small>" + v.inR + " of " + v.rows.length + " inside the sim's 80% range · totals scaled to our " + v.a.drives + " drives</small></h2><div class='tbl'><table><tr><th></th><th>Sim said</th><th>80% range</th><th>Tonight</th><th></th></tr>" +
+      v.rows.map(function (r) { return "<tr><td>" + r.lab + "</td><td>" + fmt(r.mid, r) + "</td><td>" + fmt(r.lo, r) + "–" + fmt(r.hi, r) + "</td><td><b>" + fmt(r.act, r) + "</b></td><td>" + (r.inR ? "<span class='g held'>In range</span>" : "<span class='g " + (r.act > r.hi ? "close'>Better" : "miss'>Worse") + " than the sim</span>") + "</td></tr>" }).join("") + "</table></div>";
+    if (v.lookRows.length) h += "<p class='note' style='margin-top:10px'><b>Their look:</b> the sim's most likely look showed up most in " + v.lookHit + " of " + v.lookN + " situations.</p><div class='tbl'><table><tr><th>Situation</th><th>Item</th><th>Sim said</th><th>Tonight</th><th></th></tr>" + v.lookRows.map(function (r) { var nm = r.lab === "Coverage" ? covName : function (x) { return String(x).toLowerCase() }; return "<tr><td>" + esc(r.b) + "</td><td>" + r.lab + "</td><td>" + esc(nm(r.said)) + " " + r.saidP + "%</td><td>" + esc(nm(r.top)) + " " + r.topP + "% (" + r.n + ")</td><td>" + chip(r.hit ? "held" : "miss") + "</td></tr>" }).join("") + "</table></div>";
+    h += "<p class='note' style='margin-top:10px'><b>Best-rated calls:</b> " + (v.best.n ? "when we ran one of the sim's top three for the situation, " + pcs(v.best.ef, v.best.n) + " were efficient at " + avg(v.best.yd, v.best.n) + " a play (" + v.best.n + " plays), vs " + pcs(v.other.ef, v.other.n) + " and " + avg(v.other.yd, v.other.n) + " for other calls (" + v.other.n + ")." : "we didn't run any of the sim's top-rated calls.") + "</p></section>";
+    return h;
+  }
   // ---------- load every charted game ----------
   var GAMES = [], SEASON = null, SEL = null;
   try { SEL = new URLSearchParams(location.search).get("game") } catch (e) {}
@@ -391,16 +443,18 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
           var scout = obj(meta.scout);
           var wk = scout && scout.sits ? Promise.resolve(scout) : (date ? get("/weeks/" + date + "/scout") : Promise.resolve(null));
           var pred = meta.wp && meta.wp.us != null ? Promise.resolve(meta.wp) : (date ? get("/weeks/" + date + "/pred") : Promise.resolve(null));
-          return Promise.all([wk, pred]).then(function (W) {
+          var simP = date && code !== "practice" ? get("/weeks/" + date + "/sim") : Promise.resolve(null);
+          return Promise.all([wk, pred, simP]).then(function (W) {
             var fin = obj(meta.final) || null;
             var us = fin ? +fin.us : +e.us || 0, them = fin ? +fin.them : +e.them || 0;
-            return { practice: code === "practice", code: code, opp: e.opp || meta.opp || "Opponent", date: date, season: code === "practice" ? "Practice" : seasonOf(date), us: us, them: them, final: !!(fin || e.final), off: off, scoreLog: obj(meta.scoreLog) || [], scout: W[0] && W[0].sits ? W[0] : null, pred: W[1] && W[1].us != null ? W[1] : null };
+            return { practice: code === "practice", code: code, opp: e.opp || meta.opp || "Opponent", date: date, season: code === "practice" ? "Practice" : seasonOf(date), us: us, them: them, final: !!(fin || e.final), off: off, scoreLog: obj(meta.scoreLog) || [], scout: W[0] && W[0].sits ? W[0] : null, pred: W[1] && W[1].us != null ? W[1] : null, sim: W[2] && W[2].tend ? W[2] : null };
           });
         });
       }));
     }).then(function (G) {
       GAMES = (G || []).filter(function (g) { return g.off.length }).sort(function (a, b) { return a.date.localeCompare(b.date) });
-      GAMES.forEach(function (g) { g.gr = gradeGame(g); g.dec = decisions(g); g.nc = nextCall(g); g.q = quality(g) });
+      GAMES.forEach(function (g) { g.gr = gradeGame(g); g.dec = decisions(g); g.nc = nextCall(g); g.q = quality(g); g.sv = simVsActual(g) });
+      simCalibrate();
       var ss = GAMES.map(function (g) { return g.season }).filter(function (v, i, a) { return a.indexOf(v) === i }).sort().reverse();
       var selG = SEL && GAMES.filter(function (g) { return g.code === SEL })[0];
       SEASON = selG ? selG.season : (ss[0] || null);
@@ -449,6 +503,7 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
       k(pcs(q.look, q.n), "Snaps with their look", q.n + " plays charted") + "</div>";
     // situations
     var rowHTML = function (r) { return r.items.map(function (x, i) { return "<tr>" + (i === 0 ? "<td rowspan='" + r.items.length + "'>" + esc(r.k) + "<br><span class='note'>" + r.n + " snaps tonight · scout " + r.sn + "</span></td>" : "") + "<td class='it'>" + x.lab + "</td><td>" + esc(fmtItem(x)) + "</td><td>" + chip(x.g) + "</td></tr>" }).join("") };
+    h += simGameHTML(g);
     var sr = gr.rows.filter(function (r) { return r.items.length && r.k !== "ALL" }), all = gr.rows.filter(function (r) { return r.k === "ALL" })[0];
     h += "<section class='panel'><h2>Scout vs tonight · by situation <small>Held = same top look / within 10 pts · Close = their #2 look / within 20 · 5+ snaps to grade</small></h2>" +
       (sr.length || (all && all.items.length) ? "<div class='tbl'><table><tr><th>Situation</th><th>Item</th><th>Scout said · tonight</th><th>Grade</th></tr>" + (all && all.items.length ? rowHTML({ k: "Overall", n: all.n, sn: all.sn, items: all.items }) : "") + sr.map(rowHTML).join("") + "</table></div>" : "<p class='empty'>" + (g.scout ? "Not enough tagged snaps per situation yet." : "No scout for this game.") + "</p>") + "</section>";
@@ -492,15 +547,17 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
       k(four.length ? fourOk + "/" + four.length : "–", "4th-down calls per chart", fourGo.length ? "went for it " + fourGo.length + ", converted " + fourGo.filter(function (x) { return x.conv }).length : "") +
       k(two.length ? two.filter(function (x) { return x.ok }).length + "/" + two.length : "–", "Tries per go-for-2 chart", "") +
       k(pr.length ? right + "/" + pr.length : "–", "Projection picked winner", mErr != null ? "off by " + mErr.toFixed(1) + " pts a game" : "needs Matchup Predictor") +
-      k(pcs(Q.look, Q.n), "Snaps with their look tagged", Q.n + " plays charted") + "</div>";
-    h += "<section class='panel'><h2>Game by game <small>tap a game above for its full postgame report</small></h2><div class='tbl'><table><tr><th>Game</th><th>Result</th><th>Projection</th><th>Scout grade</th><th>Look right</th><th>Blitz within 10</th><th>Next Call eff</th><th>Other calls eff</th><th>4th downs per chart</th><th>Look tagged</th></tr>" +
-      G.map(function (g) { var nl = g.nc; return "<tr><td>" + esc(nice(g.date) + " " + g.opp) + "</td><td><span class='wl " + res(g) + "'>" + (res(g) ? res(g).toUpperCase() + " " : "") + g.us + "–" + g.them + "</span></td><td>" + (g.pred ? g.pred.us + "–" + g.pred.them : "–") + "</td><td>" + (g.gr.score == null ? (g.scout ? "too few tags" : "no scout") : g.gr.score + "% (" + g.gr.items.length + ")") + "</td><td>" + (g.gr.lookAcc == null ? "–" : g.gr.lookAcc + "%") + "</td><td>" + (g.gr.blitzAcc == null ? "–" : g.gr.blitzAcc + "%") + "</td><td>" + (nl.tracked ? pcs(nl.f.ef, nl.f.n) + " (" + nl.f.n + ")" : "–") + "</td><td>" + (nl.tracked ? pcs(nl.o.ef, nl.o.n) + " (" + nl.o.n + ")" : "–") + "</td><td>" + (g.dec.fourth.length ? g.dec.fourth.filter(function (x) { return x.ok }).length + "/" + g.dec.fourth.length : "–") + "</td><td>" + pcs(g.q.look, g.q.n) + "</td></tr>" }).join("") + "</table></div></section>";
+      k(pcs(Q.look, Q.n), "Snaps with their look tagged", Q.n + " plays charted") +
+      (function () { var SG = G.filter(function (g) { return g.sv }), inR = SG.reduce(function (t, g) { return t + g.sv.inR }, 0), tot = SG.reduce(function (t, g) { return t + g.sv.rows.length }, 0); return k(tot ? pcs(inR, tot) : "–", "Sim forecasts in range", SG.length ? SG.length + " game" + (SG.length === 1 ? "" : "s") + " with a pregame sim" : "run Pregame Sim on Reports") })() + "</div>";
+    h += "<section class='panel'><h2>Game by game <small>tap a game above for its full postgame report</small></h2><div class='tbl'><table><tr><th>Game</th><th>Result</th><th>Projection</th><th>Scout grade</th><th>Look right</th><th>Blitz within 10</th><th>Next Call eff</th><th>Other calls eff</th><th>4th downs per chart</th><th>Sim in range</th><th>Look tagged</th></tr>" +
+      G.map(function (g) { var nl = g.nc; return "<tr><td>" + esc(nice(g.date) + " " + g.opp) + "</td><td><span class='wl " + res(g) + "'>" + (res(g) ? res(g).toUpperCase() + " " : "") + g.us + "–" + g.them + "</span></td><td>" + (g.pred ? g.pred.us + "–" + g.pred.them : "–") + "</td><td>" + (g.gr.score == null ? (g.scout ? "too few tags" : "no scout") : g.gr.score + "% (" + g.gr.items.length + ")") + "</td><td>" + (g.gr.lookAcc == null ? "–" : g.gr.lookAcc + "%") + "</td><td>" + (g.gr.blitzAcc == null ? "–" : g.gr.blitzAcc + "%") + "</td><td>" + (nl.tracked ? pcs(nl.f.ef, nl.f.n) + " (" + nl.f.n + ")" : "–") + "</td><td>" + (nl.tracked ? pcs(nl.o.ef, nl.o.n) + " (" + nl.o.n + ")" : "–") + "</td><td>" + (g.dec.fourth.length ? g.dec.fourth.filter(function (x) { return x.ok }).length + "/" + g.dec.fourth.length : "–") + "</td><td>" + (g.sv ? g.sv.inR + "/" + g.sv.rows.length : "–") + "</td><td>" + pcs(g.q.look, g.q.n) + "</td></tr>" }).join("") + "</table></div></section>";
     // pitch lines
     var lines = [];
     if (sAcc != null) lines.push("The pregame scout held up " + sAcc + "% of the time across " + I.length + " graded items in " + (function (n) { return n + " game" + (n === 1 ? "" : "s") })(G.filter(function (g) { return g.gr.items.length }).length) + ".");
     if (lAcc != null) lines.push("Coaches knew the defense's most likely look before the snap " + lAcc + "% of the time (" + L.length + " predictions).");
     if (F.n >= 10 && O.n >= 10) lines.push("Plays called from Next Call were " + pcs(F.ef, F.n) + " efficient and gained " + avg(F.yd, F.n) + " a play, vs " + pcs(O.ef, O.n) + " and " + avg(O.yd, O.n) + " for other calls (" + F.n + " vs " + O.n + " plays).");
     if (pr.length) lines.push("The pregame projection picked the winner in " + right + " of " + pr.length + " games.");
+    (function () { var SG = G.filter(function (g) { return g.sv }), inR = SG.reduce(function (t, g) { return t + g.sv.inR }, 0), tot = SG.reduce(function (t, g) { return t + g.sv.rows.length }, 0); if (tot >= 8) lines.push("The pregame simulation landed inside its forecast range on " + pcs(inR, tot) + " of " + tot + " game numbers across " + SG.length + " game" + (SG.length === 1 ? "" : "s") + ".") })();
     if (Q.n) lines.push(Q.n + " plays charted live this season, with every coach seeing the same data in real time.");
     h += "<div class='grid2'><section class='panel'><h2>Pitch lines <small>numbers you can say out loud</small></h2>" + (lines.length ? "<ul class='bul'>" + lines.map(function (t) { return "<li>" + esc(t) + "</li>" }).join("") + "</ul>" : "<p class='note'>Chart and grade a few games to build these.</p>") + "</section>";
     h += "<section class='panel'><h2>Read these honestly</h2><div class='honest'>These numbers show how accurate the scout and models were and how the app's recommendations performed. They don't prove the app caused a win, because there are no games charted without it to compare against. Small samples swing a lot, so play counts are shown everywhere. Better tagging (their look, the ball carrier or target) makes every grade sharper.</div></section></div>";

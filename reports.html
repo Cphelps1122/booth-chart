@@ -175,7 +175,9 @@ details.more > .rail { margin-top: 8px }
 .tt { font-family: var(--f-display); font-weight: 800; font-size: 32px; text-transform: uppercase; line-height: 1 } .tmeta { margin-left: auto; text-align: right; font-size: 12.5px; color: #4a5666; max-width: 50% }
 .tgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px }
 @media (max-width: 1100px) { .tgrid { grid-template-columns: minmax(0, 1fr) } }
-.tbw-kpiD, .tbw-kpiO, .tbw-top3, .tbw-heat, .tbw-zones, .tbw-third, .tbw-alarm, .tbw-predict, .tbw-hit { grid-column: 1 / -1 }
+.tbw-sim > .tb { background: none; padding: 0 } .simt { width: 100%; border-collapse: collapse; font-size: 13.5px } .simt th { text-align: left; font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: #4a5666; padding: 6px 8px; border-bottom: 2px solid #0c1117 } .simt td { padding: 6px 8px; border-bottom: 1px solid #e3e7ec; vertical-align: top } .simt td.up { color: #15803d; font-weight: 800 } .simt td.dn { color: #b91c1c; font-weight: 800 } .simt small { color: #66717f }
+.simcard { background: #fff; border-radius: 12px; padding: 14px 16px; margin-bottom: 12px } .simhero { background: #0c1117; color: #fff; border-radius: 12px; padding: 16px 18px; margin-bottom: 12px; display: flex; gap: 18px; flex-wrap: wrap; align-items: center } .simhero .simbig { font-family: var(--f-display); font-size: 46px; font-weight: 800; line-height: 1 } .simhero .lab { font-size: 11.5px; letter-spacing: .1em; text-transform: uppercase; color: #9aa7b6; font-weight: 800 } .simhero p { margin: 0; flex: 1 1 300px; font-size: 14.5px; line-height: 1.45; color: #dfe6ee }
+.tbw-sim, .tbw-kpiD, .tbw-kpiO, .tbw-top3, .tbw-heat, .tbw-zones, .tbw-third, .tbw-alarm, .tbw-predict, .tbw-hit { grid-column: 1 / -1 }
 .tb { background: #fff; border-radius: 12px; padding: 14px 16px; height: 100%; box-sizing: border-box } .tbw-predict > .tb { background: none; padding: 0; height: auto } #predBox .tb { height: auto; margin-bottom: 12px }
 .tb-h { display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px; flex-wrap: wrap } .tb-h b { font-family: var(--f-display); font-size: 17px; text-transform: uppercase; letter-spacing: .04em } .tb-h span { font-size: 12px; color: #4a5666 }
 .tnote { font-size: 13px; color: #4a5666; margin: 4px 0 } .tsub { font-weight: 800; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: #4a5666; margin-bottom: 6px }
@@ -359,6 +361,7 @@ details.more > .rail { margin-top: 8px }
   <div id="tagList" style="overflow:auto;flex:1;min-height:120px"></div>
   <div style="display:flex;justify-content:flex-end;margin-top:10px"><button class="btn pri" id="tagClose">Done</button></div>
 </div></div>
+<script src="sim.js"></script>
 <script>window.SOL_CONFIG = window.SOL_CONFIG || {"db": "https://cardinal-booth-default-rtdb.firebaseio.com", "apiKey": "AIzaSyDm0t01_w92gL5sm4_1RnVLip7xWkjb9ME"};</script>
 <script>
 (function () {
@@ -1499,6 +1502,7 @@ details.more > .rail { margin-top: 8px }
     openers: { t: "Drive openers", sides: "O", r: function (P) { var seen = {}, Q = P.filter(function (r) { var k = r.gid + "|" + r.series; if (r.series == null || seen[k]) return false; seen[k] = 1; return true }); if (!Q.length) return "<div class='tb'>" + secH("Drive openers") + "<p class='tnote'>Needs the SERIES column.</p></div>"; var rn = Q.filter(isRun), tp = cntBy(Q, function (r) { return (r.form || "") + " " + ((r.run ? r.runFam : r.passFam) || "") }).slice(0, 4); return "<div class='tb'>" + secH("Drive openers", "first play of each drive") + "<div class='trow'><span>Run / pass</span><div class='tsplit'><i style='width:" + pc(rn.length, Q.length) + "%'></i><u style='width:" + (100 - pc(rn.length, Q.length)) + "%'></u></div><b>" + dn(Q, "Openers", "R " + pc(rn.length, Q.length) + "%") + "</b><em>" + Q.length + "</em></div>" + tp.map(function (g) { return "<div class='trow'><span>" + esc(g.k) + "</span><b>" + dn(g.P, g.k, g.P.length + "") + "</b></div>" }).join("") + "</div>" } },
     hashrp: { t: "By hash", sides: "O", r: function (P) { return "<div class='tb'>" + secH("By hash", "run/pass and favorite play") + ["L", "M", "R"].map(function (h) { var Q = P.filter(function (r) { return r.hash === h }), n = Q.length; if (!n) return ""; var rn = Q.filter(isRun).length, tp = topK(Q, function (r) { return r.run ? r.runFam : r.passFam }); return "<div class='trow'><span><b>" + { L: "Left", M: "Middle", R: "Right" }[h] + "</b></span><div class='tsplit'><i style='width:" + pc(rn, n) + "%'></i><u style='width:" + (100 - pc(rn, n)) + "%'></u></div><b>" + dn(Q, h + " hash", "R " + pc(rn, n) + "%") + "</b><em>" + esc(tp ? tp.k : "") + "</em></div>" }).join("") + "</div>" } },
     alarm: { t: "Tendency alarm", sides: "O", r: function (P) { var L = insights(P, "O", 20); return "<div class='tb'>" + secH("Tendencies over " + setVal("alert") + "%", "anything a good scout will see") + (L.length ? L.map(function (x) { return "<div class='talarm'>" + esc(x.h) + x.n + "</div>" }).join("") : "<p class='tnote'>Nothing over your alert setting. Hard to scout.</p>") + "</div>" } },
+    sim: { t: "Pregame simulation", sides: "D", r: function (P) { return "<div class='tb' id='simBox'>" + simHTML(P) + "</div>" } },
     predict: { t: "Matchup predictor", sides: "DO", r: function () { return "<div class='tb' id='predBox'>" + predHTML() + "</div>" } },
     classic: { t: "Classic tables", sides: "DO", r: function () { return "" } }
   };
@@ -1508,6 +1512,7 @@ details.more > .rail { margin-top: 8px }
     { id: "off", name: "Opponent Offense Report", who: "For the DC", side: "O", blocks: ["kpiO", "top3", "pers", "forms", "bftells", "hit", "ddrp", "expl", "openers", "hashrp"] },
     { id: "one", name: "Game-Week One-Pager", who: "Everyone", side: "*", blocks: ["kpi", "top3", "main", "zones", "tells"] },
     { id: "self", name: "Self-Scout Alarm", who: "Self scout", side: "O", blocks: ["kpiO", "alarm", "ddrp", "forms", "pers"] },
+    { id: "sim", name: "Pregame Sim", who: "For the OC", side: "D", blocks: ["sim"] },
     { id: "pred", name: "Matchup Predictor", who: "Everyone", side: "*", blocks: ["predict"] },
     { id: "classic", name: "Classic tables", who: "Everyone", side: "*", blocks: ["classic"] }
   ];
@@ -1534,6 +1539,7 @@ details.more > .rail { margin-top: 8px }
     var sb = typeof SAMPLE !== "undefined" && SAMPLE && t.id !== "pred" ? "<div class='tsample'><b>Sample data</b> · made-up teams and plays so you can look at and set up this template. Your real numbers fill in when you add this week's Hudl files. <button type='button' class='back' data-go='setup'>Add Hudl files</button></div>" : "";
     $("tplOut").innerHTML = sb + head + "<div class='tgrid tg-" + t.id + "'>" + body + "</div>";
     if (t.id === "pred") predWire();
+    if (t.id === "sim") simKick(P);
   }
   function renderFilters() {
     var box = $("tplFilt"); if (!box) return; var P = active();
@@ -1589,6 +1595,60 @@ details.more > .rail { margin-top: 8px }
     }, function () { applySettings() });
   }
   // =====================================================================================
+  // ---------- Pregame Sim: plays our offense against this defense thousands of times (engine in sim.js) ----------
+  var SIM = { key: null, res: null, busy: false, our: null, ourKey: null, games: 0, err: null };
+  function simKey(P) { return (WK.cur ? WK.cur.date : "") + "|" + P.length + "|" + (P.length ? P[0].gid + P[P.length - 1].gid : "") }
+  function simLoadOur(beforeDate) {
+    var k = beforeDate || "all"; if (SIM.our && SIM.ourKey === k) return Promise.resolve(SIM.our);
+    if (!ONLINE || !solSchoolBase()) return Promise.resolve([]);
+    return wkGet("/season").then(function (sk) {
+      if (typeof sk !== "string" || !sk) return [];
+      return wkGet("/games/" + encodeURIComponent(sk) + "/list").then(function (L) {
+        L = L || {}; var realDay = {}; Object.keys(L).forEach(function (c) { if (L[c] && L[c].real && !L[c].unfiled) realDay[L[c].date] = 1 });
+        var codes = Object.keys(L).filter(function (c) { var e = L[c] || {}; return e.plays && !e.unfiled && !(realDay[e.date] && !e.real) && (!beforeDate || (e.date || "") < beforeDate) });
+        SIM.games = codes.length;
+        return Promise.all(codes.map(function (c) { return wkGet("/games/" + encodeURIComponent(c) + "/snaps").then(function (d) { return Object.keys(d || {}).map(function (id) { var x = d[id]; if (typeof x === "string") { try { x = JSON.parse(x) } catch (e) { return null } } if (x) { x.id = id; x.gid = c } return x }).filter(Boolean) }) }));
+      }).then(function (arrs) { var all = []; (arrs || []).forEach(function (a) { all = all.concat(a) }); return all });
+    }).then(function (all) { SIM.our = all; SIM.ourKey = k; return all }, function () { return [] });
+  }
+  function simKick(P) {
+    if (SIDE !== "D" || !P.length || !window.SolSim) return;
+    var key = simKey(P); if (SIM.key === key && (SIM.res || SIM.busy)) return;
+    SIM.key = key; SIM.res = null; SIM.busy = true; SIM.err = null;
+    var date = WK.cur ? WK.cur.date : null;
+    Promise.all([simLoadOur(date), ONLINE && solSchoolBase() ? wkGet("/simCal") : Promise.resolve(null)]).then(function (R) {
+      setTimeout(function () {
+        try {
+          var f = SolSim.forecast(P, R[0], R[1], 1500); f.games = SIM.games; f.week = date; f.opp = WK.cur ? WK.cur.opp : (CUR && CUR.team) || "Opponent";
+          if (SIM.key !== key) return; SIM.res = f; SIM.busy = false;
+          var bx = $("simBox"); if (bx) bx.innerHTML = simHTML(P);
+          if (date && ONLINE && solSchoolBase()) wkPut("/weeks/" + date + "/sim", f).catch(function () {});
+        } catch (e) { SIM.busy = false; SIM.err = String(e && e.message || e); var b2 = $("simBox"); if (b2) b2.innerHTML = simHTML(P) }
+      }, 30);
+    });
+  }
+  function simHTML(P) {
+    if (SIDE !== "D") return "<div class='simcard'><p class='tnote'>The sim needs <b>their defense</b>: add their Hudl defense film and read the plays as Opponent on defense.</p></div>";
+    if (!P.length) return "<div class='simcard'><p class='tnote'>Add this week's Hudl defense files to run the sim.</p></div>";
+    if (SIM.err) return "<div class='simcard'><p class='tnote'>The sim hit a problem: " + esc(SIM.err) + "</p></div>";
+    var f = SIM.key === simKey(P) ? SIM.res : null;
+    if (!f) return "<div class='simcard'><p class='tnote'>Simulating 1,500 games against " + esc(WK.cur ? WK.cur.opp : "this defense") + "…</p></div>";
+    var T = f.tend, B = f.best, opp = f.opp || "them", rng = function (x, u) { return x.lo + (u || "") + "–" + x.hi + (u || "") };
+    var h = "<div class='simhero'><div><div class='lab'>Projected points · our offense</div><div class='simbig'>" + T.pts.mid + "</div><div class='lab' style='margin-top:4px'>80% of sims: " + rng(T.pts) + "</div></div><p>We played <b>" + esc(opp) + "</b> " + T.n.toLocaleString() + " times, " + T.drives + " drives each, using their defense from " + f.oppPlays + " snaps of film and " + (f.ourPlays ? "our results from " + f.ourPlays + " charted plays" + (f.games ? " in " + f.games + " game" + (f.games === 1 ? "" : "s") : "") : "<b>no charted games of ours yet</b>, so our side uses what they've allowed") + ". If we lean on the best-rated calls, the middle projection moves from <b>" + T.pts.mid + "</b> to <b>" + B.pts.mid + "</b>.</p></div>";
+    var row = function (lab, a, b, fmt, better) { var d = b.m - a.m, cls = Math.abs(d) < 0.05 ? "" : ((d > 0) === (better !== "low") ? "up" : "dn"); return "<tr><td><b>" + lab + "</b></td><td>" + fmt(a.mid) + " <small>(" + fmt(a.lo) + "–" + fmt(a.hi) + ")</small></td><td>" + fmt(b.mid) + " <small>(" + fmt(b.lo) + "–" + fmt(b.hi) + ")</small></td><td class='" + cls + "'>" + (d > 0 ? "+" : "") + (Math.round(d * 10) / 10) + "</td></tr>" };
+    var n1 = function (v) { return (Math.round(v * 10) / 10).toString() }, p0 = function (v) { return Math.round(v) + "%" };
+    h += "<div class='simcard'>" + secH("Forecast", "middle of 1,500 sims · 80% range in grey") + "<div class='tbl'><table class='simt'><tr><th></th><th>Our usual calls</th><th>Best-rated calls</th><th>Change</th></tr>" +
+      row("Points", T.pts, B.pts, n1) + row("Points a drive", T.ppd, B.ppd, n1) + row("TD drives", T.tdDrive, B.tdDrive, p0) + row("Yards a play", T.ypp, B.ypp, n1) + row("Efficient plays", T.eff, B.eff, p0) + row("3rd down", T.third, B.third, p0) + row("Explosive plays", T.expl, B.expl, n1) + row("Turnovers", T.to, B.to, n1, "low") + row("Run %", T.runPct, B.runPct, p0, "none") +
+      "</table></div><p class='tnote'>Usual calls = we call the way we have in our charted games. Best-rated = we lean on the top three calls for each situation below.</p></div>";
+    var L = f.looks, lk = function (x, nm) { return x ? esc(nm ? nm(x.v) : x.v) + " " + x.p + "%" + (x.v2 ? " <small>then " + esc(nm ? nm(x.v2) : x.v2) + "</small>" : "") : "–" };
+    h += "<div class='simcard'>" + secH("Their look by situation", "what the sim draws from their film") + "<div class='tbl'><table class='simt'><tr><th>Situation</th><th>Snaps</th><th>Shell</th><th>Coverage</th><th>Front</th><th>Blitz</th></tr>" +
+      Object.keys(L).map(function (b) { var x = L[b]; return "<tr" + (x.n < 8 ? " style='opacity:.6'" : "") + "><td><b>" + esc(b) + "</b></td><td>" + x.n + "</td><td>" + lk(x.shell, function (v) { return v.toLowerCase() }) + "</td><td>" + lk(x.cov, function (v) { return /^\d$/.test(v) ? "Cov " + v : v }) + "</td><td>" + lk(x.front) + "</td><td>" + (x.blitz == null ? "–" : x.blitz + "%") + "</td></tr>" }).join("") + "</table></div></div>";
+    var BC = f.bestCalls, ks = Object.keys(BC).filter(function (b) { return BC[b].length });
+    h += "<div class='simcard'>" + secH("Best-rated calls by situation", "our plays vs their look mix · success rate · yards a play") + (ks.length ? "<div class='tbl'><table class='simt'><tr><th>Situation</th><th>1</th><th>2</th><th>3</th></tr>" +
+      ks.map(function (b) { return "<tr><td><b>" + esc(b) + "</b></td>" + [0, 1, 2].map(function (i) { var x = BC[b][i]; return "<td>" + (x ? "<b>" + esc(x.c) + "</b><br><small>" + x.eff + "% · " + x.ypp + " a play · " + x.n + " run" + (x.nb ? ", " + x.nb + " here" : "") + "</small>" : "") + "</td>" }).join("") + "</tr>" }).join("") + "</table></div>" : "<p class='tnote'>Chart a game first: best calls come from our own charted plays.</p>") + "</div>";
+    h += "<div class='simcard'><p class='tnote'><b>How to read this.</b> It's a forecast, not a promise: it assumes they play us like they played the teams on film, and it only knows calls we've charted. After the game, End game grades this forecast on the Impact page, and every graded game tunes the next sim" + (f.cal && f.cal.n ? " (tuned on " + f.cal.n + " game" + (f.cal.n === 1 ? "" : "s") + " so far, " + (f.cal.g >= 0 ? "+" : "") + (Math.round(f.cal.g * 10) / 10) + " yds a play)" : "") + ".</p></div>";
+    return h;
+  }
   // Matchup predictor: power ratings from game scores (strength of schedule built in)
   // =====================================================================================
   var SCORES = {}, HFA = 2.5, CAP = 28, SD = 14;

@@ -262,7 +262,7 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
     return T;
   }
   function defTeam(snaps) {
-    var P = snaps.filter(function (s) { return s && s.kind !== "pen" && s.res && (s.gain != null || s.res === "Incomplete") });
+    var P = snaps.filter(function (s) { return s && s.kind !== "pen" && !s.vic && s.res && s.res !== "Kneel" && (s.gain != null || s.res === "Incomplete") });
     var T = { pl: P.length, yd: 0, ra: 0, ry: 0, pa: 0, pc: 0, py: 0, sk: 0, td: 0, to: 0, ex: 0, a3: 0, c3: 0 };
     P.forEach(function (s) {
       var g = s.gain == null ? 0 : s.gain; T.yd += g; if (s.td) T.td++;

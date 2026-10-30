@@ -368,6 +368,16 @@ body.infinal #v-chart .panel, body.infinal #v-chart .spotpanel, body.infinal #v-
 .finalbar a, .finalbar button { font: 800 14px Inter, system-ui, sans-serif; padding: 6px 12px; border-radius: 8px; border: 1px solid #a5e3ff; background: #a5e3ff; color: #0c1117; text-decoration: none; cursor: pointer }
 .finalbar button { background: transparent; color: #a5e3ff }
 .endbtn { background: #0c1117 !important; color: #a5e3ff !important; border-color: #a5e3ff !important }
+.syncbar { position: fixed; left: 50%; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 9990; max-width: min(760px, 94vw); display: flex; gap: 10px; align-items: center; padding: 10px 16px; border-radius: 12px; font: 800 15px Inter, system-ui, sans-serif; box-shadow: 0 8px 24px rgba(0,0,0,.35) }
+.syncbar.red { background: #b91c1c; color: #fff } .syncbar.amber { background: #f59e0b; color: #1a1205 }
+.syncbar button { font: 800 14px Inter, system-ui, sans-serif; padding: 6px 12px; border-radius: 8px; border: 0; background: #fff; color: #111; cursor: pointer }
+.pill.sentok { background: #14532d; color: #bbf7d0 }
+.tagnag { position: fixed; left: 50%; bottom: calc(70px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 9989; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 10px 14px; border-radius: 12px; background: #0c1117; color: #e8edf2; border: 2px solid #a5e3ff; font: 700 14.5px Inter, system-ui, sans-serif; box-shadow: 0 8px 24px rgba(0,0,0,.35); max-width: 94vw }
+.tagnag button { font: 800 14px Inter, system-ui, sans-serif; padding: 7px 12px; border-radius: 8px; border: 1px solid #a5e3ff; background: #a5e3ff; color: #0c1117; cursor: pointer } .tagnag button.sk { background: transparent; color: #a5e3ff }
+.gdcheck { margin: 0 36px 0; padding: 16px 18px; border: 1px solid var(--hl); border-radius: 14px; background: #0f161e } .gdcheck h3 { margin: 0 0 10px; font-family: var(--f-display); font-size: 20px; letter-spacing: .04em; text-transform: uppercase; color: #e8edf2 }
+.gdcheck ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 6px 14px } .gdcheck li { display: flex; gap: 10px; align-items: baseline; font-size: 15px; color: #cfd8e2 } .gdcheck li b { font-size: 17px; width: 20px; flex: none } .gdcheck li.ok b { color: #4ade80 } .gdcheck li.no b { color: #f87171 } .gdcheck li.na b { color: #64748b } .gdcheck li a { color: #a5e3ff }
+.bkbar { margin: 14px 36px 0; padding: 10px 14px; border-radius: 10px; background: #1b2633; color: #e8edf2; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 14.5px }
+@media (max-width: 640px) { .gdcheck, .bkbar { margin-left: 18px; margin-right: 18px } }
 .lkusers { display: grid; gap: 6px; margin-top: 8px } .lkusers label { display: flex; gap: 10px; align-items: center; font-size: 15px; padding: 6px 8px; border-radius: 8px; background: var(--chip) }
 
 .edgrid { margin-top: 10px } .edgrid input[type=text], .edgrid select { font-size: 16px; padding: 7px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); min-width: 120px }
@@ -437,6 +447,7 @@ textarea { min-height: 64px }
         <span class="pill" id="pBall">Own 30</span>
         <span class="pill fourth" id="p4th">4th: Go if 4</span>
         <button class="pill syncpill" id="pSync" hidden title="Live sync status">Live</button>
+        <span class="pill sentok" id="pSent" hidden>✓ All sent</span>
       </div>
     </div>
     <nav role="tablist">
@@ -509,6 +520,8 @@ textarea { min-height: 64px }
       </a>
     </div>
 
+    <div id="bkBar" class="bkbar" hidden></div>
+    <div class="gdcheck" id="gdCheck" hidden><h3 id="gdTitle">Game-day checklist</h3><ul id="gdList"></ul></div>
     <div class="h-games">
       <div class="h-gh"><div><div class="hk">Season</div><div class="h-gt">Games <span id="homeState"></span></div></div><button class="h-btn" id="hsToggle">+ Add a game to the schedule</button></div>
       <div class="wkbar" id="wkBar"></div>
@@ -773,6 +786,16 @@ textarea { min-height: 64px }
   </section>
 
   <section id="v-setup" hidden class="setup">
+    <div class="panel" id="bkPanel" hidden style="margin-bottom:14px">
+      <h3>Season backup <small>admin only · a copy of every game, report and setting for this school</small></h3>
+      <p class="note" id="bkNote" style="margin-top:0"></p>
+      <div class="actions"><button class="btn primary" id="bkGo" type="button">Download backup</button></div>
+      <p class="note">Keep the file somewhere safe (Google Drive or email it to yourself). If anything is ever lost, it can be loaded back into Firebase (Realtime Database → ⋮ → Import JSON) at <b id="bkPath"></b>.</p>
+    </div>
+    <div class="panel" id="tagPanel" style="margin-bottom:14px">
+      <h3>Missing tags <small>this device</small></h3>
+      <label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-size:15px"><input type="checkbox" id="tagNagOn"> Remind me when a play is logged without their look or the ball carrier / target</label>
+    </div>
     <div class="panel" id="lockPanel" hidden style="margin-bottom:14px">
       <h3>Lock mode <small>admin only · a locked account sees everything live but can't chart</small></h3>
       <div class="lkusers" id="lkUsers"><span class="note">Loading accounts…</span></div>
@@ -1390,7 +1413,7 @@ textarea { min-height: 64px }
   function lockApi(path, method, body) { return solToken().then(function (t) { return fetch(SOL_DB + "/" + path + ".json?auth=" + encodeURIComponent(t), { method: method || "GET", body: body === undefined ? undefined : JSON.stringify(body) }) }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json() }) }
   function lockAdminInit() {
     if (!ONLINE) return; var a = authGet(); if (!a || !a.uid) return;
-    lockApi("admins/" + a.uid).then(function (v) { if (v !== true) return; LOCK.admin = true; lockApply(false); $("lockPanel").hidden = false; lockLoadUsers(); if (!$("v-home").hidden) renderHome() }, function () {});
+    lockApi("admins/" + a.uid).then(function (v) { if (v !== true) return; LOCK.admin = true; lockApply(false); $("lockPanel").hidden = false; lockLoadUsers(); bkRender(); if (!$("v-home").hidden) renderHome() }, function () {});
   }
   function lockLoadUsers() {
     var a = authGet() || {}; if (!a.school) return;
@@ -1514,6 +1537,7 @@ textarea { min-height: 64px }
       else { SY.last = { snaps: {}, meta: "" }; Object.keys((remote && remote.snaps) || {}).forEach(function (k) { SY.last.snaps[k] = "?" }); schedulePush() }
       openStream(); renderAll(); wkScout(); wkHudlLists(); wkPred(); wkCallSheet(); wkGamePlan();
       lastIdx = null; setTimeout(function () { lastIdx = null; updateIndex() }, 2500); // always (re)file this game in the school's season list
+      setTimeout(presencePing, 1500);
       toast(cfg.code === PRACTICE ? "Practice game · nothing here counts" : "Live sync on" + (S.gc ? " · " + S.gc : ""));
     }, function (e) {
       if (String(e.message) === "denied") setStatus("err", "the database refused access · check the rules and the game code (16+ letters)");
@@ -1655,7 +1679,7 @@ textarea { min-height: 64px }
     renderStats();
     if (!seasonKey(false)) { HOME.list = {}; renderHome("Open your staff link once on this device to see the season's games."); return }
     renderHome("loading…");
-    fetch(homeListUrl()).then(function (r) { if (!r.ok) throw 0; return r.json() }).then(function (l) { HOME.list = l || {}; gamesCache(HOME.list); renderHome(); renderStats(); if (SCHED) drawNext() }, function () { HOME.list = gamesCache(); renderHome("offline · showing the last list") });
+    fetch(homeListUrl()).then(function (r) { if (!r.ok) throw 0; return r.json() }).then(function (l) { HOME.list = l || {}; gamesCache(HOME.list); renderHome(); renderStats(); if (SCHED) drawNext(); gdCheck() }, function () { HOME.list = gamesCache(); renderHome("offline · showing the last list") });
   }
   function renderStats() {
     var L = HOME.list || {}, ks = Object.keys(L), w = 0, l = 0, pl = 0;
@@ -2843,9 +2867,95 @@ textarea { min-height: 64px }
     pick.call = null; pick.callType = null; pick.res = null; pick.td = false; pick.pl = null; pick.motion = null; pick.rpo = null; pick.mull = false; $("gain").value = 0;
     $("csSearch").value = ""; if ($("gsQ")) $("gsQ").value = "";
     save(); renderAll(); window.scrollTo(0, 0);
+    setTimeout(function () { tagNag(snap) }, 50);
     toast("Logged #" + snap.n + " · " + (snap.call || snap.pt || snap.res) + ((snap.carrier || snap.target) ? " · #" + (snap.target || snap.carrier) : "") + (g == null ? " · now tap where the ball is" : (snap.td ? " · TD" : "")));
   }
 
+  // ---------- sync health: never let plays sit on one device without anyone knowing ----------
+  var SH = { lastOk: 0 };
+  function unsentCount() {
+    if (!SY.cfg || !SY.last) return S.snaps.length;
+    var n = 0; S.snaps.forEach(function (x) { if (!x || !x.id) { n++; return } if (SY.last.snaps[x.id] !== JSON.stringify(clean(x))) n++ }); return n;
+  }
+  function syncHealth() {
+    var b = $("syncBar"), msg = null, cls = "red", btn = null;
+    if (!b) { b = document.createElement("div"); b.id = "syncBar"; b.className = "syncbar"; b.hidden = true; document.body.appendChild(b) }
+    var prac = SY.cfg && SY.cfg.code === PRACTICE;
+    if (!ONLINE || S.example) { b.hidden = true; $("pSent").hidden = true; return }
+    if (!SY.cfg) { if (S.snaps.length) { msg = "⚠ " + S.snaps.length + " play" + (S.snaps.length === 1 ? " is" : "s are") + " only on this device. Join or set up this week's game on Home."; btn = ["Go to Home", function () { document.getElementById("t-home").click(); window.scrollTo(0, 0) }] } }
+    else if (!SY.last) { msg = "⚠ Live sync is paused on this device."; btn = ["Resume sync", function () { SY.last = { snaps: {}, meta: "" }; SY.dirty = true; schedulePush() }] }
+    else if (!LOCK.on) {
+      var n = unsentCount();
+      if (n) {
+        if (!SH.since) SH.since = Date.now();
+        var waited = Date.now() - SH.since;
+        if (SY.status === "on" && waited < 6000) { /* normal: it sends within a second or two */ }
+        else if (SY.status === "on" && waited < 20000) { cls = "amber"; msg = "Sending " + n + " play" + (n === 1 ? "" : "s") + "… (slow signal)" }
+        else { msg = "⚠ " + n + " play" + (n === 1 ? "" : "s") + " not sent yet" + (SY.status === "on" ? "." : " · no signal. Keep this page open; they send when the signal is back."); btn = ["Send now", function () { sendOnline() }] }
+      } else { SH.since = 0; SH.lastOk = Date.now() }
+    }
+    if (msg) { b.className = "syncbar " + cls; b.innerHTML = "<span>" + esc(msg) + "</span>" + (btn ? "<button type='button'>" + esc(btn[0]) + "</button>" : ""); if (btn) b.querySelector("button").onclick = btn[1]; b.hidden = false } else b.hidden = true;
+    var ok = !!(SY.cfg && SY.last && !msg && !prac && S.snaps.length);
+    $("pSent").hidden = !ok; if (ok) $("pSent").textContent = "✓ All " + S.snaps.length + " sent";
+  }
+  setInterval(function () { try { syncHealth() } catch (e) {} }, 1500);
+  // each device says it's here, so the checklist can show who's in the game
+  function presencePing() {
+    if (!ONLINE || !SY.cfg || S.example) return; var a = authGet() || {};
+    fetch(gameUrl("/presence/" + DEVICE), { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ at: Date.now(), role: "offense", who: a.email || "" }) }).catch(function () {});
+  }
+  setInterval(presencePing, 45000); setTimeout(presencePing, 4000);
+  // missing tags: one tap to add their look or the player right after logging
+  function tagNagOn() { try { return localStorage.getItem("solutions-tagnag" + NS) !== "0" } catch (e) { return true } }
+  function tagNag(snap) {
+    if (!tagNagOn() || !snap || isPractice()) return;
+    var idx = S.snaps.indexOf(snap); if (idx < 0) return;
+    var noLook = !snap.shell && !snap.front && !snap.cov && !snap.box, role = playerRole(snap.res), noPl = (role === "carrier" || role === "target") && !snap.carrier && !snap.target;
+    if (!noLook && !noPl) return;
+    var b = $("tagNag"); if (!b) { b = document.createElement("div"); b.id = "tagNag"; b.className = "tagnag"; document.body.appendChild(b) }
+    b.innerHTML = "<span>#" + snap.n + " is missing " + [noLook ? "their look" : "", noPl ? (role === "target" ? "the target" : "the ball carrier") : ""].filter(Boolean).join(" and ") + "</span>" + (noLook ? "<button type='button' data-tn='look'>Add their look</button>" : "") + (noPl ? "<button type='button' data-tn='pl'>Add " + (role === "target" ? "target" : "ball carrier") + "</button>" : "") + "<button type='button' class='sk' data-tn='skip'>Skip</button>";
+    b.hidden = false; clearTimeout(tagNag.t); tagNag.t = setTimeout(function () { b.hidden = true }, 9000);
+    b.querySelectorAll("[data-tn]").forEach(function (x) { x.addEventListener("click", function () { b.hidden = true; if (x.dataset.tn !== "skip") openCell(idx, x.dataset.tn) }) });
+  }
+  // ---------- game-day checklist (Home) ----------
+  function gdCheck() {
+    var box = $("gdCheck"); if (!box) return;
+    var w = WK.cur || (WK.list ? wkNext(WK.list) : null); if (!ONLINE || !w) { box.hidden = true; return }
+    var L = HOME.list || {}, rk = realOf(L, w.date), g = rk ? L[rk] : null, mine = SY.cfg && rk && SY.cfg.code === rk;
+    var items = [], add = function (ok, txt, extra) { items.push("<li class='" + (ok === true ? "ok" : ok === false ? "no" : "na") + "'><b>" + (ok === true ? "✓" : ok === false ? "✗" : "…") + "</b><span>" + txt + (extra ? " " + extra : "") + "</span></li>") };
+    add(!!g, g ? "Week's game is set up" + (g.gc ? " · code <b>" + esc(g.gc) + "</b>" : "") : "Set up this week's game (folder below)");
+    add(!!mine, mine ? "This device is in the game" : "This device isn't in the week's game yet");
+    add(roster().length >= 5, roster().length + " players on the roster (Setup)");
+    add(!!(S.sheetGrid || (S.sheet && S.sheet.length)), S.sheetGrid ? "Call sheet uploaded" : "Call sheet: upload this week's (Setup → Call sheet)");
+    var draw = function (ex) { $("gdTitle").textContent = "Game-day checklist · " + wkLab(w.date) + " · " + (w.ha === "A" ? "at " : "vs ") + w.opp; $("gdList").innerHTML = items.concat(ex || []).join(""); box.hidden = false };
+    draw([]);
+    var X = [];
+    Promise.all([wkGet("/weeks/" + w.date + "/scout"), wkGet("/weeks/" + w.date + "/sim"), wkGet("/weeks/" + w.date + "/pred"), rk ? fetch(solSchoolBase() + "/games/" + encodeURIComponent(rk) + "/presence.json" + solAuthQ()).then(function (r) { return r.ok ? r.json() : null }, function () { return null }) : Promise.resolve(null)]).then(function (R) {
+      var push = function (ok, txt) { X.push("<li class='" + (ok ? "ok" : "no") + "'><b>" + (ok ? "✓" : "✗") + "</b><span>" + txt + "</span></li>") };
+      push(!!(R[0] && R[0].sits), R[0] && R[0].sits ? "Scout sent to the chart (" + esc(R[0].name || "scout") + ")" : "Scout: send it from <a href='reports.html'>Reports</a>");
+      push(!!(R[1] && R[1].tend), R[1] && R[1].tend ? "Pregame Sim run · projects " + R[1].tend.pts.mid + " points" : "Pregame Sim: run it on <a href='reports.html'>Reports</a>");
+      push(!!(R[2] && R[2].us != null), R[2] && R[2].us != null ? "Matchup projection " + R[2].us + "–" + R[2].them : "Matchup Predictor: add scores on <a href='reports.html'>Reports</a>");
+      if (rk) { var P = R[3] || {}, now = Date.now(), live = Object.keys(P).map(function (k) { return P[k] }).filter(function (x) { return x && now - (x.at || 0) < 120000 }), o = live.filter(function (x) { return x.role === "offense" }).length, d = live.length - o;
+        push(live.length >= 2, live.length ? live.length + " device" + (live.length === 1 ? "" : "s") + " in the game now (" + o + " offense, " + d + " defense)" : "No devices in the game right now") }
+      draw(X);
+    });
+  }
+  // ---------- season backup (admin) ----------
+  function bkKey() { return "solutions-lastbackup-" + ((authGet() || {}).school || "") }
+  function bkAge() { var t = 0; try { t = +localStorage.getItem(bkKey()) || 0 } catch (e) {} return t ? Math.floor((Date.now() - t) / 864e5) : null }
+  function bkRender() {
+    if (!LOCK.admin) return; var a = authGet() || {}, age = bkAge();
+    $("bkPanel").hidden = false; $("bkPath").textContent = "/schools/" + (a.school || "");
+    $("bkNote").textContent = age == null ? "No backup downloaded on this device yet." : "Last backup from this device: " + (age === 0 ? "today" : age + " day" + (age === 1 ? "" : "s") + " ago") + ".";
+    var bar = $("bkBar"); if (age == null || age >= 7) { bar.hidden = false; bar.innerHTML = "<span style='flex:1'>💾 " + (age == null ? "Back up your season: no backup yet." : "Last season backup was " + age + " days ago.") + " Takes one tap.</span><button class='h-btn' type='button' id='bkGo2'>Download backup</button>"; $("bkGo2").onclick = bkDownload } else bar.hidden = true;
+  }
+  function bkDownload() {
+    var a = authGet() || {}; if (!a.school) return; toast("Building the backup…");
+    solToken().then(function (t) { return fetch(SOL_DB + "/schools/" + encodeURIComponent(a.school) + ".json?auth=" + encodeURIComponent(t)) }).then(function (r) { if (!r.ok) throw 0; return r.text() }).then(function (txt) {
+      saveFile("Solutions_backup_" + a.school + "_" + today() + ".json", new Blob([txt], { type: "application/json" }));
+      try { localStorage.setItem(bkKey(), String(Date.now())) } catch (e) {} bkRender();
+    }).catch(function () { toast("Couldn't build the backup. Check the connection.") });
+  }
   // ---------- END GAME: mark Final, lock the chart, open the postgame report ----------
   var egArm = false;
   function finalApply() {
@@ -5008,6 +5118,8 @@ textarea { min-height: 64px }
   $("logBtn").addEventListener("click", logSnap);
   $("frzBtn").addEventListener("click", freeze); $("gsFrz").addEventListener("click", freeze);
   $("vicBtn").addEventListener("click", victory);
+  $("bkGo").addEventListener("click", bkDownload);
+  $("tagNagOn").checked = tagNagOn(); $("tagNagOn").addEventListener("change", function () { try { localStorage.setItem("solutions-tagnag" + NS, this.checked ? "1" : "0") } catch (e) {} });
   $("endGameBtn").addEventListener("click", endGameOpen); $("egGo").addEventListener("click", endGameGo); $("egCancel").addEventListener("click", function () { $("egModal").hidden = true });
   $("gsQ").addEventListener("input", renderGsHits);
   micWire("gsMic", "gsQ", renderGsHits); micWire("csMic", "csSearch", renderSheet);

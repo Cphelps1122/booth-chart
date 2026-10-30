@@ -361,11 +361,16 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
   try { SEL = new URLSearchParams(location.search).get("game") } catch (e) {}
   function load() {
     if (!ONLINE) { $("loadNote").textContent = "Open this page on the website to see your games."; render(); return }
-    get("/games", true).then(function (keys) {
-      var seasons = Object.keys(keys || {}).filter(function (k) { return /^season-/.test(k) });
-      return Promise.all(seasons.map(function (k) { return get("/games/" + k + "/list") }));
+    // the school's shared season key (same one the chart's Home uses), plus this device's, plus any others we're allowed to list
+    var NSX = (ACC && ACC.school === "melissa") ? "" : "-" + ACC.school, dev = {};
+    try { dev.season = localStorage.getItem("cardinals-booth-season-v1" + NSX); dev.sync = JSON.parse(localStorage.getItem("cardinals-booth-sync-v1" + NSX) || "null") } catch (e) {}
+    Promise.all([get("/season"), get("/games", true)]).then(function (R) {
+      var ks = {}; if (typeof R[0] === "string" && R[0]) ks[R[0]] = 1; if (dev.season) ks[dev.season] = 1;
+      Object.keys(R[1] || {}).forEach(function (k) { if (/^season-/.test(k)) ks[k] = 1 });
+      return Promise.all(Object.keys(ks).map(function (k) { return get("/games/" + encodeURIComponent(k) + "/list") }));
     }).then(function (lists) {
       var L = {}; (lists || []).forEach(function (l) { Object.keys(l || {}).forEach(function (code) { var e = l[code]; if (e && (!L[code] || (e.updated || 0) > (L[code].updated || 0))) L[code] = e }) });
+      if (dev.sync && dev.sync.code && !L[dev.sync.code]) L[dev.sync.code] = { opp: "", date: "", us: 0, them: 0 }; // the game open on this device, even if it never made the list
       var codes = Object.keys(L); $("loadNote").textContent = codes.length ? "Grading " + codes.length + " game" + (codes.length === 1 ? "" : "s") + "…" : "";
       return Promise.all(codes.map(function (code) {
         var c = encodeURIComponent(code);

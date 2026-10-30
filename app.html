@@ -349,6 +349,11 @@ tr.curgame td { background: color-mix(in srgb, var(--amber) 30%, transparent) }
 .pen1 { margin: 6px 0 10px; padding: 8px 10px; border-radius: 8px; background: #1e293b; color: #e2e8f0; font-weight: 600 }
 .lockbar { position: sticky; top: 0; z-index: 9998; padding: 9px 14px; background: #a5e3ff; color: #0c1117; font: 700 15px Inter, system-ui, sans-serif; text-align: center }
 body.inlocked #v-chart .panel, body.inlocked #v-chart .spotpanel, body.inlocked #v-chart .actions, body.inlocked #v-chart .inmode, body.inlocked #v-chart .tries, body.inlocked .edit, body.inlocked .del, body.inlocked .lookcell { pointer-events: none !important; opacity: .55 }
+body.infinal #v-chart .panel, body.infinal #v-chart .spotpanel, body.infinal #v-chart .actions, body.infinal #v-chart .inmode, body.infinal #v-chart .tries, body.infinal .edit, body.infinal .del, body.infinal .lookcell { pointer-events: none !important; opacity: .55 }
+.finalbar { position: sticky; top: 0; z-index: 9997; display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap; padding: 8px 14px; background: #0c1117; color: #e8f6ff; border-bottom: 2px solid #a5e3ff; font: 700 15px Inter, system-ui, sans-serif }
+.finalbar a, .finalbar button { font: 800 14px Inter, system-ui, sans-serif; padding: 6px 12px; border-radius: 8px; border: 1px solid #a5e3ff; background: #a5e3ff; color: #0c1117; text-decoration: none; cursor: pointer }
+.finalbar button { background: transparent; color: #a5e3ff }
+.endbtn { background: #0c1117 !important; color: #a5e3ff !important; border-color: #a5e3ff !important }
 .lkusers { display: grid; gap: 6px; margin-top: 8px } .lkusers label { display: flex; gap: 10px; align-items: center; font-size: 15px; padding: 6px 8px; border-radius: 8px; background: var(--chip) }
 
 .edgrid { margin-top: 10px } .edgrid input[type=text], .edgrid select { font-size: 16px; padding: 7px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); min-width: 120px }
@@ -430,6 +435,7 @@ textarea { min-height: 64px }
       <a class="navlink" id="navDef" href="defense.html" hidden>Defense ›</a>
       <a class="navlink" id="navRep" href="reports.html" hidden>Reports ›</a>
       <a class="navlink" id="navStats" href="stats.html" hidden>Stats ›</a>
+      <a class="navlink" id="navImp" href="impact.html" hidden>Impact ›</a>
       <a class="navlink" id="navAdm" href="admin.html" hidden style="margin-left:auto">Admin</a>
       <button class="navlink" id="navOut" type="button" hidden style="background:none;border:0;cursor:pointer;margin-left:auto;color:#93a1b1">Log out</button>
     </nav>
@@ -477,6 +483,12 @@ textarea { min-height: 64px }
         <div class="h-ico"><svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="17" cy="15" r="6" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M6 38 C6 29 11 25 17 25 C23 25 28 29 28 38" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M32 38 V28 M37 38 V20 M42 38 V24" stroke="#a5e3ff" stroke-width="3" stroke-linecap="round"/></svg></div>
         <div class="h-ct">Stats</div>
         <p>Team and player stats from every game you've charted, game by game and for the season. Saves on its own.</p>
+        <span class="h-go">Open →</span>
+      </a>
+      <a class="h-card" id="homeImpact" href="impact.html">
+        <div class="h-ico"><svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="17" fill="none" stroke="currentColor" stroke-width="2.5"/><circle cx="24" cy="24" r="9" fill="none" stroke="currentColor" stroke-width="2.5"/><circle cx="24" cy="24" r="2.8" fill="#a5e3ff"/><path d="M24 24 L38 10" stroke="#a5e3ff" stroke-width="3" stroke-linecap="round"/></svg></div>
+        <div class="h-ct">Postgame &amp; Impact</div>
+        <p>Every game graded against its scout, plus how Next Call, the 4th-down and 2-point charts and the projections did all season.</p>
         <span class="h-go">Open →</span>
       </a>
     </div>
@@ -627,6 +639,7 @@ textarea { min-height: 64px }
         <button class="btn primary" id="logBtn">Log snap</button>
         <button class="btn" id="undoBtn">Undo last</button>
         <button class="btn" id="endSeries">End series</button>
+        <button class="btn endbtn" id="endGameBtn" title="Mark the game Final and grade it against the scout">⏹ End game</button>
         <button class="btn vicbtn" id="vicBtn" title="Kneel: moves the ball and the clock, doesn't count in stats">🏁 Victory</button>
       </div>
       <label class="fastnote" style="display:flex;gap:8px;align-items:center;margin-top:10px"><input type="checkbox" id="fastLog" checked> Fast log: tapping the ball carrier or target logs the snap (Scramble and Sack log on tap). The next snap starts by tapping where the ball is spotted, which finishes the last play's yards and sets the down and distance. Penalty opens the penalty list.</label>
@@ -982,6 +995,17 @@ textarea { min-height: 64px }
     <datalist id="dlMot"></datalist><datalist id="dlRpo"></datalist><datalist id="dlForms"></datalist><datalist id="dlCalls"></datalist><datalist id="dlBlitz"></datalist><datalist id="dlFronts"></datalist><datalist id="dlCovs"></datalist>
   </div>
 </div>
+<div class="modal" id="egModal" hidden role="dialog" aria-modal="true" aria-labelledby="egTitle">
+  <div class="mbox">
+    <h3 id="egTitle">End game</h3>
+    <p class="note">Marks the game Final, locks it from accidental taps on every device, and builds the postgame report that grades the game against the scout. You can unlock it later to fix something.</p>
+    <div class="custom" style="align-items:flex-end">
+      <label for="egUs"><span id="egUsL">Us</span><input id="egUs" type="number" inputmode="numeric" min="0" style="width:90px"></label>
+      <label for="egThem"><span id="egThemL">Them</span><input id="egThem" type="number" inputmode="numeric" min="0" style="width:90px"></label>
+    </div>
+    <div class="actions"><button class="btn primary" id="egGo">End game &amp; grade it</button><button class="btn" id="egCancel">Cancel</button></div>
+  </div>
+</div>
 <div class="modal" id="penModal" hidden role="dialog" aria-modal="true" aria-labelledby="penTitle">
   <div class="mbox">
     <h3 id="penTitle">Penalty <small id="penSit"></small></h3>
@@ -1293,7 +1317,7 @@ textarea { min-height: 64px }
   var DEFAULT_DB = "https://cardinal-booth-default-rtdb.firebaseio.com";
   var SYNC_KEY = "cardinals-booth-sync-v1" + NS, DEVICE = Math.random().toString(36).slice(2, 10);
   var SY = { cfg: null, es: null, status: "off", mirror: null, last: null, pushing: false, dirty: false, needApply: false, timer: null, retry: null, applying: false };
-  var META_KEYS = ["lock", "dir", "wp", "clock", "clocks", "clk", "sheet", "sheetVer", "scout", "gameDate", "opp", "pre", "start", "lists", "dmode", "fast", "oppScore", "ourAdj", "scoreLog", "tryPending", "endAfter", "example", "cur"];
+  var META_KEYS = ["final", "lock", "dir", "wp", "clock", "clocks", "clk", "sheet", "sheetVer", "scout", "gameDate", "opp", "pre", "start", "lists", "dmode", "fast", "oppScore", "ourAdj", "scoreLog", "tryPending", "endAfter", "example", "cur"];
   function syncCfg() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || "null") } catch (e) { return null } }
   function setSyncCfg(c) { try { if (c) localStorage.setItem(SYNC_KEY, JSON.stringify(c)); else localStorage.removeItem(SYNC_KEY) } catch (e) {} }
   function newCode() { var a = "abcdefghjkmnpqrstuvwxyz23456789", t = ""; var r = new Uint8Array(18); (window.crypto || window.msCrypto).getRandomValues(r); for (var i = 0; i < 18; i++) t += a[r[i] % a.length]; return "mel-" + t }
@@ -1484,11 +1508,11 @@ textarea { min-height: 64px }
   function setSeason(k) { if (!k || k.length < 16) return; try { localStorage.setItem(SEASON_KEY, k) } catch (e) {} }
   function today() { var d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0") }
   function listUrl(code) { return dbBase() + "/games/" + encodeURIComponent(seasonKey(true)) + "/list" + (code ? "/" + encodeURIComponent(code) : "") + ".json" + (ONLINE ? solAuthQ() : "") }
-  function indexEntry() { var e = { opp: S.opp || "Opponent", date: S.gameDate || today(), us: ourScore(), them: S.oppScore || 0, plays: plays().length, updated: Date.now() }; if (S.lock) e.lock = S.lock; return e }
+  function indexEntry() { var e = { opp: S.opp || "Opponent", date: S.gameDate || today(), us: ourScore(), them: S.oppScore || 0, plays: plays().length, updated: Date.now() }; if (S.lock) e.lock = S.lock; if (S.final) { e.final = 1; e.us = +S.final.us || 0; e.them = +S.final.them || 0 } return e }
   var lastIdx = null;
   function updateIndex() {
     if (!SY.cfg || S.example) return;
-    var e = indexEntry(), key = JSON.stringify([e.opp, e.date, e.us, e.them, e.plays, e.lock || ""]);
+    var e = indexEntry(), key = JSON.stringify([e.opp, e.date, e.us, e.them, e.plays, e.lock || "", e.final || 0]);
     if (key === lastIdx) return;
     fetch(listUrl(SY.cfg.code), { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(e) }).then(function (r) { if (r.ok) lastIdx = key }, function () {});
   }
@@ -2663,6 +2687,46 @@ textarea { min-height: 64px }
     toast("Logged #" + snap.n + " · " + (snap.call || snap.pt || snap.res) + ((snap.carrier || snap.target) ? " · #" + (snap.target || snap.carrier) : "") + (g == null ? " · now tap where the ball is" : (snap.td ? " · TD" : "")));
   }
 
+  // ---------- END GAME: mark Final, lock the chart, open the postgame report ----------
+  var egArm = false;
+  function finalApply() {
+    var on = !!(S && S.final);
+    document.body.classList.toggle("infinal", on);
+    var b = $("finalBar");
+    if (on && !b) {
+      b = document.createElement("div"); b.id = "finalBar"; b.className = "finalbar";
+      b.innerHTML = "<span id='finalTxt'></span><a id='finalRep' href='impact.html'>Postgame report</a><button type='button' id='finalUn'>Unlock to fix</button>";
+      document.body.insertBefore(b, document.body.firstChild);
+      $("finalUn").addEventListener("click", function () {
+        if (!egArm) { egArm = true; this.textContent = "Tap again to unlock"; var me = this; setTimeout(function () { egArm = false; me.textContent = "Unlock to fix" }, 3000); return }
+        egArm = false; delete S.final; save(); renderAll(); toast("Unlocked. End game again when you're done.");
+      });
+    }
+    if (b) {
+      b.hidden = !on;
+      if (on) { $("finalTxt").textContent = "FINAL · " + (SCHOOL_NAME_H || "Us") + " " + S.final.us + ", " + (S.opp || "Opponent") + " " + S.final.them + " · locked"; $("finalRep").href = "impact.html" + (SY.cfg && SY.cfg.code ? "?game=" + encodeURIComponent(SY.cfg.code) : "") }
+    }
+  }
+  function endGameOpen() {
+    if (pendingSnap()) { toast("Spot the ball from the last play first (step 1)"); window.scrollTo(0, 0); return }
+    $("egUsL").textContent = SCHOOL_NAME_H || "Us"; $("egThemL").textContent = S.opp || "Them";
+    $("egUs").value = ourScore(); $("egThem").value = S.oppScore || 0; $("egModal").hidden = false;
+  }
+  function endGameGo() {
+    var us = parseInt($("egUs").value, 10), them = parseInt($("egThem").value, 10);
+    if (isNaN(us) || isNaN(them) || us < 0 || them < 0) { toast("Enter both scores"); return }
+    var cur = ourScore(); if (us !== cur) S.ourAdj = (S.ourAdj || 0) + (us - cur);
+    S.oppScore = them; S.tryPending = false; S.final = { us: us, them: them, at: Date.now() };
+    $("egModal").hidden = true; save(); renderAll();
+    if (!SY.cfg) { toast("Final saved on this device. Open the game with its game code to grade it online."); return }
+    toast("Final. Saving and building the postgame report…");
+    var t0 = Date.now(), code = SY.cfg.code;
+    (function wait() {
+      if ((SY.dirty || SY.pushing) && Date.now() - t0 < 6000) { setTimeout(wait, 250); return }
+      lastIdx = null; updateIndex();
+      setTimeout(function () { location.href = "impact.html?game=" + encodeURIComponent(code) }, 900);
+    })();
+  }
   // ---------- FREEZE: hard count, no play called. Log what happened as the result ----------
   function freeze() {
     if (pick.callType === "freeze") { pick.call = null; pick.callType = null; renderChips(); return }
@@ -4688,7 +4752,7 @@ textarea { min-height: 64px }
     $("sOpp").value = S.opp; $("sPre").value = S.pre; $("sStart").value = S.start; $("sMode").value = S.dmode === "full" ? "full" : "fast";
     ["form", "run", "pass", "rpo", "motion", "front", "cov", "blitz"].forEach(function (k) { $("l" + k[0].toUpperCase() + k.slice(1)).value = list(k) });
   }
-  function renderAll() { refreshSheet(); renderHead(); renderClock(); renderWP(); renderScore(); renderChips(); renderReport(); renderLog(); renderDrives(); renderLive() }
+  function renderAll() { refreshSheet(); renderHead(); renderClock(); renderWP(); renderScore(); renderChips(); renderReport(); renderLog(); renderDrives(); renderLive(); finalApply() }
 
   function csv() {
     var cols = ["PLAY #", "ODK", "QTR", "SERIES", "DN", "DIST", "YARD LN", "PLAY TYPE", "RESULT", "GN/LS", "HASH", "O FORMATION", "MOTION", "RUN FAMILY", "PASS FAMILY", "RPO", "FRONT", "BLITZ", "COVERAGE", "MFC/MFO/0", "BOX", "TARGET", "BALL CARRIER", "QB", "TEAM"];
@@ -4785,6 +4849,7 @@ textarea { min-height: 64px }
   $("logBtn").addEventListener("click", logSnap);
   $("frzBtn").addEventListener("click", freeze); $("gsFrz").addEventListener("click", freeze);
   $("vicBtn").addEventListener("click", victory);
+  $("endGameBtn").addEventListener("click", endGameOpen); $("egGo").addEventListener("click", endGameGo); $("egCancel").addEventListener("click", function () { $("egModal").hidden = true });
   $("gsQ").addEventListener("input", renderGsHits);
   micWire("gsMic", "gsQ", renderGsHits); micWire("csMic", "csSearch", renderSheet);
   $("penOff").addEventListener("click", function () { pickPen({ k: "offset", n: "Offsetting penalties", side: "X", y: 0, off: true }) });
@@ -4906,7 +4971,7 @@ textarea { min-height: 64px }
   var PROF = (ONLINE && ACC && ACC.profile) || {};
   if (ONLINE) { SCHOOL_NAME_H = PROF.name || (ACC.school || "").replace(/(^|-)([a-z])/g, function (m, d, c) { return (d ? " " : "") + c.toUpperCase() }) }
   $("hSchool").textContent = SCHOOL_NAME_H + " Football";
-  if (/^https?:/.test(location.protocol)) { $("navDef").hidden = false; $("navRep").hidden = false; $("navStats").hidden = false }
+  if (/^https?:/.test(location.protocol)) { $("navDef").hidden = false; $("navRep").hidden = false; $("navStats").hidden = false; $("navImp").hidden = false }
   if (ONLINE) { if (PROF.logo) $("logoImg").src = PROF.logo; else $("logoImg").removeAttribute("src") }
   $("teamLogoImg").src = $("logoImg").getAttribute("src") || ""; $("teamLogoImg").hidden = !$("logoImg").getAttribute("src");
   // school branding: name + primary color, from the school's profile when logged in

@@ -1,0 +1,498 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="apple-mobile-web-app-title" content="Impact"><link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAIAAACyr5FlAAADMklEQVR4nOzcMWucdRzA8SehdupSEAoWNEJFUIog6FKXChbcsmQ22KEu0TeQN5BXkEKtq1ubxZiti1OFUojYCEKjkE7uBYfEcy39FuLdg0fu8+Gmu4f/8L8vz/OH437nLly8NMDLnBsgiIMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgLXocVz78+N2PPlleXn7h/ePj499+/un3Rw+HBba0yH9NeP/a9a+3v3/FBdvfrD9+sDcsquVhgX1w/fNXX/DetU+HBbbQj5XXzp+f8oKzzYGUJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA7SiHF8duPGxsbG5TcuD3Ngf39/a2vryZNfh+lcufLO5ubm1atXhzlw9Ozo9vbt3d0fhnGMODDu1q2v5qSMicnXubq6OkxtbW1tTsqYmGzvlzdvDqMZ8c7x9srKME9WVt4apjaTRWZo1E125iCJgyQOkjhI4iCJgyQOkjhI4iCJgyQOkjhII/4q+/TwcJgnh4d/DFObySIzNOomjxjHt3fuHD07GubD/v7+zs7OMLX79+9Nlhrmw2R7v7t7dxjNiI+Vvb0fJ6/hbDk4OFhf/2JYDM4cJHGQxEESB0kcJHGQxEESB0kcJHGQxEESB0kcJHGQxEESB0kcJHGQxEESB0kcJHGQxEESB0kcJHGQxEEyGP90DMafDYPxx2Yw/swYjH9azhwkcZDEQRIHSRwkcZDEQRIHSRwkcZDEQRIHyWD8/2GRGTIYfwYMxv8PDMY/HYPx4V/iIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEgjjn2af09/eTTlBWfbQt85Hu7e+/v589cvv7m0tPTCRycnJ38d/fn4wVkbW3UqSxcuXhrgZZw5SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SP8AAAD//3xWAykAAAAGSURBVAMAZviiR2dx64EAAAAASUVORK5CYII="><link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAIAAACyr5FlAAADMklEQVR4nOzcMWucdRzA8SehdupSEAoWNEJFUIog6FKXChbcsmQ22KEu0TeQN5BXkEKtq1ubxZiti1OFUojYCEKjkE7uBYfEcy39FuLdg0fu8+Gmu4f/8L8vz/OH437nLly8NMDLnBsgiIMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgLXocVz78+N2PPlleXn7h/ePj499+/un3Rw+HBba0yH9NeP/a9a+3v3/FBdvfrD9+sDcsquVhgX1w/fNXX/DetU+HBbbQj5XXzp+f8oKzzYGUJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA7SiHF8duPGxsbG5TcuD3Ngf39/a2vryZNfh+lcufLO5ubm1atXhzlw9Ozo9vbt3d0fhnGMODDu1q2v5qSMicnXubq6OkxtbW1tTsqYmGzvlzdvDqMZ8c7x9srKME9WVt4apjaTRWZo1E125iCJgyQOkjhI4iCJgyQOkjhI4iCJgyQOkjhII/4q+/TwcJgnh4d/DFObySIzNOomjxjHt3fuHD07GubD/v7+zs7OMLX79+9Nlhrmw2R7v7t7dxjNiI+Vvb0fJ6/hbDk4OFhf/2JYDM4cJHGQxEESB0kcJHGQxEESB0kcJHGQxEESB0kcJHGQxEESB0kcJHGQxEESB0kcJHGQxEESB0kcJHGQxEEyGP90DMafDYPxx2Yw/swYjH9azhwkcZDEQRIHSRwkcZDEQRIHSRwkcZDEQRIHyWD8/2GRGTIYfwYMxv8PDMY/HYPx4V/iIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEgjjn2af09/eTTlBWfbQt85Hu7e+/v589cvv7m0tPTCRycnJ38d/fn4wVkbW3UqSxcuXhrgZZw5SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SP8AAAD//3xWAykAAAAGSURBVAMAZviiR2dx64EAAAAASUVORK5CYII="><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}</style><script>
+// light / dark switch shared by every page; first visit follows the device, then remembers the choice
+(function () {
+  var K = "solutions-theme", root = document.documentElement, get = function () { try { return localStorage.getItem(K) } catch (e) { return null } };
+  var dev = function () { return window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light" };
+  var cur = function () { return get() || dev() };
+  function apply() { var t = cur(); root.setAttribute("data-theme", t); root.style.colorScheme = t; var b = document.getElementById("solTheme"); if (b) { b.textContent = t === "dark" ? "☀︎ Light" : "☾ Dark"; b.setAttribute("aria-label", t === "dark" ? "Switch to light mode" : "Switch to dark mode") } }
+  apply();
+  window.solThemeNow = cur;
+  // paper is always light
+  window.addEventListener("beforeprint", function () { root.setAttribute("data-theme", "light"); root.style.colorScheme = "light" });
+  window.addEventListener("afterprint", apply);
+  function mount() {
+    if (document.getElementById("solTheme")) return;
+    var b = document.createElement("button"); b.id = "solTheme"; b.type = "button";
+    b.addEventListener("click", function () { var n = cur() === "dark" ? "light" : "dark"; try { localStorage.setItem(K, n) } catch (e) {} apply(); try { window.dispatchEvent(new Event("solthemechange")) } catch (e) {} });
+    var slot = document.getElementById("solThemeSlot"), h = document.querySelector("header");
+    if (slot) { slot.appendChild(b); b.classList.add("inline") } else { (h || document.body).appendChild(b); if (!h) b.classList.add("float") }
+    apply();
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mount); else mount();
+  if (window.matchMedia) try { matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function () { if (!get()) apply() }) } catch (e) {}
+})();
+</script>
+<style>
+#solTheme { font: 700 13px/1 "Barlow", "Segoe UI", Arial, sans-serif; letter-spacing: .04em; padding: 7px 11px; border-radius: 999px; border: 1px solid rgba(255,255,255,.35); background: rgba(255,255,255,.1); color: #f4f4f5; cursor: pointer; white-space: nowrap; position: absolute; top: calc(env(safe-area-inset-top, 0px) + 8px); right: 10px; z-index: 50 }
+#solTheme:hover { background: rgba(255,255,255,.2) }
+#solTheme.inline { position: static; margin-left: 8px; align-self: center }
+#solTheme.float { position: fixed; background: #111; }
+header { position: relative }
+@media print { #solTheme { display: none } }
+
+</style>
+</head><body><title>Solutions Impact</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Russo+One&family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600;700&display=swap">
+<style>
+/* Impact: postgame scout grades and how the app performed. */
+:root {
+  --bg: #f3f2f0; --panel: #ffffff; --ink: #16171b; --muted: #62656d; --line: #dcdad6;
+  --red: #e0302a; --hot: #fff1c7; --hotink: #6b4a00; --bar: #0d0e12; --barink: #f4f4f5;
+  --chip: #ecebe8; --chipon: #16171b; --chiponink: #fff; --blue: #2563eb; --school: #e0302a;
+  --f-display: "Barlow Condensed", "Arial Narrow", sans-serif; --f-body: "Barlow", "Segoe UI", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #121316; --panel: #1b1d21; --ink: #ecedef; --muted: #a2a5ad; --line: #2e3137; --hot: #4a3a10; --hotink: #ffe08a; --chip: #2a2d33; --chipon: #ecedef; --chiponink: #121316; color-scheme: dark } }
+:root[data-theme="dark"] { --red-txt: color-mix(in srgb, var(--red) 60%, #fff); --school-txt: color-mix(in srgb, var(--school) 60%, #fff); --bg: #121316; --panel: #1b1d21; --ink: #ecedef; --muted: #a2a5ad; --line: #2e3137; --hot: #4a3a10; --hotink: #ffe08a; --chip: #2a2d33; --chipon: #ecedef; --chiponink: #121316; color-scheme: dark }
+* { box-sizing: border-box } [hidden] { display: none !important }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.4; margin: 0 }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bar) }
+.gut { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)) }
+header { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bar); color: var(--barink); border-bottom: 3px solid var(--school); padding-block: 10px }
+.hrow { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; max-width: 1400px; margin: 0 auto }
+.brand { font-family: var(--f-display); font-weight: 800; font-size: 22px; letter-spacing: .03em; text-transform: uppercase }
+.brand .school { color: color-mix(in srgb, var(--school) 60%, #fff) }
+.opp { color: #b9bbc0; font-size: 13px }
+.side { display: inline-flex; border: 1px solid #33363d; border-radius: 9px; overflow: hidden }
+.side a, .side span { font-family: var(--f-display); font-weight: 800; font-size: 15px; letter-spacing: .08em; padding: 7px 14px; color: #9a9ca3; text-decoration: none }
+.side span { background: var(--school); color: #fff }
+.sb { display: flex; flex-direction: column; align-items: center; min-width: 88px; padding: 3px 12px 4px; border-radius: 8px; border: 1px solid #2c2f36; background: #050506 }
+.sb .tm { font-family: var(--f-display); font-weight: 700; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: #b9bbc0; max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.sb .pts { font-family: var(--f-display); font-weight: 800; font-size: 28px; line-height: 1; color: #ffb21e; font-variant-numeric: tabular-nums }
+.sb.us .pts { color: #ff4d45 }
+.board { display: flex; gap: 8px }
+.pills { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; align-items: center }
+.pill { font-family: var(--f-display); font-weight: 700; font-size: 20px; padding: 4px 10px; border-radius: 7px; background: #22252b; color: #f4f4f5; border: 0 }
+.pill.dd { background: var(--school) } .pill.on { color: #4ade80 } .pill.off { color: #fbbf24 } .pill.err { color: #f87171 }
+.tabs { display: flex; gap: 6px; max-width: 1400px; margin: 8px auto 0; flex-wrap: wrap }
+.tabs button, .tabs a { font-family: var(--f-display); font-weight: 700; font-size: 16px; letter-spacing: .06em; text-transform: uppercase; padding: 6px 12px; border-radius: 7px; border: 0; background: transparent; color: #b9bbc0; cursor: pointer; text-decoration: none }
+.tabs [aria-selected="true"] { background: #fff; color: #0d0e12 }
+.notice { background: var(--hot); color: var(--hotink); font-weight: 600; font-size: 14px; padding-block: 10px }
+.notice div { max-width: 1400px; margin: 0 auto; display: flex; gap: 10px; align-items: center; flex-wrap: wrap }
+main { max-width: 1400px; margin: 0 auto; padding-block: 14px }
+.grid { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 14px; align-items: start }
+@media (max-width: 980px) { .grid { grid-template-columns: minmax(0, 1fr) } }
+.col { display: flex; flex-direction: column; gap: 12px; min-width: 0 }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; min-width: 0 }
+h2 { font-family: var(--f-display); font-weight: 700; font-size: 15px; letter-spacing: .1em; text-transform: uppercase; margin: 0 0 8px; display: flex; gap: 8px; align-items: baseline }
+h2 small { font-family: var(--f-body); font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--muted); font-size: 12.5px; margin-left: auto }
+.lab { font-size: 11.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 8px 0 4px }
+.chips { display: flex; flex-wrap: wrap; gap: 6px }
+.chip { font-family: var(--f-display); font-weight: 700; font-size: 17px; letter-spacing: .03em; padding: 8px 13px; border-radius: 8px; border: 1px solid var(--line); background: var(--chip); color: var(--ink); cursor: pointer; min-height: 42px }
+.chip[aria-pressed="true"] { background: var(--chipon); color: var(--chiponink); border-color: var(--chipon) }
+.chip.run[aria-pressed="true"] { background: #b42318; border-color: #b42318; color: #fff }
+.chip.pass[aria-pressed="true"] { background: var(--blue); border-color: var(--blue); color: #fff }
+.chip.same { background: #6d28d9; border-color: #6d28d9; color: #fff; width: 100%; text-align: left; font-size: 19px }
+.chip:focus-visible, .btn:focus-visible { outline: 3px solid var(--school); outline-offset: 2px }
+.btn { font-family: var(--f-display); font-weight: 700; font-size: 16px; letter-spacing: .05em; text-transform: uppercase; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--chip); color: var(--ink); cursor: pointer }
+.btn.pri { background: var(--school); border-color: var(--school); color: var(--on-school, #fff) }
+.field { display: block; width: 100%; height: auto; border-radius: 10px; touch-action: none; user-select: none; -webkit-user-select: none }
+.spotrow { display: flex; gap: 8px; align-items: center; margin-top: 8px; flex-wrap: wrap }
+.spotout { flex: 1 1 200px; text-align: center; font-family: var(--f-display); font-weight: 800; font-size: 23px }
+.step { border-left: 4px solid transparent; padding-left: 10px; margin-left: -14px }
+.step.now { border-left-color: var(--school) }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px } @media (max-width: 560px) { .row2 { grid-template-columns: 1fr } }
+.gaps { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 4px }
+.gaps .chip { padding: 8px 0; text-align: center; font-size: 15px; min-width: 0 }
+.ol { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 4px; margin-top: 3px; font-size: 11px; color: var(--muted); text-align: center; font-weight: 700 }
+.tbl { overflow-x: auto }
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; font-variant-numeric: tabular-nums }
+th { background: var(--bar); color: var(--barink); font-family: var(--f-display); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; font-size: 12.5px; text-align: left; padding: 6px 8px; white-space: nowrap; border-bottom: 2px solid var(--school) }
+td { padding: 5px 8px; border-bottom: 1px solid var(--line); white-space: nowrap }
+td:first-child { font-weight: 700 } td.hot { background: var(--hot); color: var(--hotink); font-weight: 700 } tr.small td { color: var(--muted) }
+.dc { background: var(--bar); color: var(--barink); border-radius: 10px; padding: 14px 16px; border-left: 5px solid var(--school) }
+.dc h3 { margin: 0 0 8px; font-family: var(--f-display); font-size: 20px; letter-spacing: .03em }
+.dc ol { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px }
+.dc li { display: grid; grid-template-columns: 22px 1fr; gap: 8px }
+.dc li b { color: #ff4d45; font-family: var(--f-display); font-size: 20px }
+.dc .k { display: block; font-size: 11.5px; letter-spacing: .1em; text-transform: uppercase; color: #9a9ca3; font-weight: 700 }
+.bars { display: flex; flex-direction: column; gap: 6px }
+.bar { display: grid; grid-template-columns: 100px 1fr 92px; gap: 8px; align-items: center; font-size: 13.5px; font-weight: 600 }
+.track { height: 16px; border-radius: 4px; background: var(--chip); overflow: hidden } .track i { display: block; height: 100% }
+.note { color: var(--muted); font-size: 12.5px; margin: 6px 0 0 }
+.tag { display: inline-block; font-size: 11.5px; font-weight: 700; padding: 1px 6px; border-radius: 4px; background: var(--chip); margin-right: 3px }
+.tag.good { background: #dcfce7; color: #166534 } .tag.bad { background: #fee2e2; color: #991b1b }
+textarea { font: inherit; width: 100%; min-height: 60px; border: 1px solid var(--line); border-radius: 8px; padding: 8px; background: var(--bg); color: var(--ink) }
+label.f { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600; margin-bottom: 10px }
+.toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--bar); color: var(--barink); padding: 10px 16px; border-radius: 8px; font-weight: 600; z-index: 20; max-width: 90vw }
+</style>
+
+<style>
+.seg { display: flex; gap: 6px; flex-wrap: wrap }
+.seg button, .seg a { font-family: var(--f-display); font-weight: 700; font-size: 15px; letter-spacing: .04em; padding: 7px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--chip); color: var(--ink); cursor: pointer; text-decoration: none }
+.seg [aria-pressed="true"] { background: var(--chipon); color: var(--chiponink); border-color: var(--chipon) }
+.seg small { display: block; font-family: var(--f-body); font-weight: 500; font-size: 11.5px; opacity: .8; letter-spacing: 0 }
+.stack { display: flex; flex-direction: column; gap: 12px }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px }
+.kpi { background: var(--bar); color: var(--barink); border-radius: 10px; padding: 12px 14px; border-left: 4px solid #a5e3ff }
+.kpi b { display: block; font-family: var(--f-display); font-size: 30px; line-height: 1.05 } .kpi span { font-size: 12px; color: #c7cbd2; letter-spacing: .05em; text-transform: uppercase; font-weight: 700 } .kpi i { display: block; font-style: normal; font-size: 12px; color: #9aa0a8; margin-top: 3px }
+.hero { background: var(--bar); color: var(--barink); border-radius: 12px; padding: 16px 18px; display: flex; gap: 18px; align-items: center; flex-wrap: wrap; border-left: 6px solid var(--school) }
+.hero .big { font-family: var(--f-display); font-weight: 800; font-size: 54px; line-height: 1 } .hero .lab { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: #b9bbc0; font-weight: 700 }
+.hero .txt { flex: 1 1 280px; font-size: 15px; line-height: 1.45 }
+.g { display: inline-block; font-weight: 800; font-size: 12px; padding: 2px 8px; border-radius: 999px; letter-spacing: .03em }
+.g.held { background: #dcfce7; color: #166534 } .g.close { background: #fef3c7; color: #92400e } .g.miss { background: #fee2e2; color: #991b1b } .g.na { background: var(--chip); color: var(--muted) }
+.wl { font-weight: 800 } .wl.w { color: #16a34a } .wl.l { color: #dc2626 }
+tr.tot td { font-weight: 800; background: var(--chip) } td.it { font-weight: 700 }
+.empty { padding: 24px 10px; text-align: center; color: var(--muted) }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px } @media (max-width: 1000px) { .grid2 { grid-template-columns: minmax(0, 1fr) } }
+.bul { margin: 0; padding-left: 18px } .bul li { margin: 4px 0 }
+.honest { border-left: 4px solid #a5e3ff; background: var(--panel); padding: 10px 14px; border-radius: 8px; font-size: 13.5px; color: var(--muted) }
+select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--ink) }
+@media print { header .tabs, .noprint { display: none !important } .panel, .kpi, .hero { break-inside: avoid } }
+</style>
+<header class="gut">
+  <div class="hrow">
+    <div><div class="brand"><span class="school" id="schoolName">MELISSA</span> SOLUTIONS IMPACT</div><div class="opp" id="sub">How accurate the scout was and how the app's calls performed</div></div>
+    <div class="pills" id="solThemeSlot"></div>
+  </div>
+  <div class="tabs">
+    <a href="app.html">Home</a><a href="app.html">Offense</a><a href="defense.html">Defense</a><a href="reports.html">Reports</a><a href="stats.html">Stats</a>
+    <button aria-selected="true" type="button">Impact</button>
+  </div>
+</header>
+<main class="gut">
+  <div class="stack">
+    <div class="panel noprint">
+      <h2>Show <small id="loadNote">Loading games…</small></h2>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px"><select class="sel" id="seasonSel" aria-label="Season"></select><button class="btn" type="button" id="printBtn">Print</button></div>
+      <div class="seg" id="gameSeg"></div>
+    </div>
+    <div id="out" class="stack"></div>
+  </div>
+</main>
+<script>
+(function () {
+  "use strict";
+  var SOL = window.SOL_CONFIG || {};
+  var SOL_DB = SOL.db || "https://cardinal-booth-default-rtdb.firebaseio.com", SOL_KEY = SOL.apiKey || "";
+  var AUTH_KEY = "solutions-auth-v1";
+  function authGet() { try { return JSON.parse(localStorage.getItem(AUTH_KEY) || "null") } catch (e) { return null } }
+  function authSet(a) { try { if (a) localStorage.setItem(AUTH_KEY, JSON.stringify(a)); else localStorage.removeItem(AUTH_KEY) } catch (e) {} }
+  function authErr(code) {
+    code = String(code || "");
+    if (/INVALID_LOGIN_CREDENTIALS|INVALID_PASSWORD|EMAIL_NOT_FOUND/.test(code)) return "That email and password don't match an account.";
+    if (/TOO_MANY_ATTEMPTS/.test(code)) return "Too many tries. Wait a few minutes, then try again.";
+    if (/USER_DISABLED/.test(code)) return "This account is turned off. Contact Solutions.";
+    if (/INVALID_EMAIL/.test(code)) return "Check the email address.";
+    if (/API key|API_KEY/.test(code)) return "Login isn't set up on this site yet (missing API key).";
+    return "Couldn't log in. Check the connection and try again.";
+  }
+  function solLogin(email, password) {
+    if (!SOL_KEY) return Promise.reject(new Error("API_KEY"));
+    return fetch("https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=" + SOL_KEY, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: email, password: password, returnSecureToken: true }) })
+      .then(function (r) { return r.json() }).then(function (d) {
+        if (d.error) throw new Error(d.error.message);
+        var a = { uid: d.localId, email: d.email, idToken: d.idToken, refreshToken: d.refreshToken, exp: Date.now() + (+d.expiresIn - 60) * 1000 };
+        authSet(a); return solLoadSchool(a);
+      });
+  }
+  function solToken() {
+    var a = authGet(); if (!a) return Promise.reject(new Error("NO_SESSION"));
+    if (a.exp > Date.now() + 60000) return Promise.resolve(a.idToken);
+    return fetch("https://securetoken.googleapis.com/v1/token?key=" + SOL_KEY, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "grant_type=refresh_token&refresh_token=" + encodeURIComponent(a.refreshToken) })
+      .then(function (r) { return r.json() }).then(function (d) {
+        if (d.error) { authSet(null); throw new Error("NO_SESSION") }
+        a.idToken = d.id_token; a.refreshToken = d.refresh_token; a.exp = Date.now() + (+d.expires_in - 60) * 1000; authSet(a); return a.idToken;
+      });
+  }
+  function solLoadSchool(a) {
+    return solToken().then(function (t) { return fetch(SOL_DB + "/members/" + a.uid + ".json?auth=" + t).then(function (r) { return r.json() }) }).then(function (school) {
+      a = authGet(); if (!school || typeof school !== "string") { a.school = null; authSet(a); return a }
+      a.school = school; authSet(a);
+      return solToken().then(function (t) { return fetch(SOL_DB + "/schools/" + encodeURIComponent(school) + "/profile.json?auth=" + t).then(function (r) { return r.json() }) }).then(function (p) { a = authGet(); a.profile = p || {}; authSet(a); return a });
+    });
+  }
+
+  var $ = function (id) { return document.getElementById(id) };
+  var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] }) };
+  var ONLINE = /^https?:/.test(location.protocol), ACC = authGet();
+  if (ONLINE && (!ACC || !ACC.school)) { location.replace("index.html#login"); return }
+  var PROF = (ACC && ACC.profile) || {};
+  var SCHOOL = PROF.name || (ACC && ACC.school) || "Melissa";
+  $("schoolName").textContent = String(SCHOOL).toUpperCase();
+  if (/^#[0-9a-f]{6}$/i.test(PROF.color || "")) document.documentElement.style.setProperty("--school", PROF.color);
+
+  function get(path, shallow) {
+    return solToken().then(function (t) { return fetch(SOL_DB + "/schools/" + encodeURIComponent(ACC.school) + path + ".json?auth=" + encodeURIComponent(t) + (shallow ? "&shallow=true" : "")) })
+      .then(function (r) { return r.ok ? r.json() : null }, function () { return null });
+  }
+  function vals(o) { if (!o) return []; if (Array.isArray(o)) return o.filter(Boolean); return Object.keys(o).map(function (k) { var x = o[k]; if (typeof x === "string") { try { x = JSON.parse(x) } catch (e) { return null } } if (x && typeof x === "object") x.id = x.id || k; return x }).filter(Boolean) }
+  function obj(x) { if (typeof x === "string") { try { return JSON.parse(x) } catch (e) { return null } } return x }
+  function seasonOf(date) { var p = String(date || "").split("-"); if (p.length < 2) return "Undated"; return String(+p[1] >= 6 ? +p[0] : +p[0] - 1) }
+  function nice(d) { var p = String(d || "").split("-"); return p.length === 3 ? (+p[1]) + "/" + (+p[2]) : "" }
+  function pc(a, b) { return b ? Math.round(100 * a / b) : null }
+  function pcs(a, b) { var v = pc(a, b); return v == null ? "–" : v + "%" }
+  function avg(a, b) { return b ? (a / b).toFixed(1) : "–" }
+
+  // ---------- football helpers (same rules as the chart) ----------
+  function toY(yl) { yl = +yl; return yl < 0 ? -yl : (yl === 50 ? 50 : 100 - yl) }
+  function ballText(yl) { yl = +yl; return yl === 50 ? "50" : yl < 0 ? "Own " + (-yl) : "Opp " + yl }
+  function eff(s) { var need = s.dn <= 1 ? 0.4 : s.dn === 2 ? 0.5 : 1; return !!(s.td || s.gain >= Math.ceil(need * s.dist)) }
+  function isPlay(s) { return s && s.kind !== "try" && s.res !== "Penalty" && !s.vic && s.pt && s.gain != null }
+  function expl(s) { return (s.pt === "Run" && s.gain >= 10) || (s.pt === "Pass" && s.gain >= 15) }
+  var dd_ = function (dn, lo, hi) { return function (s) { return s.dn === dn && s.dist >= lo && s.dist <= hi } };
+  var zn_ = function (lo, hi) { return function (s) { var y = toY(s.yl); return y >= lo && y <= hi } };
+  var SITS = [["P&10", function (s) { return s.dn === 0 }], ["1st & 10", dd_(1, 10, 10)], ["1st & 11+", dd_(1, 11, 99)], ["1st & 1-9", dd_(1, 1, 9)],
+    ["2nd & 10+", dd_(2, 10, 99)], ["2nd & 7-9", dd_(2, 7, 9)], ["2nd & 3-6", dd_(2, 3, 6)], ["2nd & 1-2", dd_(2, 1, 2)],
+    ["3rd & 10+", dd_(3, 10, 99)], ["3rd & 7-9", dd_(3, 7, 9)], ["3rd & 3-6", dd_(3, 3, 6)], ["3rd & 1-2", dd_(3, 1, 2)], ["4th & 3+", dd_(4, 3, 99)], ["4th & 1-2", dd_(4, 1, 2)],
+    ["Coming out", zn_(1, 19)], ["Open field", zn_(20, 80)], ["High red zone", zn_(81, 85)], ["Score zone", zn_(86, 95)], ["Goal line", zn_(96, 99)], ["ALL", function () { return true }]];
+  function covN(v) { if (v == null || v === "") return null; v = String(v).toUpperCase().replace(/^COV(ER)?\s*/, ""); var m = /^(\d)/.exec(v); return m ? m[1] : v }
+  function covName(v) { return /^\d$/.test(v) ? "Cov " + v : v }
+  function up(v) { return v == null || v === "" ? null : String(v).toUpperCase() }
+  function tally(A, f) { var m = {}, n = 0; A.forEach(function (s) { var v = f(s); if (v == null) return; m[v] = (m[v] || 0) + 1; n++ }); var top = Object.keys(m).sort(function (a, b) { return m[b] - m[a] }); return { m: m, n: n, top: top } }
+  // the chart's 4th-down rule: go if the distance is this or less
+  function goLimit(yl) { var y = toY(yl); return y <= 10 ? 3 : y <= 59 ? 4 : y <= 64 ? 7 : y <= 89 ? 10 : 99 }
+  // the chart's go-for-2 model
+  function gmWP(m, mins) {
+    var T = Math.max(0, Math.round(mins * 11 * 2 / 48)), nThem = Math.ceil(T / 2), nUs = T - nThem;
+    var one = [[0, .62], [3, .08], [7, .30]], dist = function (n) { var d = { 0: 1 }; for (var i = 0; i < n; i++) { var x = {}; Object.keys(d).forEach(function (k) { one.forEach(function (o) { var v = +k + o[0]; x[v] = (x[v] || 0) + d[k] * o[1] }) }); d = x } return d };
+    var U = dist(nUs), H = dist(nThem), w = 0;
+    Object.keys(U).forEach(function (a) { Object.keys(H).forEach(function (b) { var f = m + (+a) - (+b), p = U[a] * H[b]; w += p * (f > 0 ? 1 : f === 0 ? .5 : 0) }) });
+    return w;
+  }
+  function twoCall(margin, mins) { var kick = .9 * gmWP(margin + 1, mins) + .1 * gmWP(margin, mins), two = .45 * gmWP(margin + 2, mins) + .55 * gmWP(margin, mins); return Math.abs(two - kick) < .01 ? "either" : two > kick ? "2" : "kick" }
+
+  // ---------- grading: tonight against the scout ----------
+  // look items: Held = same top look; Close = their #2 look tonight, or within 20 points; else Miss. Rates: Held within 10 points, Close within 20.
+  var MIN = 5;
+  function gradeLook(pred, A, f) {
+    var t = tally(A, f); if (!pred || t.n < MIN) return null;
+    var p = String(pred[0]).toUpperCase(), predPct = pred[2] ? pred[1] / pred[2] : null, tonightPct = (t.m[p] || 0) / t.n;
+    var g = t.top[0] === p ? "held" : (t.top[1] === p || (predPct != null && Math.abs(predPct - tonightPct) <= .2)) ? "close" : "miss";
+    return { g: g, said: p, saidPct: predPct, top: t.top[0], topPct: t.m[t.top[0]] / t.n, n: t.n, thatPct: tonightPct };
+  }
+  function gradeRate(sp, sn, A, f) {
+    if (!sn || sn < MIN) return null; var B = A.filter(function (s) { return f(s) != null }); if (B.length < MIN) return null;
+    var tn = B.filter(function (s) { return f(s) }).length, d = Math.abs(sp / sn - tn / B.length);
+    return { g: d <= .1 ? "held" : d <= .2 ? "close" : "miss", said: sp / sn, tonight: tn / B.length, n: B.length, sn: sn };
+  }
+  function gradeYds(ypp, sn, A) {
+    if (ypp == null || !sn || sn < MIN || A.length < MIN) return null;
+    var y = A.reduce(function (t, s) { return t + s.gain }, 0) / A.length, d = Math.abs(ypp - y);
+    return { g: d <= 1.5 ? "held" : d <= 3 ? "close" : "miss", said: ypp, tonight: y, n: A.length };
+  }
+  function blitzF(s) { return s.blitz == null || s.blitz === "" ? null : s.blitz !== "No" }
+  function gradeGame(g) {
+    var sc = g.scout, P = g.off.filter(isPlay), items = [], rows = [], frows = [], crows = [];
+    if (sc && sc.sits) {
+      var shs = (sc.shell && sc.shell.sits) || {}, shf = (sc.shell && sc.shell.forms) || {};
+      SITS.forEach(function (st) {
+        var o = sc.sits[st[0]], A = P.filter(st[1]); if (!o && !shs[st[0]]) return;
+        var r = { k: st[0], n: A.length, sn: o ? o.n : (shs[st[0]] ? shs[st[0]][2] : 0), items: [] };
+        var add = function (lab, x) { if (x) { x.lab = lab; r.items.push(x); if (st[0] !== "ALL") items.push(x) } };
+        add("Shell", gradeLook(shs[st[0]], A, function (s) { return up(s.shell) }));
+        if (o && o.cov) add("Coverage", gradeLook([covN(o.cov[0]), o.cov[1], o.cn], A, function (s) { return covN(s.cov) }));
+        if (o && o.front) add("Front", gradeLook([up(o.front[0]), o.front[1], o.fn], A, function (s) { return up(s.front) }));
+        if (o) add("Blitz rate", gradeRate(o.bl, o.n, A, blitzF));
+        if (o) add("Yds a play", gradeYds(o.ypp, o.n, A));
+        rows.push(r);
+      });
+      Object.keys(sc.forms || {}).forEach(function (fm) {
+        var o = sc.forms[fm], A = P.filter(function (s) { return up(s.form) === up(fm) }); if (!A.length) return;
+        var r = { k: fm, n: A.length, sn: o.n, items: [] };
+        var add = function (lab, x) { if (x) { x.lab = lab; r.items.push(x); items.push(x) } };
+        add("Shell", gradeLook(shf[fm], A, function (s) { return up(s.shell) }));
+        if (o.cov) add("Coverage", gradeLook([covN(o.cov[0]), o.cov[1], o.cn], A, function (s) { return covN(s.cov) }));
+        add("Blitz rate", gradeRate(o.bl, o.n, A, blitzF));
+        add("Yds a play", gradeYds(o.ypp, o.n, A));
+        if (r.items.length) frows.push(r);
+      });
+      (sc.calls || []).forEach(function (c) {
+        var words = String(c[0]).toUpperCase().split(/[\s/]+/).filter(function (w) { return w.length > 1 });
+        var A = P.filter(function (s) { var t = String((s.call || "") + " " + (s.grp || "")).toUpperCase(); return words.length && words.every(function (w) { return t.indexOf(w) >= 0 }) });
+        var r = { k: c[0], said: c[2], dir: c[1], n: A.length, ypp: A.length ? A.reduce(function (t, s) { return t + s.gain }, 0) / A.length : null, g: "na" };
+        if (A.length >= 3) { var y = r.ypp; r.g = c[1] < 0 ? (y <= 4 ? "held" : y <= 6 ? "close" : "miss") : (y >= 6 ? "held" : y >= 4.5 ? "close" : "miss"); items.push({ g: r.g, lab: "Call" }) }
+        crows.push(r);
+      });
+    }
+    var held = items.filter(function (x) { return x.g === "held" }).length, close = items.filter(function (x) { return x.g === "close" }).length;
+    var score = items.length ? Math.round(100 * (held + .5 * close) / items.length) : null;
+    // the look items alone (what the scout said they'd line up in)
+    var looks = items.filter(function (x) { return x.lab === "Shell" || x.lab === "Coverage" || x.lab === "Front" });
+    return { score: score, items: items, held: held, close: close, miss: items.length - held - close, rows: rows, frows: frows, crows: crows,
+      lookAcc: looks.length ? pc(looks.filter(function (x) { return x.g === "held" }).length, looks.length) : null, nLooks: looks.length,
+      blitzAcc: (function () { var b = items.filter(function (x) { return x.lab === "Blitz rate" }); return b.length ? pc(b.filter(function (x) { return x.g === "held" }).length, b.length) : null })(),
+      nBlitz: items.filter(function (x) { return x.lab === "Blitz rate" }).length };
+  }
+  // ---------- our decisions against the chart ----------
+  function decisions(g) {
+    var S = g.off, out = { fourth: [], two: [] };
+    // 4th downs we went for
+    S.forEach(function (s, i) {
+      if (s.kind === "try" || s.vic || s.res === "Penalty" || s.dn !== 4 || s.gain == null || !s.pt) return;
+      var lim = goLimit(s.yl), conv = !!(s.td || s.gain >= s.dist);
+      out.fourth.push({ q: s.qtr, dd: "4th & " + s.dist, at: ballText(s.yl), chart: s.dist <= lim ? "GO" : "KICK", did: "GO", res: conv ? "Converted" : "Stopped", ok: s.dist <= lim, conv: conv, call: s.call || "" });
+    });
+    // series that ended on a stopped 3rd down: we kicked (or the half ran out)
+    var bySer = {}; S.forEach(function (s) { if (s.kind !== "try") (bySer[s.series] = bySer[s.series] || []).push(s) });
+    Object.keys(bySer).forEach(function (k) {
+      var L = bySer[k].filter(function (s) { return s.res !== "Penalty" }), l = L[L.length - 1]; if (!l || l.vic || l.dn !== 3 || l.gain == null || l.td) return;
+      if (l.res === "Interception" || l.res === "Fumble" || l.gain >= l.dist) return;
+      var left = l.dist - l.gain, y = toY(l.yl) + l.gain, yl = y < 50 ? -y : (y === 50 ? 50 : 100 - y), lim = goLimit(yl);
+      out.fourth.push({ q: l.qtr, dd: "4th & " + left, at: ballText(yl), chart: left <= lim ? "GO" : "KICK", did: "KICK", res: "Kicked / half ended", ok: left > lim, inferred: true });
+    });
+    // 2-point decisions
+    var log = g.scoreLog || [];
+    S.forEach(function (s, i) {
+      if (s.kind !== "try") return;
+      var us = 0, them = 0;
+      for (var j = 0; j < i; j++) { var x = S[j]; if (x.td) us += 6; if (x.kind === "try" && x.good) us += x.res === "PAT" ? 1 : 2 }
+      log.forEach(function (e) { if (e.after <= i) { if (e.side === "them") them += e.pts; else us += e.pts } });
+      var m = us - them, q = s.qtr || 1, mins = q >= 5 ? 1 : (4 - q) * 12 + 6, call = twoCall(m, mins), did = s.res === "PAT" ? "kick" : "2";
+      out.two.push({ q: q, margin: m, chart: call, did: did, good: !!s.good, ok: call === "either" || call === did });
+    });
+    return out;
+  }
+  function nextCall(g) {
+    var P = g.off.filter(isPlay).filter(function (s) { return s.call && s.callType !== "freeze" }), tracked = g.off.some(function (s) { return s.nc != null });
+    var F = P.filter(function (s) { return s.nc >= 1 && s.nc <= 3 }), O = P.filter(function (s) { return !(s.nc >= 1 && s.nc <= 3) });
+    var st = function (A) { return { n: A.length, ef: A.filter(eff).length, ex: A.filter(expl).length, yd: A.reduce(function (t, s) { return t + s.gain }, 0) } };
+    return { tracked: tracked && P.length > 0, f: st(F), o: st(O) };
+  }
+  function quality(g) {
+    var P = g.off.filter(isPlay), n = P.length;
+    var look = P.filter(function (s) { return s.shell || s.cov || s.front }).length, form = P.filter(function (s) { return s.form }).length, call = P.filter(function (s) { return s.call }).length;
+    var needPl = P.filter(function (s) { return s.res === "Rush" || s.res === "Complete" || s.res === "Incomplete" || s.res === "Interception" }), pl = needPl.filter(function (s) { return s.carrier || s.target }).length;
+    return { n: n, look: look, form: form, call: call, pl: pl, npl: needPl.length };
+  }
+
+  // ---------- load every charted game ----------
+  var GAMES = [], SEASON = null, SEL = null;
+  try { SEL = new URLSearchParams(location.search).get("game") } catch (e) {}
+  function load() {
+    if (!ONLINE) { $("loadNote").textContent = "Open this page on the website to see your games."; render(); return }
+    get("/games", true).then(function (keys) {
+      var seasons = Object.keys(keys || {}).filter(function (k) { return /^season-/.test(k) });
+      return Promise.all(seasons.map(function (k) { return get("/games/" + k + "/list") }));
+    }).then(function (lists) {
+      var L = {}; (lists || []).forEach(function (l) { Object.keys(l || {}).forEach(function (code) { var e = l[code]; if (e && (!L[code] || (e.updated || 0) > (L[code].updated || 0))) L[code] = e }) });
+      var codes = Object.keys(L); $("loadNote").textContent = codes.length ? "Grading " + codes.length + " game" + (codes.length === 1 ? "" : "s") + "…" : "";
+      return Promise.all(codes.map(function (code) {
+        var c = encodeURIComponent(code);
+        return Promise.all([get("/games/" + c + "/snaps"), get("/games/" + c + "/meta")]).then(function (R) {
+          var meta = obj(R[1]) || {}, e = L[code], date = e.date || meta.gameDate || "";
+          var off = vals(R[0]).sort(function (a, b) { return (a.t || 0) - (b.t || 0) || (a.id < b.id ? -1 : 1) });
+          var scout = obj(meta.scout);
+          var wk = scout && scout.sits ? Promise.resolve(scout) : (date ? get("/weeks/" + date + "/scout") : Promise.resolve(null));
+          var pred = meta.wp && meta.wp.us != null ? Promise.resolve(meta.wp) : (date ? get("/weeks/" + date + "/pred") : Promise.resolve(null));
+          return Promise.all([wk, pred]).then(function (W) {
+            var fin = obj(meta.final) || null;
+            var us = fin ? +fin.us : +e.us || 0, them = fin ? +fin.them : +e.them || 0;
+            return { code: code, opp: e.opp || meta.opp || "Opponent", date: date, season: seasonOf(date), us: us, them: them, final: !!(fin || e.final), off: off, scoreLog: obj(meta.scoreLog) || [], scout: W[0] && W[0].sits ? W[0] : null, pred: W[1] && W[1].us != null ? W[1] : null };
+          });
+        });
+      }));
+    }).then(function (G) {
+      GAMES = (G || []).filter(function (g) { return g.off.length }).sort(function (a, b) { return a.date.localeCompare(b.date) });
+      GAMES.forEach(function (g) { g.gr = gradeGame(g); g.dec = decisions(g); g.nc = nextCall(g); g.q = quality(g) });
+      var ss = GAMES.map(function (g) { return g.season }).filter(function (v, i, a) { return a.indexOf(v) === i }).sort().reverse();
+      var selG = SEL && GAMES.filter(function (g) { return g.code === SEL })[0];
+      SEASON = selG ? selG.season : (ss[0] || null);
+      $("seasonSel").innerHTML = ss.map(function (s) { return "<option value='" + esc(s) + "'" + (s === SEASON ? " selected" : "") + ">" + (s === "Undated" ? "Undated games" : s + " season") + "</option>" }).join("") || "<option>No games yet</option>";
+      $("loadNote").textContent = GAMES.length ? GAMES.length + " charted game" + (GAMES.length === 1 ? "" : "s") + " · " + GAMES.filter(function (g) { return g.scout }).length + " with a scout to grade" : "No charted games yet.";
+      render();
+    }, function () { $("loadNote").textContent = "Couldn't load games. Check the connection and refresh."; render() });
+  }
+
+  // ---------- render ----------
+  function chip(g) { return "<span class='g " + g + "'>" + { held: "Held", close: "Close", miss: "Miss", na: "Not graded" }[g] + "</span>" }
+  function fmtItem(x) {
+    if (x.lab === "Blitz rate") return "Scout " + Math.round(x.said * 100) + "% · tonight " + Math.round(x.tonight * 100) + "% (" + x.n + ")";
+    if (x.lab === "Yds a play") return "Scout allowed " + x.said.toFixed(1) + " · we got " + x.tonight.toFixed(1) + " (" + x.n + ")";
+    var nm = x.lab === "Coverage" ? covName : function (v) { return String(v).toLowerCase() };
+    return "Scout " + nm(x.said) + (x.saidPct != null ? " " + Math.round(x.saidPct * 100) + "%" : "") + " · tonight " + nm(x.top) + " " + Math.round(x.topPct * 100) + "% (" + x.n + ")";
+  }
+  function inSeason() { return GAMES.filter(function (g) { return g.season === SEASON }) }
+  function res(g) { return g.us > g.them ? "w" : g.us < g.them ? "l" : "" }
+  function render() {
+    var G = inSeason();
+    if (SEL && !G.some(function (g) { return g.code === SEL })) SEL = null;
+    $("gameSeg").innerHTML = "<button type='button' data-g='' aria-pressed='" + !SEL + "'>Season impact<small>" + G.length + " games</small></button>" + G.map(function (g) {
+      return "<button type='button' data-g='" + esc(g.code) + "' aria-pressed='" + (SEL === g.code) + "'>" + esc(g.opp) + "<small>" + nice(g.date) + " · " + (res(g) ? res(g).toUpperCase() + " " : "") + g.us + "–" + g.them + (g.gr.score != null ? " · scout " + g.gr.score + "%" : "") + "</small></button>" }).join("");
+    $("gameSeg").querySelectorAll("button").forEach(function (b) { b.addEventListener("click", function () { SEL = b.dataset.g || null; try { history.replaceState(null, "", SEL ? "?game=" + encodeURIComponent(SEL) : location.pathname) } catch (e) {} render(); window.scrollTo(0, 0) }) });
+    if (!G.length) { $("out").innerHTML = "<div class='panel empty'>No charted games yet. Chart a game and tap End game to grade it.</div>"; return }
+    $("out").innerHTML = SEL ? gameHTML(G.filter(function (g) { return g.code === SEL })[0]) : seasonHTML(G);
+  }
+  function ncLine(n) {
+    if (!n.tracked) return null;
+    return { fe: pc(n.f.ef, n.f.n), oe: pc(n.o.ef, n.o.n), fy: n.f.n ? n.f.yd / n.f.n : null, oy: n.o.n ? n.o.yd / n.o.n : null };
+  }
+  function gameHTML(g) {
+    var gr = g.gr, d = g.dec, n = g.nc, q = g.q, h = "";
+    var predTxt = g.pred ? "Pregame projection " + g.pred.us + "–" + g.pred.them + " (" + (g.pred.us > g.pred.them ? "us" : g.pred.us < g.pred.them ? "them" : "even") + ")" : "No pregame projection saved";
+    h += "<div class='hero'><div><div class='lab'>Scout grade</div><div class='big'>" + (gr.score == null ? "–" : gr.score + "%") + "</div></div><div class='txt'><b>" + esc(SCHOOL) + " " + g.us + ", " + esc(g.opp) + " " + g.them + "</b> · " + nice(g.date) + (g.final ? " · Final" : " · not marked final") + "<br>" +
+      (gr.items.length ? gr.held + " held, " + gr.close + " close, " + gr.miss + " missed of " + gr.items.length + " graded scout items." : g.scout ? "Not enough tagged snaps to grade the scout (5+ per situation)." : "No scout was loaded for this game, so there's nothing to grade it against.") + "<br><span style='color:#b9bbc0'>" + esc(predTxt) + "</span></div></div>";
+    // KPIs
+    var nl = ncLine(n), fourOk = d.fourth.filter(function (x) { return x.ok }).length, twoOk = d.two.filter(function (x) { return x.ok }).length;
+    h += "<div class='kpis'>" +
+      k(gr.lookAcc == null ? "–" : gr.lookAcc + "%", "Look called right", gr.nLooks ? "shell / coverage / front, " + gr.nLooks + " graded" : "needs tagged looks") +
+      k(gr.blitzAcc == null ? "–" : gr.blitzAcc + "%", "Blitz rate within 10", gr.nBlitz ? gr.nBlitz + " situations" : "needs pressure tags") +
+      k(nl ? (nl.fe == null ? "–" : nl.fe + "%") : "–", "Next Call plays efficient", nl ? "vs " + (nl.oe == null ? "–" : nl.oe + "%") + " other calls (" + n.f.n + " / " + n.o.n + ")" : "not tracked this game") +
+      k(d.fourth.length ? fourOk + "/" + d.fourth.length : "–", "4th downs per chart", d.fourth.length ? "went " + d.fourth.filter(function (x) { return x.did === "GO" }).length + ", converted " + d.fourth.filter(function (x) { return x.conv }).length : "none") +
+      k(d.two.length ? twoOk + "/" + d.two.length : "–", "Tries per chart", d.two.length ? "PAT/2-pt choices" : "no tries") +
+      k(pcs(q.look, q.n), "Snaps with their look", q.n + " plays charted") + "</div>";
+    // situations
+    var rowHTML = function (r) { return r.items.map(function (x, i) { return "<tr>" + (i === 0 ? "<td rowspan='" + r.items.length + "'>" + esc(r.k) + "<br><span class='note'>" + r.n + " snaps tonight · scout " + r.sn + "</span></td>" : "") + "<td class='it'>" + x.lab + "</td><td>" + esc(fmtItem(x)) + "</td><td>" + chip(x.g) + "</td></tr>" }).join("") };
+    var sr = gr.rows.filter(function (r) { return r.items.length && r.k !== "ALL" }), all = gr.rows.filter(function (r) { return r.k === "ALL" })[0];
+    h += "<section class='panel'><h2>Scout vs tonight · by situation <small>Held = same top look / within 10 pts · Close = their #2 look / within 20 · 5+ snaps to grade</small></h2>" +
+      (sr.length || (all && all.items.length) ? "<div class='tbl'><table><tr><th>Situation</th><th>Item</th><th>Scout said · tonight</th><th>Grade</th></tr>" + (all && all.items.length ? rowHTML({ k: "Overall", n: all.n, sn: all.sn, items: all.items }) : "") + sr.map(rowHTML).join("") + "</table></div>" : "<p class='empty'>" + (g.scout ? "Not enough tagged snaps per situation yet." : "No scout for this game.") + "</p>") + "</section>";
+    if (gr.frows.length) h += "<section class='panel'><h2>Scout vs tonight · by our formation</h2><div class='tbl'><table><tr><th>Formation</th><th>Item</th><th>Scout said · tonight</th><th>Grade</th></tr>" + gr.frows.map(rowHTML).join("") + "</table></div></section>";
+    if (gr.crows.length) h += "<section class='panel'><h2>What the scout said about plays</h2><div class='tbl'><table><tr><th>Concept</th><th>Scout said</th><th>Tonight</th><th>Grade</th></tr>" + gr.crows.map(function (r) { return "<tr><td>" + esc(r.k) + "</td><td>" + esc(r.said) + "</td><td>" + (r.n ? r.n + " plays, " + r.ypp.toFixed(1) + " a play" : "not run") + "</td><td>" + chip(r.n >= 3 ? r.g : "na") + "</td></tr>" }).join("") + "</table></div><p class='note'>Matched by name to our calls. Needs 3+ plays to grade.</p></section>";
+    // what changed
+    var miss = []; gr.rows.concat(gr.frows).forEach(function (r) { if (r.k === "ALL") return; r.items.forEach(function (x) { if (x.g === "miss") miss.push(r.k + " · " + x.lab + ": " + fmtItem(x)) }) });
+    gr.crows.forEach(function (r) { if (r.g === "miss" && r.n >= 3) miss.push(r.k + ": scout said “" + r.said + "”, tonight " + r.n + " plays at " + r.ypp.toFixed(1) + " a play") });
+    h += "<div class='grid2'><section class='panel'><h2>What changed from the scout</h2>" + (miss.length ? "<ul class='bul'>" + miss.slice(0, 10).map(function (t) { return "<li>" + esc(t) + "</li>" }).join("") + "</ul>" : "<p class='note'>Nothing graded as a miss.</p>") + "</section>";
+    h += "<section class='panel'><h2>Next Call</h2>" + (nl ? "<div class='tbl'><table><tr><th></th><th>Plays</th><th>Efficient</th><th>Yds/play</th><th>Explosive</th></tr><tr><td>Ran a top-3 Next Call</td><td>" + n.f.n + "</td><td>" + pcs(n.f.ef, n.f.n) + "</td><td>" + avg(n.f.yd, n.f.n) + "</td><td>" + pcs(n.f.ex, n.f.n) + "</td></tr><tr><td>Other calls</td><td>" + n.o.n + "</td><td>" + pcs(n.o.ef, n.o.n) + "</td><td>" + avg(n.o.yd, n.o.n) + "</td><td>" + pcs(n.o.ex, n.o.n) + "</td></tr></table></div><p class='note'>Followed Next Call on " + pcs(n.f.n, n.f.n + n.o.n) + " of called plays.</p>" : "<p class='note'>Next Call wasn't tracked for this game.</p>") + "</section></div>";
+    // decisions
+    h += "<div class='grid2'><section class='panel'><h2>4th downs <small>chart rule vs what we did</small></h2>" + (d.fourth.length ? "<div class='tbl'><table><tr><th>Q</th><th>Situation</th><th>Chart</th><th>We</th><th>Result</th></tr>" + d.fourth.map(function (x) { return "<tr><td>" + x.q + "</td><td>" + x.dd + " · " + x.at + "</td><td>" + x.chart + "</td><td>" + x.did + "</td><td>" + x.res + (x.ok ? "" : " <span class='g close'>off chart</span>") + "</td></tr>" }).join("") + "</table></div><p class='note'>Kicks are read from drives that ended on a stopped 3rd down, so end-of-half drives show up too.</p>" : "<p class='note'>No 4th downs.</p>") + "</section>";
+    h += "<section class='panel'><h2>Tries after TDs <small>go-for-2 chart vs what we did</small></h2>" + (d.two.length ? "<div class='tbl'><table><tr><th>Q</th><th>Score before try</th><th>Chart</th><th>We</th><th>Result</th></tr>" + d.two.map(function (x) { return "<tr><td>" + (x.q >= 5 ? "OT" : x.q) + "</td><td>" + (x.margin > 0 ? "+" : "") + x.margin + "</td><td>" + (x.chart === "either" ? "either" : x.chart === "2" ? "Go for 2" : "Kick") + "</td><td>" + (x.did === "2" ? "Went for 2" : "Kicked") + "</td><td>" + (x.good ? "Good" : "No good") + (x.ok ? "" : " <span class='g close'>off chart</span>") + "</td></tr>" }).join("") + "</table></div><p class='note'>Clock is estimated from the quarter.</p>" : "<p class='note'>No tries.</p>") + "</section></div>";
+    // charting quality
+    h += "<section class='panel'><h2>Charting quality <small>how complete the data is · better tags = sharper grades</small></h2><div class='kpis'>" + k(q.n, "Plays charted", "") + k(pcs(q.look, q.n), "Their look tagged", "") + k(pcs(q.form, q.n), "Formation tagged", "") + k(pcs(q.call, q.n), "Call tagged", "") + k(pcs(q.pl, q.npl), "Ball carrier / target", "") + "</div></section>";
+    return h;
+  }
+  function k(v, lab, sub) { return "<div class='kpi'><b>" + v + "</b><span>" + lab + "</span>" + (sub ? "<i>" + sub + "</i>" : "") + "</div>" }
+  function seasonHTML(G) {
+    var I = [], L = [], B = [], F = { n: 0, ef: 0, ex: 0, yd: 0 }, O = { n: 0, ef: 0, ex: 0, yd: 0 }, ncG = 0, four = [], two = [], pr = [], Q = { n: 0, look: 0, pl: 0, npl: 0 };
+    G.forEach(function (g) {
+      I = I.concat(g.gr.items); L = L.concat(g.gr.items.filter(function (x) { return x.lab === "Shell" || x.lab === "Coverage" || x.lab === "Front" })); B = B.concat(g.gr.items.filter(function (x) { return x.lab === "Blitz rate" }));
+      if (g.nc.tracked) { ncG++; ["n", "ef", "ex", "yd"].forEach(function (x) { F[x] += g.nc.f[x]; O[x] += g.nc.o[x] }) }
+      four = four.concat(g.dec.fourth); two = two.concat(g.dec.two);
+      if (g.pred && (g.final || g.us || g.them)) pr.push({ g: g, pm: g.pred.us - g.pred.them, am: g.us - g.them });
+      Q.n += g.q.n; Q.look += g.q.look; Q.pl += g.q.pl; Q.npl += g.q.npl;
+    });
+    var held = I.filter(function (x) { return x.g === "held" }).length, close = I.filter(function (x) { return x.g === "close" }).length;
+    var sAcc = I.length ? Math.round(100 * (held + .5 * close) / I.length) : null, lAcc = L.length ? pc(L.filter(function (x) { return x.g === "held" }).length, L.length) : null, bAcc = B.length ? pc(B.filter(function (x) { return x.g === "held" }).length, B.length) : null;
+    var right = pr.filter(function (x) { return (x.pm > 0 && x.am > 0) || (x.pm < 0 && x.am < 0) || (x.pm === 0 && x.am === 0) }).length, mErr = pr.length ? pr.reduce(function (t, x) { return t + Math.abs(x.pm - x.am) }, 0) / pr.length : null;
+    var fourGo = four.filter(function (x) { return x.did === "GO" }), fourOk = four.filter(function (x) { return x.ok }).length;
+    var h = "<div class='hero'><div><div class='lab'>Scout accuracy · " + esc(SEASON || "") + "</div><div class='big'>" + (sAcc == null ? "–" : sAcc + "%") + "</div></div><div class='txt'>Across <b>" + G.length + " charted game" + (G.length === 1 ? "" : "s") + "</b> and <b>" + I.length + " graded scout items</b>, the pregame scout held up " + (sAcc == null ? "–" : sAcc + "%") + " of the time (" + held + " held, " + close + " close). " +
+      (F.n && O.n ? "Plays called from Next Call were <b>" + pcs(F.ef, F.n) + " efficient</b> vs " + pcs(O.ef, O.n) + " for other calls. " : "") +
+      (pr.length ? "The pregame projection picked the winner in <b>" + right + " of " + pr.length + "</b>." : "") + "</div></div>";
+    h += "<div class='kpis'>" +
+      k(lAcc == null ? "–" : lAcc + "%", "Their look called right", L.length + " shell / coverage / front predictions") +
+      k(bAcc == null ? "–" : bAcc + "%", "Blitz rate within 10 pts", B.length + " situations") +
+      k(F.n ? pcs(F.ef, F.n) : "–", "Next Call plays efficient", F.n ? F.n + " plays · other calls " + pcs(O.ef, O.n) + " (" + O.n + ")" : "not tracked yet") +
+      k(F.n ? avg(F.yd, F.n) : "–", "Next Call yds a play", O.n ? "other calls " + avg(O.yd, O.n) : "") +
+      k(F.n ? pcs(F.ex, F.n) : "–", "Next Call explosive rate", O.n ? "other calls " + pcs(O.ex, O.n) : "") +
+      k(four.length ? fourOk + "/" + four.length : "–", "4th-down calls per chart", fourGo.length ? "went for it " + fourGo.length + ", converted " + fourGo.filter(function (x) { return x.conv }).length : "") +
+      k(two.length ? two.filter(function (x) { return x.ok }).length + "/" + two.length : "–", "Tries per go-for-2 chart", "") +
+      k(pr.length ? right + "/" + pr.length : "–", "Projection picked winner", mErr != null ? "off by " + mErr.toFixed(1) + " pts a game" : "needs Matchup Predictor") +
+      k(pcs(Q.look, Q.n), "Snaps with their look tagged", Q.n + " plays charted") + "</div>";
+    h += "<section class='panel'><h2>Game by game <small>tap a game above for its full postgame report</small></h2><div class='tbl'><table><tr><th>Game</th><th>Result</th><th>Projection</th><th>Scout grade</th><th>Look right</th><th>Blitz within 10</th><th>Next Call eff</th><th>Other calls eff</th><th>4th downs per chart</th><th>Look tagged</th></tr>" +
+      G.map(function (g) { var nl = g.nc; return "<tr><td>" + esc(nice(g.date) + " " + g.opp) + "</td><td><span class='wl " + res(g) + "'>" + (res(g) ? res(g).toUpperCase() + " " : "") + g.us + "–" + g.them + "</span></td><td>" + (g.pred ? g.pred.us + "–" + g.pred.them : "–") + "</td><td>" + (g.gr.score == null ? (g.scout ? "too few tags" : "no scout") : g.gr.score + "% (" + g.gr.items.length + ")") + "</td><td>" + (g.gr.lookAcc == null ? "–" : g.gr.lookAcc + "%") + "</td><td>" + (g.gr.blitzAcc == null ? "–" : g.gr.blitzAcc + "%") + "</td><td>" + (nl.tracked ? pcs(nl.f.ef, nl.f.n) + " (" + nl.f.n + ")" : "–") + "</td><td>" + (nl.tracked ? pcs(nl.o.ef, nl.o.n) + " (" + nl.o.n + ")" : "–") + "</td><td>" + (g.dec.fourth.length ? g.dec.fourth.filter(function (x) { return x.ok }).length + "/" + g.dec.fourth.length : "–") + "</td><td>" + pcs(g.q.look, g.q.n) + "</td></tr>" }).join("") + "</table></div></section>";
+    // pitch lines
+    var lines = [];
+    if (sAcc != null) lines.push("The pregame scout held up " + sAcc + "% of the time across " + I.length + " graded items in " + (function (n) { return n + " game" + (n === 1 ? "" : "s") })(G.filter(function (g) { return g.gr.items.length }).length) + ".");
+    if (lAcc != null) lines.push("Coaches knew the defense's most likely look before the snap " + lAcc + "% of the time (" + L.length + " predictions).");
+    if (F.n >= 10 && O.n >= 10) lines.push("Plays called from Next Call were " + pcs(F.ef, F.n) + " efficient and gained " + avg(F.yd, F.n) + " a play, vs " + pcs(O.ef, O.n) + " and " + avg(O.yd, O.n) + " for other calls (" + F.n + " vs " + O.n + " plays).");
+    if (pr.length) lines.push("The pregame projection picked the winner in " + right + " of " + pr.length + " games.");
+    if (Q.n) lines.push(Q.n + " plays charted live this season, with every coach seeing the same data in real time.");
+    h += "<div class='grid2'><section class='panel'><h2>Pitch lines <small>numbers you can say out loud</small></h2>" + (lines.length ? "<ul class='bul'>" + lines.map(function (t) { return "<li>" + esc(t) + "</li>" }).join("") + "</ul>" : "<p class='note'>Chart and grade a few games to build these.</p>") + "</section>";
+    h += "<section class='panel'><h2>Read these honestly</h2><div class='honest'>These numbers show how accurate the scout and models were and how the app's recommendations performed. They don't prove the app caused a win, because there are no games charted without it to compare against. Small samples swing a lot, so play counts are shown everywhere. Better tagging (their look, the ball carrier or target) makes every grade sharper.</div></section></div>";
+    return h;
+  }
+  $("seasonSel").addEventListener("change", function () { SEASON = this.value; SEL = null; render() });
+  $("printBtn").addEventListener("click", function () { window.print() });
+  load();
+})();
+</script>
+</body></html>

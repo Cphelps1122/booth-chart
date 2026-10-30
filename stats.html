@@ -163,6 +163,7 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
   </div>
 </main>
 <div class="toast" id="toast" hidden></div>
+<script>window.SOL_CONFIG = window.SOL_CONFIG || {"db": "https://cardinal-booth-default-rtdb.firebaseio.com", "apiKey": "AIzaSyDm0t01_w92gL5sm4_1RnVLip7xWkjb9ME"};</script>
 <script>
 (function () {
   "use strict";
@@ -194,7 +195,7 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
     if (a.exp > Date.now() + 60000) return Promise.resolve(a.idToken);
     return fetch("https://securetoken.googleapis.com/v1/token?key=" + SOL_KEY, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "grant_type=refresh_token&refresh_token=" + encodeURIComponent(a.refreshToken) })
       .then(function (r) { return r.json() }).then(function (d) {
-        if (d.error) { authSet(null); throw new Error("NO_SESSION") }
+        if (d.error) throw new Error("NO_SESSION") // never log anyone out from this page
         a.idToken = d.id_token; a.refreshToken = d.refresh_token; a.exp = Date.now() + (+d.expires_in - 60) * 1000; authSet(a); return a.idToken;
       });
   }
@@ -227,7 +228,7 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
   function showDiag(extra) {
     var el = document.getElementById("diag"); if (!el) { el = document.createElement("details"); el.id = "diag"; el.style.cssText = "margin-top:8px;font-size:12.5px;color:var(--muted)"; $("loadNote").closest(".panel").appendChild(el) }
     var a = authGet() || {};
-    el.innerHTML = "<summary style='cursor:pointer'>Details (stats v3)</summary><div style='white-space:pre-wrap;font-family:ui-monospace,monospace;margin-top:6px'>" + esc(["School: " + (a.school || "none") + " · signed in: " + (a.email || a.uid || "no")].concat(DIAG, extra || []).join("\n")) + "</div>";
+    el.innerHTML = "<summary style='cursor:pointer'>Details (stats v4)</summary><div style='white-space:pre-wrap;font-family:ui-monospace,monospace;margin-top:6px'>" + esc(["School: " + (a.school || "none") + " · signed in: " + (a.email || a.uid || "no")].concat(DIAG, extra || []).join("\n")) + "</div>";
   }
   function vals(o) { if (!o) return []; if (Array.isArray(o)) return o.filter(Boolean); return Object.keys(o).map(function (k) { var x = o[k]; if (typeof x === "string") { try { x = JSON.parse(x) } catch (e) { return null } } if (x && typeof x === "object") x.id = x.id || k; return x }).filter(Boolean) }
   function parseRoster(t) {

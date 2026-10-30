@@ -552,6 +552,7 @@ textarea { min-height: 64px }
       <video id="filmPrev" muted playsinline autoplay hidden></video>
       <div style="flex:1;min-width:200px"><div id="filmState" class="note" style="margin:0">Point this device at the field. Each play you log gets its own clip; tap ▶ in the Log to watch it.</div></div>
       <button class="btn" id="filmCam" type="button" hidden style="font-size:13px;padding:6px 10px">Switch camera</button>
+      <div style="flex-basis:100%;display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:6px"><span class="note" id="cloudState" style="margin:0;flex:1;min-width:220px"></span><label class="note" style="margin:0;display:flex;gap:6px;align-items:center"><input type="checkbox" id="cloudAuto"> Upload clips while filming</label><button class="btn" id="cloudGo" type="button" style="font-size:13px;padding:6px 10px">Upload remaining clips</button></div>
     </div>
     <div class="qscore" id="qScore"></div>
     <div class="panel livepanel" id="livePanel">
@@ -1084,7 +1085,7 @@ textarea { min-height: 64px }
 </div>
 <div class="toast" id="toast" hidden></div>
 
-<script>window.SOL_CONFIG = window.SOL_CONFIG || {"db": "https://cardinal-booth-default-rtdb.firebaseio.com", "apiKey": "AIzaSyDm0t01_w92gL5sm4_1RnVLip7xWkjb9ME"};</script>
+<script>window.SOL_CONFIG = window.SOL_CONFIG || {"db": "https://cardinal-booth-default-rtdb.firebaseio.com", "apiKey": "AIzaSyDm0t01_w92gL5sm4_1RnVLip7xWkjb9ME", "bucket": "cardinal-booth.firebasestorage.app"};</script>
 <script>
 (function () {
   "use strict";
@@ -1498,7 +1499,7 @@ textarea { min-height: 64px }
       var parts = String(d.path || "/").split("/").filter(Boolean);
       if (kind === "put") SY.mirror = setPath(SY.mirror, parts, d.data);
       else Object.keys(d.data || {}).forEach(function (k) { SY.mirror = setPath(SY.mirror, parts.concat(k.split("/").filter(Boolean)), d.data[k]) });
-      setStatus("on"); applyMirror();
+      setStatus("on"); applyMirror(); try { filmCheck(true); cloudStatus() } catch (e) {}
     } };
     es.addEventListener("put", onData("put")); es.addEventListener("patch", onData("patch"));
     es.addEventListener("auth_revoked", function () { solToken().then(function (t) { SOL_T = t; openStream() }, function () { location.replace("index.html#login") }) });
@@ -3609,7 +3610,7 @@ textarea { min-height: 64px }
   }
   function filmSaveBlob(snapId, blob) {
     if (!blob || blob.size <= 2000 || !snapId) return;
-    var k = filmKey(snapId); fput(k, blob).then(function () { FILM.have[k] = 1; FILM.n++; filmStatus(); renderLog() }, function () { toast("Couldn't save the clip. The device may be out of storage.") });
+    var k = filmKey(snapId); fput(k, blob).then(function () { FILM.have[k] = 1; FILM.n++; cloudQueue(filmGame(), snapId, k); filmStatus(); renderLog() }, function () { toast("Couldn't save the clip. The device may be out of storage.") });
   }
   function filmCut(snapId) {
     var r = FILM.rec; if (!r || r.state === "inactive") return;
@@ -3621,21 +3622,63 @@ textarea { min-height: 64px }
   // a new play from ANY device (this one or another one on the same game) closes the running clip and starts the next.
   // Plays that were already in the game when filming started, or that load in on a reconnect, never take a clip.
   function filmCheck(remote) {
-    if (!S || !S.snaps || !S.snaps.length || !FILM.known) return;
+    if (!S || !S.snaps || !FILM.known) return;
     var tailOk = FILM.tail && Date.now() - FILM.tail.at < 10000;
     if (!FILM.on && !tailOk) return;
-    var fresh = S.snaps.filter(function (x) { return x && x.id && !FILM.known[x.id] });
+    var fresh = S.snaps.filter(function (x) { return x && x.id && !FILM.known[x.id] }).concat(defPlays().filter(function (x) { return !FILM.known[x.id] }));
     if (!fresh.length) return;
     fresh.forEach(function (x) { FILM.known[x.id] = 1 });
     var newer = fresh.filter(function (x) { return !x.t || x.t > FILM.since - 60000 });
     if (!newer.length) return;
     newer.sort(function (a, b) { return (a.t || 0) - (b.t || 0) });
     var last = newer[newer.length - 1]; if (FILM.have[filmKey(last.id)]) return;
-    FILM.lastId = last.id; FILM.lastCut = { n: S.snaps.indexOf(last) + 1, remote: !!remote, call: last.call || last.res || "" };
+    FILM.lastId = last.id; FILM.lastCut = last.def ? { n: "D" + last.n, remote: true, call: "defense · " + (last.res || "") } : { n: S.snaps.indexOf(last) + 1, remote: !!remote, call: last.call || last.res || "" };
     if (FILM.on) filmCut(last.id);
     else { filmSaveBlob(last.id, FILM.tail.blob); FILM.tail = null; toast("Saved the last clip to play #" + FILM.lastCut.n) }
     filmStatus();
   }
+  // ---------- clips online: every clip uploads to Firebase Storage so every device can watch it ----------
+  var BUCKET = (window.SOL_CONFIG && window.SOL_CONFIG.bucket) || "", CQ_KEY = "solutions-clipq" + NS, CLOUD = { busy: false, err: null, timer: null };
+  // defense plays on the same game, as filmable plays (their ids start with D_)
+  function defPlays() {
+    var d = SY.mirror && SY.mirror.defense && SY.mirror.defense.snaps; if (!d) return [];
+    return Object.keys(d).map(function (k) { var x = d[k]; if (typeof x === "string") { try { x = JSON.parse(x) } catch (e) { return null } } return x && typeof x === "object" ? { id: "D_" + k, t: x.t, n: x.n || "", res: x.res, def: true } : null }).filter(Boolean);
+  }
+  function remoteClips() { return (SY.mirror && SY.mirror.clips) || {} }
+  function hasClip(id) { return !!id && (!!FILM.have[filmKey(id)] || !!remoteClips()[id]) }
+  function cloudAuto() { try { return localStorage.getItem("solutions-cloudauto" + NS) !== "0" } catch (e) { return true } }
+  function cqGet() { try { return JSON.parse(localStorage.getItem(CQ_KEY) || "[]") } catch (e) { return [] } }
+  function cqSet(q) { try { localStorage.setItem(CQ_KEY, JSON.stringify(q)) } catch (e) {} }
+  function cloudQueue(code, key, fk) { if (!ONLINE || !BUCKET || code === "local") return; var q = cqGet(); if (!q.some(function (x) { return x.fk === fk })) q.push({ code: code, key: key, fk: fk }); cqSet(q); cloudStatus(); if (cloudAuto()) cloudRun() }
+  function cloudRun(force) {
+    if (CLOUD.busy || !ONLINE || !BUCKET) return; var q = cqGet(); if (!q.length) { cloudStatus(); return }
+    if (!force && !cloudAuto()) { cloudStatus(); return }
+    var a = authGet() || {}; if (!a.school) return;
+    CLOUD.busy = true; var it = q[0];
+    fget(it.fk).then(function (blob) {
+      if (!blob) return "gone";
+      var ext = /mp4/.test(blob.type) ? ".mp4" : ".webm", path = "schools/" + a.school + "/clips/" + it.code + "/" + it.key + ext;
+      return solToken().then(function (t) {
+        return fetch("https://firebasestorage.googleapis.com/v0/b/" + BUCKET + "/o?uploadType=media&name=" + encodeURIComponent(path), { method: "POST", headers: { "Authorization": "Firebase " + t, "Content-Type": blob.type || "video/webm" }, body: blob }).then(function (r) { if (!r.ok) throw new Error("upload HTTP " + r.status); return r.json() }).then(function (j) {
+          var url = "https://firebasestorage.googleapis.com/v0/b/" + BUCKET + "/o/" + encodeURIComponent(j.name) + "?alt=media&token=" + (j.downloadTokens || "").split(",")[0];
+          return fetch(solSchoolBase() + "/games/" + encodeURIComponent(it.code) + "/clips/" + encodeURIComponent(it.key) + ".json?auth=" + encodeURIComponent(t), { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: url, at: Date.now(), type: blob.type || "video/webm", size: blob.size }) }).then(function (r) { if (!r.ok) throw new Error("link HTTP " + r.status); return "ok" });
+        });
+      });
+    }).then(function () {
+      cqSet(cqGet().filter(function (x) { return x.fk !== it.fk })); CLOUD.busy = false; CLOUD.err = null; cloudStatus(); setTimeout(function () { cloudRun(force) }, 50);
+    }, function (e) {
+      CLOUD.busy = false; CLOUD.err = String(e && e.message || e); cloudStatus();
+      clearTimeout(CLOUD.timer); CLOUD.timer = setTimeout(function () { cloudRun(force) }, 20000); // no signal: try again in 20 seconds
+    });
+  }
+  function cloudStatus() {
+    var el = $("cloudState"); if (!el) return;
+    if (!ONLINE || !BUCKET) { el.textContent = ""; return }
+    var q = cqGet(), mine = q.filter(function (x) { return SY.cfg && x.code === SY.cfg.code }).length, online = Object.keys(remoteClips()).length;
+    el.textContent = (online ? online + " clip" + (online === 1 ? "" : "s") + " online for every device" : "No clips online yet for this game") + (q.length ? " · " + q.length + " waiting to upload" + (CLOUD.busy ? " (uploading…)" : CLOUD.err ? " (no signal, retrying)" : !cloudAuto() ? " (tap Upload remaining clips on Wi-Fi)" : "") : "") + ".";
+    $("cloudGo").hidden = !q.length;
+  }
+  setInterval(function () { if (cqGet().length && !CLOUD.busy && cloudAuto()) cloudRun() }, 30000);
   function filmStatus() {
     $("filmGo").textContent = FILM.on ? "■ Stop filming" : "🎥 Film this game";
     $("filmPrev").hidden = !FILM.on; $("filmCam").hidden = !FILM.on;
@@ -3647,7 +3690,7 @@ textarea { min-height: 64px }
     navigator.mediaDevices.getUserMedia({ video: { facingMode: FILM.facing, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false }).then(function (st) {
       FILM.stream = st; FILM.mime = filmPickMime(); $("filmPrev").srcObject = st;
       FILM.on = true; FILM.lastId = S.snaps.length ? S.snaps[S.snaps.length - 1].id : null; FILM.since = Date.now(); FILM.known = {}; FILM.tail = null; FILM.lastCut = null;
-      ensureIds(); S.snaps.forEach(function (x) { if (x && x.id) FILM.known[x.id] = 1 }); filmStartRec(); filmStatus();
+      ensureIds(); S.snaps.forEach(function (x) { if (x && x.id) FILM.known[x.id] = 1 }); defPlays().forEach(function (x) { FILM.known[x.id] = 1 }); filmStartRec(); filmStatus();
       try { navigator.wakeLock && navigator.wakeLock.request("screen").then(function (l) { FILM.lock = l }, function () {}) } catch (e) {}
       toast("Filming. Log plays as usual; each one saves a clip.");
     }, function () { toast("Camera blocked. Allow camera access for this site in your browser settings.") });
@@ -3661,13 +3704,15 @@ textarea { min-height: 64px }
   }
   document.addEventListener("visibilitychange", function () { if (FILM.on && document.visibilityState === "visible" && navigator.wakeLock) { navigator.wakeLock.request("screen").then(function (l) { FILM.lock = l }, function () {}) } });
   var clipIdx = null, clipUrl = null;
-  function clipList() { var a = []; S.snaps.forEach(function (s, i) { if (s.id && FILM.have[filmKey(s.id)]) a.push(i) }); return a }
+  function clipList() { var a = []; S.snaps.forEach(function (s, i) { if (hasClip(s.id)) a.push(i) }); return a }
   function openClip(i) {
     var s = S.snaps[i]; if (!s) return; clipIdx = i;
     fget(filmKey(s.id)).then(function (b) {
-      if (!b) { toast("That clip isn't on this device."); return }
-      if (clipUrl) URL.revokeObjectURL(clipUrl); clipUrl = URL.createObjectURL(b);
-      $("clipVid").src = clipUrl; $("clipDl").href = clipUrl; $("clipDl").download = "Play_" + s.n + "_" + (S.opp || "game").replace(/\W+/g, "_") + (/mp4/.test(b.type) ? ".mp4" : ".webm");
+      var rc = remoteClips()[s.id];
+      if (!b && !(rc && rc.url)) { toast("That clip isn't on this device yet."); return }
+      if (clipUrl) { try { URL.revokeObjectURL(clipUrl) } catch (e) {} clipUrl = null }
+      var src = b ? (clipUrl = URL.createObjectURL(b)) : rc.url, typ = b ? b.type : (rc.type || "");
+      $("clipVid").src = src; $("clipDl").href = src; $("clipDl").download = "Play_" + s.n + "_" + (S.opp || "game").replace(/\W+/g, "_") + (/mp4/.test(typ) ? ".mp4" : ".webm");
       $("clipTitle").textContent = "#" + s.n + " · Q" + s.qtr + " · " + ddLabel(s) + " · " + [s.form, s.call].filter(Boolean).join(" ") + " · " + (s.res || "") + (s.gain != null && s.kind !== "try" ? " " + s.gain : "");
       var L = clipList(), at = L.indexOf(i); $("clipPrev").disabled = at <= 0; $("clipNext").disabled = at < 0 || at >= L.length - 1;
       $("clipModal").hidden = false; try { $("clipVid").play() } catch (e) {}
@@ -3691,7 +3736,7 @@ textarea { min-height: 64px }
           (isT ? "<td></td><td></td>" : tc("look", esc([s.shell ? s.shell.toLowerCase() : "", s.box ? s.box + " box" : "", s.front || "", s.cov ? covName(s.cov) : ""].filter(Boolean).join(" · ")) || "<span class='note'>+ look</span>") + tc("look", esc(s.blitz))) +
           (isT ? "<td>" + esc(s.res) + "</td><td>" + esc(playerText(s)) + "</td><td>" + outcomeTags(s) + "</td>" : s.res === "Penalty" ? tc("res", esc(s.pen ? s.pen.n : "Penalty")) + "<td></td>" + tc("res", outcomeTags(s))
             : tc("res", esc(s.res) + (s.td ? ", TD" : "") + (s.gain == null ? " · spot pending" : " " + s.gain)) + tc("pl", esc(playerText(s)) || "<span class='note'>+ player</span>") + tc("res", outcomeTags(s))) +
-          "<td style='white-space:nowrap'>" + (s.id && FILM.have[filmKey(s.id)] ? "<button class='clipbtn' data-i='" + p[1] + "' aria-label='Watch play'>▶</button>" : "") + "<button class='edit' data-i='" + p[1] + "'>Edit</button><button class='del' data-i='" + p[1] + "'>Delete</button></td></tr>";
+          "<td style='white-space:nowrap'>" + (hasClip(s.id) ? "<button class='clipbtn' data-i='" + p[1] + "' aria-label='Watch play'>▶</button>" : "") + "<button class='edit' data-i='" + p[1] + "'>Edit</button><button class='del' data-i='" + p[1] + "'>Delete</button></td></tr>";
       });
       h += "</table></div></div>";
     });
@@ -4720,7 +4765,7 @@ textarea { min-height: 64px }
       var call = ((x.form ? x.form + " " : "") + (x.call || "") + (x.motion ? " · " + x.motion : "") + (x.rpo ? " + " + x.rpo : "")).trim();
       var out = x.res === "Penalty" ? (x.pen ? x.pen.n : "Penalty") : isT ? (x.res + (x.good ? " good" : " no good")) : (x.res || "") + (x.res === "Incomplete" || x.res === "Interception" ? "" : x.gain != null ? " " + (x.gain >= 0 ? "+" : "") + x.gain : " · spot pending") + (playerText(x) ? " · " + playerText(x) : "");
       var look = [x.shell, x.front, x.cov ? covName(x.cov) : "", x.blitz && x.blitz !== "No" ? "blitz " + x.blitz : ""].filter(Boolean).join(" · ");
-      h += "<div class='it " + typ + "' data-i='" + i + "'><div><div class='sit'>" + esc(sit) + badges + "</div><div class='tt'>" + esc(call || out) + "</div><div class='sub'>" + esc(call ? out : "") + (look ? " · vs " + esc(look) : "") + (x.mulligan ? " · ↻" : "") + (x.callType === "freeze" ? " · ❄ freeze" : "") + (x.vic ? " · not in stats" : "") + "</div></div><div class='rt'>Q" + (x.qtr || "") + " · #" + x.n + "<br>" + (x.id && FILM.have[filmKey(x.id)] ? "<button class='clipbtn' data-i='" + i + "' aria-label='Watch play'>▶</button>" : "") + "</div></div>";
+      h += "<div class='it " + typ + "' data-i='" + i + "'><div><div class='sit'>" + esc(sit) + badges + "</div><div class='tt'>" + esc(call || out) + "</div><div class='sub'>" + esc(call ? out : "") + (look ? " · vs " + esc(look) : "") + (x.mulligan ? " · ↻" : "") + (x.callType === "freeze" ? " · ❄ freeze" : "") + (x.vic ? " · not in stats" : "") + "</div></div><div class='rt'>Q" + (x.qtr || "") + " · #" + x.n + "<br>" + (hasClip(x.id) ? "<button class='clipbtn' data-i='" + i + "' aria-label='Watch play'>▶</button>" : "") + "</div></div>";
     });
     el.innerHTML = "<div class='pbp'>" + (h || "<p class='note'>No snaps logged yet.</p>") + "</div>";
     el.querySelectorAll(".it").forEach(function (d) { d.addEventListener("click", function (e) { if (e.target.closest(".clipbtn")) { openClip(+d.dataset.i); return } openEdit(+d.dataset.i) }) });
@@ -5135,6 +5180,9 @@ textarea { min-height: 64px }
   $("logBtn").addEventListener("click", logSnap);
   $("frzBtn").addEventListener("click", freeze); $("gsFrz").addEventListener("click", freeze);
   $("vicBtn").addEventListener("click", victory);
+  $("cloudAuto").checked = cloudAuto(); $("cloudAuto").addEventListener("change", function () { try { localStorage.setItem("solutions-cloudauto" + NS, this.checked ? "1" : "0") } catch (e) {} cloudStatus(); if (this.checked) cloudRun() });
+  $("cloudGo").addEventListener("click", function () { toast("Uploading clips…"); cloudRun(true) });
+  setTimeout(function () { cloudStatus(); if (cloudAuto()) cloudRun() }, 3000);
   $("bkGo").addEventListener("click", bkDownload);
   $("tagNagOn").checked = tagNagOn(); $("tagNagOn").addEventListener("change", function () { try { localStorage.setItem("solutions-tagnag" + NS, this.checked ? "1" : "0") } catch (e) {} });
   $("endGameBtn").addEventListener("click", endGameOpen); $("egGo").addEventListener("click", endGameGo); $("egCancel").addEventListener("click", function () { $("egModal").hidden = true });

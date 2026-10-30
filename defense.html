@@ -223,6 +223,7 @@ body.infinal #v-chart { pointer-events: none !important; opacity: .55 } body.inf
     </div></div>
   </section>
 </main>
+<div class="dmodal" id="dClip" hidden><div class="box"><video id="dClipVid" controls playsinline style="width:100%;max-height:70vh;background:#000;border-radius:8px"></video><div class="chips" style="margin-top:10px"><a class="btn" id="dClipDl" download>Save clip</a><button class="btn pri" id="dClipX">Close</button></div></div></div>
 <div class="dmodal" id="dEdit" hidden><div class="box"><h3>Edit play <small id="deSit" style="font-size:14px;color:var(--muted);text-transform:none;letter-spacing:0"></small></h3>
   <div class="efields">
     <label>Down<select id="deDn"><option value="1">1st</option><option value="2">2nd</option><option value="3">3rd</option><option value="4">4th</option></select></label>
@@ -485,6 +486,10 @@ body.infinal #v-chart { pointer-events: none !important; opacity: .55 } body.inf
     if (P.pen.side === "D" && (P.pen.afd || move >= c.dist)) { c.dn = 1; c.dist = Math.min(10, 100 - c.y) } else c.dist = Math.max(1, c.dist - move);
     S.snaps.push(s); P.pen = { side: null, y: null, afd: false, dead: false }; $("penBox").hidden = true; save(); renderAll(); toast("Penalty → " + ddText(c));
   }
+  // ---------- clips filmed on the offense chart's camera device (uploaded online) ----------
+  var CLIPS = {};
+  function pollClips() { if (!ONLINE || !SY.cfg) return; fetch(url("/clips")).then(function (r) { return r.ok ? r.json() : null }).then(function (c) { c = c || {}; if (JSON.stringify(c) !== JSON.stringify(CLIPS)) { CLIPS = c; renderLog() } }, function () {}) }
+  setInterval(pollClips, 20000); setTimeout(pollClips, 3000);
   // ---------- edit a logged play ----------
   var EDIT = null;
   function fill(id, k) { $(id).innerHTML = list(k).map(function (v) { return "<option value='" + esc(v) + "'>" }).join("") }
@@ -609,10 +614,11 @@ body.infinal #v-chart { pointer-events: none !important; opacity: .55 } body.inf
     S.snaps.slice().reverse().forEach(function (s, ri) {
       var i = S.snaps.length - 1 - ri;
       h += "<tr><td>" + (i + 1) + "</td><td>" + s.qtr + "</td><td>D" + s.drive + "</td><td>" + esc(ddText(s)) + "</td><td>" + esc(ballText(s.y)) + " · " + esc(s.hash || "") + "</td><td>" + esc([s.pers, s.form, s.str, s.mot].filter(Boolean).join(" · ")) + "</td><td>" + esc([s.front, s.cov, s.blz].filter(Boolean).join(" · ")) + "</td><td>" + esc(s.kind === "pen" ? "" : [s.rp, s.rp === "Run" ? s.runp : s.passp, s.fb, s.sw, s.gap != null ? list("gap")[s.gap] + " gap" : "", s.num ? "#" + s.num : ""].filter(Boolean).join(" · ")) + "</td><td>" +
-        (s.kind === "pen" ? "<span class='tag'>" + (s.pen.off ? "Offsetting · replay the down" : "Penalty on " + (s.pen.side === "D" ? "us" : "them") + " " + s.pen.y) + (s.pen.dead ? " · no play" : "") + "</span>" : s.vic ? "Kneel " + s.gain + " <span class='tag'>not in stats</span>" : esc(s.res) + " " + (s.gain == null ? "· spot pending" : (s.td ? "TD" : s.gain)) + (s.gain != null && !s.td ? (eff(s) ? " <span class='tag bad'>Eff</span>" : " <span class='tag good'>Stop</span>") : "")) + "</td><td style='white-space:nowrap'><button class='btn' data-edit='" + s.id + "' style='font-size:13px;padding:4px 8px;margin-right:4px'>Edit</button><button class='btn' data-del='" + s.id + "' style='font-size:13px;padding:4px 8px'>Delete</button></td></tr>";
+        (s.kind === "pen" ? "<span class='tag'>" + (s.pen.off ? "Offsetting · replay the down" : "Penalty on " + (s.pen.side === "D" ? "us" : "them") + " " + s.pen.y) + (s.pen.dead ? " · no play" : "") + "</span>" : s.vic ? "Kneel " + s.gain + " <span class='tag'>not in stats</span>" : esc(s.res) + " " + (s.gain == null ? "· spot pending" : (s.td ? "TD" : s.gain)) + (s.gain != null && !s.td ? (eff(s) ? " <span class='tag bad'>Eff</span>" : " <span class='tag good'>Stop</span>") : "")) + "</td><td style='white-space:nowrap'>" + (CLIPS["D_" + s.id] && CLIPS["D_" + s.id].url ? "<button class='btn' data-clip='D_" + s.id + "' style='font-size:13px;padding:4px 8px;margin-right:4px'>▶</button>" : "") + "<button class='btn' data-edit='" + s.id + "' style='font-size:13px;padding:4px 8px;margin-right:4px'>Edit</button><button class='btn' data-del='" + s.id + "' style='font-size:13px;padding:4px 8px'>Delete</button></td></tr>";
     });
     $("logT").innerHTML = S.snaps.length ? h : "<tr><td>No plays yet.</td></tr>";
     $("logCount").textContent = S.snaps.length + " plays";
+    document.querySelectorAll("[data-clip]").forEach(function (b) { b.addEventListener("click", function () { var c = CLIPS[b.dataset.clip]; if (!c) return; $("dClipVid").src = c.url; $("dClipDl").href = c.url; $("dClip").hidden = false; try { $("dClipVid").play() } catch (e) {} }) });
     document.querySelectorAll("[data-edit]").forEach(function (b) { b.addEventListener("click", function () { openEdit(b.dataset.edit) }) });
     document.querySelectorAll("[data-del]").forEach(function (b) { b.addEventListener("click", function () { S.snaps = S.snaps.filter(function (x) { return x.id !== b.dataset.del }); save(); renderAll(); toast("Deleted. Down and distance unchanged.") }) });
   }
@@ -670,11 +676,19 @@ body.infinal #v-chart { pointer-events: none !important; opacity: .55 } body.inf
     d = d || {};
     var snaps = d.snaps || {}, meta = d.meta || null, ids = Object.keys(snaps);
     if (!ids.length && !meta) { push(); return }
-    var list = ids.map(function (k) { var x = snaps[k]; if (typeof x === "string") { try { x = JSON.parse(x) } catch (e) { return null } } if (x) x.id = k; return x }).filter(Boolean).sort(function (a, b) { return (a.t || 0) - (b.t || 0) });
+    // keep this device's changes that haven't gone out yet (a new play, an edit, a delete) instead of letting the online copy wipe them
+    var unsent = {}, here = {}, nUnsent = 0;
+    S.snaps.forEach(function (x) { here[x.id] = 1; if (SY.last[x.id] !== JSON.stringify(x)) { unsent[x.id] = x; nUnsent++ } });
+    var delPending = {}; Object.keys(SY.last).forEach(function (id) { if (id !== "__meta" && !here[id]) delPending[id] = 1 });
+    var metaDirty = SY.last.__meta != null && SY.last.__meta !== JSON.stringify({ cur: S.cur, lists: S.lists });
+    var list = ids.map(function (k) { var x = snaps[k]; if (typeof x === "string") { try { x = JSON.parse(x) } catch (e) { return null } } if (x) x.id = k; return x }).filter(Boolean);
     SY.last = {}; list.forEach(function (x) { SY.last[x.id] = JSON.stringify(x) });
-    S.snaps = list; if (meta) { if (typeof meta === "string") { try { meta = JSON.parse(meta) } catch (e) { meta = {} } } if (meta.cur) S.cur = meta.cur; if (meta.lists) S.lists = meta.lists; SY.last.__meta = JSON.stringify({ cur: S.cur, lists: S.lists }) }
+    list = list.filter(function (x) { return !delPending[x.id] && !unsent[x.id] }).concat(Object.keys(unsent).map(function (k) { return unsent[k] })).sort(function (a, b) { return (a.t || 0) - (b.t || 0) });
+    S.snaps = list;
+    if (meta) { if (typeof meta === "string") { try { meta = JSON.parse(meta) } catch (e) { meta = {} } } if (!metaDirty) { if (meta.cur) S.cur = meta.cur; if (meta.lists) S.lists = meta.lists } SY.last.__meta = JSON.stringify({ cur: meta.cur, lists: meta.lists }) }
     try { localStorage.setItem(KEY, JSON.stringify(S)) } catch (e) {}
     renderAll();
+    if (nUnsent || Object.keys(delPending).length || metaDirty) schedulePush();
   }
   function connect() {
     var c = syncCfg(); if (!c || !c.code) { $("noGame").hidden = false; return }
@@ -718,6 +732,7 @@ body.infinal #v-chart { pointer-events: none !important; opacity: .55 } body.inf
   document.querySelectorAll("[data-py]").forEach(function (b) { b.addEventListener("click", function () { P.pen.y = +b.dataset.py; renderInput() }) });
   $("penAfd").addEventListener("click", function () { P.pen.afd = !P.pen.afd; renderInput() });
   $("penDead").addEventListener("click", function () { P.pen.dead = !P.pen.dead; renderInput() });
+  $("dClipX").addEventListener("click", function () { $("dClip").hidden = true; try { $("dClipVid").pause() } catch (e) {} });
   $("deSave").addEventListener("click", saveEdit); $("deCancel").addEventListener("click", function () { $("dEdit").hidden = true });
   $("expCsv").addEventListener("click", exportCsv);
   $("expPdf").addEventListener("click", function () { document.body.classList.add("printing"); var sv = ["dc", "log"].map(function (t) { var e = $("v-" + t), h = e.hidden; e.hidden = false; return [e, h] }); setTimeout(function () { window.print(); setTimeout(function () { sv.forEach(function (x) { x[0].hidden = x[1] }); document.body.classList.remove("printing") }, 500) }, 100) });

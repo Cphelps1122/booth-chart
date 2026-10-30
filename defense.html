@@ -29,6 +29,9 @@
 #solTheme.float { position: fixed; background: #111; }
 header { position: relative }
 @media print { #solTheme { display: none } }
+
+.lockbar { position: sticky; top: 0; z-index: 9998; padding: 9px 14px; background: #a5e3ff; color: #0c1117; font: 700 15px Inter, system-ui, sans-serif; text-align: center }
+body.inlocked #v-chart, body.inlocked [data-del] { pointer-events: none !important; opacity: .55 }
 </style>
 </head><body><title>Solutions Defense Chart</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -536,9 +539,21 @@ label.f { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font
   function base() { return (ONLINE && solSchoolBase()) || SY.cfg.url }
   function url(p) { return base() + "/games/" + encodeURIComponent(SY.cfg.code) + p + ".json" + (ONLINE ? solAuthQ() : "") }
   function setSync(st) { var el = $("pSync"); el.className = "pill " + st; el.textContent = st === "on" ? "Live" : st === "err" ? "Sync error" : "Offline" }
-  function schedulePush() { if (!SY.cfg) return; clearTimeout(SY.t); SY.t = setTimeout(push, 150) }
+  // lock mode: an admin can make this account view-only (sees everything live, can't chart)
+  var DLOCK = false;
+  function lockCheck() {
+    if (!ONLINE) return; var a = authGet(); if (!a || !a.uid || !a.school) return;
+    solToken().then(function (t) { return Promise.all([fetch(SOL_DB + "/admins/" + a.uid + ".json?auth=" + encodeURIComponent(t)).then(function (r) { return r.ok ? r.json() : null }), fetch(SOL_DB + "/schools/" + encodeURIComponent(a.school) + "/locks/" + a.uid + ".json?auth=" + encodeURIComponent(t)).then(function (r) { return r.ok ? r.json() : null })]) }).then(function (R) {
+      var on = R[1] === true && R[0] !== true; if (on === DLOCK) return; DLOCK = on;
+      document.body.classList.toggle("inlocked", on);
+      var b = $("lockBar"); if (on && !b) { b = document.createElement("div"); b.id = "lockBar"; b.className = "lockbar"; b.textContent = "🔒 View only: input is locked for this account. Everything still updates live."; document.body.insertBefore(b, document.body.firstChild) }
+      if (b) b.hidden = !on;
+      if (SY.cfg) fetch(url("/defense")).then(function (r) { return r.ok ? r.json() : null }).then(function (d) { if (d) applyRemote(d) }, function () {});
+    }, function () {});
+  }
+  function schedulePush() { if (DLOCK || !SY.cfg) return; clearTimeout(SY.t); SY.t = setTimeout(push, 150) }
   function push() {
-    if (!SY.cfg) return; if (SY.busy) { SY.again = true; return } SY.busy = true;
+    if (!SY.cfg || DLOCK) return; if (SY.busy) { SY.again = true; return } SY.busy = true;
     var want = {}; S.snaps.forEach(function (s) { want[s.id] = JSON.stringify(s) });
     var meta = JSON.stringify({ cur: S.cur, lists: S.lists }), ops = [];
     Object.keys(want).forEach(function (id) { if (SY.last[id] !== want[id]) ops.push(["PUT", "/defense/snaps/" + id, want[id], id]) });
@@ -615,7 +630,7 @@ label.f { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font
     document.querySelectorAll(".tabs button").forEach(function (x) { x.setAttribute("aria-selected", x === b ? "true" : "false") });
     ["chart", "dc", "log", "setup"].forEach(function (t) { $("v-" + t).hidden = t !== b.dataset.t }); window.scrollTo(0, 0);
   }) });
-  renderAll(); connect();
+  renderAll(); connect(); lockCheck(); setInterval(lockCheck, 10000);
   function mergeList(k, vals) { if (!vals || !vals.length) return false; var cur = (S.lists[k] || DEF_LISTS[k] || "").split(",").map(function (x) { return x.trim() }).filter(Boolean), U = vals.map(function (x) { return String(x).toUpperCase() }), str = vals.concat(cur.filter(function (v) { return U.indexOf(v.toUpperCase()) < 0 })).join(", "); if (str === S.lists[k]) return false; S.lists[k] = str; return true }
   function wkHudlLists() {
     var e = WK.list && (WK.cur || wkNext(WK.list)); if (!e) return;

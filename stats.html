@@ -1,0 +1,368 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="apple-mobile-web-app-title" content="Stats"><link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAIAAACyr5FlAAADMklEQVR4nOzcMWucdRzA8SehdupSEAoWNEJFUIog6FKXChbcsmQ22KEu0TeQN5BXkEKtq1ubxZiti1OFUojYCEKjkE7uBYfEcy39FuLdg0fu8+Gmu4f/8L8vz/OH437nLly8NMDLnBsgiIMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgLXocVz78+N2PPlleXn7h/ePj499+/un3Rw+HBba0yH9NeP/a9a+3v3/FBdvfrD9+sDcsquVhgX1w/fNXX/DetU+HBbbQj5XXzp+f8oKzzYGUJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA7SiHF8duPGxsbG5TcuD3Ngf39/a2vryZNfh+lcufLO5ubm1atXhzlw9Ozo9vbt3d0fhnGMODDu1q2v5qSMicnXubq6OkxtbW1tTsqYmGzvlzdvDqMZ8c7x9srKME9WVt4apjaTRWZo1E125iCJgyQOkjhI4iCJgyQOkjhI4iCJgyQOkjhII/4q+/TwcJgnh4d/DFObySIzNOomjxjHt3fuHD07GubD/v7+zs7OMLX79+9Nlhrmw2R7v7t7dxjNiI+Vvb0fJ6/hbDk4OFhf/2JYDM4cJHGQxEESB0kcJHGQxEESB0kcJHGQxEESB0kcJHGQxEESB0kcJHGQxEESB0kcJHGQxEESB0kcJHGQxEEyGP90DMafDYPxx2Yw/swYjH9azhwkcZDEQRIHSRwkcZDEQRIHSRwkcZDEQRIHyWD8/2GRGTIYfwYMxv8PDMY/HYPx4V/iIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEgjjn2af09/eTTlBWfbQt85Hu7e+/v589cvv7m0tPTCRycnJ38d/fn4wVkbW3UqSxcuXhrgZZw5SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SP8AAAD//3xWAykAAAAGSURBVAMAZviiR2dx64EAAAAASUVORK5CYII="><link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAIAAACyr5FlAAADMklEQVR4nOzcMWucdRzA8SehdupSEAoWNEJFUIog6FKXChbcsmQ22KEu0TeQN5BXkEKtq1ubxZiti1OFUojYCEKjkE7uBYfEcy39FuLdg0fu8+Gmu4f/8L8vz/OH437nLly8NMDLnBsgiIMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgLXocVz78+N2PPlleXn7h/ePj499+/un3Rw+HBba0yH9NeP/a9a+3v3/FBdvfrD9+sDcsquVhgX1w/fNXX/DetU+HBbbQj5XXzp+f8oKzzYGUJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA7SiHF8duPGxsbG5TcuD3Ngf39/a2vryZNfh+lcufLO5ubm1atXhzlw9Ozo9vbt3d0fhnGMODDu1q2v5qSMicnXubq6OkxtbW1tTsqYmGzvlzdvDqMZ8c7x9srKME9WVt4apjaTRWZo1E125iCJgyQOkjhI4iCJgyQOkjhI4iCJgyQOkjhII/4q+/TwcJgnh4d/DFObySIzNOomjxjHt3fuHD07GubD/v7+zs7OMLX79+9Nlhrmw2R7v7t7dxjNiI+Vvb0fJ6/hbDk4OFhf/2JYDM4cJHGQxEESB0kcJHGQxEESB0kcJHGQxEESB0kcJHGQxEESB0kcJHGQxEESB0kcJHGQxEESB0kcJHGQxEEyGP90DMafDYPxx2Yw/swYjH9azhwkcZDEQRIHSRwkcZDEQRIHSRwkcZDEQRIHyWD8/2GRGTIYfwYMxv8PDMY/HYPx4V/iIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEgjjn2af09/eTTlBWfbQt85Hu7e+/v589cvv7m0tPTCRycnJ38d/fn4wVkbW3UqSxcuXhrgZZw5SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SP8AAAD//3xWAykAAAAGSURBVAMAZviiR2dx64EAAAAASUVORK5CYII="><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}</style><script>
+// light / dark switch shared by every page; first visit follows the device, then remembers the choice
+(function () {
+  var K = "solutions-theme", root = document.documentElement, get = function () { try { return localStorage.getItem(K) } catch (e) { return null } };
+  var dev = function () { return window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light" };
+  var cur = function () { return get() || dev() };
+  function apply() { var t = cur(); root.setAttribute("data-theme", t); root.style.colorScheme = t; var b = document.getElementById("solTheme"); if (b) { b.textContent = t === "dark" ? "☀︎ Light" : "☾ Dark"; b.setAttribute("aria-label", t === "dark" ? "Switch to light mode" : "Switch to dark mode") } }
+  apply();
+  window.solThemeNow = cur;
+  // paper is always light
+  window.addEventListener("beforeprint", function () { root.setAttribute("data-theme", "light"); root.style.colorScheme = "light" });
+  window.addEventListener("afterprint", apply);
+  function mount() {
+    if (document.getElementById("solTheme")) return;
+    var b = document.createElement("button"); b.id = "solTheme"; b.type = "button";
+    b.addEventListener("click", function () { var n = cur() === "dark" ? "light" : "dark"; try { localStorage.setItem(K, n) } catch (e) {} apply(); try { window.dispatchEvent(new Event("solthemechange")) } catch (e) {} });
+    var slot = document.getElementById("solThemeSlot"), h = document.querySelector("header");
+    if (slot) { slot.appendChild(b); b.classList.add("inline") } else { (h || document.body).appendChild(b); if (!h) b.classList.add("float") }
+    apply();
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mount); else mount();
+  if (window.matchMedia) try { matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function () { if (!get()) apply() }) } catch (e) {}
+})();
+</script>
+<style>
+#solTheme { font: 700 13px/1 "Barlow", "Segoe UI", Arial, sans-serif; letter-spacing: .04em; padding: 7px 11px; border-radius: 999px; border: 1px solid rgba(255,255,255,.35); background: rgba(255,255,255,.1); color: #f4f4f5; cursor: pointer; white-space: nowrap; position: absolute; top: calc(env(safe-area-inset-top, 0px) + 8px); right: 10px; z-index: 50 }
+#solTheme:hover { background: rgba(255,255,255,.2) }
+#solTheme.inline { position: static; margin-left: 8px; align-self: center }
+#solTheme.float { position: fixed; background: #111; }
+header { position: relative }
+@media print { #solTheme { display: none } }
+
+</style>
+</head><body><title>Solutions Stats</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Russo+One&family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600;700&display=swap">
+<style>
+/* Stats: team and player numbers from every charted game. */
+:root {
+  --bg: #f3f2f0; --panel: #ffffff; --ink: #16171b; --muted: #62656d; --line: #dcdad6;
+  --red: #e0302a; --hot: #fff1c7; --hotink: #6b4a00; --bar: #0d0e12; --barink: #f4f4f5;
+  --chip: #ecebe8; --chipon: #16171b; --chiponink: #fff; --blue: #2563eb; --school: #e0302a;
+  --f-display: "Barlow Condensed", "Arial Narrow", sans-serif; --f-body: "Barlow", "Segoe UI", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #121316; --panel: #1b1d21; --ink: #ecedef; --muted: #a2a5ad; --line: #2e3137; --hot: #4a3a10; --hotink: #ffe08a; --chip: #2a2d33; --chipon: #ecedef; --chiponink: #121316; color-scheme: dark } }
+:root[data-theme="dark"] { --red-txt: color-mix(in srgb, var(--red) 60%, #fff); --school-txt: color-mix(in srgb, var(--school) 60%, #fff); --bg: #121316; --panel: #1b1d21; --ink: #ecedef; --muted: #a2a5ad; --line: #2e3137; --hot: #4a3a10; --hotink: #ffe08a; --chip: #2a2d33; --chipon: #ecedef; --chiponink: #121316; color-scheme: dark }
+* { box-sizing: border-box } [hidden] { display: none !important }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.4; margin: 0 }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bar) }
+.gut { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)) }
+header { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bar); color: var(--barink); border-bottom: 3px solid var(--school); padding-block: 10px }
+.hrow { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; max-width: 1400px; margin: 0 auto }
+.brand { font-family: var(--f-display); font-weight: 800; font-size: 22px; letter-spacing: .03em; text-transform: uppercase }
+.brand .school { color: color-mix(in srgb, var(--school) 60%, #fff) }
+.opp { color: #b9bbc0; font-size: 13px }
+.side { display: inline-flex; border: 1px solid #33363d; border-radius: 9px; overflow: hidden }
+.side a, .side span { font-family: var(--f-display); font-weight: 800; font-size: 15px; letter-spacing: .08em; padding: 7px 14px; color: #9a9ca3; text-decoration: none }
+.side span { background: var(--school); color: #fff }
+.sb { display: flex; flex-direction: column; align-items: center; min-width: 88px; padding: 3px 12px 4px; border-radius: 8px; border: 1px solid #2c2f36; background: #050506 }
+.sb .tm { font-family: var(--f-display); font-weight: 700; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: #b9bbc0; max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.sb .pts { font-family: var(--f-display); font-weight: 800; font-size: 28px; line-height: 1; color: #ffb21e; font-variant-numeric: tabular-nums }
+.sb.us .pts { color: #ff4d45 }
+.board { display: flex; gap: 8px }
+.pills { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; align-items: center }
+.pill { font-family: var(--f-display); font-weight: 700; font-size: 20px; padding: 4px 10px; border-radius: 7px; background: #22252b; color: #f4f4f5; border: 0 }
+.pill.dd { background: var(--school) } .pill.on { color: #4ade80 } .pill.off { color: #fbbf24 } .pill.err { color: #f87171 }
+.tabs { display: flex; gap: 6px; max-width: 1400px; margin: 8px auto 0; flex-wrap: wrap }
+.tabs button, .tabs a { font-family: var(--f-display); font-weight: 700; font-size: 16px; letter-spacing: .06em; text-transform: uppercase; padding: 6px 12px; border-radius: 7px; border: 0; background: transparent; color: #b9bbc0; cursor: pointer; text-decoration: none }
+.tabs [aria-selected="true"] { background: #fff; color: #0d0e12 }
+.notice { background: var(--hot); color: var(--hotink); font-weight: 600; font-size: 14px; padding-block: 10px }
+.notice div { max-width: 1400px; margin: 0 auto; display: flex; gap: 10px; align-items: center; flex-wrap: wrap }
+main { max-width: 1400px; margin: 0 auto; padding-block: 14px }
+.grid { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 14px; align-items: start }
+@media (max-width: 980px) { .grid { grid-template-columns: minmax(0, 1fr) } }
+.col { display: flex; flex-direction: column; gap: 12px; min-width: 0 }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; min-width: 0 }
+h2 { font-family: var(--f-display); font-weight: 700; font-size: 15px; letter-spacing: .1em; text-transform: uppercase; margin: 0 0 8px; display: flex; gap: 8px; align-items: baseline }
+h2 small { font-family: var(--f-body); font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--muted); font-size: 12.5px; margin-left: auto }
+.lab { font-size: 11.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 8px 0 4px }
+.chips { display: flex; flex-wrap: wrap; gap: 6px }
+.chip { font-family: var(--f-display); font-weight: 700; font-size: 17px; letter-spacing: .03em; padding: 8px 13px; border-radius: 8px; border: 1px solid var(--line); background: var(--chip); color: var(--ink); cursor: pointer; min-height: 42px }
+.chip[aria-pressed="true"] { background: var(--chipon); color: var(--chiponink); border-color: var(--chipon) }
+.chip.run[aria-pressed="true"] { background: #b42318; border-color: #b42318; color: #fff }
+.chip.pass[aria-pressed="true"] { background: var(--blue); border-color: var(--blue); color: #fff }
+.chip.same { background: #6d28d9; border-color: #6d28d9; color: #fff; width: 100%; text-align: left; font-size: 19px }
+.chip:focus-visible, .btn:focus-visible { outline: 3px solid var(--school); outline-offset: 2px }
+.btn { font-family: var(--f-display); font-weight: 700; font-size: 16px; letter-spacing: .05em; text-transform: uppercase; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--chip); color: var(--ink); cursor: pointer }
+.btn.pri { background: var(--school); border-color: var(--school); color: var(--on-school, #fff) }
+.field { display: block; width: 100%; height: auto; border-radius: 10px; touch-action: none; user-select: none; -webkit-user-select: none }
+.spotrow { display: flex; gap: 8px; align-items: center; margin-top: 8px; flex-wrap: wrap }
+.spotout { flex: 1 1 200px; text-align: center; font-family: var(--f-display); font-weight: 800; font-size: 23px }
+.step { border-left: 4px solid transparent; padding-left: 10px; margin-left: -14px }
+.step.now { border-left-color: var(--school) }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px } @media (max-width: 560px) { .row2 { grid-template-columns: 1fr } }
+.gaps { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 4px }
+.gaps .chip { padding: 8px 0; text-align: center; font-size: 15px; min-width: 0 }
+.ol { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 4px; margin-top: 3px; font-size: 11px; color: var(--muted); text-align: center; font-weight: 700 }
+.tbl { overflow-x: auto }
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; font-variant-numeric: tabular-nums }
+th { background: var(--bar); color: var(--barink); font-family: var(--f-display); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; font-size: 12.5px; text-align: left; padding: 6px 8px; white-space: nowrap; border-bottom: 2px solid var(--school) }
+td { padding: 5px 8px; border-bottom: 1px solid var(--line); white-space: nowrap }
+td:first-child { font-weight: 700 } td.hot { background: var(--hot); color: var(--hotink); font-weight: 700 } tr.small td { color: var(--muted) }
+.dc { background: var(--bar); color: var(--barink); border-radius: 10px; padding: 14px 16px; border-left: 5px solid var(--school) }
+.dc h3 { margin: 0 0 8px; font-family: var(--f-display); font-size: 20px; letter-spacing: .03em }
+.dc ol { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px }
+.dc li { display: grid; grid-template-columns: 22px 1fr; gap: 8px }
+.dc li b { color: #ff4d45; font-family: var(--f-display); font-size: 20px }
+.dc .k { display: block; font-size: 11.5px; letter-spacing: .1em; text-transform: uppercase; color: #9a9ca3; font-weight: 700 }
+.bars { display: flex; flex-direction: column; gap: 6px }
+.bar { display: grid; grid-template-columns: 100px 1fr 92px; gap: 8px; align-items: center; font-size: 13.5px; font-weight: 600 }
+.track { height: 16px; border-radius: 4px; background: var(--chip); overflow: hidden } .track i { display: block; height: 100% }
+.note { color: var(--muted); font-size: 12.5px; margin: 6px 0 0 }
+.tag { display: inline-block; font-size: 11.5px; font-weight: 700; padding: 1px 6px; border-radius: 4px; background: var(--chip); margin-right: 3px }
+.tag.good { background: #dcfce7; color: #166534 } .tag.bad { background: #fee2e2; color: #991b1b }
+textarea { font: inherit; width: 100%; min-height: 60px; border: 1px solid var(--line); border-radius: 8px; padding: 8px; background: var(--bg); color: var(--ink) }
+label.f { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600; margin-bottom: 10px }
+.toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--bar); color: var(--barink); padding: 10px 16px; border-radius: 8px; font-weight: 600; z-index: 20; max-width: 90vw }
+</style>
+
+<style>
+.seg { display: flex; gap: 6px; flex-wrap: wrap }
+.seg button { font-family: var(--f-display); font-weight: 700; font-size: 15px; letter-spacing: .04em; padding: 7px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--chip); color: var(--ink); cursor: pointer }
+.seg button[aria-pressed="true"] { background: var(--chipon); color: var(--chiponink); border-color: var(--chipon) }
+.seg button small { display: block; font-family: var(--f-body); font-weight: 500; font-size: 11.5px; opacity: .8; letter-spacing: 0 }
+.stack { display: flex; flex-direction: column; gap: 12px }
+tr.tot td { font-weight: 800; background: var(--chip) }
+tr.pick td { background: var(--hot); color: var(--hotink) }
+.wl { font-weight: 800 } .wl.w { color: #16a34a } .wl.l { color: #dc2626 }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px }
+.kpi { background: var(--bar); color: var(--barink); border-radius: 10px; padding: 10px 12px; border-left: 4px solid var(--school) }
+.kpi b { display: block; font-family: var(--f-display); font-size: 26px; line-height: 1.1 } .kpi span { font-size: 12px; color: #b9bbc0; letter-spacing: .06em; text-transform: uppercase; font-weight: 700 }
+.empty { padding: 30px 10px; text-align: center; color: var(--muted) }
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px } @media (max-width: 1300px) { .grid3 { grid-template-columns: minmax(0, 1fr) } }
+select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--ink) }
+@media print { header .tabs, .noprint { display: none !important } .panel { break-inside: avoid } }
+</style>
+<header class="gut">
+  <div class="hrow">
+    <div><div class="brand"><span class="school" id="schoolName">MELISSA</span> SOLUTIONS STATS</div><div class="opp" id="sub">Team and player stats from every charted game</div></div>
+    <div class="pills" id="solThemeSlot"></div>
+  </div>
+  <div class="tabs">
+    <a href="app.html">Home</a><a href="app.html">Offense</a><a href="defense.html">Defense</a><a href="reports.html">Reports</a>
+    <button aria-selected="true" type="button">Stats</button>
+  </div>
+</header>
+<main class="gut">
+  <div class="stack">
+    <div class="panel noprint">
+      <h2>Show <small id="loadNote">Loading games…</small></h2>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px"><select class="sel" id="seasonSel" aria-label="Season"></select><button class="btn" type="button" id="printBtn">Print</button></div>
+      <div class="seg" id="gameSeg"></div>
+    </div>
+    <div class="kpis" id="kpis"></div>
+    <section class="panel"><h2>Team offense <small>game by game · kneels never count</small></h2><div class="tbl"><table id="tOff"></table></div></section>
+    <section class="panel"><h2>Team defense <small>what opponents did against us · from the Defense chart</small></h2><div class="tbl"><table id="tDef"></table></div></section>
+    <div class="grid3">
+      <section class="panel"><h2>Passing <small id="selLab1"></small></h2><div class="tbl"><table id="tPass"></table></div></section>
+      <section class="panel"><h2>Rushing <small id="selLab2"></small></h2><div class="tbl"><table id="tRush"></table></div></section>
+      <section class="panel"><h2>Receiving <small id="selLab3"></small></h2><div class="tbl"><table id="tRec"></table></div></section>
+    </div>
+    <p class="note">Built from the plays charted on the offense and defense charts. Victory kneels and penalties aren't plays. A freeze counts like any other snap. Efficient = 40% of the distance on 1st down, 50% on 2nd, all of it on 3rd or 4th.</p>
+  </div>
+</main>
+<div class="toast" id="toast" hidden></div>
+<script>
+(function () {
+  "use strict";
+  var SOL = window.SOL_CONFIG || {};
+  var SOL_DB = SOL.db || "https://cardinal-booth-default-rtdb.firebaseio.com", SOL_KEY = SOL.apiKey || "";
+  var AUTH_KEY = "solutions-auth-v1";
+  function authGet() { try { return JSON.parse(localStorage.getItem(AUTH_KEY) || "null") } catch (e) { return null } }
+  function authSet(a) { try { if (a) localStorage.setItem(AUTH_KEY, JSON.stringify(a)); else localStorage.removeItem(AUTH_KEY) } catch (e) {} }
+  function authErr(code) {
+    code = String(code || "");
+    if (/INVALID_LOGIN_CREDENTIALS|INVALID_PASSWORD|EMAIL_NOT_FOUND/.test(code)) return "That email and password don't match an account.";
+    if (/TOO_MANY_ATTEMPTS/.test(code)) return "Too many tries. Wait a few minutes, then try again.";
+    if (/USER_DISABLED/.test(code)) return "This account is turned off. Contact Solutions.";
+    if (/INVALID_EMAIL/.test(code)) return "Check the email address.";
+    if (/API key|API_KEY/.test(code)) return "Login isn't set up on this site yet (missing API key).";
+    return "Couldn't log in. Check the connection and try again.";
+  }
+  function solLogin(email, password) {
+    if (!SOL_KEY) return Promise.reject(new Error("API_KEY"));
+    return fetch("https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=" + SOL_KEY, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: email, password: password, returnSecureToken: true }) })
+      .then(function (r) { return r.json() }).then(function (d) {
+        if (d.error) throw new Error(d.error.message);
+        var a = { uid: d.localId, email: d.email, idToken: d.idToken, refreshToken: d.refreshToken, exp: Date.now() + (+d.expiresIn - 60) * 1000 };
+        authSet(a); return solLoadSchool(a);
+      });
+  }
+  function solToken() {
+    var a = authGet(); if (!a) return Promise.reject(new Error("NO_SESSION"));
+    if (a.exp > Date.now() + 60000) return Promise.resolve(a.idToken);
+    return fetch("https://securetoken.googleapis.com/v1/token?key=" + SOL_KEY, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "grant_type=refresh_token&refresh_token=" + encodeURIComponent(a.refreshToken) })
+      .then(function (r) { return r.json() }).then(function (d) {
+        if (d.error) { authSet(null); throw new Error("NO_SESSION") }
+        a.idToken = d.id_token; a.refreshToken = d.refresh_token; a.exp = Date.now() + (+d.expires_in - 60) * 1000; authSet(a); return a.idToken;
+      });
+  }
+  function solLoadSchool(a) {
+    return solToken().then(function (t) { return fetch(SOL_DB + "/members/" + a.uid + ".json?auth=" + t).then(function (r) { return r.json() }) }).then(function (school) {
+      a = authGet(); if (!school || typeof school !== "string") { a.school = null; authSet(a); return a }
+      a.school = school; authSet(a);
+      return solToken().then(function (t) { return fetch(SOL_DB + "/schools/" + encodeURIComponent(school) + "/profile.json?auth=" + t).then(function (r) { return r.json() }) }).then(function (p) { a = authGet(); a.profile = p || {}; authSet(a); return a });
+    });
+  }
+
+  var $ = function (id) { return document.getElementById(id) };
+  var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] }) };
+  var ONLINE = /^https?:/.test(location.protocol), ACC = authGet();
+  if (ONLINE && (!ACC || !ACC.school)) { location.replace("index.html#login"); return }
+  var PROF = (ACC && ACC.profile) || {};
+  var SCHOOL = PROF.name || (ACC && ACC.school) || "Melissa";
+  $("schoolName").textContent = String(SCHOOL).toUpperCase();
+  (function theme(p) {
+    var c1 = /^#[0-9a-f]{6}$/i.test(p.color || "") ? p.color : null; if (!c1) return;
+    document.documentElement.style.setProperty("--school", c1);
+  })(PROF);
+  var NS = (!ONLINE || (ACC && ACC.school === "melissa")) ? "" : "-" + ACC.school;
+
+  function get(path, shallow) {
+    return solToken().then(function (t) { return fetch(SOL_DB + "/schools/" + encodeURIComponent(ACC.school) + path + ".json?auth=" + encodeURIComponent(t) + (shallow ? "&shallow=true" : "")) })
+      .then(function (r) { return r.ok ? r.json() : null }, function () { return null });
+  }
+  function vals(o) { if (!o) return []; if (Array.isArray(o)) return o.filter(Boolean); return Object.keys(o).map(function (k) { var x = o[k]; if (typeof x === "string") { try { x = JSON.parse(x) } catch (e) { return null } } if (x && typeof x === "object") x.id = x.id || k; return x }).filter(Boolean) }
+  function parseRoster(t) {
+    return String(t || "").split("\n").map(function (l) {
+      var m = l.trim().match(/^#?(\d{1,2})\s+(QB|RB|WR|TE|FB|HB|SB|TB|X|Y|Z|H)\b\s*(.*)$/i); if (!m) return null;
+      return { n: m[1], pos: m[2].toUpperCase(), name: m[3].replace(/\*/g, "").trim() };
+    }).filter(Boolean);
+  }
+  var ROSTER = {};
+  function who(n) { var r = ROSTER[String(n)]; return "#" + n + (r ? " " + (r.name || r.pos) : "") }
+  function seasonOf(date) { var p = String(date || "").split("-"); if (p.length < 2) return "Undated"; var y = +p[0], m = +p[1]; return String(m >= 6 ? y : y - 1) }
+  function eff(s) { var need = s.dn <= 1 ? 0.4 : s.dn === 2 ? 0.5 : 1; return !!(s.td || s.gain >= Math.ceil(need * s.dist)) }
+  function pct(a, b) { return b ? Math.round(100 * a / b) + "%" : "–" }
+  function avg(a, b) { return b ? (a / b).toFixed(1) : "–" }
+  function nice(d) { var p = String(d || "").split("-"); return p.length === 3 ? (+p[1]) + "/" + (+p[2]) : "" }
+
+  // ---------- numbers ----------
+  function isPlay(s) { return s && s.kind !== "try" && s.res !== "Penalty" && !s.vic && s.pt && s.gain != null }
+  function offTeam(snaps) {
+    var P = snaps.filter(isPlay), T = { pl: P.length, yd: 0, ra: 0, ry: 0, pa: 0, pc: 0, py: 0, sk: 0, sky: 0, fd: 0, td: 0, to: 0, ex: 0, ef: 0, a3: 0, c3: 0, pen: 0, peny: 0 };
+    P.forEach(function (s) {
+      T.yd += s.gain; if (eff(s)) T.ef++;
+      if (s.td) T.td++; else if (s.gain >= s.dist && s.res !== "Interception" && s.res !== "Fumble") T.fd++;
+      if (s.res === "Interception" || s.res === "Fumble") T.to++;
+      if (s.dn === 3) { T.a3++; if (s.td || (s.gain >= s.dist && s.res !== "Interception" && s.res !== "Fumble")) T.c3++ }
+      if (s.res === "Rush" || s.res === "Scramble" || (s.res === "Fumble" && s.pt === "Run")) { T.ra++; T.ry += s.gain; if (s.gain >= 10) T.ex++ }
+      else if (s.res === "Sack") { T.sk++; T.sky += s.gain }
+      else if (s.pt === "Pass") { T.pa++; if (s.res === "Complete") { T.pc++; T.py += s.gain; if (s.gain >= 15) T.ex++ } }
+    });
+    snaps.forEach(function (s) { if (s && s.res === "Penalty" && s.pen && s.pen.side === "O") { T.pen++; T.peny += s.pen.y || 0 } });
+    return T;
+  }
+  function defTeam(snaps) {
+    var P = snaps.filter(function (s) { return s && s.kind !== "pen" && s.res && (s.gain != null || s.res === "Incomplete") });
+    var T = { pl: P.length, yd: 0, ra: 0, ry: 0, pa: 0, pc: 0, py: 0, sk: 0, td: 0, to: 0, ex: 0, a3: 0, c3: 0 };
+    P.forEach(function (s) {
+      var g = s.gain == null ? 0 : s.gain; T.yd += g; if (s.td) T.td++;
+      if (s.res === "Interception" || s.res === "Fumble") T.to++;
+      if (s.dn === 3) { T.a3++; if (s.td || (g >= s.dist && s.res !== "Interception" && s.res !== "Fumble")) T.c3++ }
+      if (s.res === "Run" || (s.rp === "Run" && s.res === "Fumble")) { T.ra++; T.ry += g; if (g >= 10) T.ex++ }
+      else if (s.res === "Sack") T.sk++;
+      else { T.pa++; if (s.res === "Complete") { T.pc++; T.py += g; if (g >= 15) T.ex++ } }
+    });
+    return T;
+  }
+  function addT(a, b) { Object.keys(b).forEach(function (k) { a[k] = (a[k] || 0) + b[k] }); return a }
+  function players(snaps) {
+    var QB = {}, RU = {}, RC = {}, gt = function (m, k, z) { return m[k] || (m[k] = Object.assign({ n: k }, z)) };
+    snaps.filter(isPlay).forEach(function (s) {
+      if (s.pt === "Pass" && s.qb && s.res !== "Scramble") {
+        var q = gt(QB, s.qb, { att: 0, cmp: 0, yd: 0, td: 0, int: 0, sk: 0, lg: null });
+        if (s.res === "Sack") q.sk++;
+        else { q.att++; if (s.res === "Complete") { q.cmp++; q.yd += s.gain; if (s.td) q.td++; q.lg = q.lg == null ? s.gain : Math.max(q.lg, s.gain) } if (s.res === "Interception") q.int++ }
+      }
+      var run = s.res === "Rush" || s.res === "Scramble" || (s.res === "Fumble" && s.pt === "Run");
+      if (run && s.carrier) { var r = gt(RU, s.carrier, { car: 0, yd: 0, td: 0, ex: 0, ef: 0, fum: 0, lg: null }); r.car++; r.yd += s.gain; if (s.td) r.td++; if (s.gain >= 10) r.ex++; if (eff(s)) r.ef++; if (s.res === "Fumble") r.fum++; r.lg = r.lg == null ? s.gain : Math.max(r.lg, s.gain) }
+      if (s.pt === "Pass" && s.target && s.res !== "Sack" && s.res !== "Scramble") { var c = gt(RC, s.target, { tgt: 0, rec: 0, yd: 0, td: 0, ex: 0, lg: null }); c.tgt++; if (s.res === "Complete") { c.rec++; c.yd += s.gain; if (s.td) c.td++; if (s.gain >= 15) c.ex++; c.lg = c.lg == null ? s.gain : Math.max(c.lg, s.gain) } }
+    });
+    var L = function (m) { return Object.keys(m).map(function (k) { return m[k] }) };
+    return { qb: L(QB), ru: L(RU), rc: L(RC) };
+  }
+
+  // ---------- load ----------
+  var GAMES = [], SEASON = null, SEL = "all";
+  function load() {
+    if (!ONLINE) { $("loadNote").textContent = "Open this page on the website to see your games."; render(); return }
+    get("/games", true).then(function (keys) {
+      var seasons = Object.keys(keys || {}).filter(function (k) { return /^season-/.test(k) });
+      return Promise.all(seasons.map(function (k) { return get("/games/" + k + "/list") }));
+    }).then(function (lists) {
+      var L = {}; (lists || []).forEach(function (l) { Object.keys(l || {}).forEach(function (code) { var e = l[code]; if (e && (!L[code] || (e.updated || 0) > (L[code].updated || 0))) L[code] = e }) });
+      var codes = Object.keys(L);
+      $("loadNote").textContent = codes.length ? "Loading " + codes.length + " game" + (codes.length === 1 ? "" : "s") + "…" : "";
+      return Promise.all(codes.map(function (code) {
+        return Promise.all([get("/games/" + encodeURIComponent(code) + "/snaps"), get("/games/" + encodeURIComponent(code) + "/meta"), get("/games/" + encodeURIComponent(code) + "/defense/snaps")]).then(function (R) {
+          var meta = R[1] || {}; if (typeof meta === "string") { try { meta = JSON.parse(meta) } catch (e) { meta = {} } }
+          var off = vals(R[0]).sort(function (a, b) { return (a.t || 0) - (b.t || 0) }), def = vals(R[2]).sort(function (a, b) { return (a.t || 0) - (b.t || 0) });
+          var e = L[code];
+          return { code: code, opp: e.opp || meta.opp || "Opponent", date: e.date || meta.gameDate || "", us: +e.us || 0, them: +e.them || 0, off: off, def: def, roster: meta.roster || "", season: seasonOf(e.date || meta.gameDate) };
+        });
+      }));
+    }).then(function (G) {
+      GAMES = (G || []).filter(function (g) { return g.off.length || g.def.length }).sort(function (a, b) { return a.date.localeCompare(b.date) });
+      var rt = null; GAMES.forEach(function (g) { if (g.roster) rt = g.roster });
+      if (!rt) { try { rt = localStorage.getItem("cardinals-booth-roster-v1" + NS) } catch (e) {} }
+      parseRoster(rt).forEach(function (x) { ROSTER[x.n] = x });
+      var ss = GAMES.map(function (g) { return g.season }).filter(function (v, i, a) { return a.indexOf(v) === i }).sort().reverse();
+      SEASON = ss[0] || null;
+      $("seasonSel").innerHTML = ss.map(function (s) { return "<option value='" + esc(s) + "'>" + (s === "Undated" ? "Undated games" : s + " season") + "</option>" }).join("") || "<option>No games yet</option>";
+      $("loadNote").textContent = GAMES.length ? GAMES.length + " charted game" + (GAMES.length === 1 ? "" : "s") + " · saves on its own as you chart" : "No charted games yet. Stats fill in as soon as you chart a game.";
+      render();
+    }, function () { $("loadNote").textContent = "Couldn't load games. Check the connection and refresh."; render() });
+  }
+
+  // ---------- render ----------
+  function inSeason() { return GAMES.filter(function (g) { return g.season === SEASON }) }
+  function picked() { var G = inSeason(); return SEL === "all" ? G : G.filter(function (g) { return g.code === SEL }) }
+  function render() {
+    var G = inSeason();
+    if (SEL !== "all" && !G.some(function (g) { return g.code === SEL })) SEL = "all";
+    var res = function (g) { return g.us > g.them ? "w" : g.us < g.them ? "l" : "" };
+    $("gameSeg").innerHTML = "<button type='button' data-g='all' aria-pressed='" + (SEL === "all") + "'>Season<small>" + G.length + " games</small></button>" + G.map(function (g) {
+      return "<button type='button' data-g='" + esc(g.code) + "' aria-pressed='" + (SEL === g.code) + "'>" + esc(g.opp) + "<small>" + nice(g.date) + " · " + (res(g) ? res(g).toUpperCase() + " " : "") + g.us + "–" + g.them + "</small></button>" }).join("");
+    $("gameSeg").querySelectorAll("button").forEach(function (b) { b.addEventListener("click", function () { SEL = b.dataset.g; render() }) });
+    var lab = SEL === "all" ? (SEASON ? SEASON + " season" : "") : (function () { var g = G.filter(function (x) { return x.code === SEL })[0]; return g ? "vs " + g.opp : "" })();
+    ["selLab1", "selLab2", "selLab3"].forEach(function (id) { $(id).textContent = lab });
+    if (!G.length) {
+      ["tOff", "tDef", "tPass", "tRush", "tRec"].forEach(function (id) { $(id).innerHTML = "<tr><td class='empty'>No games yet.</td></tr>" }); $("kpis").innerHTML = ""; return;
+    }
+    // team offense
+    var hO = "<tr><th>Game</th><th>Score</th><th>Plays</th><th>Yds</th><th>Yds/play</th><th>Rushing</th><th>Passing</th><th>1st downs</th><th>3rd down</th><th>Eff</th><th>Explosive</th><th>TO</th><th>Penalties</th></tr>";
+    var rowO = function (lab, sc, T, cls) { return "<tr class='" + (cls || "") + "'><td>" + lab + "</td><td>" + sc + "</td><td>" + T.pl + "</td><td>" + T.yd + "</td><td>" + avg(T.yd, T.pl) + "</td><td>" + T.ra + "-" + T.ry + " (" + avg(T.ry, T.ra) + ")</td><td>" + T.pc + "/" + T.pa + ", " + T.py + (T.sk ? " · " + T.sk + " sk" : "") + "</td><td>" + T.fd + "</td><td>" + T.c3 + "/" + T.a3 + " (" + pct(T.c3, T.a3) + ")</td><td>" + pct(T.ef, T.pl) + "</td><td>" + T.ex + "</td><td>" + T.to + "</td><td>" + T.pen + "-" + T.peny + "</td></tr>" };
+    var SO = {}, SD = {}, nD = 0;
+    G.forEach(function (g) { var T = offTeam(g.off); addT(SO, T); hO += rowO(esc(nice(g.date) + " " + g.opp), "<span class='wl " + res(g) + "'>" + g.us + "–" + g.them + "</span>", T, SEL === g.code ? "pick" : "") });
+    var pts = G.reduce(function (t, g) { return t + g.us }, 0), pa = G.reduce(function (t, g) { return t + g.them }, 0), W = G.filter(function (g) { return g.us > g.them }).length, Lo = G.filter(function (g) { return g.us < g.them }).length;
+    hO += rowO("Season (" + W + "–" + Lo + ")", pts + "–" + pa, SO, "tot");
+    hO += "<tr class='tot'><td>Per game</td><td>" + avg(pts, G.length) + "–" + avg(pa, G.length) + "</td><td>" + avg(SO.pl, G.length) + "</td><td>" + avg(SO.yd, G.length) + "</td><td></td><td>" + avg(SO.ry, G.length) + " yds</td><td>" + avg(SO.py, G.length) + " yds</td><td>" + avg(SO.fd, G.length) + "</td><td></td><td></td><td>" + avg(SO.ex, G.length) + "</td><td>" + avg(SO.to, G.length) + "</td><td></td></tr>";
+    $("tOff").innerHTML = hO;
+    // team defense
+    var hD = "<tr><th>Game</th><th>Plays</th><th>Yds allowed</th><th>Yds/play</th><th>Rushing</th><th>Passing</th><th>3rd down</th><th>Explosive</th><th>Sacks</th><th>Takeaways</th><th>TD</th></tr>";
+    var rowD = function (lab, T, cls) { return "<tr class='" + (cls || "") + "'><td>" + lab + "</td><td>" + T.pl + "</td><td>" + T.yd + "</td><td>" + avg(T.yd, T.pl) + "</td><td>" + T.ra + "-" + T.ry + " (" + avg(T.ry, T.ra) + ")</td><td>" + T.pc + "/" + T.pa + ", " + T.py + "</td><td>" + T.c3 + "/" + T.a3 + " (" + pct(T.c3, T.a3) + ")</td><td>" + T.ex + "</td><td>" + T.sk + "</td><td>" + T.to + "</td><td>" + T.td + "</td></tr>" };
+    G.forEach(function (g) { if (!g.def.length) return; nD++; var T = defTeam(g.def); addT(SD, T); hD += rowD(esc(nice(g.date) + " " + g.opp), T, SEL === g.code ? "pick" : "") });
+    $("tDef").innerHTML = nD ? hD + rowD("Season (" + nD + " game" + (nD === 1 ? "" : "s") + ")", SD, "tot") : "<tr><td class='empty'>No defense charted yet. Chart on the Defense page and it shows up here.</td></tr>";
+    // KPIs for the selection
+    var PG = picked(), K = {}, KD = {}; PG.forEach(function (g) { addT(K, offTeam(g.off)); addT(KD, defTeam(g.def)) });
+    var ng = PG.length || 1;
+    $("kpis").innerHTML = [[SEL === "all" ? avg(PG.reduce(function (t, g) { return t + g.us }, 0), ng) : PG[0].us + "–" + PG[0].them, SEL === "all" ? "Points / game" : "Score"], [avg(K.yd, K.pl), "Yds / play"], [pct(K.ef, K.pl), "Efficient plays"], [pct(K.c3, K.a3), "3rd down"], [K.ex || 0, "Explosive plays"], [K.to || 0, "Turnovers"], [KD.pl ? avg(KD.yd, KD.pl) : "–", "Def yds / play"], [KD.to || 0, "Takeaways"]].map(function (k) { return "<div class='kpi'><b>" + k[0] + "</b><span>" + k[1] + "</span></div>" }).join("");
+    // players
+    var all = []; PG.forEach(function (g) { all = all.concat(g.off) });
+    var pl = players(all);
+    var hp = "<tr><th>QB</th><th>Cmp/Att</th><th>Pct</th><th>Yds</th><th>Y/A</th><th>TD</th><th>INT</th><th>Long</th><th>Sk</th></tr>" + pl.qb.sort(function (a, b) { return b.att - a.att }).map(function (o) { return "<tr><td>" + esc(who(o.n)) + "</td><td>" + o.cmp + "/" + o.att + "</td><td>" + pct(o.cmp, o.att) + "</td><td>" + o.yd + "</td><td>" + avg(o.yd, o.att) + "</td><td>" + o.td + "</td><td>" + o.int + "</td><td>" + (o.lg == null ? "–" : o.lg) + "</td><td>" + o.sk + "</td></tr>" }).join("");
+    var hr = "<tr><th>Runner</th><th>Car</th><th>Yds</th><th>Avg</th><th>TD</th><th>10+</th><th>Eff</th><th>Long</th><th>Fum</th></tr>" + pl.ru.sort(function (a, b) { return b.yd - a.yd }).map(function (o) { return "<tr class='" + (o.car < 3 ? "small" : "") + "'><td>" + esc(who(o.n)) + "</td><td>" + o.car + "</td><td>" + o.yd + "</td><td>" + avg(o.yd, o.car) + "</td><td>" + o.td + "</td><td>" + o.ex + "</td><td>" + pct(o.ef, o.car) + "</td><td>" + o.lg + "</td><td>" + o.fum + "</td></tr>" }).join("");
+    var hc = "<tr><th>Receiver</th><th>Tgt</th><th>Rec</th><th>Yds</th><th>Avg</th><th>TD</th><th>15+</th><th>Long</th></tr>" + pl.rc.sort(function (a, b) { return b.yd - a.yd }).map(function (o) { return "<tr class='" + (o.tgt < 3 ? "small" : "") + "'><td>" + esc(who(o.n)) + "</td><td>" + o.tgt + "</td><td>" + o.rec + "</td><td>" + o.yd + "</td><td>" + avg(o.yd, o.rec) + "</td><td>" + o.td + "</td><td>" + o.ex + "</td><td>" + (o.lg == null ? "–" : o.lg) + "</td></tr>" }).join("");
+    $("tPass").innerHTML = pl.qb.length ? hp : "<tr><td class='empty'>No passes charted with a QB.</td></tr>";
+    $("tRush").innerHTML = pl.ru.length ? hr : "<tr><td class='empty'>No runs charted with a ball carrier.</td></tr>";
+    $("tRec").innerHTML = pl.rc.length ? hc : "<tr><td class='empty'>No targets charted.</td></tr>";
+  }
+  $("seasonSel").addEventListener("change", function () { SEASON = this.value; SEL = "all"; render() });
+  $("printBtn").addEventListener("click", function () { window.print() });
+  load();
+  setInterval(function () { if (document.visibilityState === "visible") load() }, 120000);
+})();
+</script>
+</body></html>

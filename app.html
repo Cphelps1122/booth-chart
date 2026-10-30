@@ -331,6 +331,26 @@ tr.curgame td { background: color-mix(in srgb, var(--amber) 30%, transparent) }
 .mull.on { outline: 3px solid #fde047; outline-offset: 2px }
 .chip.mot[aria-pressed="true"], .chip.rpot[aria-pressed="true"] { background: #7c3aed; color: #fff }
 .tag.mul { background: #7c3aed; color: #fff }
+.mullrow { display: flex; gap: 8px; align-items: stretch; margin: 0 0 12px } .mullrow .mull { margin: 0; flex: 1 1 auto; min-width: 0 } .mullrow .mull .ms { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.frz { flex: 0 0 auto; padding: 6px 14px; border: 0; border-radius: 10px; cursor: pointer; background: #a5e3ff; color: #0c1117; font-family: var(--f-display); font-weight: 800; font-size: 17px; letter-spacing: .06em; text-transform: uppercase; box-shadow: 0 3px 10px rgba(165,227,255,.3) }
+.frz.on { outline: 3px solid #fde047; outline-offset: 2px }
+.tag.frz { background: #a5e3ff; color: #0c1117 } .tag.vic { background: #16a34a; color: #fff } .tag.off { background: #64748b; color: #fff }
+.vicbtn { background: #14532d !important; color: #fff !important; border-color: #16a34a !important }
+.srch { display: flex; gap: 8px; align-items: center; margin-top: 10px } .srch input { flex: 1; min-width: 0 }
+.srch input[type=search] { font: inherit; font-size: 16px; padding: 9px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink) }
+.micb { flex: 0 0 auto; width: 48px; height: 44px; border-radius: 10px; border: 1px solid var(--line); background: var(--chip); color: var(--ink); font-size: 22px; cursor: pointer; touch-action: none; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none }
+.micb.rec { background: #dc2626; color: #fff; border-color: #dc2626; animation: micp 1s infinite }
+@keyframes micp { 50% { box-shadow: 0 0 0 6px rgba(220,38,38,.35) } }
+.hits { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px } .hits:empty { display: none }
+.addrow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; padding: 8px; border: 1px dashed var(--line); border-radius: 8px }
+.addrow select { font: inherit; font-size: 15px; padding: 7px; border-radius: 8px; background: var(--bg); color: var(--ink); border: 1px solid var(--line) }
+.addbtn { font: inherit; font-weight: 700; font-size: 15px; padding: 7px 12px; border-radius: 8px; border: 1px dashed #a5e3ff; background: transparent; color: #a5e3ff; cursor: pointer }
+.pchk { display: flex; gap: 8px; align-items: center; margin: 10px 0 0; font-size: 15px; font-weight: 600 }
+.pen1 { margin: 6px 0 10px; padding: 8px 10px; border-radius: 8px; background: #1e293b; color: #e2e8f0; font-weight: 600 }
+.lockbar { position: sticky; top: 0; z-index: 9998; padding: 9px 14px; background: #a5e3ff; color: #0c1117; font: 700 15px Inter, system-ui, sans-serif; text-align: center }
+body.inlocked #v-chart .panel, body.inlocked #v-chart .spotpanel, body.inlocked #v-chart .actions, body.inlocked #v-chart .inmode, body.inlocked #v-chart .tries, body.inlocked .edit, body.inlocked .del, body.inlocked .lookcell { pointer-events: none !important; opacity: .55 }
+.lkusers { display: grid; gap: 6px; margin-top: 8px } .lkusers label { display: flex; gap: 10px; align-items: center; font-size: 15px; padding: 6px 8px; border-radius: 8px; background: var(--chip) }
+
 .edgrid { margin-top: 10px } .edgrid input[type=text], .edgrid select { font-size: 16px; padding: 7px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); min-width: 120px }
 .edit { background: transparent; border: 1px solid var(--line); color: var(--ink); border-radius: 6px; padding: 2px 8px; cursor: pointer; font-size: 12px; margin-right: 4px }
 .toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--bar); color: var(--bar-ink); padding: 10px 16px; border-radius: 8px; font-weight: 600; z-index: 20 }
@@ -409,6 +429,7 @@ textarea { min-height: 64px }
       <button role="tab" id="t-setup" aria-selected="false" data-tab="setup">Setup</button>
       <a class="navlink" id="navDef" href="defense.html" hidden>Defense ›</a>
       <a class="navlink" id="navRep" href="reports.html" hidden>Reports ›</a>
+      <a class="navlink" id="navStats" href="stats.html" hidden>Stats ›</a>
       <a class="navlink" id="navAdm" href="admin.html" hidden style="margin-left:auto">Admin</a>
       <button class="navlink" id="navOut" type="button" hidden style="background:none;border:0;cursor:pointer;margin-left:auto;color:#93a1b1">Log out</button>
     </nav>
@@ -450,6 +471,12 @@ textarea { min-height: 64px }
         <div class="h-ico"><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="9" y="6" width="30" height="36" rx="3" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M15 32 V26 M22 32 V20 M29 32 V23" stroke="#a5e3ff" stroke-width="3" stroke-linecap="round"/><path d="M15 13 H33" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></div>
         <div class="h-ct">Report Builder</div>
         <p>Drop in Hudl exports and build custom scout and self-scout reports. Send the opponent's tendencies straight to the live chart.</p>
+        <span class="h-go">Open →</span>
+      </a>
+      <a class="h-card" id="homeStats" href="stats.html">
+        <div class="h-ico"><svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="17" cy="15" r="6" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M6 38 C6 29 11 25 17 25 C23 25 28 29 28 38" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M32 38 V28 M37 38 V20 M42 38 V24" stroke="#a5e3ff" stroke-width="3" stroke-linecap="round"/></svg></div>
+        <div class="h-ct">Stats</div>
+        <p>Team and player stats from every game you've charted, game by game and for the season. Saves on its own.</p>
         <span class="h-go">Open →</span>
       </a>
     </div>
@@ -544,13 +571,15 @@ textarea { min-height: 64px }
     </div>
     <div class="inmode" role="group" aria-label="Input mode"><span>Input</span><button type="button" id="imFull" aria-pressed="true">Full input</button><button type="button" id="imSheet" aria-pressed="false">Call sheet</button><span class="note" id="imNote"></span></div>
     <div class="panel" id="gsPanel" hidden>
-      <button class="mull" id="gsMull" type="button" disabled style="margin-bottom:10px"><span class="mt">↻ Mulligan</span><span class="ms" id="gsMullWhat">no play to repeat yet</span></button>
+      <div class="mullrow" style="margin-bottom:10px"><button class="mull" id="gsMull" type="button" disabled><span class="mt">↻ Mulligan</span><span class="ms" id="gsMullWhat">no play to repeat yet</span></button><button class="frz" id="gsFrz" type="button" title="Freeze: no play called (hard count)">❄ Freeze</button></div>
+      <div class="srch"><input id="gsQ" type="search" placeholder="Find a play: slot trig 4 zip…" autocomplete="off" aria-label="Find a play on the call sheet"><button class="micb" id="gsMic" type="button" aria-label="Hold and say the call">🎤</button></div>
+      <div class="hits" id="gsHits"></div><div id="gsAdd"></div>
       <div class="gshead"><h3>Call sheet <small id="gsSit"></small></h3><span class="gspick" id="gsPick">Tap a play</span><button type="button" class="btn" id="gsZo" aria-label="Zoom out">−</button><button type="button" class="btn" id="gsZi" aria-label="Zoom in">+</button></div>
       <div class="gswrap" id="gsWrap"><div class="gsgrid" id="gsGrid"></div></div>
     </div>
     <div class="grid2">
       <div class="panel" id="fullInPanel">
-        <button class="mull" id="mullBtn" disabled><span class="mt">↻ Mulligan</span><span class="ms" id="mullWhat">no play to repeat yet</span></button>
+        <div class="mullrow"><button class="mull" id="mullBtn" disabled><span class="mt">↻ Mulligan</span><span class="ms" id="mullWhat">no play to repeat yet</span></button><button class="frz" id="frzBtn" type="button" title="Freeze: no play called (hard count)">❄ Freeze</button></div>
         <h3>2 · Formation <small>stays until you change it</small></h3>
         <div class="chips" id="csForms"></div>
         <h3 style="margin-top:12px">Motion <small>resets each play</small></h3>
@@ -559,7 +588,7 @@ textarea { min-height: 64px }
         <div class="chips" id="csPlays"></div>
         <h3 style="margin-top:12px">RPO <small>resets each play</small></h3>
         <div class="chips" id="cRpoTag"></div>
-        <input id="csSearch" type="search" placeholder="Or find any play: zone, power, mesh…" autocomplete="off" aria-label="Find any play on the call sheet" style="margin-top:10px">
+        <div class="srch"><input id="csSearch" type="search" placeholder="Or find any play: zone, power, mesh…" autocomplete="off" aria-label="Find any play on the call sheet"><button class="micb" id="csMic" type="button" aria-label="Hold and say the call">🎤</button></div><div id="csAdd"></div>
         <details style="margin-top:10px">
           <summary style="cursor:pointer;font-weight:700">Not on the sheet / change formation</summary>
           <div class="sub">Formation</div><div class="chips" id="cForm"></div>
@@ -598,6 +627,7 @@ textarea { min-height: 64px }
         <button class="btn primary" id="logBtn">Log snap</button>
         <button class="btn" id="undoBtn">Undo last</button>
         <button class="btn" id="endSeries">End series</button>
+        <button class="btn vicbtn" id="vicBtn" title="Kneel: moves the ball and the clock, doesn't count in stats">🏁 Victory</button>
       </div>
       <label class="fastnote" style="display:flex;gap:8px;align-items:center;margin-top:10px"><input type="checkbox" id="fastLog" checked> Fast log: tapping the ball carrier or target logs the snap (Scramble and Sack log on tap). The next snap starts by tapping where the ball is spotted, which finishes the last play's yards and sets the down and distance. Penalty opens the penalty list.</label>
       <details style="margin-top:12px">
@@ -714,6 +744,11 @@ textarea { min-height: 64px }
   </section>
 
   <section id="v-setup" hidden class="setup">
+    <div class="panel" id="lockPanel" hidden style="margin-bottom:14px">
+      <h3>Lock mode <small>admin only · a locked account sees everything live but can't chart</small></h3>
+      <div class="lkusers" id="lkUsers"><span class="note">Loading accounts…</span></div>
+      <div class="actions" style="margin-top:10px"><button class="btn" id="lkAll" type="button">Lock everyone but me</button><button class="btn" id="lkNone" type="button">Unlock all</button></div>
+    </div>
     <div class="panel" id="profPanel" hidden style="margin-bottom:14px">
       <h3>School profile <small>name, color and logo your staff sees after logging in</small></h3>
       <div class="custom" style="align-items:flex-end">
@@ -924,6 +959,12 @@ textarea { min-height: 64px }
       <label for="eYds">Yards<input id="eYds" type="number" inputmode="numeric"></label>
       <label style="flex-direction:row;display:flex;gap:6px;align-items:center;text-transform:none;letter-spacing:0;font-size:14px"><input type="checkbox" id="eTd"> TD</label>
     </div>
+    <div class="custom edgrid" id="eDDRow">
+      <label for="eDn">Down<select id="eDn"><option value="0">P&amp;10</option><option value="1">1st</option><option value="2">2nd</option><option value="3">3rd</option><option value="4">4th</option></select></label>
+      <label for="eDist">Distance<input id="eDist" type="number" inputmode="numeric" min="1" max="99" style="width:80px"></label>
+      <label for="eSide">Ball on<select id="eSide"><option value="own">Own</option><option value="opp">Opp</option></select></label>
+      <label for="eYL">Yard line<input id="eYL" type="number" inputmode="numeric" min="1" max="50" style="width:80px"></label>
+    </div>
     <div class="custom edgrid">
       <label for="eQb">QB<select id="eQb"></select></label>
       <label for="ePl">Carrier / target<select id="ePl"></select></label>
@@ -944,6 +985,8 @@ textarea { min-height: 64px }
 <div class="modal" id="penModal" hidden role="dialog" aria-modal="true" aria-labelledby="penTitle">
   <div class="mbox">
     <h3 id="penTitle">Penalty <small id="penSit"></small></h3>
+    <div class="pen1" id="pen1" hidden></div>
+    <div class="chips" id="penOffRow"><button class="chip pen" id="penOff" type="button">Offsetting penalties<small>both teams · replay the down</small></button></div>
     <div class="sub">On us (offense)</div><div class="chips" id="penO"></div>
     <div class="sub" style="margin-top:10px">On them (defense)</div><div class="chips" id="penD"></div>
     <details id="penCustomBox" style="margin-top:10px"><summary style="cursor:pointer;font-weight:700">Something else</summary>
@@ -957,6 +1000,7 @@ textarea { min-height: 64px }
     </details>
     <div id="penStep2" hidden>
       <div class="penres" id="penPreview"></div>
+      <label class="pchk" id="penDeadL"><input type="checkbox" id="penDead"> Dead ball / no play: the snap doesn't count as a play</label>
       <div class="custom" id="penEopRow" hidden>
         <label for="penEopSide">Ball at end of play<select id="penEopSide"><option value="own">Own</option><option value="opp">Opp</option></select></label>
         <label for="penPlayYds">Yard line<input id="penPlayYds" type="number" inputmode="numeric" min="1" max="50" value=""></label>
@@ -965,7 +1009,9 @@ textarea { min-height: 64px }
       <div class="actions">
         <button class="btn primary" id="penAccept">Accept</button>
         <button class="btn" id="penEop" hidden>Accept at end of play</button>
+        <button class="btn" id="penAlt" hidden></button>
         <button class="btn" id="penDecline">Decline, log the play</button>
+        <button class="btn" id="penAdd2">＋ Add another penalty</button>
       </div>
     </div>
     <div class="actions" style="margin-top:10px"><button class="btn" id="penCancel">Cancel</button></div>
@@ -1284,7 +1330,49 @@ textarea { min-height: 64px }
       if (!r.ok) throw new Error("HTTP " + r.status); return r.text();
     });
   }
-  function schedulePush() { if (!SY.cfg || SY.applying) return; SY.dirty = true; clearTimeout(SY.timer); SY.timer = setTimeout(push, 150) }
+  // ---------- lock mode: an admin can make an account view-only (sees everything live, can't chart) ----------
+  var LOCK = { on: false, admin: false }, LKU = { users: [], locks: {} };
+  function lockApply(on) {
+    if (on === LOCK.on) return; LOCK.on = on;
+    document.body.classList.toggle("inlocked", on);
+    var b = $("lockBar");
+    if (on && !b) { b = document.createElement("div"); b.id = "lockBar"; b.className = "lockbar"; b.textContent = "🔒 View only: input is locked for this account. Everything still updates live."; document.body.insertBefore(b, document.body.firstChild) }
+    if (b) b.hidden = !on;
+    if (on) { ["penModal", "editModal", "lookModal"].forEach(function (id) { var m = $(id); if (m) m.hidden = true }); SY.dirty = false }
+    if (SY.cfg && SY.mirror) { SY.last = SY.last || { snaps: {}, meta: "" }; applyMirror() } // show exactly what's online
+  }
+  function lockCheck() {
+    if (!ONLINE || LOCK.admin) return;
+    var a = authGet(); if (!a || !a.uid || !a.school) return;
+    solToken().then(function (t) { return fetch(SOL_DB + "/schools/" + encodeURIComponent(a.school) + "/locks/" + a.uid + ".json?auth=" + encodeURIComponent(t)) }).then(function (r) { return r.ok ? r.json() : null }).then(function (v) { lockApply(v === true && !LOCK.admin) }, function () {});
+  }
+  function lockApi(path, method, body) { return solToken().then(function (t) { return fetch(SOL_DB + "/" + path + ".json?auth=" + encodeURIComponent(t), { method: method || "GET", body: body === undefined ? undefined : JSON.stringify(body) }) }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json() }) }
+  function lockAdminInit() {
+    if (!ONLINE) return; var a = authGet(); if (!a || !a.uid) return;
+    lockApi("admins/" + a.uid).then(function (v) { if (v !== true) return; LOCK.admin = true; lockApply(false); $("lockPanel").hidden = false; lockLoadUsers() }, function () {});
+  }
+  function lockLoadUsers() {
+    var a = authGet() || {}; if (!a.school) return;
+    Promise.all([lockApi("users"), lockApi("members"), lockApi("schools/" + encodeURIComponent(a.school) + "/locks")]).then(function (R) {
+      var U = R[0] || {}, M = R[1] || {}; LKU.locks = R[2] || {};
+      LKU.users = Object.keys(M).filter(function (u) { return M[u] === a.school && u !== a.uid }).map(function (u) { return { uid: u, email: (U[u] && U[u].email) || u } }).sort(function (x, y) { return x.email.localeCompare(y.email) });
+      lockRender();
+    }, function () { $("lkUsers").innerHTML = "<span class='note'>Couldn't load this school's accounts.</span>" });
+  }
+  function lockRender() {
+    var el = $("lkUsers"); if (!el) return;
+    if (!LKU.users.length) { el.innerHTML = "<span class='note'>No other accounts on this school yet.</span>"; return }
+    el.innerHTML = LKU.users.map(function (u) { return "<label><input type='checkbox' data-lk='" + esc(u.uid) + "'" + (LKU.locks[u.uid] ? " checked" : "") + "> <span style='flex:1'>" + esc(u.email) + "</span><b>" + (LKU.locks[u.uid] ? "🔒 Locked" : "Can chart") + "</b></label>" }).join("");
+    el.querySelectorAll("[data-lk]").forEach(function (cb) { cb.addEventListener("change", function () { lockSet([cb.dataset.lk], cb.checked) }) });
+  }
+  function lockSet(uids, on) {
+    var a = authGet() || {}; if (!a.school || !uids.length) return;
+    Promise.all(uids.map(function (u) { return lockApi("schools/" + encodeURIComponent(a.school) + "/locks/" + u, on ? "PUT" : "DELETE", on ? true : undefined) })).then(function () {
+      uids.forEach(function (u) { if (on) LKU.locks[u] = true; else delete LKU.locks[u] }); lockRender();
+      toast(uids.length === 1 ? (on ? "Locked: view only" : "Unlocked: can chart") : (on ? "Locked " + uids.length + " accounts" : "Unlocked everyone"));
+    }, function () { toast("Couldn't save. Check the database rules allow admins to write locks."); lockRender() });
+  }
+  function schedulePush() { if (LOCK.on) { SY.dirty = false; return } if (!SY.cfg || SY.applying) return; SY.dirty = true; clearTimeout(SY.timer); SY.timer = setTimeout(push, 150) }
   function push() {
     if (!SY.cfg || SY.pushing || !SY.last) return;
     SY.dirty = false; SY.pushing = true;
@@ -1654,7 +1742,7 @@ textarea { min-height: 64px }
     for (var i = 0; i < FORMS_KNOWN.length; i++) if (u.indexOf(FORMS_KNOWN[i] + " ") === 0) return FORMS_KNOWN[i] === "HEAVY AGGIE" ? "AGGIE" : FORMS_KNOWN[i];
     return null;
   }
-  function usedCount(t, f) { return S.snaps.filter(function (x) { return x.call === t && x.res !== "Penalty" && (!f || x.form === f) }).length }
+  function usedCount(t, f) { return S.snaps.filter(function (x) { return x.call === t && x.res !== "Penalty" && !x.vic && (!f || x.form === f) }).length }
   function sitKeys(c) {
     var y = toY(c.yl), k = [];
     if (y >= 94) k.push("TZ");
@@ -1745,7 +1833,7 @@ textarea { min-height: 64px }
       var done = function (arr) { (arr || []).forEach(function (x) { x._past = 1; out.push(x) }); if (--left <= 0 || out.length) { NC.season = out; NC.key = null; try { renderNC() } catch (e) {} } };
       if (c && !live) { done(c); return }
       fetch(dbBase() + "/games/" + encodeURIComponent(code) + "/snaps.json" + solAuthQ()).then(function (r) { return r.ok ? r.json() : null }).then(function (d) {
-        var arr = d ? Object.keys(d).map(function (k) { return d[k] }).filter(function (x) { return x && x.call && x.kind !== "try" && x.res !== "Penalty" && x.gain != null }).map(function (x) { return { form: x.form, call: x.call, dn: x.dn, dist: x.dist, yl: x.yl, gain: x.gain, td: x.td, res: x.res, pt: x.pt, shell: x.shell, box: x.box, blitz: x.blitz, cov: x.cov } }) : [];
+        var arr = d ? Object.keys(d).map(function (k) { return d[k] }).filter(function (x) { return x && x.call && x.callType !== "freeze" && x.kind !== "try" && x.res !== "Penalty" && !x.vic && x.gain != null }).map(function (x) { return { form: x.form, call: x.call, dn: x.dn, dist: x.dist, yl: x.yl, gain: x.gain, td: x.td, res: x.res, pt: x.pt, shell: x.shell, box: x.box, blitz: x.blitz, cov: x.cov } }) : [];
         try { localStorage.setItem(ck, JSON.stringify(arr)) } catch (e) {} done(arr);
       }, function () { done([]) });
     });
@@ -1755,7 +1843,7 @@ textarea { min-height: 64px }
   function ncLook(c) {
     var lab = ncSit(c), sc = lab && SCOUT.sits ? SCOUT.sits[lab] : null, sh = lab && SCOUT_SHELL.sits ? SCOUT_SHELL.sits[lab] : null;
     var band = function (s) { return s.dn === c.dn && (c.dn === 0 || Math.abs((s.dist || 10) - c.dist) <= (c.dist <= 3 ? 1 : c.dist <= 6 ? 2 : 4)) };
-    var T = S.snaps.filter(function (s) { return s.kind !== "try" && s.res !== "Penalty" && band(s) });
+    var T = S.snaps.filter(function (s) { return s.kind !== "try" && s.res !== "Penalty" && !s.vic && band(s) });
     var shellN = {}, tn = 0, bl = 0, bn = 0, box = {};
     T.forEach(function (s) { if (s.shell) { shellN[s.shell] = (shellN[s.shell] || 0) + 2; tn += 2 } if (s.blitz) { bn++; if (s.blitz !== "No") bl++ } if (s.box) box[s.box] = (box[s.box] || 0) + 1 });
     if (sh) { shellN[sh[0]] = (shellN[sh[0]] || 0) + sh[1]; tn += sh[2] }
@@ -1773,14 +1861,14 @@ textarea { min-height: 64px }
       if (S.tryPending && sec.key !== "2PT") return;
       sec.plays.forEach(function (pl) { (typeof otVariants === "function" ? otVariants(sec, pl) : [{ form: sec.form, call: pl.t }]).forEach(function (v) { add(v.form, v.call, sitHit, v.motion, v.rpo) }) });
     });
-    if (!out.length) { var m = {}; S.snaps.concat(NC.season).forEach(function (s) { if (s.call && s.kind !== "try") add(s.form, s.call) }) }
+    if (!out.length) { var m = {}; S.snaps.concat(NC.season).forEach(function (s) { if (s.call && s.callType !== "freeze" && s.kind !== "try") add(s.form, s.call) }) }
     return out;
   }
   function ncScore(c, opt) {
     opt = opt || {};
     var planK = !opt.noPlan && S.plan && S.plan.sits ? gpKeysFor(c) : [];
     var look = ncLook(c), C = ncCands(c), bold = ncPref("bold", "safe") === "bold";
-    var hist = S.snaps.filter(function (s) { return s.call && s.kind !== "try" && s.res !== "Penalty" && s.gain != null }).map(function (s) { var o = Object.assign({}, s); o._tn = 1; return o }).concat(NC.season);
+    var hist = S.snaps.filter(function (s) { return s.call && s.callType !== "freeze" && s.kind !== "try" && s.res !== "Penalty" && !s.vic && s.gain != null }).map(function (s) { var o = Object.assign({}, s); o._tn = 1; return o }).concat(NC.season);
     var recent = S.snaps.filter(function (s) { return s.kind !== "try" }).slice(-6), y = toY(c.yl), need = c.dn <= 1 ? .4 : c.dn === 2 ? .5 : 1;
     var shr = function (a, n, p, k) { return (a + p * k) / (n + k) };
     var R = C.map(function (cd) {
@@ -1852,7 +1940,7 @@ textarea { min-height: 64px }
   }
   // ---------- Next Call step 2: live tendency alerts, predictability warning, suggested-call results ----------
   function ncAlerts(c) {
-    var out = [], P = S.snaps.filter(function (s) { return s.kind !== "try" && s.res !== "Penalty" });
+    var out = [], P = S.snaps.filter(function (s) { return s.kind !== "try" && s.res !== "Penalty" && !s.vic });
     var lab = ncSit(c), y = toY(c.yl);
     var groups = [];
     if (lab) groups.push([lab, function (s) { var d = DD_SITS.filter(function (r) { return r[1](s) })[0]; return d && d[0] === lab }]);
@@ -1891,7 +1979,7 @@ textarea { min-height: 64px }
     return [T1, S1].filter(Boolean);
   }
   function ncResults() {
-    var P = S.snaps.filter(function (s) { return s.kind !== "try" && s.res !== "Penalty" && s.gain != null && s.call });
+    var P = S.snaps.filter(function (s) { return s.kind !== "try" && s.res !== "Penalty" && !s.vic && s.gain != null && s.call && s.callType !== "freeze" });
     var U = P.filter(function (s) { return s.nc }), O = P.filter(function (s) { return !s.nc });
     var st = function (A) { return A.length ? { n: A.length, ypp: A.reduce(function (t, s) { return t + (s.gain || 0) }, 0) / A.length, sr: Math.round(100 * A.filter(eff).length / A.length) } : null };
     return { u: st(U), o: st(O) };
@@ -1906,7 +1994,7 @@ textarea { min-height: 64px }
   }
   // ---------- one-tap halftime report ----------
   function htBuild() {
-    var P = S.snaps.filter(function (s) { return s.kind !== "try" && s.res !== "Penalty" && s.gain != null }), us = SCHOOL_NAME_H || "Us", them = S.opp || "Opponent";
+    var P = S.snaps.filter(function (s) { return s.kind !== "try" && s.res !== "Penalty" && !s.vic && s.gain != null }), us = SCHOOL_NAME_H || "Us", them = S.opp || "Opponent";
     var sum = function (A) { var n = A.length, y = A.reduce(function (t, s) { return t + (s.gain || 0) }, 0), ef = A.filter(eff).length, ex = A.filter(function (s) { return (s.pt === "Run" && s.gain >= 10) || (s.pt === "Pass" && s.gain >= 15) || s.td }).length; return { n: n, ypp: n ? y / n : 0, sr: n ? Math.round(100 * ef / n) : 0, ex: ex, yds: y } };
     var all = sum(P), run = sum(P.filter(function (s) { return s.pt === "Run" })), pass = sum(P.filter(function (s) { return s.pt === "Pass" }));
     var D = typeof driveList === "function" ? driveList() : [], pts = D.reduce(function (t, d) { return t + (d.pts || 0) }, 0);
@@ -2015,7 +2103,7 @@ textarea { min-height: 64px }
   function gpRank(def, n) {
     var keepSnaps = S.snaps, keepSeason = NC.season, keepTry = S.tryPending;
     try {
-      var past = keepSnaps.filter(function (s) { return s.call && s.kind !== "try" && s.res !== "Penalty" && s.gain != null }).map(function (s) { var o = Object.assign({}, s); delete o._tn; o._past = 1; return o });
+      var past = keepSnaps.filter(function (s) { return s.call && s.callType !== "freeze" && s.kind !== "try" && s.res !== "Penalty" && !s.vic && s.gain != null }).map(function (s) { var o = Object.assign({}, s); delete o._tn; o._past = 1; return o });
       S.snaps = []; NC.season = keepSeason.concat(past); S.tryPending = !!def.two;
       var c = { dn: def.dn, dist: def.dist, yl: def.yl, hash: "M", qtr: 1 }, r = ncScore(c, { n: n || 8, noPlan: true });
       var list = r.list;
@@ -2197,6 +2285,8 @@ textarea { min-height: 64px }
     $("gsPanel").hidden = !on; $("fullInPanel").hidden = on;
     $("imNote").textContent = on && !G ? "Upload this week's call sheet in Setup to see it here." : "";
     if (!on) return;
+    renderGsHits();
+    $("gsPick").textContent = pick.call ? ((pick.form ? pick.form + " " : "") + pick.call + (pick.motion ? " · " + pick.motion : "") + (pick.rpo ? " · " + pick.rpo : "")) : "Tap a play";
     var g = $("gsGrid"); g.innerHTML = "";
     if (!G || !G.cells) { g.innerHTML = "<div style='padding:14px'>No call sheet layout yet. Setup → Call sheet → Upload this week's call sheet (.xlsx).</div>"; return }
     g.style.gridTemplateColumns = "repeat(" + G.cols + ", minmax(" + Math.round(120 * GS_Z) + "px, auto))"; g.style.fontSize = Math.round(12 * GS_Z) + "px";
@@ -2270,14 +2360,11 @@ textarea { min-height: 64px }
       fr.appendChild(b);
     });
     var pr = $("csPlays"); pr.innerHTML = "";
+    addBox("csAdd", q);
     if (q) {
       $("csSecName").textContent = "matches for “" + q.toLowerCase() + "”";
-      var seen = {};
-      SHEET.forEach(function (sec, si) { sec.plays.forEach(function (pl, pi) {
-        var key = (sec.form || "") + "|" + pl.t;
-        if (pl.t.indexOf(q) >= 0 && !seen[key]) { seen[key] = 1; var c = sheetChip(si, pi); if (sec.form && pl.t.indexOf(sec.form) !== 0) c.firstChild && c.insertAdjacentHTML("afterbegin", "<span class='d'>" + esc(sec.form) + "</span>"); pr.appendChild(c) }
-      }) });
-      if (!pr.childNodes.length) pr.innerHTML = "<p class='note'>Not on the sheet. Use “Not on the sheet” below.</p>";
+      sheetSearch(q).forEach(function (h) { pr.appendChild(otChip(h.v)) });
+      if (!pr.childNodes.length) pr.innerHTML = "<p class='note'>Not on the sheet. Add it below, or use “Not on the sheet”.</p>";
       return;
     }
     var g = groups[pick.sec] || groups[0];
@@ -2495,13 +2582,13 @@ textarea { min-height: 64px }
   }
   function callText(x) { return [x.form, x.motion, x.call, x.rpo ? "+ " + x.rpo : ""].filter(Boolean).join(" ") || "—" }
   function prevCall() {
-    for (var i = S.snaps.length - 1; i >= 0; i--) { var x = S.snaps[i]; if (x.kind === "try") continue; if (x.call || x.form) return x }
+    for (var i = S.snaps.length - 1; i >= 0; i--) { var x = S.snaps[i]; if (x.kind === "try" || x.callType === "freeze" || x.vic) continue; if (x.call || x.form) return x }
     return null;
   }
   // Q run game: a designed run where the QB carries gets " Q" added to the call
   function isQB(num) { return roster().some(function (x) { return x.n === String(num) && x.pos === "QB" }) }
   function qTag(sn) {
-    if (!sn.call) return;
+    if (!sn.call || sn.callType === "freeze" || sn.vic) return;
     var base = sn.call.replace(/\s*\(Q\)/g, "").replace(/\s+/g, " ").trim().replace(/\s+Q$/, "");
     var qrun = sn.carrier && (sn.res === "Rush" || (sn.res === "Fumble" && sn.pt === "Run")) && isQB(sn.carrier);
     sn.call = qrun ? base + " Q" : base;
@@ -2522,7 +2609,7 @@ textarea { min-height: 64px }
     $("dModeNote").textContent = full ? "Full tags: switch to Fast in Setup if the charter falls behind." : "Fast tags. Want exact coverage and fronts? Switch to Full in Setup.";
     document.querySelectorAll(".chip").forEach(function (b) {
       var k = b.dataset.k, v = b.dataset.v, on = false;
-      if (!k) return;
+      if (!k || k === "ot") return;
       if (k === "call") on = pick.call === v && pick.callType === b.dataset.t;
       else if (k === "sheet") on = pick.call === v;
       else if (k === "motion") on = v === "NONE" ? !pick.motion : pick.motion === v;
@@ -2538,6 +2625,7 @@ textarea { min-height: 64px }
     mb.disabled = !pv; mb.classList.toggle("on", !!pick.mull);
     $("mullWhat").textContent = pv ? (pick.mull ? "repeating: " : "run it back: ") + callText(pv) : "no play to repeat yet";
     var gm = $("gsMull"); if (gm) { gm.disabled = !pv; gm.classList.toggle("on", !!pick.mull); $("gsMullWhat").textContent = $("mullWhat").textContent }
+    ["frzBtn", "gsFrz"].forEach(function (id) { var f = $(id); if (f) f.classList.toggle("on", pick.callType === "freeze") });
     $("logBtn").disabled = !pick.res;
   }
 
@@ -2570,9 +2658,122 @@ textarea { min-height: 64px }
     if (g != null) advance(snap);
     if (snap.td) S.tryPending = true;
     pick.call = null; pick.callType = null; pick.res = null; pick.td = false; pick.pl = null; pick.motion = null; pick.rpo = null; pick.mull = false; $("gain").value = 0;
-    $("csSearch").value = "";
+    $("csSearch").value = ""; if ($("gsQ")) $("gsQ").value = "";
     save(); renderAll(); window.scrollTo(0, 0);
     toast("Logged #" + snap.n + " · " + (snap.call || snap.pt || snap.res) + ((snap.carrier || snap.target) ? " · #" + (snap.target || snap.carrier) : "") + (g == null ? " · now tap where the ball is" : (snap.td ? " · TD" : "")));
+  }
+
+  // ---------- FREEZE: hard count, no play called. Log what happened as the result ----------
+  function freeze() {
+    if (pick.callType === "freeze") { pick.call = null; pick.callType = null; renderChips(); return }
+    pick.call = "FREEZE"; pick.callType = "freeze"; pick.mull = false; pick.motion = null; pick.rpo = null;
+    renderChips(); toast("Freeze: now tap what happened");
+    var r = $("cRes"); if (r) { var pn = r.closest(".panel") || r; try { pn.scrollIntoView({ behavior: "smooth", block: "start" }) } catch (e) { pn.scrollIntoView() } }
+  }
+  // ---------- VICTORY: one-tap kneel. Moves the ball and the clock, never counts in stats ----------
+  function victory() {
+    if (pendingSnap()) { toast("Spot the ball from the last play first (step 1)"); window.scrollTo(0, 0); return }
+    if (S.tryPending) { toast("Log the try first (PAT or 2-pt at the top), or tap Skip"); window.scrollTo(0, 0); return }
+    var c = S.cur, g = toY(c.yl) <= 1 ? 0 : -1;
+    var snap = { n: S.snaps.length + 1, qtr: c.qtr, series: c.series, dn: c.dn, dist: c.dist, yl: c.yl, hash: c.hash,
+      form: pick.form, call: "VICTORY", callType: "victory", vic: true, motion: null, rpo: null, front: pick.front, cov: pick.cov, shell: pick.shell, box: pick.box, blitz: pick.blitz,
+      res: "Kneel", td: false, gain: g, pt: "", qb: pick.qb || null, carrier: null, target: null, prev: JSON.parse(JSON.stringify(c)) };
+    S.snaps.push(snap); advance(snap); lastSpot = { snap: snap };
+    pick.call = null; pick.callType = null; pick.res = null; pick.td = false; pick.pl = null; pick.motion = null; pick.rpo = null; pick.mull = false;
+    save(); renderAll(); window.scrollTo(0, 0);
+    toast("Victory #" + snap.n + " · " + (g ? g : "no gain") + " → " + ddText(S.cur) + " · ◀ ▶ fixes the spot");
+  }
+  // ---------- find a play on the call sheet (typed or spoken) ----------
+  var SAYW = { ZERO: "0", OH: "0", ONE: "1", WON: "1", TWO: "2", TOO: "2", TO: "2", THREE: "3", FOUR: "4", FOR: "4", FORE: "4", FIVE: "5", SIX: "6", SEVEN: "7", EIGHT: "8", ATE: "8", NINE: "9", TEN: "10", ELEVEN: "11", TWELVE: "12", QUEUE: "Q", CUE: "Q", QUE: "Q", KEW: "Q" };
+  function sNorm(t) { return String(t || "").toUpperCase().replace(/[()\[\]\/*·,.:;!?'"&+\-]/g, " ").replace(/\s+/g, " ").trim() }
+  function ed1(a, b) {
+    if (Math.abs(a.length - b.length) > 1) return false;
+    var i = 0, j = 0, d = 0;
+    while (i < a.length && j < b.length) { if (a[i] === b[j]) { i++; j++; continue } if (++d > 1) return false; if (a.length > b.length) i++; else if (b.length > a.length) j++; else { i++; j++ } }
+    return d + (a.length - i) + (b.length - j) <= 1;
+  }
+  function tokScore(t, words) {
+    var best = 0;
+    words.forEach(function (w) { [t.w, t.alt].forEach(function (x) {
+      if (!x) return; var sc = 0;
+      if (w === x) sc = 3; else if (x.length >= 2 && w.indexOf(x) === 0) sc = 2; else if (x.length >= 4 && ed1(w, x)) sc = 1.5; else if (x.length >= 3 && w.length >= 3 && w.indexOf(x) >= 0) sc = 1;
+      if (sc > best) best = sc;
+    }) });
+    return best;
+  }
+  function sheetSearch(q) {
+    var T = sNorm(q).split(" ").filter(Boolean).map(function (w) { return { w: w, alt: SAYW[w] || null } });
+    if (!T.length) return [];
+    var out = [], seen = {};
+    SHEET.forEach(function (sec) { sec.plays.forEach(function (pl) { otVariants(sec, pl).forEach(function (v) {
+      if (seen[v.label]) return; seen[v.label] = 1;
+      var words = sNorm(v.label + " " + (pl.g || "")).split(" "), hit = 0, sc = 0;
+      T.forEach(function (t) { var x = tokScore(t, words); if (x) { hit++; sc += x } });
+      if (hit < (T.length <= 2 ? T.length : T.length - 1)) return;
+      out.push({ v: v, sc: sc + hit * 2 - words.length * 0.05 + Math.min(usedCount(v.call, v.form), 5) * 0.01 });
+    }) }) });
+    out.sort(function (a, b) { return b.sc - a.sc });
+    return out.slice(0, 12);
+  }
+  function renderGsHits() {
+    var el = $("gsHits"); if (!el) return;
+    var q = ($("gsQ").value || "").trim(); el.innerHTML = "";
+    if (!q) { addBox("gsAdd", ""); return }
+    var H = sheetSearch(q);
+    H.forEach(function (h) { el.appendChild(otChip(h.v)) });
+    if (!H.length) el.innerHTML = "<span class='note'>No match on the call sheet.</span>";
+    addBox("gsAdd", q);
+  }
+  // add a play that isn't on the sheet; it stays on the sheet for the season
+  function addBox(id, q) {
+    var host = $(id); if (!host) return;
+    var T = sNorm(q);
+    if ((host.dataset.q || "") === T) return; host.dataset.q = T;
+    if (!T) { host.innerHTML = ""; return }
+    host.innerHTML = "<button class='addbtn' type='button' style='margin-top:8px'>＋ Add “" + esc(T) + "” to the call sheet</button>";
+    host.firstChild.addEventListener("click", function () {
+      var sh = ownSheet(), cur = -1;
+      sh.forEach(function (b, i) { if (cur < 0 && b.kind === "form" && b.form && b.form === pick.form) cur = i });
+      host.innerHTML = "<div class='addrow'><b>Add “" + esc(T) + "” to</b><select aria-label='Call sheet box'>" + sh.map(function (b, i) { return "<option value='" + i + "'" + (i === cur ? " selected" : "") + ">" + esc(b.name) + (b.kind === "sit" ? " (situation)" : "") + "</option>" }).join("") + "</select><button class='btn primary' type='button'>Add</button><button class='btn' type='button'>Cancel</button></div>";
+      var sel = host.querySelector("select"), bs = host.querySelectorAll("button");
+      bs[1].addEventListener("click", function () { host.dataset.q = ""; addBox(id, q) });
+      bs[0].addEventListener("click", function () {
+        var box = sh[+sel.value]; if (!box) return;
+        var x = expandCall(T); if (!x.length) x = [{ t: T, g: T }];
+        var have = {}; box.plays.forEach(function (p) { have[p.t] = 1 });
+        var n = 0; x.forEach(function (p) { if (!have[p.t]) { box.plays.push({ t: p.t, c: "w", g: p.g }); n++ } });
+        var v = otVariants(box, { t: x[0].t, c: "w" })[0];
+        $(id === "gsAdd" ? "gsQ" : "csSearch").value = ""; host.dataset.q = ""; host.innerHTML = "";
+        if (v) { pick.mull = false; pick.form = v.form || pick.form; pick.call = v.call; pick.callType = "sheet"; pick.motion = v.motion; pick.rpo = v.rpo }
+        ceSave(n ? "Added to " + box.name + " and picked" : "Already on " + box.name + ", picked it");
+      });
+    });
+  }
+  // voice: hold the mic (or tap it) and say the call; it fills the search box
+  function micWire(bid, iid, after) {
+    var b = $(bid), inp = $(iid); if (!b || !inp) return;
+    var SR = window.SpeechRecognition || window.webkitSpeechRecognition, rec = null, on = false, downAt = 0;
+    var stop = function () { if (rec && on) { try { rec.stop() } catch (e) {} } };
+    b.addEventListener("pointerdown", function (ev) {
+      ev.preventDefault();
+      if (!SR) { toast("This browser can't do voice input. Use Safari (iPad/iPhone) or Chrome."); return }
+      if (on) { stop(); return }
+      downAt = Date.now();
+      rec = new SR(); rec.lang = "en-US"; rec.interimResults = true; rec.continuous = false; rec.maxAlternatives = 1;
+      rec.onstart = function () { on = true; b.classList.add("rec") };
+      rec.onresult = function (e) { var t = ""; for (var i = 0; i < e.results.length; i++) t += e.results[i][0].transcript + " "; inp.value = t.trim(); after() };
+      rec.onerror = function (e) {
+        if (e.error === "not-allowed" || e.error === "service-not-allowed") toast("Allow the microphone for this site in the browser settings.");
+        else if (e.error === "network") toast("Voice needs internet. Type the call instead.");
+        else if (e.error !== "aborted" && e.error !== "no-speech") toast("Didn't catch that. Try again.");
+      };
+      rec.onend = function () { on = false; b.classList.remove("rec") };
+      inp.value = ""; after();
+      try { rec.start() } catch (e) { toast("Couldn't start the mic.") }
+    });
+    var up = function () { if (on && Date.now() - downAt > 400) setTimeout(stop, 300) }; // hold = talk while held; quick tap = listens for one call
+    b.addEventListener("pointerup", up); b.addEventListener("pointercancel", up);
+    b.addEventListener("contextmenu", function (e) { e.preventDefault() });
   }
   // ---------- penalties (NCAA rulebook, used by the UIL) ----------
   var PENS = [
@@ -2605,9 +2806,10 @@ textarea { min-height: 64px }
     { k: "tgt", n: "Targeting", side: "D", y: 15, afd: true },
     { k: "dus", n: "Unsportsmanlike", side: "D", y: 15, afd: true }
   ];
-  var penSel = null;
+  var penSel = null, penFirst = null;
   // enforce a penalty on situation c (mutates c). pen = {side, y, afd, lod, dead, spot, dpi, n, play}
   function applyPen(c, pen) {
+    if (pen.off) return {}; // offsetting: replay the down from the same spot
     var y0 = toY(c.yl) + (pen.play || 0), yards = pen.y, y;
     if (pen.play) { // end-of-play: the play's gain counts first
       if (pen.play >= c.dist && pen.side === "D") { /* first down already */ }
@@ -2634,13 +2836,13 @@ textarea { min-height: 64px }
   }
   function penSummary(pen) {
     var c = JSON.parse(JSON.stringify(S.cur)); var r = applyPen(c, pen);
-    var tags = [pen.side === "O" ? "On us" : "On them", pen.spot ? "spot of the throw" : (pen.y ? pen.y + " yds" : ""), pen.afd ? "automatic 1st down" : "", pen.lod ? "loss of down" : "", pen.dead ? "dead ball, no play" : ""].filter(Boolean).join(" · ");
+    var tags = [pen.side === "O" ? "On us" : pen.side === "X" ? "Both teams" : "On them", pen.off ? "replay the down" : "", pen.spot ? "spot of the throw" : (pen.y ? pen.y + " yds" : ""), pen.afd ? "automatic 1st down" : "", pen.lod ? "loss of down" : "", pen.dead ? "dead ball, no play" : ""].filter(Boolean).join(" · ");
     return "<div>" + esc(pen.n) + " <span class='note'>(" + esc(tags) + ")</span></div><div style='margin-top:6px'>Now: <b>" + (r.turnover ? "Turnover on downs" : esc(ddText(c)) + " at " + esc(ballText(c.yl))) + "</b></div>";
   }
   function openPen() {
     if (S.tryPending) { toast("Log the try first (PAT or 2-pt at the top), or tap Skip"); window.scrollTo(0, 0); return }
     if (pendingSnap()) { toast("Spot the ball from the last play first (step 1). Then add the penalty."); window.scrollTo(0, 0); return }
-    penSel = null; $("penStep2").hidden = true; $("penEopSide").value = curSide(); $("penPlayYds").value = ""; $("penEopGain").textContent = ""; $("penSit").textContent = ddText(S.cur) + " at " + ballText(S.cur.yl);
+    penSel = null; penFirst = null; $("pen1").hidden = true; $("penOffRow").hidden = false; $("penAlt").hidden = true; $("penAccept").textContent = "Accept"; $("penStep2").hidden = true; $("penEopSide").value = curSide(); $("penPlayYds").value = ""; $("penEopGain").textContent = ""; $("penSit").textContent = ddText(S.cur) + " at " + ballText(S.cur.yl);
     ["O", "D"].forEach(function (side) {
       var el = $("pen" + side); el.innerHTML = "";
       PENS.filter(function (p) { return p.side === side }).forEach(function (p) {
@@ -2653,22 +2855,43 @@ textarea { min-height: 64px }
     $("penModal").hidden = false;
   }
   function pickPen(p) {
+    if (penFirst) { pickPen2(penFirst, p); return }
     penSel = p;
     if (p.spot) p.spotYds = Math.min(0, parseInt($("gain").value, 10) || -7);
     $("penPreview").innerHTML = penSummary(p) + (p.spot ? "<div class='note'>Spot of the throw: " + (-p.spotYds) + " yards behind the line. To change it, cancel, tap the yard line of the throw under Ball now at, then choose grounding again.</div>" : "");
-    var live = !p.dead && !p.spot && p.side === "D";
-    $("penEop").hidden = true; $("penEopRow").hidden = true; $("penDecline").hidden = !!p.dead;
+    $("penEop").hidden = true; $("penEopRow").hidden = true; $("penDecline").hidden = !!p.dead || !!p.off;
+    $("penDead").checked = !!p.dead; $("penDeadL").hidden = !!p.spot;
+    $("penAlt").hidden = true; $("penAccept").textContent = p.off ? "Log offsetting" : "Accept"; $("penAdd2").hidden = !!p.off;
+    $("penStep2").hidden = false;
+  }
+  // two flags on one play: both teams = offsetting (replay the down); same team = the other side picks one
+  function pickPen2(a, b) {
+    $("penAdd2").hidden = true; $("penOffRow").hidden = true; $("pen1").hidden = true;
+    if (a.side !== b.side) {
+      var us = a.side === "O" ? a : b, them = a.side === "O" ? b : a;
+      var off = { k: "offset", n: "Offsetting: " + us.n + " (us) · " + them.n + " (them)", side: "X", y: 0, off: true, dead: !!(a.dead && b.dead), pens: [us.n, them.n] };
+      penSel = off; $("penPreview").innerHTML = penSummary(off);
+      $("penDead").checked = off.dead; $("penDeadL").hidden = false;
+      $("penAccept").textContent = "Log offsetting"; $("penAlt").hidden = true; $("penDecline").hidden = true;
+    } else {
+      var A = Object.assign({}, a, { also: b.n }), B = Object.assign({}, b, { also: a.n });
+      penSel = A; $("penDeadL").hidden = true;
+      $("penPreview").innerHTML = "<div style='margin-bottom:6px'>Two flags on " + (a.side === "O" ? "us. They" : "them. We") + " pick one to enforce:</div>" + penSummary(A) + "<hr style='border:0;border-top:1px solid var(--line);margin:8px 0'>" + penSummary(B);
+      $("penAccept").textContent = "Enforce " + a.n; $("penAlt").textContent = "Enforce " + b.n; $("penAlt").hidden = false;
+      $("penAlt").onclick = function () { logPen(B) };
+      $("penDecline").hidden = !!(a.dead || b.dead);
+    }
     $("penStep2").hidden = false;
   }
   function logPen(pen) {
     var c = S.cur;
     var snap = { n: S.snaps.length + 1, qtr: c.qtr, series: c.series, dn: c.dn, dist: c.dist, yl: c.yl, hash: c.hash,
-      form: pick.form, call: pen.dead ? null : pick.call, motion: pick.motion || null, rpo: pick.rpo || null, callType: pick.callType, shell: pick.shell, box: pick.box, front: pick.front, cov: pick.cov, blitz: pick.blitz,
+      form: pick.form, call: pen.dead && pick.callType !== "freeze" ? null : pick.call, motion: pick.motion || null, rpo: pick.rpo || null, callType: pick.callType, shell: pick.shell, box: pick.box, front: pick.front, cov: pick.cov, blitz: pick.blitz,
       res: "Penalty", td: false, gain: 0, pen: pen, qb: pick.qb, prev: JSON.parse(JSON.stringify(c)) };
     snap.pt = ""; S.snaps.push(snap); advance(snap);
-    pick.call = null; pick.callType = null; pick.res = null; pick.pl = null; $("gain").value = 0;
+    pick.call = null; pick.callType = null; pick.res = null; pick.pl = null; pick.mull = false; $("gain").value = 0; if ($("gsQ")) $("gsQ").value = "";
     $("penModal").hidden = true; save(); renderAll();
-    toast("Penalty: " + pen.n + (pen.side === "O" ? " on us" : " on them") + " → " + ddText(S.cur));
+    toast("Penalty: " + pen.n + (pen.side === "O" ? " on us" : pen.side === "X" ? "" : " on them") + " → " + ddText(S.cur));
   }
   function newSeries(c) { c.series += 1; c.dn = 0; c.dist = 10; c.yl = +S.start || -30; c.hash = "M"; c.ready = false }
   function advance(s) {
@@ -2690,7 +2913,7 @@ textarea { min-height: 64px }
   }
 
   // ---------- analysis ----------
-  function plays() { return S.snaps.filter(function (s) { return s.res !== "Penalty" && s.pt && s.gain != null }) }
+  function plays() { return S.snaps.filter(function (s) { return s.res !== "Penalty" && !s.vic && s.pt && s.gain != null }) }
   function eff(s) {
     var need = s.dn <= 1 ? 0.4 : s.dn === 2 ? 0.5 : 1;
     return s.td || s.gain >= Math.ceil(need * s.dist);
@@ -3011,9 +3234,10 @@ textarea { min-height: 64px }
     return t.join(" ");
   }
   function outcomeTags(s) {
+    if (s.vic) return "<span class='tag vic'>Victory · not in stats</span>";
     if (s.kind === "try") return "<span class='tag " + (s.good ? "good" : "bad") + "'>" + (s.res === "PAT" ? "PAT" : "2-pt") + (s.good ? " good" : " no good") + "</span>";
     if (s.gain == null) return "<span class='tag hot'>Waiting for spot</span>";
-    if (s.res === "Penalty") return "<span class='tag " + (s.pen && s.pen.side === "D" ? "good" : "bad") + "'>" + esc(s.pen ? s.pen.n + (s.pen.side === "O" ? " on us" : " on them") : "Penalty") + "</span>" + (s.pen && s.pen.afd ? "<span class='tag good'>Auto 1st</span>" : "") + (s.pen && s.pen.lod ? "<span class='tag bad'>Loss of down</span>" : "") + (s.pen && s.pen.play ? "<span class='tag'>+ play " + s.pen.play + "</span>" : "");
+    if (s.res === "Penalty") return "<span class='tag " + (s.pen && s.pen.side === "X" ? "off" : s.pen && s.pen.side === "D" ? "good" : "bad") + "'>" + esc(s.pen ? s.pen.n + (s.pen.side === "O" ? " on us" : s.pen.side === "X" ? "" : " on them") : "Penalty") + "</span>" + (s.pen && s.pen.afd ? "<span class='tag good'>Auto 1st</span>" : "") + (s.pen && s.pen.lod ? "<span class='tag bad'>Loss of down</span>" : "") + (s.pen && s.pen.dead ? "<span class='tag'>no play</span>" : "") + (s.pen && s.pen.also ? "<span class='tag'>also flagged: " + esc(s.pen.also) + " (declined)</span>" : "") + (s.pen && s.pen.play ? "<span class='tag'>+ play " + s.pen.play + "</span>" : "");
     var t = [];
     if (s.td) t.push("<span class='tag good'>TD</span>");
     else if (s.res === "Interception" || s.res === "Fumble") t.push("<span class='tag bad'>Turnover</span>");
@@ -3113,7 +3337,7 @@ textarea { min-height: 64px }
         var isT = s.kind === "try";
         h += "<tr><td>" + s.n + "</td>" + tc("q", s.qtr) + "<td>" + esc(ddLabel(s)) + "</td>" + (isT ? "<td></td>" : tc("ball", ballText(s.yl) + (s.hash ? " · " + s.hash : ""))) +
           tc("form", esc(s.form || "") + (s.motion ? " <span class='note'>" + esc(s.motion) + "</span>" : "") || "<span class='note'>+ form</span>") +
-          tc("call", (esc(s.call || "") + (s.rpo ? " <b>+ " + esc(s.rpo) + "</b>" : "") + (s.res === "Scramble" ? " <span class='tag hot'>scramble</span>" : "") + (s.mulligan ? " <span class='tag mul'>↻</span>" : "")) || "<span class='note'>+ call</span>") +
+          tc("call", (esc(s.call || "") + (s.rpo ? " <b>+ " + esc(s.rpo) + "</b>" : "") + (s.res === "Scramble" ? " <span class='tag hot'>scramble</span>" : "") + (s.mulligan ? " <span class='tag mul'>↻</span>" : "") + (s.callType === "freeze" ? " <span class='tag frz'>❄</span>" : "") + (s.vic ? " <span class='tag vic'>🏁 no stats</span>" : "")) || "<span class='note'>+ call</span>") +
           (isT ? "<td></td><td></td>" : tc("look", esc([s.shell ? s.shell.toLowerCase() : "", s.box ? s.box + " box" : "", s.front || "", s.cov ? covName(s.cov) : ""].filter(Boolean).join(" · ")) || "<span class='note'>+ look</span>") + tc("look", esc(s.blitz))) +
           (isT ? "<td>" + esc(s.res) + "</td><td>" + esc(playerText(s)) + "</td><td>" + outcomeTags(s) + "</td>" : s.res === "Penalty" ? tc("res", esc(s.pen ? s.pen.n : "Penalty")) + "<td></td>" + tc("res", outcomeTags(s))
             : tc("res", esc(s.res) + (s.td ? ", TD" : "") + (s.gain == null ? " · spot pending" : " " + s.gain)) + tc("pl", esc(playerText(s)) || "<span class='note'>+ player</span>") + tc("res", outcomeTags(s))) +
@@ -3137,6 +3361,8 @@ textarea { min-height: 64px }
   function openEdit(i) {
     var sn = S.snaps[i]; if (!sn) return; editIdx = i;
     $("editSit").textContent = "#" + sn.n + " · " + ddText(sn) + " at " + ballText(sn.yl);
+    $("eDDRow").hidden = sn.kind === "try";
+    $("eDn").value = String(sn.dn || 0); $("eDist").value = sn.dist; $("eSide").value = +sn.yl < 0 ? "own" : "opp"; $("eYL").value = Math.abs(+sn.yl);
     var forms = [], calls = [];
     SHEET.forEach(function (sec) { if (sec.form) forms.push(sec.form); sec.plays.forEach(function (pl) { calls.push(pl.t) }) });
     fillList("dlForms", forms.concat(list("form"))); fillList("dlCalls", calls.concat(list("run"), list("pass"), list("rpo")));
@@ -3150,23 +3376,36 @@ textarea { min-height: 64px }
     var plv = sn.target || sn.carrier || "";
     $("ePl").innerHTML = opt("", "—", !plv) + R_.map(function (x) { return opt(x.n, "#" + x.n + " " + (x.name || x.pos), plv === x.n) }).join("");
     $("eShell").value = sn.shell || ""; $("eBox").value = sn.box || ""; $("eBlitz").value = sn.blitz || "No"; $("eFront").value = sn.front || ""; $("eCov").value = sn.cov || "";
-    var isPen = sn.res === "Penalty" || sn.kind === "try", last = i === S.snaps.length - 1 || (i === S.snaps.length - 2 && S.snaps[S.snaps.length - 1].gain == null && false);
+    var isPen = sn.res === "Penalty" || sn.kind === "try" || !!sn.vic, last = i === S.snaps.length - 1 || (i === S.snaps.length - 2 && S.snaps[S.snaps.length - 1].gain == null && false);
     ["eRes", "eYds", "eTd", "ePl"].forEach(function (id) { $(id).disabled = isPen });
-    $("editNote").textContent = sn.kind === "try" ? "Tries: you can fix the formation, call and defense tags here. To change good / no good, delete it and log it again." : isPen ? "Penalties: you can fix the formation, call and defense tags here. To change the penalty itself, delete it and enter it again."
+    $("editNote").textContent = sn.vic ? "Victory (kneel): fix the down, distance and spot here. Kneels never count in stats." : sn.kind === "try" ? "Tries: you can fix the formation, call and defense tags here. To change good / no good, delete it and log it again." : isPen ? "Penalties: you can fix the formation, call and defense tags here. To change the penalty itself, delete it and enter it again."
       : (i === S.snaps.length - 1 ? "This is the latest play, so changing the yards or result also fixes the current down and distance."
       : "Changing yards here fixes this play's stats. Later plays keep the spots you charted.");
     $("editModal").hidden = false;
   }
   function saveEdit() {
     var sn = S.snaps[editIdx]; if (!sn) return;
+    var ddCh = false;
+    if (sn.kind !== "try") {
+      var nd = +$("eDn").value, nds = parseInt($("eDist").value, 10), ny = parseInt($("eYL").value, 10);
+      if (!isNaN(nds) && nds >= 1 && nds <= 99 && !isNaN(ny) && ny >= 1 && ny <= 50) {
+        var nyl = ny === 50 ? 50 : ($("eSide").value === "own" ? -ny : ny);
+        if (nd !== (sn.dn || 0) || nds !== sn.dist || nyl !== +sn.yl) {
+          ddCh = true; sn.dn = nd; sn.dist = nds; sn.yl = nyl;
+          if (sn.prev) { sn.prev.dn = nd; sn.prev.dist = nds; sn.prev.yl = nyl }
+        }
+      } else { toast("Distance 1-99 and yard line 1-50"); return }
+    }
     sn.form = $("eForm").value.trim().toUpperCase() || null;
     sn.call = $("eCall").value.trim().toUpperCase() || null;
     sn.motion = $("eMot").value.trim().toUpperCase() || null; sn.rpo = $("eRpo").value.trim().toUpperCase() || null;
-    if (sn.call && sn.callType !== "run" && sn.callType !== "pass" && sn.callType !== "rpo") sn.callType = "sheet";
+    if (sn.callType === "freeze" && sn.call !== "FREEZE") sn.callType = null;
+    if (sn.callType === "victory" && sn.call !== "VICTORY") sn.call = "VICTORY";
+    if (sn.call && sn.callType !== "run" && sn.callType !== "pass" && sn.callType !== "rpo" && sn.callType !== "freeze" && sn.callType !== "victory") sn.callType = sn.call === "FREEZE" ? "freeze" : "sheet";
     sn.shell = $("eShell").value || null; sn.box = $("eBox").value || null;
     sn.blitz = $("eBlitz").value.trim() || "No"; sn.front = $("eFront").value.trim().toUpperCase() || null; sn.cov = $("eCov").value.trim().toUpperCase() || null;
     sn.qb = $("eQb").value || null;
-    if (sn.res !== "Penalty" && sn.kind !== "try") {
+    if (sn.res !== "Penalty" && !sn.vic && sn.kind !== "try") {
       var oldKey = [sn.res, sn.gain, sn.td].join("|");
       sn.res = $("eRes").value; sn.td = $("eTd").checked;
       var y = $("eYds").value.trim(); sn.gain = y === "" ? (sn.res === "Incomplete" ? 0 : sn.gain) : parseInt(y, 10);
@@ -3179,7 +3418,8 @@ textarea { min-height: 64px }
       var changed = [sn.res, sn.gain, sn.td].join("|") !== oldKey;
       if (changed && editIdx === S.snaps.length - 1 && sn.gain != null) { S.cur = JSON.parse(JSON.stringify(sn.prev)); advance(sn) }
     }
-    $("editModal").hidden = true; save(); renderAll(); toast("Play #" + sn.n + " updated");
+    if (ddCh && editIdx === S.snaps.length - 1 && sn.prev) { S.cur = JSON.parse(JSON.stringify(sn.prev)); if (sn.gain != null) advance(sn) }
+    $("editModal").hidden = true; save(); renderAll(); toast("Play #" + sn.n + " updated" + (ddCh && editIdx !== S.snaps.length - 1 ? " · later plays keep their spots" : ""));
   }
 
   // ---------- export: files ----------
@@ -3486,7 +3726,7 @@ textarea { min-height: 64px }
         ["O", "D"].forEach(function (side) {
           cellSec(side === "O" ? "Penalty on us" : "Penalty on them", PENS.filter(function (x) { return x.side === side }), function (x) { return !!(sn.pen && sn.pen.k === x.k) }, function (x) { editToPenalty(sn, Object.assign({}, x)); penPick = false; cellDone(sn) }, function (x) { return x.n + " " + (side === "O" ? "−" : "+") + x.y });
         });
-        if (isPen && sn.pen) { var pn = document.createElement("p"); pn.className = "note"; pn.textContent = "Now: " + sn.pen.n + (sn.pen.side === "O" ? " on us" : " on them") + ". Pick a different penalty, or tap a play result above to change it back to a play."; B.appendChild(pn) }
+        if (isPen && sn.pen) { var pn = document.createElement("p"); pn.className = "note"; pn.textContent = "Now: " + sn.pen.n + (sn.pen.side === "O" ? " on us" : sn.pen.side === "X" ? "" : " on them") + ". Pick a different penalty, or tap a play result above to change it back to a play."; B.appendChild(pn) }
       }
       var yd = document.createElement("div"); yd.innerHTML = "<div class='sub'>Yards</div>";
       var row = document.createElement("div"); row.className = "ck";
@@ -3522,7 +3762,7 @@ textarea { min-height: 64px }
     if (pen.dead) sn.call = sn.call; // keep the call on the row for reference
     var idx = S.snaps.indexOf(sn);
     if (idx === S.snaps.length - 1 && sn.prev) { S.cur = JSON.parse(JSON.stringify(sn.prev)); applyPen(S.cur, pen); S.tryPending = false }
-    toast("Play #" + sn.n + " is now " + pen.n + (pen.side === "O" ? " on us" : " on them") + (idx === S.snaps.length - 1 ? " → " + ddText(S.cur) : ""));
+    toast("Play #" + sn.n + " is now " + pen.n + (pen.side === "O" ? " on us" : pen.side === "X" ? "" : " on them") + (idx === S.snaps.length - 1 ? " → " + ddText(S.cur) : ""));
   }
 
   // ---------- game clock estimate ----------
@@ -3943,9 +4183,9 @@ textarea { min-height: 64px }
       if (l.td) { result = "TD"; end = 100 }
       else if (l.res === "Interception" || l.res === "Fumble") result = "Turnover";
       else if (live) { result = "In progress"; end = toY(S.cur.yl) }
-      else if (l.dn === 4 && l.res !== "Penalty" && l.gain != null && l.gain < l.dist) result = "Downs";
+      else if (l.dn === 4 && l.res !== "Penalty" && !l.vic && l.gain != null && l.gain < l.dist) result = "Downs";
       else result = "Punt / end";
-      var plays = d.snaps.filter(function (x) { return x.res !== "Penalty" }).length;
+      var plays = d.snaps.filter(function (x) { return x.res !== "Penalty" && !x.vic }).length;
       var lastIdx = S.snaps.indexOf(l) + 1, nextIdx = by[order[i + 1]] ? S.snaps.indexOf(by[order[i + 1]].snaps[0]) : Infinity;
       var fg = (S.scoreLog || []).filter(function (e) { return e.side === "us" && e.label === "FG" && e.after >= lastIdx && e.after <= nextIdx })[0];
       if (fg && !l.td && result !== "Turnover") { result = "Field goal" }
@@ -4040,7 +4280,7 @@ textarea { min-height: 64px }
     var svg = $("liveSvg"); svg.setAttribute("viewBox", "0 " + vy0 + " " + W + " " + (vy1 - vy0)); svg.innerHTML = h;
     liveLast = newest;
     // summary
-    var played = cur.filter(function (x) { return x.res !== "Penalty" && x.gain != null }), yds = cur.reduce(function (t, x) { var e = snapEnd(x); return e == null ? t : t + (e - toY(x.yl)) }, 0);
+    var played = cur.filter(function (x) { return x.res !== "Penalty" && !x.vic && x.gain != null }), yds = cur.reduce(function (t, x) { var e = snapEnd(x); return e == null ? t : t + (e - toY(x.yl)) }, 0);
     var runs = played.filter(function (x) { return x.pt === "Run" }).length;
     var dn = driveList().length;
     $("liveSum").textContent = (faded ? "last drive · " : "drive " + Math.max(1, dn) + " · ") + played.length + (played.length === 1 ? " play" : " plays") + " · " + (yds >= 0 ? "+" : "") + Math.round(yds) + " yds · " + runs + " run / " + (played.length - runs) + " pass";
@@ -4050,7 +4290,7 @@ textarea { min-height: 64px }
   function sideTxt(y) { y = Math.round(y); return y === 50 ? "the 50" : y < 50 ? "own " + y : "opp " + (100 - y) }
   function drvLineSet(cur, faded) {
     var el = $("drvLine"); if (!el) return; if (!cur || !cur.length) { el.textContent = ""; return }
-    var pl = cur.filter(function (x) { return x.res !== "Penalty" && x.gain != null }), ru = pl.filter(function (x) { return x.pt === "Run" }), pa = pl.filter(function (x) { return x.pt === "Pass" }), co = pa.filter(function (x) { return x.res === "Complete" });
+    var pl = cur.filter(function (x) { return x.res !== "Penalty" && !x.vic && x.gain != null }), ru = pl.filter(function (x) { return x.pt === "Run" }), pa = pl.filter(function (x) { return x.pt === "Pass" }), co = pa.filter(function (x) { return x.res === "Complete" });
     var sum = function (a) { return a.reduce(function (t, x) { return t + (x.gain || 0) }, 0) }, l = cur[cur.length - 1], d = driveList().filter(function (x) { return x.series === cur[0].series })[0];
     var res = d ? (d.result === "In progress" ? "" : d.result === "Punt / end" ? "Punt / end" : d.result) : "";
     el.textContent = (faded ? "Last drive: " : "") + "From " + sideTxt(toY(cur[0].yl)) + ": " + pl.length + (pl.length === 1 ? " play · " : " plays · ") + ru.length + " rush, " + sum(ru) + " yds · " + co.length + "/" + pa.length + " pass, " + sum(co) + " yds" + (res ? " · " + res : "") + (l.td ? " 🏈" : "");
@@ -4089,7 +4329,7 @@ textarea { min-height: 64px }
       "<line x1='" + X(sp.i) + "' y1='0' x2='" + X(sp.i) + "' y2='" + H + "' stroke='#fff' stroke-width='1.5' vector-effect='non-scaling-stroke'/><circle cx='" + X(sp.i) + "' cy='" + Y(sp.wp) + "' r='4' fill='#fff'/>";
     var pct = Math.round(sp.wp * 100), us = (ACC && ACC.profile && ACC.profile.name) || "Us", them = S.opp || "Opponent";
     if (sel === pts.length - 1 && WPS.sel == null) $("wpsRead").textContent = "Now: " + us + " " + pct + "% · " + them + " " + (100 - pct) + "% · drag to go back";
-    else { var x = S.snaps[sp.i - 1]; $("wpsRead").textContent = (x ? "After #" + x.n + " (Q" + x.qtr + " " + ddText(x) + ", " + ((x.form ? x.form + " " : "") + (x.call || x.res || "")).trim() + (x.gain != null && x.res !== "Penalty" ? " " + (x.gain >= 0 ? "+" : "") + x.gain : "") + (x.td ? " TD" : "") + ")" : "Kickoff") + ": " + us + " " + pct + "%" }
+    else { var x = S.snaps[sp.i - 1]; $("wpsRead").textContent = (x ? "After #" + x.n + " (Q" + x.qtr + " " + ddText(x) + ", " + ((x.form ? x.form + " " : "") + (x.call || x.res || "")).trim() + (x.gain != null && x.res !== "Penalty" && !x.vic ? " " + (x.gain >= 0 ? "+" : "") + x.gain : "") + (x.td ? " TD" : "") + ")" : "Kickoff") + ": " + us + " " + pct + "%" }
   }
   function wpsWire() {
     var svg = $("wpsSvg"); if (!svg) return; var on = false;
@@ -4125,12 +4365,12 @@ textarea { min-height: 64px }
       var x = p[0], i = p[1];
       if (x.series !== lastSer) { lastSer = x.series; h += "<div class='dh'>Series " + x.series + "</div>" }
       var y = toY(x.yl), isT = x.kind === "try", typ = x.pt === "Run" ? "run" : x.pt === "Pass" ? "pass" : "";
-      var badges = (!isT && y >= 80 ? "<span class='bd bd-rz'>RZ</span>" : "") + (x.td ? "<span class='bd bd-td'>TD</span>" : "") + (x.res === "Interception" || x.res === "Fumble" ? "<span class='bd bd-to'>TURNOVER</span>" : "") + (!isT && !x.td && x.gain != null && x.res !== "Penalty" && x.gain >= x.dist ? "<span class='bd bd-1d'>1ST</span>" : "");
+      var badges = (!isT && y >= 80 ? "<span class='bd bd-rz'>RZ</span>" : "") + (x.td ? "<span class='bd bd-td'>TD</span>" : "") + (x.res === "Interception" || x.res === "Fumble" ? "<span class='bd bd-to'>TURNOVER</span>" : "") + (!isT && !x.td && x.gain != null && x.res !== "Penalty" && !x.vic && x.gain >= x.dist ? "<span class='bd bd-1d'>1ST</span>" : "");
       var sit = isT ? "Try after TD" : (ddText(x) + " @ " + (y >= 50 ? "OPP " + (100 - Math.round(y)) : "OWN " + Math.round(y))) + (x.hash ? " · " + x.hash + " hash" : "");
       var call = ((x.form ? x.form + " " : "") + (x.call || "") + (x.motion ? " · " + x.motion : "") + (x.rpo ? " + " + x.rpo : "")).trim();
       var out = x.res === "Penalty" ? (x.pen ? x.pen.n : "Penalty") : isT ? (x.res + (x.good ? " good" : " no good")) : (x.res || "") + (x.res === "Incomplete" || x.res === "Interception" ? "" : x.gain != null ? " " + (x.gain >= 0 ? "+" : "") + x.gain : " · spot pending") + (playerText(x) ? " · " + playerText(x) : "");
       var look = [x.shell, x.front, x.cov ? covName(x.cov) : "", x.blitz && x.blitz !== "No" ? "blitz " + x.blitz : ""].filter(Boolean).join(" · ");
-      h += "<div class='it " + typ + "' data-i='" + i + "'><div><div class='sit'>" + esc(sit) + badges + "</div><div class='tt'>" + esc(call || out) + "</div><div class='sub'>" + esc(call ? out : "") + (look ? " · vs " + esc(look) : "") + (x.mulligan ? " · ↻" : "") + "</div></div><div class='rt'>Q" + (x.qtr || "") + " · #" + x.n + "<br>" + (x.id && FILM.have[filmKey(x.id)] ? "<button class='clipbtn' data-i='" + i + "' aria-label='Watch play'>▶</button>" : "") + "</div></div>";
+      h += "<div class='it " + typ + "' data-i='" + i + "'><div><div class='sit'>" + esc(sit) + badges + "</div><div class='tt'>" + esc(call || out) + "</div><div class='sub'>" + esc(call ? out : "") + (look ? " · vs " + esc(look) : "") + (x.mulligan ? " · ↻" : "") + (x.callType === "freeze" ? " · ❄ freeze" : "") + (x.vic ? " · not in stats" : "") + "</div></div><div class='rt'>Q" + (x.qtr || "") + " · #" + x.n + "<br>" + (x.id && FILM.have[filmKey(x.id)] ? "<button class='clipbtn' data-i='" + i + "' aria-label='Watch play'>▶</button>" : "") + "</div></div>";
     });
     el.innerHTML = "<div class='pbp'>" + (h || "<p class='note'>No snaps logged yet.</p>") + "</div>";
     el.querySelectorAll(".it").forEach(function (d) { d.addEventListener("click", function (e) { if (e.target.closest(".clipbtn")) { openClip(+d.dataset.i); return } openEdit(+d.dataset.i) }) });
@@ -4543,6 +4783,21 @@ textarea { min-height: 64px }
   })();
   $("fastLog").addEventListener("change", function () { S.fast = $("fastLog").checked; save() });
   $("logBtn").addEventListener("click", logSnap);
+  $("frzBtn").addEventListener("click", freeze); $("gsFrz").addEventListener("click", freeze);
+  $("vicBtn").addEventListener("click", victory);
+  $("gsQ").addEventListener("input", renderGsHits);
+  micWire("gsMic", "gsQ", renderGsHits); micWire("csMic", "csSearch", renderSheet);
+  $("penOff").addEventListener("click", function () { pickPen({ k: "offset", n: "Offsetting penalties", side: "X", y: 0, off: true }) });
+  $("penAdd2").addEventListener("click", function () {
+    if (!penSel) return; penFirst = penSel; penSel = null;
+    $("penStep2").hidden = true; $("penOffRow").hidden = true;
+    $("pen1").innerHTML = "1st flag: <b>" + esc(penFirst.n) + "</b> " + (penFirst.side === "O" ? "on us" : "on them") + ". Now tap the 2nd flag."; $("pen1").hidden = false;
+    var mb = $("penModal").querySelector(".mbox"); if (mb) mb.scrollTop = 0;
+  });
+  $("penDead").addEventListener("change", function () { if (!penSel) return; penSel.dead = this.checked; $("penPreview").innerHTML = penSummary(penSel); $("penDecline").hidden = !!penSel.dead || !!penSel.off || $("penAlt").hidden === false && false });
+  $("lkAll").addEventListener("click", function () { lockSet(LKU.users.map(function (u) { return u.uid }).filter(function (u) { return !LKU.locks[u] }), true) });
+  $("lkNone").addEventListener("click", function () { lockSet(Object.keys(LKU.locks), false) });
+  lockAdminInit(); lockCheck(); setInterval(lockCheck, 10000);
   $("undoBtn").addEventListener("click", undo);
   $("endSeries").addEventListener("click", function () {
     var ps = pendingSnap();
@@ -4651,7 +4906,7 @@ textarea { min-height: 64px }
   var PROF = (ONLINE && ACC && ACC.profile) || {};
   if (ONLINE) { SCHOOL_NAME_H = PROF.name || (ACC.school || "").replace(/(^|-)([a-z])/g, function (m, d, c) { return (d ? " " : "") + c.toUpperCase() }) }
   $("hSchool").textContent = SCHOOL_NAME_H + " Football";
-  if (/^https?:/.test(location.protocol)) { $("navDef").hidden = false; $("navRep").hidden = false }
+  if (/^https?:/.test(location.protocol)) { $("navDef").hidden = false; $("navRep").hidden = false; $("navStats").hidden = false }
   if (ONLINE) { if (PROF.logo) $("logoImg").src = PROF.logo; else $("logoImg").removeAttribute("src") }
   $("teamLogoImg").src = $("logoImg").getAttribute("src") || ""; $("teamLogoImg").hidden = !$("logoImg").getAttribute("src");
   // school branding: name + primary color, from the school's profile when logged in

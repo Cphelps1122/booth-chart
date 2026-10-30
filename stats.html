@@ -219,9 +219,15 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
   })(PROF);
   var NS = (!ONLINE || (ACC && ACC.school === "melissa")) ? "" : "-" + ACC.school;
 
+  var DIAG = [];
   function get(path, shallow) {
     return solToken().then(function (t) { return fetch(SOL_DB + "/schools/" + encodeURIComponent(ACC.school) + path + ".json?auth=" + encodeURIComponent(t) + (shallow ? "&shallow=true" : "")) })
-      .then(function (r) { return r.ok ? r.json() : null }, function () { return null });
+      .then(function (r) { if (!r.ok) { DIAG.push(path + " → HTTP " + r.status); return null } return r.json().then(function (j) { if (/\/list$|^\/season$|^\/games$/.test(path)) DIAG.push(path + " → " + (j == null ? "empty" : typeof j === "object" ? Object.keys(j).length + " entries" : "found")); return j }) }, function (e) { DIAG.push(path + " → " + (e && e.message || "failed")); return null });
+  }
+  function showDiag(extra) {
+    var el = document.getElementById("diag"); if (!el) { el = document.createElement("details"); el.id = "diag"; el.style.cssText = "margin-top:8px;font-size:12.5px;color:var(--muted)"; $("loadNote").closest(".panel").appendChild(el) }
+    var a = authGet() || {};
+    el.innerHTML = "<summary style='cursor:pointer'>Details (stats v3)</summary><div style='white-space:pre-wrap;font-family:ui-monospace,monospace;margin-top:6px'>" + esc(["School: " + (a.school || "none") + " · signed in: " + (a.email || a.uid || "no")].concat(DIAG, extra || []).join("\n")) + "</div>";
   }
   function vals(o) { if (!o) return []; if (Array.isArray(o)) return o.filter(Boolean); return Object.keys(o).map(function (k) { var x = o[k]; if (typeof x === "string") { try { x = JSON.parse(x) } catch (e) { return null } } if (x && typeof x === "object") x.id = x.id || k; return x }).filter(Boolean) }
   function parseRoster(t) {
@@ -317,8 +323,8 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
       SEASON = ss[0] || null;
       $("seasonSel").innerHTML = ss.map(function (s) { return "<option value='" + esc(s) + "'>" + (s === "Undated" ? "Undated games" : s + " season") + "</option>" }).join("") || "<option>No games yet</option>";
       $("loadNote").textContent = GAMES.length ? GAMES.length + " charted game" + (GAMES.length === 1 ? "" : "s") + " · saves on its own as you chart" : "No charted games yet. Stats fill in as soon as you chart a game.";
-      render();
-    }, function () { $("loadNote").textContent = "Couldn't load games. Check the connection and refresh."; render() });
+      render(); showDiag(GAMES.map(function (g) { return "Game " + g.code.slice(0, 4) + "… " + g.opp + " " + g.date + " · " + g.off.length + " snaps" }));
+    }, function (e) { $("loadNote").textContent = "Couldn't load games. Check the connection and refresh."; render(); showDiag(["Error: " + (e && e.message || e)]) });
   }
 
   // ---------- render ----------

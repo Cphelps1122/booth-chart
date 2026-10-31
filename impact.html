@@ -161,6 +161,7 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
   </div>
 </main>
 <script src="sim.js"></script>
+<script src="playlist.js"></script>
 <script>window.SOL_CONFIG = window.SOL_CONFIG || {"db": "https://cardinal-booth-default-rtdb.firebaseio.com", "apiKey": "AIzaSyDm0t01_w92gL5sm4_1RnVLip7xWkjb9ME"};</script>
 <script>
 (function () {
@@ -286,7 +287,7 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
       var shs = (sc.shell && sc.shell.sits) || {}, shf = (sc.shell && sc.shell.forms) || {};
       SITS.forEach(function (st) {
         var o = sc.sits[st[0]], A = P.filter(st[1]); if (!o && !shs[st[0]]) return;
-        var r = { k: st[0], n: A.length, sn: o ? o.n : (shs[st[0]] ? shs[st[0]][2] : 0), items: [] };
+        var r = { k: st[0], A: A, n: A.length, sn: o ? o.n : (shs[st[0]] ? shs[st[0]][2] : 0), items: [] };
         var add = function (lab, x) { if (x) { x.lab = lab; r.items.push(x); if (st[0] !== "ALL") items.push(x) } };
         add("Shell", gradeLook(shs[st[0]], A, function (s) { return up(s.shell) }));
         if (o && o.cov) add("Coverage", gradeLook([covN(o.cov[0]), o.cov[1], o.cn], A, function (s) { return covN(s.cov) }));
@@ -297,7 +298,7 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
       });
       Object.keys(sc.forms || {}).forEach(function (fm) {
         var o = sc.forms[fm], A = P.filter(function (s) { return up(s.form) === up(fm) }); if (!A.length) return;
-        var r = { k: fm, n: A.length, sn: o.n, items: [] };
+        var r = { k: fm, A: A, n: A.length, sn: o.n, items: [] };
         var add = function (lab, x) { if (x) { x.lab = lab; r.items.push(x); items.push(x) } };
         add("Shell", gradeLook(shf[fm], A, function (s) { return up(s.shell) }));
         if (o.cov) add("Coverage", gradeLook([covN(o.cov[0]), o.cov[1], o.cn], A, function (s) { return covN(s.cov) }));
@@ -308,7 +309,7 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
       (sc.calls || []).forEach(function (c) {
         var words = String(c[0]).toUpperCase().split(/[\s/]+/).filter(function (w) { return w.length > 1 });
         var A = P.filter(function (s) { var t = String((s.call || "") + " " + (s.grp || "")).toUpperCase(); return words.length && words.every(function (w) { return t.indexOf(w) >= 0 }) });
-        var r = { k: c[0], said: c[2], dir: c[1], n: A.length, ypp: A.length ? A.reduce(function (t, s) { return t + s.gain }, 0) / A.length : null, g: "na" };
+        var r = { k: c[0], A: A, said: c[2], dir: c[1], n: A.length, ypp: A.length ? A.reduce(function (t, s) { return t + s.gain }, 0) / A.length : null, g: "na" };
         if (A.length >= 3) { var y = r.ypp; r.g = c[1] < 0 ? (y <= 4 ? "held" : y <= 6 ? "close" : "miss") : (y >= 6 ? "held" : y >= 4.5 ? "close" : "miss"); items.push({ g: r.g, lab: "Call" }) }
         crows.push(r);
       });
@@ -329,7 +330,7 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
     S.forEach(function (s, i) {
       if (s.kind === "try" || s.vic || s.res === "Penalty" || s.dn !== 4 || s.gain == null || !s.pt) return;
       var lim = goLimit(s.yl), conv = !!(s.td || s.gain >= s.dist);
-      out.fourth.push({ q: s.qtr, dd: "4th & " + s.dist, at: ballText(s.yl), chart: s.dist <= lim ? "GO" : "KICK", did: "GO", res: conv ? "Converted" : "Stopped", ok: s.dist <= lim, conv: conv, call: s.call || "" });
+      out.fourth.push({ q: s.qtr, dd: "4th & " + s.dist, at: ballText(s.yl), chart: s.dist <= lim ? "GO" : "KICK", did: "GO", A: [s], res: conv ? "Converted" : "Stopped", ok: s.dist <= lim, conv: conv, call: s.call || "" });
     });
     // series that ended on a stopped 3rd down: we kicked (or the half ran out)
     var bySer = {}; S.forEach(function (s) { if (s.kind !== "try") (bySer[s.series] = bySer[s.series] || []).push(s) });
@@ -337,7 +338,7 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
       var L = bySer[k].filter(function (s) { return s.res !== "Penalty" }), l = L[L.length - 1]; if (!l || l.vic || l.dn !== 3 || l.gain == null || l.td) return;
       if (l.res === "Interception" || l.res === "Fumble" || l.gain >= l.dist) return;
       var left = l.dist - l.gain, y = toY(l.yl) + l.gain, yl = y < 50 ? -y : (y === 50 ? 50 : 100 - y), lim = goLimit(yl);
-      out.fourth.push({ q: l.qtr, dd: "4th & " + left, at: ballText(yl), chart: left <= lim ? "GO" : "KICK", did: "KICK", res: "Kicked / half ended", ok: left > lim, inferred: true });
+      out.fourth.push({ q: l.qtr, dd: "4th & " + left, at: ballText(yl), chart: left <= lim ? "GO" : "KICK", did: "KICK", A: [l], res: "Kicked / half ended", ok: left > lim, inferred: true });
     });
     // 2-point decisions
     var log = g.scoreLog || [];
@@ -347,7 +348,7 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
       for (var j = 0; j < i; j++) { var x = S[j]; if (x.td) us += 6; if (x.kind === "try" && x.good) us += x.res === "PAT" ? 1 : 2 }
       log.forEach(function (e) { if (e.after <= i) { if (e.side === "them") them += e.pts; else us += e.pts } });
       var m = us - them, q = s.qtr || 1, mins = q >= 5 ? 1 : (4 - q) * 12 + 6, call = twoCall(m, mins), did = s.res === "PAT" ? "kick" : "2";
-      out.two.push({ q: q, margin: m, chart: call, did: did, good: !!s.good, ok: call === "either" || call === did });
+      out.two.push({ A: [s], q: q, margin: m, chart: call, did: did, good: !!s.good, ok: call === "either" || call === did });
     });
     return out;
   }
@@ -355,7 +356,7 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
     var P = g.off.filter(isPlay).filter(function (s) { return s.call && s.callType !== "freeze" }), tracked = g.off.some(function (s) { return s.nc != null });
     var F = P.filter(function (s) { return s.nc >= 1 && s.nc <= 3 }), O = P.filter(function (s) { return !(s.nc >= 1 && s.nc <= 3) });
     var st = function (A) { return { n: A.length, ef: A.filter(eff).length, ex: A.filter(expl).length, yd: A.reduce(function (t, s) { return t + s.gain }, 0) } };
-    return { tracked: tracked && P.length > 0, f: st(F), o: st(O) };
+    return { tracked: tracked && P.length > 0, f: st(F), o: st(O), F: F, O: O };
   }
   function quality(g) {
     var P = g.off.filter(isPlay), n = P.length;
@@ -437,9 +438,10 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
       var codes = Object.keys(L); $("loadNote").textContent = codes.length ? "Grading " + codes.length + " game" + (codes.length === 1 ? "" : "s") + "…" : "";
       return Promise.all(codes.map(function (code) {
         var c = encodeURIComponent(code);
-        return Promise.all([get("/games/" + c + "/snaps"), get("/games/" + c + "/meta")]).then(function (R) {
+        return Promise.all([get("/games/" + c + "/snaps"), get("/games/" + c + "/meta"), get("/games/" + c + "/clips")]).then(function (R) {
           var meta = obj(R[1]) || {}, e = L[code], date = e.date || meta.gameDate || "";
           var off = vals(R[0]).sort(function (a, b) { return (a.t || 0) - (b.t || 0) || (a.id < b.id ? -1 : 1) });
+          var cn = obj(meta.clipNotes) || {}; off.forEach(function (s) { s._clips = R[2] || {}; s._notes = cn });
           var scout = obj(meta.scout);
           var wk = scout && scout.sits ? Promise.resolve(scout) : (date ? get("/weeks/" + date + "/scout") : Promise.resolve(null));
           var pred = meta.wp && meta.wp.us != null ? Promise.resolve(meta.wp) : (date ? get("/weeks/" + date + "/pred") : Promise.resolve(null));
@@ -481,11 +483,17 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
       return "<button type='button' data-g='" + esc(g.code) + "' aria-pressed='" + (SEL === g.code) + "'>" + esc(g.opp) + "<small>" + nice(g.date) + " · " + (res(g) ? res(g).toUpperCase() + " " : "") + g.us + "–" + g.them + (g.gr.score != null ? " · scout " + g.gr.score + "%" : "") + "</small></button>" }).join("");
     $("gameSeg").querySelectorAll("button").forEach(function (b) { b.addEventListener("click", function () { SEL = b.dataset.g || null; try { history.replaceState(null, "", SEL ? "?game=" + encodeURIComponent(SEL) : location.pathname) } catch (e) {} render(); window.scrollTo(0, 0) }) });
     if (!G.length) { $("out").innerHTML = "<div class='panel empty'>No charted games yet. Chart a game and tap End game to grade it.</div>"; return }
-    $("out").innerHTML = SEL ? gameHTML(G.filter(function (g) { return g.code === SEL })[0]) : seasonHTML(G);
+    PLR = []; $("out").innerHTML = SEL ? gameHTML(G.filter(function (g) { return g.code === SEL })[0]) : seasonHTML(G); plWire();
   }
   function ncLine(n) {
     if (!n.tracked) return null;
     return { fe: pc(n.f.ef, n.f.n), oe: pc(n.o.ef, n.o.n), fy: n.f.n ? n.f.yd / n.f.n : null, oy: n.o.n ? n.o.yd / n.o.n : null };
+  }
+  // playlists: rows carry data-pl, the plays are kept here until the next render
+  var PLR = [];
+  function plA(A, title) { if (!A || !A.length || !window.SolPL) return ""; PLR.push({ A: A, t: title }); return " class='splrow' data-pl='" + (PLR.length - 1) + "'" }
+  function plWire() {
+    $("out").querySelectorAll("tr[data-pl]").forEach(function (tr) { tr.addEventListener("click", function () { var o = PLR[+tr.dataset.pl]; if (o) SolPL.open({ title: o.t, items: SolPL.itemsOf(o.A) }) }) });
   }
   function gameHTML(g) {
     var gr = g.gr, d = g.dec, n = g.nc, q = g.q, h = "";
@@ -502,21 +510,21 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
       k(d.two.length ? twoOk + "/" + d.two.length : "–", "Tries per chart", d.two.length ? "PAT/2-pt choices" : "no tries") +
       k(pcs(q.look, q.n), "Snaps with their look", q.n + " plays charted") + "</div>";
     // situations
-    var rowHTML = function (r) { return r.items.map(function (x, i) { return "<tr>" + (i === 0 ? "<td rowspan='" + r.items.length + "'>" + esc(r.k) + "<br><span class='note'>" + r.n + " snaps tonight · scout " + r.sn + "</span></td>" : "") + "<td class='it'>" + x.lab + "</td><td>" + esc(fmtItem(x)) + "</td><td>" + chip(x.g) + "</td></tr>" }).join("") };
+    var rowHTML = function (r) { return r.items.map(function (x, i) { return "<tr" + plA(r.A, r.k) + ">" + (i === 0 ? "<td rowspan='" + r.items.length + "'>" + esc(r.k) + "<br><span class='note'>" + r.n + " snaps tonight · scout " + r.sn + "</span></td>" : "") + "<td class='it'>" + x.lab + "</td><td>" + esc(fmtItem(x)) + "</td><td>" + chip(x.g) + "</td></tr>" }).join("") };
     h += simGameHTML(g);
     var sr = gr.rows.filter(function (r) { return r.items.length && r.k !== "ALL" }), all = gr.rows.filter(function (r) { return r.k === "ALL" })[0];
     h += "<section class='panel'><h2>Scout vs tonight · by situation <small>Held = same top look / within 10 pts · Close = their #2 look / within 20 · 5+ snaps to grade</small></h2>" +
-      (sr.length || (all && all.items.length) ? "<div class='tbl'><table><tr><th>Situation</th><th>Item</th><th>Scout said · tonight</th><th>Grade</th></tr>" + (all && all.items.length ? rowHTML({ k: "Overall", n: all.n, sn: all.sn, items: all.items }) : "") + sr.map(rowHTML).join("") + "</table></div>" : "<p class='empty'>" + (g.scout ? "Not enough tagged snaps per situation yet." : "No scout for this game.") + "</p>") + "</section>";
+      (sr.length || (all && all.items.length) ? "<div class='tbl'><table><tr><th>Situation</th><th>Item</th><th>Scout said · tonight</th><th>Grade</th></tr>" + (all && all.items.length ? rowHTML({ k: "Overall", A: all.A, n: all.n, sn: all.sn, items: all.items }) : "") + sr.map(rowHTML).join("") + "</table></div>" : "<p class='empty'>" + (g.scout ? "Not enough tagged snaps per situation yet." : "No scout for this game.") + "</p>") + "</section>";
     if (gr.frows.length) h += "<section class='panel'><h2>Scout vs tonight · by our formation</h2><div class='tbl'><table><tr><th>Formation</th><th>Item</th><th>Scout said · tonight</th><th>Grade</th></tr>" + gr.frows.map(rowHTML).join("") + "</table></div></section>";
-    if (gr.crows.length) h += "<section class='panel'><h2>What the scout said about plays</h2><div class='tbl'><table><tr><th>Concept</th><th>Scout said</th><th>Tonight</th><th>Grade</th></tr>" + gr.crows.map(function (r) { return "<tr><td>" + esc(r.k) + "</td><td>" + esc(r.said) + "</td><td>" + (r.n ? r.n + " plays, " + r.ypp.toFixed(1) + " a play" : "not run") + "</td><td>" + chip(r.n >= 3 ? r.g : "na") + "</td></tr>" }).join("") + "</table></div><p class='note'>Matched by name to our calls. Needs 3+ plays to grade.</p></section>";
+    if (gr.crows.length) h += "<section class='panel'><h2>What the scout said about plays</h2><div class='tbl'><table><tr><th>Concept</th><th>Scout said</th><th>Tonight</th><th>Grade</th></tr>" + gr.crows.map(function (r) { return "<tr" + plA(r.A, r.k) + "><td>" + esc(r.k) + "</td><td>" + esc(r.said) + "</td><td>" + (r.n ? r.n + " plays, " + r.ypp.toFixed(1) + " a play" : "not run") + "</td><td>" + chip(r.n >= 3 ? r.g : "na") + "</td></tr>" }).join("") + "</table></div><p class='note'>Matched by name to our calls. Needs 3+ plays to grade.</p></section>";
     // what changed
     var miss = []; gr.rows.concat(gr.frows).forEach(function (r) { if (r.k === "ALL") return; r.items.forEach(function (x) { if (x.g === "miss") miss.push(r.k + " · " + x.lab + ": " + fmtItem(x)) }) });
     gr.crows.forEach(function (r) { if (r.g === "miss" && r.n >= 3) miss.push(r.k + ": scout said “" + r.said + "”, tonight " + r.n + " plays at " + r.ypp.toFixed(1) + " a play") });
     h += "<div class='grid2'><section class='panel'><h2>What changed from the scout</h2>" + (miss.length ? "<ul class='bul'>" + miss.slice(0, 10).map(function (t) { return "<li>" + esc(t) + "</li>" }).join("") + "</ul>" : "<p class='note'>Nothing graded as a miss.</p>") + "</section>";
-    h += "<section class='panel'><h2>Next Call</h2>" + (nl ? "<div class='tbl'><table><tr><th></th><th>Plays</th><th>Efficient</th><th>Yds/play</th><th>Explosive</th></tr><tr><td>Ran a top-3 Next Call</td><td>" + n.f.n + "</td><td>" + pcs(n.f.ef, n.f.n) + "</td><td>" + avg(n.f.yd, n.f.n) + "</td><td>" + pcs(n.f.ex, n.f.n) + "</td></tr><tr><td>Other calls</td><td>" + n.o.n + "</td><td>" + pcs(n.o.ef, n.o.n) + "</td><td>" + avg(n.o.yd, n.o.n) + "</td><td>" + pcs(n.o.ex, n.o.n) + "</td></tr></table></div><p class='note'>Followed Next Call on " + pcs(n.f.n, n.f.n + n.o.n) + " of called plays.</p>" : "<p class='note'>Next Call wasn't tracked for this game.</p>") + "</section></div>";
+    h += "<section class='panel'><h2>Next Call</h2>" + (nl ? "<div class='tbl'><table><tr><th></th><th>Plays</th><th>Efficient</th><th>Yds/play</th><th>Explosive</th></tr><tr" + plA(n.F, "Ran a top-3 Next Call") + "><td>Ran a top-3 Next Call</td><td>" + n.f.n + "</td><td>" + pcs(n.f.ef, n.f.n) + "</td><td>" + avg(n.f.yd, n.f.n) + "</td><td>" + pcs(n.f.ex, n.f.n) + "</td></tr><tr" + plA(n.O, "Other calls") + "><td>Other calls</td><td>" + n.o.n + "</td><td>" + pcs(n.o.ef, n.o.n) + "</td><td>" + avg(n.o.yd, n.o.n) + "</td><td>" + pcs(n.o.ex, n.o.n) + "</td></tr></table></div><p class='note'>Followed Next Call on " + pcs(n.f.n, n.f.n + n.o.n) + " of called plays.</p>" : "<p class='note'>Next Call wasn't tracked for this game.</p>") + "</section></div>";
     // decisions
-    h += "<div class='grid2'><section class='panel'><h2>4th downs <small>chart rule vs what we did</small></h2>" + (d.fourth.length ? "<div class='tbl'><table><tr><th>Q</th><th>Situation</th><th>Chart</th><th>We</th><th>Result</th></tr>" + d.fourth.map(function (x) { return "<tr><td>" + x.q + "</td><td>" + x.dd + " · " + x.at + "</td><td>" + x.chart + "</td><td>" + x.did + "</td><td>" + x.res + (x.ok ? "" : " <span class='g close'>off chart</span>") + "</td></tr>" }).join("") + "</table></div><p class='note'>Kicks are read from drives that ended on a stopped 3rd down, so end-of-half drives show up too.</p>" : "<p class='note'>No 4th downs.</p>") + "</section>";
-    h += "<section class='panel'><h2>Tries after TDs <small>go-for-2 chart vs what we did</small></h2>" + (d.two.length ? "<div class='tbl'><table><tr><th>Q</th><th>Score before try</th><th>Chart</th><th>We</th><th>Result</th></tr>" + d.two.map(function (x) { return "<tr><td>" + (x.q >= 5 ? "OT" : x.q) + "</td><td>" + (x.margin > 0 ? "+" : "") + x.margin + "</td><td>" + (x.chart === "either" ? "either" : x.chart === "2" ? "Go for 2" : "Kick") + "</td><td>" + (x.did === "2" ? "Went for 2" : "Kicked") + "</td><td>" + (x.good ? "Good" : "No good") + (x.ok ? "" : " <span class='g close'>off chart</span>") + "</td></tr>" }).join("") + "</table></div><p class='note'>Clock is estimated from the quarter.</p>" : "<p class='note'>No tries.</p>") + "</section></div>";
+    h += "<div class='grid2'><section class='panel'><h2>4th downs <small>chart rule vs what we did</small></h2>" + (d.fourth.length ? "<div class='tbl'><table><tr><th>Q</th><th>Situation</th><th>Chart</th><th>We</th><th>Result</th></tr>" + d.fourth.map(function (x) { return "<tr" + plA(x.A, x.dd + " · " + x.at) + "><td>" + x.q + "</td><td>" + x.dd + " · " + x.at + "</td><td>" + x.chart + "</td><td>" + x.did + "</td><td>" + x.res + (x.ok ? "" : " <span class='g close'>off chart</span>") + "</td></tr>" }).join("") + "</table></div><p class='note'>Kicks are read from drives that ended on a stopped 3rd down, so end-of-half drives show up too.</p>" : "<p class='note'>No 4th downs.</p>") + "</section>";
+    h += "<section class='panel'><h2>Tries after TDs <small>go-for-2 chart vs what we did</small></h2>" + (d.two.length ? "<div class='tbl'><table><tr><th>Q</th><th>Score before try</th><th>Chart</th><th>We</th><th>Result</th></tr>" + d.two.map(function (x) { return "<tr" + plA(x.A, "Try") + "><td>" + (x.q >= 5 ? "OT" : x.q) + "</td><td>" + (x.margin > 0 ? "+" : "") + x.margin + "</td><td>" + (x.chart === "either" ? "either" : x.chart === "2" ? "Go for 2" : "Kick") + "</td><td>" + (x.did === "2" ? "Went for 2" : "Kicked") + "</td><td>" + (x.good ? "Good" : "No good") + (x.ok ? "" : " <span class='g close'>off chart</span>") + "</td></tr>" }).join("") + "</table></div><p class='note'>Clock is estimated from the quarter.</p>" : "<p class='note'>No tries.</p>") + "</section></div>";
     // charting quality
     h += "<section class='panel'><h2>Charting quality <small>how complete the data is · better tags = sharper grades</small></h2><div class='kpis'>" + k(q.n, "Plays charted", "") + k(pcs(q.look, q.n), "Their look tagged", "") + k(pcs(q.form, q.n), "Formation tagged", "") + k(pcs(q.call, q.n), "Call tagged", "") + k(pcs(q.pl, q.npl), "Ball carrier / target", "") + "</div></section>";
     return h;

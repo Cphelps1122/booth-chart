@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Film Reel · Solutions Analytics</title>
+<meta name="robots" content="noindex">
+<style>
+:root { --bg: #0c1117; --card: #141b24; --ink: #e8edf2; --muted: #9aa7b6; --red: #c8102e; --line: #26354a }
+* { box-sizing: border-box }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.45 Inter, system-ui, "Segoe UI", Arial, sans-serif }
+header { padding: calc(env(safe-area-inset-top, 0px) + 14px) 16px 14px; border-bottom: 3px solid var(--red); background: #0f141b }
+header small { color: var(--muted); font-weight: 700; letter-spacing: .1em; text-transform: uppercase; font-size: 12px }
+h1 { margin: 2px 0 0; font-size: 24px; letter-spacing: .02em }
+main { max-width: 900px; margin: 0 auto; padding: 16px }
+.play { font: inherit; font-size: 20px; font-weight: 800; padding: 14px 22px; border: 0; border-radius: 12px; background: var(--red); color: #fff; cursor: pointer; width: 100%; margin: 6px 0 16px }
+.row { display: block; width: 100%; text-align: left; font: inherit; font-size: 15px; padding: 10px 12px; margin: 0 0 6px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--ink); cursor: pointer }
+.row small { display: block; color: var(--muted) } .row .nt { display: block; margin-top: 4px; color: #ffe27a }
+.empty { color: var(--muted); padding: 30px 0; text-align: center }
+footer { color: var(--muted); font-size: 12.5px; text-align: center; padding: 20px }
+</style>
+</head>
+<body>
+<header><small id="sub">Film reel</small><h1 id="ttl">Loading…</h1></header>
+<main id="out"><p class="empty">Loading the reel…</p></main>
+<footer>Shared with Solutions Analytics</footer>
+<script>window.SOL_CONFIG = window.SOL_CONFIG || {"db": "https://cardinal-booth-default-rtdb.firebaseio.com", "apiKey": "AIzaSyDm0t01_w92gL5sm4_1RnVLip7xWkjb9ME"};</script>
+<script src="playlist.js"></script>
+<script>
+(function () {
+  var DB = (window.SOL_CONFIG || {}).db, tok = (new URLSearchParams(location.search)).get("r") || "";
+  var $ = function (id) { return document.getElementById(id) };
+  var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] }) };
+  var nice = function (d) { var p = String(d || "").split("-"); return p.length === 3 ? (+p[1]) + "/" + (+p[2]) + "/" + p[0] : "" };
+  function fail(t) { $("ttl").textContent = "Reel not available"; $("out").innerHTML = "<p class='empty'>" + esc(t) + "</p>" }
+  if (!/^[a-z0-9]{8,40}$/.test(tok)) { fail("This link is incomplete. Ask your coach to send it again."); return }
+  fetch(DB + "/share/" + tok + ".json").then(function (r) { return r.ok ? r.json() : null }).then(function (d) {
+    if (!d || !d.items || !d.items.length) { fail("This reel was turned off or doesn't exist anymore."); return }
+    document.title = d.title + " · Film Reel";
+    $("ttl").textContent = d.title; $("sub").textContent = [d.opp ? "vs " + d.opp : "", nice(d.date), d.items.length + " play" + (d.items.length === 1 ? "" : "s")].filter(Boolean).join(" · ");
+    var items = d.items.map(function (x) { return { s: x.s || {}, label: x.label, look: x.look, note: x.note, url: x.url } });
+    $("out").innerHTML = "<button class='play' id='go' type='button'>▶ Play reel</button>" + items.map(function (x, i) { return "<button class='row' type='button' data-i='" + i + "'>▶ " + esc(x.label) + (x.look ? "<small>vs " + esc(x.look) + "</small>" : "") + (x.note ? "<span class='nt'>📝 " + esc(x.note) + "</span>" : "") + "</button>" }).join("");
+    $("go").onclick = function () { SolPL.open({ title: d.title, items: items }) };
+    document.querySelectorAll("[data-i]").forEach(function (b) { b.onclick = function () { var i = +b.dataset.i; SolPL.open({ title: d.title, items: items.slice(i).concat(items.slice(0, i)) }) } });
+  }, function () { fail("Couldn't load the reel. Check the connection and try again.") });
+})();
+</script>
+</body>
+</html>

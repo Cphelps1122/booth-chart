@@ -384,6 +384,9 @@ body.infinal #v-chart .panel, body.infinal #v-chart .spotpanel, body.infinal #v-
 #plVid { width: 100%; max-height: 62vh; background: #000; border-radius: 8px } .plinfo { font-weight: 700; margin: 6px 0 } .plinfo small { font-weight: 500; color: var(--muted) }
 .pllist { max-height: 62vh; overflow-y: auto; display: flex; flex-direction: column; gap: 4px } .pllist button { text-align: left; font: inherit; font-size: 13.5px; padding: 7px 9px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer }
 .pllist button.on { border-color: var(--red); background: color-mix(in srgb, var(--red) 14%, var(--bg)); font-weight: 700 } .pllist button.nc { opacity: .45 } .pllist button .rm { float: right; color: var(--muted) }
+.plfilt { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 8px } .plfilt button { font: inherit; font-size: 13px; font-weight: 700; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer } .plfilt button[aria-pressed=true] { background: var(--red); border-color: var(--red); color: #fff }
+#plNoteIn { width: 100%; box-sizing: border-box; font: inherit; font-size: 15px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: #fff7cc; color: #3b3000; margin-top: 6px; min-height: 40px; resize: vertical }
+.nc-watch { display: inline-block; margin-top: 4px; font-size: 12.5px; font-weight: 800; padding: 3px 8px; border-radius: 999px; background: rgba(255,255,255,.12); color: #ffd400 } .nc-card.on .nc-watch { background: rgba(0,0,0,.08); color: #8a5a00 }
 .plctl { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 8px } .plctl .btn { font-size: 15px; padding: 7px 12px } .plctl select { font: inherit; font-size: 14px; padding: 6px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink) }
 .lkusers { display: grid; gap: 6px; margin-top: 8px } .lkusers label { display: flex; gap: 10px; align-items: center; font-size: 15px; padding: 6px 8px; border-radius: 8px; background: var(--chip) }
 
@@ -1047,13 +1050,16 @@ textarea { min-height: 64px }
 <div class="modal" id="plModal" hidden role="dialog" aria-modal="true" aria-labelledby="plTitle">
   <div class="mbox">
     <h3 id="plTitle" style="margin:0 0 8px"></h3>
+    <div class="plfilt" id="plFilt"></div>
     <div class="plwrap">
       <div>
         <video id="plVid" controls playsinline></video>
         <div class="plinfo" id="plInfo"></div>
+        <textarea id="plNoteIn" rows="1" placeholder="📝 Coaching note on this play (every device sees it)"></textarea>
         <div class="plctl">
           <button class="btn" id="plPrev" type="button">◀ Previous</button><button class="btn" id="plNext" type="button">Next ▶</button>
           <label class="note" style="margin:0;display:flex;gap:6px;align-items:center"><input type="checkbox" id="plAuto" checked> Play all</label>
+          <label class="note" style="margin:0;display:flex;gap:6px;align-items:center"><input type="checkbox" id="plLoop"> Loop this play</label>
           <select id="plSpeed" aria-label="Speed"><option value="0.5">½ speed</option><option value="1" selected>1× speed</option><option value="1.5">1.5×</option></select>
           <span style="flex:1"></span>
           <select id="plReelSel" aria-label="Reel to add to"></select><button class="btn primary" id="plAdd" type="button">＋ Add to reel</button>
@@ -1386,7 +1392,7 @@ textarea { min-height: 64px }
   var DEFAULT_DB = "https://cardinal-booth-default-rtdb.firebaseio.com";
   var SYNC_KEY = "cardinals-booth-sync-v1" + NS, DEVICE = Math.random().toString(36).slice(2, 10);
   var SY = { cfg: null, es: null, status: "off", mirror: null, last: null, pushing: false, dirty: false, needApply: false, timer: null, retry: null, applying: false };
-  var META_KEYS = ["reels", "gc", "final", "lock", "dir", "wp", "clock", "clocks", "clk", "sheet", "sheetVer", "scout", "gameDate", "opp", "pre", "start", "lists", "dmode", "fast", "oppScore", "ourAdj", "scoreLog", "tryPending", "endAfter", "example", "cur"];
+  var META_KEYS = ["reels", "clipNotes", "gc", "final", "lock", "dir", "wp", "clock", "clocks", "clk", "sheet", "sheetVer", "scout", "gameDate", "opp", "pre", "start", "lists", "dmode", "fast", "oppScore", "ourAdj", "scoreLog", "tryPending", "endAfter", "example", "cur"];
   function syncCfg() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || "null") } catch (e) { return null } }
   function setSyncCfg(c) { try { if (c) localStorage.setItem(SYNC_KEY, JSON.stringify(c)); else localStorage.removeItem(SYNC_KEY) } catch (e) {} }
   function newCode() { var a = "abcdefghjkmnpqrstuvwxyz23456789", t = ""; var r = new Uint8Array(18); (window.crypto || window.msCrypto).getRandomValues(r); for (var i = 0; i < 18; i++) t += a[r[i] % a.length]; return "mel-" + t }
@@ -2142,6 +2148,12 @@ textarea { min-height: 64px }
     var pick3 = [], calls = {}; R.forEach(function (r) { var k = con(r.cd.call); if (pick3.length < (opt.n || 3) && !calls[k]) { calls[k] = 1; pick3.push(r) } });
     return { list: pick3, look: look };
   }
+  // tonight's plays of a suggested call, same look first
+  function ncFilm(cd) {
+    var L = NC.look || {}, A = S.snaps.filter(function (s) { return s.id && s.call === cd.call && (!cd.form || s.form === cd.form) && s.kind !== "try" });
+    var same = function (s) { return (L.shell && s.shell === L.shell ? 2 : 0) + (L.blitz != null && ((s.blitz && s.blitz !== "No") === (L.blitz > .5)) ? 1 : 0) };
+    return A.slice().sort(function (a, b) { return same(b) - same(a) || a.n - b.n });
+  }
   function ncLookTxt(L) {
     var p = []; if (L.shell) p.push(L.shell.toLowerCase() + (L.shellP != null ? " " + L.shellP + "%" : ""));
     if (L.blitz != null && L.bn) p.push("blitz " + Math.round(L.blitz * 100) + "% (" + L.bl + "/" + L.bn + ")");
@@ -2161,7 +2173,7 @@ textarea { min-height: 64px }
     if (mini) { box.innerHTML = h + ncAlertHTML() + "<div class='nc-mini'>" + NC.list.map(function (r, i) { return "<button type='button' class='nc-pick' data-i='" + i + "'>" + (i ? "" : "★ ") + esc(r.label) + " <em>" + r.conf + "</em></button>" }).join("") + "</div>"; ncWire(); return }
     var sel = function (r) { return pick.call === r.cd.call && (!r.cd.form || pick.form === r.cd.form) };
     box.innerHTML = h + "<div class='nc-row'>" + NC.list.map(function (r, i) {
-      return "<button type='button' class='nc-card" + (sel(r) ? " on" : "") + "' data-i='" + i + "'><div class='nc-t'><b>" + (i ? "" : "★ ") + esc(r.label) + "</b><em>" + r.conf + "</em></div>" + r.why.map(function (w) { return "<div class='nc-w'>" + esc(w) + "</div>" }).join("") + "</button>" }).join("") + "</div>" +
+      return "<button type='button' class='nc-card" + (sel(r) ? " on" : "") + "' data-i='" + i + "'><div class='nc-t'><b>" + (i ? "" : "★ ") + esc(r.label) + "</b><em>" + r.conf + "</em></div>" + r.why.map(function (w) { return "<div class='nc-w'>" + esc(w) + "</div>" }).join("") + (function () { var n = ncFilm(r.cd).filter(function (s) { return hasClip(s.id) }).length; return n ? "<span class='nc-watch' data-w='1'>▶ Watch tonight (" + n + ")</span>" : "" })() + "</button>" }).join("") + "</div>" +
       "<div class='nc-look'>" + esc(ncLookTxt(NC.look)) + "</div>" + ncAlertHTML() +
       (NC.why ? "<div class='nc-detail'><table><tr><th>Call</th><th>Score</th><th>Plays</th><th>Success</th><th>Yds/play</th><th>Reasons</th></tr>" + NC.list.map(function (r) { return "<tr><td>" + esc(r.label) + "</td><td>" + r.conf + "</td><td>" + r.n + "</td><td>" + (r.sr != null ? r.sr + "%" : "—") + "</td><td>" + (r.ypp != null ? r.ypp.toFixed(1) : "—") + "</td><td>" + esc(r.allWhy.join(" · ")) + "</td></tr>" }).join("") + "</table><p class='note'>Score blends: your success with this play (season + tonight, tonight counts double), how it does vs the look they show here (scout + tonight), whether it usually gains enough for this down & distance, and a nudge away from calls you've leaned on. Small samples are pulled toward average.</p></div>" : "");
     ncWire();
@@ -2173,7 +2185,7 @@ textarea { min-height: 64px }
   function ncWire() {
     var hb = $("htBtnNC"); if (hb) hb.onclick = htOpen; var gb = $("gmBtnNC"); if (gb) gb.onclick = gmOpen;
     var w = $("ncWhy"), m = $("ncMin"); if (w) w.onclick = function () { NC.why = !NC.why; renderNC() }; if (m) m.onclick = function () { ncSet("mini", ncPref("mini", "0") === "1" ? "0" : "1"); renderNC() };
-    document.querySelectorAll("#ncBox [data-i]").forEach(function (b) { b.onclick = function () { var r = NC.list[+b.dataset.i]; if (!r) return; var cd = r.cd; pick.mull = false; pick.form = cd.form || pick.form; pick.call = cd.call; pick.callType = "sheet"; pick.motion = cd.motion; pick.rpo = cd.rpo; pick.nc = +b.dataset.i + 1; renderChips() } });
+    document.querySelectorAll("#ncBox [data-i]").forEach(function (b) { b.onclick = function (ev) { var r = NC.list[+b.dataset.i]; if (!r) return; if (ev && ev.target && ev.target.closest && ev.target.closest("[data-w]")) { var A = ncFilm(r.cd); openPlaylist(r.label + " tonight", A); return } var cd = r.cd; pick.mull = false; pick.form = cd.form || pick.form; pick.call = cd.call; pick.callType = "sheet"; pick.motion = cd.motion; pick.rpo = cd.rpo; pick.nc = +b.dataset.i + 1; renderChips() } });
   }
   // ---------- Next Call step 2: live tendency alerts, predictability warning, suggested-call results ----------
   function ncAlerts(c) {
@@ -3754,30 +3766,52 @@ textarea { min-height: 64px }
   function plLook(s) { return [s.shell ? s.shell.toLowerCase() : "", s.front || "", s.cov ? covName(s.cov) : "", s.blitz && s.blitz !== "No" ? "blitz: " + s.blitz : ""].filter(Boolean).join(" · ") }
   function openPlaylist(title, snaps, reel) {
     var ids = snaps.map(function (x) { return x.id }).filter(Boolean); if (!ids.length) { toast("No plays there yet"); return }
-    var withClip = ids.filter(hasClip).length;
-    PL = { title: title, ids: ids, pos: 0, reel: reel || null };
-    var first = ids.findIndex ? ids.findIndex(hasClip) : 0; PL.pos = first < 0 ? 0 : first;
-    $("plTitle").textContent = title + " · " + withClip + " of " + ids.length + " play" + (ids.length === 1 ? "" : "s") + " with film";
-    plReelSel(); $("plModal").hidden = false; plGo(PL.pos);
+    PL = { title: title, all: ids, ids: ids, pos: 0, reel: reel || null, f: "all" };
+    plReelSel(); $("plModal").hidden = false; plFilter("all");
+  }
+  var PL_F = [
+    ["all", "All", function () { return true }],
+    ["film", "Has film", function (s) { return hasClip(s.id) }],
+    ["big", "Big plays", function (s) { return !!s.td || (s.pt === "Run" && s.gain >= 10) || (s.pt === "Pass" && s.gain >= 15) }],
+    ["neg", "Negative", function (s) { return s.gain < 0 || s.res === "Sack" || s.res === "Interception" || s.res === "Fumble" }],
+    ["eff", "Efficient", function (s) { return s.gain != null && s.kind !== "try" && eff(s) }],
+    ["blitz", "vs blitz", function (s) { return !!s.blitz && s.blitz !== "No" }],
+    ["h1", "vs 1-high", function (s) { return s.shell === "1-HIGH" }],
+    ["h2", "vs 2-high", function (s) { return s.shell === "2-HIGH" }],
+    ["h0", "vs Cover 0", function (s) { return s.shell === "ZERO" }],
+    ["note", "Has a note", function (s) { return !!(S.clipNotes && S.clipNotes[s.id]) }]
+  ];
+  function plFilter(k) {
+    var cnt = {}, snap = function (id) { return plSnap(id) || {} };
+    PL_F.forEach(function (f) { cnt[f[0]] = PL.all.filter(function (id) { return f[2](snap(id)) }).length });
+    var f = PL_F.filter(function (x) { return x[0] === k })[0] || PL_F[0]; PL.f = f[0];
+    PL.ids = PL.all.filter(function (id) { return f[2](snap(id)) });
+    $("plFilt").innerHTML = PL.all.length < 2 ? "" : PL_F.filter(function (x) { return x[0] === "all" || x[0] === PL.f || (cnt[x[0]] && cnt[x[0]] < PL.all.length) }).map(function (x) { return "<button type='button' data-plf='" + x[0] + "' aria-pressed='" + (x[0] === PL.f) + "'>" + x[1] + " " + cnt[x[0]] + "</button>" }).join("");
+    $("plFilt").querySelectorAll("[data-plf]").forEach(function (b) { b.addEventListener("click", function () { plFilter(b.dataset.plf) }) });
+    var withClip = PL.ids.filter(hasClip).length;
+    $("plTitle").textContent = PL.title + (PL.f !== "all" ? " · " + f[1] : "") + " · " + withClip + " of " + PL.ids.length + " play" + (PL.ids.length === 1 ? "" : "s") + " with film";
+    if (!PL.ids.length) { $("plList").innerHTML = "<p class='note'>No plays match.</p>"; $("plInfo").textContent = ""; $("plVid").removeAttribute("src"); return }
+    var first = PL.ids.findIndex(hasClip); plGo(first < 0 ? 0 : first);
   }
   function plGo(i) {
     if (i < 0 || i >= PL.ids.length) return; PL.pos = i;
     var id = PL.ids[i], s = plSnap(id) || {}, vid = $("plVid");
     $("plInfo").innerHTML = esc(plLabel(s)) + (plLook(s) ? "<br><small>vs " + esc(plLook(s)) + "</small>" : "") + "<br><small>Play " + (i + 1) + " of " + PL.ids.length + "</small>";
     plList(); plAddBtn();
+    var ni = $("plNoteIn"); ni.value = (S.clipNotes && S.clipNotes[id]) || ""; ni.dataset.id = id; ni.disabled = !!(typeof LOCK !== "undefined" && LOCK.on);
     $("plPrev").disabled = i <= 0; $("plNext").disabled = i >= PL.ids.length - 1;
     if (PL.url) { try { URL.revokeObjectURL(PL.url) } catch (e) {} PL.url = null }
-    if (!hasClip(id)) { vid.removeAttribute("src"); try { vid.load() } catch (e) {} $("plInfo").innerHTML += "<br><small>No film for this play.</small>"; $("plDl").removeAttribute("href"); if ($("plAuto").checked) setTimeout(function () { if (PL.pos === i && i < PL.ids.length - 1) plGo(i + 1) }, 900); return }
+    if (!hasClip(id)) { vid.removeAttribute("src"); try { vid.load() } catch (e) {} $("plInfo").innerHTML += "<br><small>No film for this play.</small>"; $("plDl").removeAttribute("href"); if ($("plAuto").checked && !$("plLoop").checked) setTimeout(function () { if (PL.pos === i && i < PL.ids.length - 1) plGo(i + 1) }, 900); return }
     fget(filmKey(id)).then(function (b) {
       if (PL.pos !== i) return;
       var rc = remoteClips()[id], src = b ? (PL.url = URL.createObjectURL(b)) : rc && rc.url; if (!src) return;
-      vid.src = src; vid.playbackRate = +$("plSpeed").value || 1; $("plDl").href = src; $("plDl").download = "Play_" + s.n + "_" + (S.opp || "game").replace(/\W+/g, "_") + (/mp4/.test(b ? b.type : (rc && rc.type) || "") ? ".mp4" : ".webm");
+      vid.src = src; vid.loop = $("plLoop").checked; vid.playbackRate = +$("plSpeed").value || 1; $("plDl").href = src; $("plDl").download = "Play_" + s.n + "_" + (S.opp || "game").replace(/\W+/g, "_") + (/mp4/.test(b ? b.type : (rc && rc.type) || "") ? ".mp4" : ".webm");
       try { var pr = vid.play(); if (pr && pr.catch) pr.catch(function () {}) } catch (e) {}
     });
   }
   function plList() {
     var el = $("plList");
-    el.innerHTML = PL.ids.map(function (id, k) { var s = plSnap(id) || { n: "?" }, c = hasClip(id); return "<button type='button' data-pk='" + k + "' class='" + (k === PL.pos ? "on " : "") + (c ? "" : "nc") + "'>" + (c ? "▶ " : "") + esc(plLabel(s)) + (PL.reel ? "<span class='rm' data-rm='" + esc(id) + "' title='Remove from reel'>✕</span>" : "") + "</button>" }).join("");
+    el.innerHTML = PL.ids.map(function (id, k) { var s = plSnap(id) || { n: "?" }, c = hasClip(id); return "<button type='button' data-pk='" + k + "' class='" + (k === PL.pos ? "on " : "") + (c ? "" : "nc") + "'>" + (c ? "▶ " : "") + esc(plLabel(s)) + (S.clipNotes && S.clipNotes[id] ? " 📝" : "") + (PL.reel ? "<span class='rm' data-rm='" + esc(id) + "' title='Remove from reel'>✕</span>" : "") + "</button>" }).join("");
     el.querySelectorAll("[data-pk]").forEach(function (b) { b.addEventListener("click", function (e) { if (e.target.dataset.rm) { reelRemove(PL.reel, e.target.dataset.rm); return } plGo(+b.dataset.pk) }) });
     var on = el.querySelector(".on"); if (on && on.scrollIntoView) try { on.scrollIntoView({ block: "nearest" }) } catch (e) {}
   }
@@ -3800,15 +3834,40 @@ textarea { min-height: 64px }
     var R = reels(), id = PL.ids[PL.pos]; if (!id) return; if (!REEL_PICK) REEL_PICK = "Halftime reel";
     var r = R.filter(function (x) { return x.name === REEL_PICK })[0]; if (!r) { r = { name: REEL_PICK, ids: [], at: Date.now() }; R.push(r) }
     var at = r.ids.indexOf(id); if (at >= 0) r.ids.splice(at, 1); else r.ids.push(id); r.at = Date.now();
-    save(); plAddBtn(); renderReels(); toast(at >= 0 ? "Removed from " + r.name : "Added to " + r.name + " · " + r.ids.length + " play" + (r.ids.length === 1 ? "" : "s"));
+    save(); plAddBtn(); renderReels(); if (r.share) reelPublish(r, true); toast(at >= 0 ? "Removed from " + r.name : "Added to " + r.name + " · " + r.ids.length + " play" + (r.ids.length === 1 ? "" : "s"));
   }
-  function reelRemove(name, id) { var r = reels().filter(function (x) { return x.name === name })[0]; if (!r) return; r.ids = r.ids.filter(function (x) { return x !== id }); save(); renderReels(); var cur = PL.ids[PL.pos]; PL.ids = r.ids.slice(); if (!PL.ids.length) { closePl(); return } PL.pos = Math.max(0, Math.min(PL.ids.indexOf(cur) >= 0 ? PL.ids.indexOf(cur) : PL.pos, PL.ids.length - 1)); plGo(PL.pos) }
-  var REEL_DEL = null;
+  function reelRemove(name, id) { var r = reels().filter(function (x) { return x.name === name })[0]; if (!r) return; r.ids = r.ids.filter(function (x) { return x !== id }); save(); renderReels(); var cur = PL.ids[PL.pos]; PL.ids = r.ids.slice(); PL.all = PL.ids.slice(); PL.f = "all"; if (!PL.ids.length) { closePl(); return } PL.pos = Math.max(0, Math.min(PL.ids.indexOf(cur) >= 0 ? PL.ids.indexOf(cur) : PL.pos, PL.ids.length - 1)); plGo(PL.pos) }
+  // ---------- share a reel: a link that plays just that reel, no sign-in ----------
+  function reelPublish(r, quiet) {
+    var a = authGet() || {}, rc = remoteClips(), notes = S.clipNotes || {};
+    var items = r.ids.map(plSnap).filter(Boolean).map(function (s) { var c = rc[s.id]; return { label: plLabel(s), look: plLook(s), note: notes[s.id] || "", url: c && c.url ? c.url : null, s: { n: s.n, qtr: s.qtr, dn: s.dn, dist: s.dist, yl: s.yl, gain: s.gain, td: !!s.td, pt: s.pt || null, res: s.res || null, shell: s.shell || null, blitz: s.blitz || null, kind: s.kind || null } } });
+    var on = items.filter(function (x) { return x.url }).length, off = items.length - on;
+    if (!on) { if (!quiet) toast("None of these clips are online yet. Turn on Clips online, then share."); return Promise.resolve(null) }
+    var tok = r.share || (Date.now().toString(36) + Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10));
+    var doc = { by: a.uid || "", school: a.school || "", title: r.name, opp: S.opp || "", date: S.gameDate || "", at: Date.now(), items: items.filter(function (x) { return x.url }) };
+    return solToken().then(function (t) { return fetch(SOL_DB + "/share/" + tok + ".json?auth=" + encodeURIComponent(t), { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(doc) }) }).then(function (res) {
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      if (!r.share) { r.share = tok; save() }
+      var url = location.href.replace(/[#?].*$/, "").replace(/[^\/]*$/, "") + "reel.html?r=" + tok;
+      if (!quiet) {
+        try { if (navigator.clipboard) navigator.clipboard.writeText(url).catch(function () {}) } catch (e) {}
+        if (navigator.share) navigator.share({ title: r.name, url: url }).catch(function () {}); else prompt("Link copied. Anyone with this link can watch this reel" + (off ? " (" + off + " play" + (off === 1 ? "" : "s") + " not online yet are left out)" : "") + ":", url);
+      }
+      renderReels(); return url;
+    }).catch(function () { if (!quiet) toast("Couldn't share. Add the share rule in Firebase (see notes), then try again.") });
+  }
+  function reelUnshare(r) {
+    if (!r.share) return; var tok = r.share;
+    solToken().then(function (t) { return fetch(SOL_DB + "/share/" + tok + ".json?auth=" + encodeURIComponent(t), { method: "DELETE" }) }).then(function (res) { if (!res.ok) throw 0; delete r.share; save(); renderReels(); toast("Link turned off: " + r.name) }).catch(function () { toast("Couldn't turn the link off. Try again.") });
+  }
+  var REEL_DEL = null, REEL_UNS = null;
   function renderReels() {
     var el = $("reelBar"); if (!el) return; var R = reels().filter(function (r) { return r.ids.length });
-    el.innerHTML = "<b>Reels</b>" + (R.length ? R.map(function (r) { return "<button class='btn' type='button' data-reel='" + esc(r.name) + "'>▶ " + esc(r.name) + " (" + r.ids.length + ")</button><button class='btn' type='button' data-rdel='" + esc(r.name) + "' title='Delete reel'>" + (REEL_DEL === r.name ? "Tap again to delete" : "✕") + "</button>" }).join("") : "<span class='note' style='margin:0'>Tap any row below to watch its clips. Add clips to a reel while you watch to build a cut-up for halftime or the coaches.</span>");
+    el.innerHTML = "<b>Reels</b>" + (R.length ? R.map(function (r) { return "<button class='btn' type='button' data-reel='" + esc(r.name) + "'>▶ " + esc(r.name) + " (" + r.ids.length + ")</button><button class='btn' type='button' data-rshare='" + esc(r.name) + "'>" + (r.share ? "🔗 Copy link" : "🔗 Share") + "</button>" + (r.share ? "<button class='btn' type='button' data-runs='" + esc(r.name) + "'>" + (REEL_UNS === r.name ? "Tap again to turn off" : "Stop sharing") + "</button>" : "") + "<button class='btn' type='button' data-rdel='" + esc(r.name) + "' title='Delete reel'>" + (REEL_DEL === r.name ? "Tap again to delete" : "✕") + "</button>" }).join("") : "<span class='note' style='margin:0'>Tap any row below to watch its clips. Add clips to a reel while you watch to build a cut-up for halftime or the coaches.</span>");
     el.querySelectorAll("[data-reel]").forEach(function (b) { b.addEventListener("click", function () { var r = reels().filter(function (x) { return x.name === b.dataset.reel })[0]; if (!r) return; REEL_PICK = r.name; openPlaylist(r.name, r.ids.map(plSnap).filter(Boolean), r.name) }) });
-    el.querySelectorAll("[data-rdel]").forEach(function (b) { b.addEventListener("click", function () { var n = b.dataset.rdel; if (REEL_DEL !== n) { REEL_DEL = n; renderReels(); setTimeout(function () { REEL_DEL = null; renderReels() }, 4000); return } REEL_DEL = null; S.reels = reels().filter(function (x) { return x.name !== n }); save(); renderReels(); toast("Deleted " + n) }) });
+    el.querySelectorAll("[data-rdel]").forEach(function (b) { b.addEventListener("click", function () { var n = b.dataset.rdel; if (REEL_DEL !== n) { REEL_DEL = n; renderReels(); setTimeout(function () { REEL_DEL = null; renderReels() }, 4000); return } REEL_DEL = null; var dr = reels().filter(function (x) { return x.name === n })[0]; if (dr && dr.share) reelUnshare(dr); S.reels = reels().filter(function (x) { return x.name !== n }); save(); renderReels(); toast("Deleted " + n) }) });
+    el.querySelectorAll("[data-rshare]").forEach(function (b) { b.addEventListener("click", function () { var r = reels().filter(function (x) { return x.name === b.dataset.rshare })[0]; if (r) reelPublish(r) }) });
+    el.querySelectorAll("[data-runs]").forEach(function (b) { b.addEventListener("click", function () { var n = b.dataset.runs; if (REEL_UNS !== n) { REEL_UNS = n; renderReels(); setTimeout(function () { REEL_UNS = null; renderReels() }, 4000); return } REEL_UNS = null; var r = reels().filter(function (x) { return x.name === n })[0]; if (r) reelUnshare(r) }) });
   }
   // every row in the OC report opens its plays as a playlist
   function plWire() {
@@ -5301,6 +5360,11 @@ textarea { min-height: 64px }
   $("plClose").addEventListener("click", closePl); $("plAdd").addEventListener("click", reelToggle);
   $("plVid").addEventListener("ended", function () { if ($("plAuto").checked && PL.pos < PL.ids.length - 1) plGo(PL.pos + 1) });
   $("plSpeed").addEventListener("change", function () { $("plVid").playbackRate = +this.value || 1 });
+  $("plLoop").addEventListener("change", function () { $("plVid").loop = this.checked });
+  $("plNoteIn").addEventListener("input", function () {
+    var ta = this, id = ta.dataset.id; if (!id) return; clearTimeout(ta._t);
+    ta._t = setTimeout(function () { if (!S.clipNotes || typeof S.clipNotes !== "object") S.clipNotes = {}; var v = ta.value.trim(); if (v) S.clipNotes[id] = v.slice(0, 400); else delete S.clipNotes[id]; save(); plList(); var rr = reels().filter(function (r) { return r.share && r.ids.indexOf(id) >= 0 }); rr.forEach(function (r) { reelPublish(r, true) }) }, 700);
+  });
   $("plReelSel").addEventListener("change", function () {
     if (this.value === "__new") { var n = (prompt("Name the new reel", "Reel " + (reels().length + 1)) || "").trim(); REEL_PICK = n || REEL_PICK; plReelSel() } else REEL_PICK = this.value;
     plAddBtn();

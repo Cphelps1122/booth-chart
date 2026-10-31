@@ -163,6 +163,7 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
   </div>
 </main>
 <div class="toast" id="toast" hidden></div>
+<script src="playlist.js"></script>
 <script>window.SOL_CONFIG = window.SOL_CONFIG || {"db": "https://cardinal-booth-default-rtdb.firebaseio.com", "apiKey": "AIzaSyDm0t01_w92gL5sm4_1RnVLip7xWkjb9ME"};</script>
 <script>
 (function () {
@@ -311,10 +312,10 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
       var codes = Object.keys(L);
       $("loadNote").textContent = codes.length ? "Loading " + codes.length + " game" + (codes.length === 1 ? "" : "s") + "…" : "";
       return Promise.all(codes.map(function (code) {
-        return Promise.all([get("/games/" + encodeURIComponent(code) + "/snaps"), get("/games/" + encodeURIComponent(code) + "/meta"), get("/games/" + encodeURIComponent(code) + "/defense/snaps")]).then(function (R) {
+        return Promise.all([get("/games/" + encodeURIComponent(code) + "/snaps"), get("/games/" + encodeURIComponent(code) + "/meta"), get("/games/" + encodeURIComponent(code) + "/defense/snaps"), get("/games/" + encodeURIComponent(code) + "/clips")]).then(function (R) {
           var meta = R[1] || {}; if (typeof meta === "string") { try { meta = JSON.parse(meta) } catch (e) { meta = {} } }
           var off = vals(R[0]).sort(function (a, b) { return (a.t || 0) - (b.t || 0) }), def = vals(R[2]).sort(function (a, b) { return (a.t || 0) - (b.t || 0) });
-          var e = L[code];
+          var e = L[code], cn = meta.clipNotes || {}; off.forEach(function (s) { s._clips = R[3] || {}; s._notes = cn; s._opp = e.opp || meta.opp || "" });
           return { code: code, opp: e.opp || meta.opp || "Opponent", date: e.date || meta.gameDate || "", us: meta.final ? +meta.final.us || 0 : +e.us || 0, them: meta.final ? +meta.final.them || 0 : (+e.them || +meta.oppScore || 0), off: off, def: def, roster: meta.roster || "", season: seasonOf(e.date || meta.gameDate) };
         });
       }));
@@ -373,6 +374,14 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
     $("tPass").innerHTML = pl.qb.length ? hp : "<tr><td class='empty'>No passes charted with a QB.</td></tr>";
     $("tRush").innerHTML = pl.ru.length ? hr : "<tr><td class='empty'>No runs charted with a ball carrier.</td></tr>";
     $("tRec").innerHTML = pl.rc.length ? hc : "<tr><td class='empty'>No targets charted.</td></tr>";
+    if (window.SolPL) {
+      var pre = SEL === "all" ? function (s) { return "vs " + s._opp } : null, num = function (k) { var m = /^#(\d+)/.exec(k); return m ? m[1] : null };
+      var P = all.filter(isPlay), run = function (s) { return s.res === "Rush" || s.res === "Scramble" || (s.res === "Fumble" && s.pt === "Run") };
+      SolPL.wire($("tPass"), function (k) { var n = num(k); return n && { items: P.filter(function (s) { return s.pt === "Pass" && s.qb === n && s.res !== "Scramble" }), pre: pre } }, function (k) { return k + " passing" });
+      SolPL.wire($("tRush"), function (k) { var n = num(k); return n && { items: P.filter(function (s) { return run(s) && s.carrier === n }), pre: pre } }, function (k) { return k + " rushing" });
+      SolPL.wire($("tRec"), function (k) { var n = num(k); return n && { items: P.filter(function (s) { return s.pt === "Pass" && s.target === n && s.res !== "Sack" && s.res !== "Scramble" }), pre: pre } }, function (k) { return k + " targets" });
+      SolPL.wire($("tOff"), function (k) { var g = G.filter(function (g) { return (nice(g.date) + " " + g.opp).trim() === k })[0]; return g && g.off.filter(isPlay) }, function (k) { return k + " · every play" });
+    }
   }
   $("seasonSel").addEventListener("change", function () { SEASON = this.value; SEL = "all"; render() });
   $("printBtn").addEventListener("click", function () { window.print() });

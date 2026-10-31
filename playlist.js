@@ -44,6 +44,14 @@
     el.addEventListener("click", function (e) { if (e.target === el) close() });
     $("splP").onclick = function () { go(P.pos - 1) }; $("splX").onclick = function () { go(P.pos + 1) }; $("splC").onclick = close;
     $("splV").addEventListener("ended", function () { if ($("splA").checked && P.pos < P.items.length - 1) go(P.pos + 1) });
+    // trimmed clips: start at the snap, stop after the whistle
+    var V = $("splV");
+    V.addEventListener("loadedmetadata", function () { var t = V._tr; if (t && t.a > 0) try { V.currentTime = t.a } catch (e) {} });
+    V.addEventListener("timeupdate", function () {
+      var t = V._tr; if (!t || V.paused) return;
+      if (V.loop && t.a && V.currentTime < t.a - 0.4 && V.currentTime < 0.6) { try { V.currentTime = t.a } catch (e) {} return }
+      if (t.b && V.currentTime >= t.b) { if (V.loop) { try { V.currentTime = t.a || 0 } catch (e) {} } else { V.pause(); if ($("splA").checked && P.pos < P.items.length - 1) go(P.pos + 1) } }
+    });
     $("splS").onchange = function () { $("splV").playbackRate = +this.value || 1 };
     $("splL").onchange = function () { $("splV").loop = this.checked };
     document.addEventListener("keydown", function (e) { if (el.hidden) return; if (e.key === "Escape") close(); else if (e.key === "ArrowRight") go(P.pos + 1); else if (e.key === "ArrowLeft") go(P.pos - 1) });
@@ -72,7 +80,7 @@
     $("splList").querySelectorAll("[data-k]").forEach(function (b) { b.onclick = function () { go(+b.dataset.k) } });
     var on = $("splList").querySelector(".on"); if (on && on.scrollIntoView) try { on.scrollIntoView({ block: "nearest" }) } catch (e) {}
     if (!it.url) { v.removeAttribute("src"); try { v.load() } catch (e) {} $("splD").removeAttribute("href"); if ($("splA").checked && !$("splL").checked) setTimeout(function () { if (P.pos === i && i < P.items.length - 1) go(i + 1) }, 900); return }
-    v.src = it.url; v.loop = $("splL").checked; v.playbackRate = +$("splS").value || 1; $("splD").href = it.url;
+    v._tr = it.a != null || it.b != null ? { a: it.a || 0, b: it.b || null } : null; v.src = it.url; v.loop = $("splL").checked; v.playbackRate = +$("splS").value || 1; $("splD").href = it.url;
     try { var pr = v.play(); if (pr && pr.catch) pr.catch(function () {}) } catch (e) {}
   }
   function open(o) {
@@ -89,7 +97,7 @@
   function look(s) { var c = s.cov ? (/^\d$/.test(s.cov) ? "Cov " + s.cov : s.cov) : ""; return [s.shell ? s.shell.toLowerCase() : "", s.front || "", c, s.blitz && s.blitz !== "No" ? "blitz: " + s.blitz : ""].filter(Boolean).join(" · ") }
   // build items from snaps that carry ._clips (the game's /clips map) and ._notes (meta.clipNotes)
   function itemsOf(snaps, pre) {
-    return snaps.map(function (s) { var c = s._clips && s.id ? s._clips[s.id] : null, n = s._notes && s.id ? s._notes[s.id] : ""; return { s: s, label: label(s, typeof pre === "function" ? pre(s) : pre), look: look(s), note: n || "", url: c && c.url ? c.url : null } });
+    return snaps.map(function (s) { var c = s._clips && s.id ? s._clips[s.id] : null, n = s._notes && s.id ? s._notes[s.id] : ""; return { s: s, label: label(s, typeof pre === "function" ? pre(s) : pre), look: look(s), note: n || "", url: c && c.url ? c.url : null, a: c && c.a != null ? c.a : null, b: c && c.b != null ? c.b : null } });
   }
   // make table rows playable: map(tr, firstCellText) → snaps or null
   function wire(table, fn, title) {

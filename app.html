@@ -387,6 +387,7 @@ body.infinal #v-chart .panel, body.infinal #v-chart .spotpanel, body.infinal #v-
 .plfilt { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 8px } .plfilt button { font: inherit; font-size: 13px; font-weight: 700; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer } .plfilt button[aria-pressed=true] { background: var(--red); border-color: var(--red); color: #fff }
 #plNoteIn { width: 100%; box-sizing: border-box; font: inherit; font-size: 15px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: #fff7cc; color: #3b3000; margin-top: 6px; min-height: 40px; resize: vertical }
 .nc-watch { display: inline-block; margin-top: 4px; font-size: 12.5px; font-weight: 800; padding: 3px 8px; border-radius: 999px; background: rgba(255,255,255,.12); color: #ffd400 } .nc-card.on .nc-watch { background: rgba(0,0,0,.08); color: #8a5a00 }
+.trimbtns { display: inline-flex; gap: 6px; flex-wrap: wrap } .trimbtns .btn { font-size: 14px !important; padding: 6px 10px !important } body.inlocked .trimbtns { display: none }
 .plctl { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 8px } .plctl .btn { font-size: 15px; padding: 7px 12px } .plctl select { font: inherit; font-size: 14px; padding: 6px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink) }
 .lkusers { display: grid; gap: 6px; margin-top: 8px } .lkusers label { display: flex; gap: 10px; align-items: center; font-size: 15px; padding: 6px 8px; border-radius: 8px; background: var(--chip) }
 
@@ -771,7 +772,7 @@ textarea { min-height: 64px }
       <p class="note ncres" id="ncResLog" hidden></p>
       <div id="logFeed"></div>
       <div id="logList"></div></div>
-    <div class="modal" id="clipModal" hidden><div class="mbox" style="max-width:900px;width:100%"><h3 id="clipTitle" style="margin-top:0"></h3><video id="clipVid" controls playsinline></video><div class="actions" style="margin-top:10px"><button class="btn" id="clipPrev">◀ Previous</button><button class="btn" id="clipNext">Next ▶</button><a class="btn" id="clipDl" download>Save clip</a><button class="btn primary" id="clipClose" style="margin-left:auto">Close</button></div></div></div>
+    <div class="modal" id="clipModal" hidden><div class="mbox" style="max-width:900px;width:100%"><h3 id="clipTitle" style="margin-top:0"></h3><video id="clipVid" controls playsinline></video><div class="actions" style="margin-top:10px"><button class="btn" id="clipPrev">◀ Previous</button><button class="btn" id="clipNext">Next ▶</button><span class="trimbtns"><button class="btn" id="clipTA" type="button">✂ Start here</button><button class="btn" id="clipTB" type="button">✂ End here</button><button class="btn" id="clipTF" type="button">Full clip</button></span><a class="btn" id="clipDl" download>Save clip</a><button class="btn primary" id="clipClose" style="margin-left:auto">Close</button></div></div></div>
   </section>
 
   <!-- SETUP -->
@@ -1063,7 +1064,7 @@ textarea { min-height: 64px }
           <select id="plSpeed" aria-label="Speed"><option value="0.5">½ speed</option><option value="1" selected>1× speed</option><option value="1.5">1.5×</option></select>
           <span style="flex:1"></span>
           <select id="plReelSel" aria-label="Reel to add to"></select><button class="btn primary" id="plAdd" type="button">＋ Add to reel</button>
-          <a class="btn" id="plDl" download>Save clip</a><button class="btn" id="plClose" type="button">Close</button>
+          <span class="trimbtns"><button class="btn" id="plTA" type="button" title="Clip starts here">✂ Start here</button><button class="btn" id="plTB" type="button" title="Clip ends here">✂ End here</button><button class="btn" id="plTF" type="button">Full clip</button></span><a class="btn" id="plDl" download>Save clip</a><button class="btn" id="plClose" type="button">Close</button>
         </div>
       </div>
       <div class="pllist" id="plList"></div>
@@ -3647,16 +3648,109 @@ textarea { min-height: 64px }
     var opts = { videoBitsPerSecond: 1500000 }; if (FILM.mime) opts.mimeType = FILM.mime;
     var r = new MediaRecorder(FILM.stream, opts), mine = []; r._chunks = mine;
     r.ondataavailable = function (e) { if (e.data && e.data.size) mine.push(e.data) };
-    r.start(1000); FILM.rec = r;
+    r.start(1000); FILM.rec = r; motStart();
   }
-  function filmSaveBlob(snapId, blob) {
+  function filmSaveBlob(snapId, blob, seg) {
     if (!blob || blob.size <= 2000 || !snapId) return;
-    var k = filmKey(snapId); fput(k, blob).then(function () { FILM.have[k] = 1; FILM.n++; cloudQueue(filmGame(), snapId, k); filmStatus(); renderLog() }, function () { toast("Couldn't save the clip. The device may be out of storage.") });
+    var k = filmKey(snapId);
+    fput(k, blob).then(function () {
+      FILM.have[k] = 1; FILM.n++;
+      // auto-trim to the snap and the end of the play, and keep two stills (the look, and just after the snap)
+      var tr = null; try { tr = seg ? motDetect(seg.m) : null } catch (e) {}
+      var fr = Promise.resolve();
+      if (tr) { trimSave(k, { a: tr.a, b: tr.b, snap: tr.snap, auto: 1, ta: Date.now() }); fr = motFrames(seg, tr, k) }
+      return fr.catch(function () {});
+    }, function () { toast("Couldn't save the clip. The device may be out of storage."); throw 0 }).then(function () { cloudQueue(filmGame(), snapId, k); filmStatus(); renderLog() }, function () {});
+  }
+  // ---------- auto-trim: watch the camera while filming, find the snap and the end of each play ----------
+  var MOT = { seg: null, timer: null, vid: null, c1: null, c2: null, prev: null };
+  function motStart() { MOT.seg = { t0: Date.now(), m: [], fr: [], lastFr: -9 }; MOT.prev = null; if (!MOT.timer) MOT.timer = setInterval(motTick, 125) }
+  function motStop() { clearInterval(MOT.timer); MOT.timer = null; if (MOT.vid) MOT.vid.srcObject = null }
+  function motVid() {
+    if (!MOT.vid) { var v = document.createElement("video"); v.muted = true; v.autoplay = true; v.playsInline = true; v.setAttribute("playsinline", ""); v.setAttribute("aria-hidden", "true"); v.style.cssText = "position:fixed;left:0;bottom:0;width:2px;height:2px;opacity:0;pointer-events:none;z-index:-1"; document.body.appendChild(v); MOT.vid = v }
+    if (MOT.vid.srcObject !== FILM.stream) { MOT.vid.srcObject = FILM.stream; try { var p = MOT.vid.play(); if (p && p.catch) p.catch(function () {}) } catch (e) {} }
+    return MOT.vid;
+  }
+  function motTick() {
+    var seg = MOT.seg; if (!FILM.on || !FILM.stream || !seg) return;
+    var v = motVid(); if (!v.videoWidth) return;
+    var t = (Date.now() - seg.t0) / 1000;
+    try {
+      var c = MOT.c1 || (MOT.c1 = document.createElement("canvas")); c.width = 64; c.height = 36;
+      var x = c.getContext("2d", { willReadFrequently: true }); x.drawImage(v, 0, 0, 64, 36);
+      var d = x.getImageData(0, 0, 64, 36).data, g = new Uint8Array(64 * 36), j;
+      for (var i = 0; i < d.length; i += 4) g[i >> 2] = (d[i] * 3 + d[i + 1] * 6 + d[i + 2]) / 10;
+      if (MOT.prev) { var moved = 0; for (j = 0; j < g.length; j++) if (Math.abs(g[j] - MOT.prev[j]) > 18) moved++; seg.m.push([t, moved / g.length]); if (seg.m.length > 4800) seg.m.shift() }
+      MOT.prev = g;
+      // a 1280-wide still every half second, kept only while this clip runs (last 60 seconds)
+      if (t - seg.lastFr >= 0.5) {
+        seg.lastFr = t; var W = Math.min(1280, v.videoWidth), H = Math.round(W * v.videoHeight / v.videoWidth), c2 = MOT.c2 || (MOT.c2 = document.createElement("canvas"));
+        c2.width = W; c2.height = H; c2.getContext("2d").drawImage(v, 0, 0, W, H);
+        c2.toBlob(function (b) { if (b && MOT.seg === seg) { seg.fr.push([t, b]); if (seg.fr.length > 120) seg.fr.shift() } }, "image/jpeg", 0.72);
+      }
+    } catch (e) {}
+  }
+  // m = [[seconds, share of pixels moving]]: the snap is the biggest jump from a quiet line-up into everyone moving
+  function motDetect(m) {
+    if (!m || m.length < 24) return null;
+    var sm = m.map(function (r, i) { var a = 0, n = 0; for (var k = i - 1; k <= i + 1; k++) if (k >= 0 && k < m.length) { a += m[k][1]; n++ } return a / n });
+    var avg = function (t1, t2) { var a = 0, n = 0; for (var i = 0; i < m.length; i++) if (m[i][0] >= t1 && m[i][0] < t2) { a += sm[i]; n++ } return n >= 3 ? a / n : null };
+    var best = null, last = m[m.length - 1][0];
+    for (var i = 0; i < m.length; i++) {
+      var t = m[i][0]; if (t < 1.5 || t > last - 1.5) continue;
+      var bf = avg(t - 1.5, t), af = avg(t, t + 2.5); if (bf == null || af == null) continue;
+      var sc = af - 1.5 * bf;
+      if (af >= 2.2 * Math.max(bf, 0.004) && (!best || sc > best.sc)) best = { t: t, sc: sc, bf: bf, af: af };
+    }
+    if (!best || best.af < 0.02) return null;
+    var thr = (best.bf + best.af) / 2, snap = best.t;
+    for (i = 0; i < m.length; i++) if (m[i][0] >= best.t - 0.6 && sm[i] >= thr) { snap = m[i][0]; break }
+    var quiet = best.bf + (best.af - best.bf) * 0.3, end = null;
+    for (i = 0; i < m.length; i++) { var tt = m[i][0]; if (tt < snap + 3) continue; var q = avg(tt, tt + 1.5); if (q != null && q <= quiet) { end = tt; break } }
+    var r1 = function (x) { return Math.round(x * 10) / 10 }, b = end == null ? null : Math.min(last, end + 1.5, snap + 20);
+    return { a: r1(Math.max(0, snap - 1.2)), b: b == null ? null : r1(b), snap: r1(snap) };
+  }
+  function motFrames(seg, tr, k) {
+    var near = function (t) { var best = null; seg.fr.forEach(function (f) { if (!best || Math.abs(f[0] - t) < Math.abs(best[0] - t)) best = f }); return best && Math.abs(best[0] - t) <= 1 ? best[1] : null };
+    var pre = near(tr.snap - 0.4), post = near(tr.snap + 1.5), P = [];
+    if (pre) P.push(fput("frm|" + k + "|pre", pre)); if (post) P.push(fput("frm|" + k + "|post", post));
+    return Promise.all(P);
+  }
+  // trims: this device's are kept by clip key; online ones ride on the clip's record so every device plays them
+  var TRIM_KEY = "solutions-trims" + NS;
+  function trimsLocal() { try { return JSON.parse(localStorage.getItem(TRIM_KEY) || "{}") } catch (e) { return {} } }
+  function trimSave(k, tr) { var m = trimsLocal(); m[k] = tr; var ks = Object.keys(m); if (ks.length > 3000) ks.slice(0, ks.length - 3000).forEach(function (x) { delete m[x] }); try { localStorage.setItem(TRIM_KEY, JSON.stringify(m)) } catch (e) {} }
+  function trimOf(id) {
+    if (!id) return null; var l = trimsLocal()[filmKey(id)], r = remoteClips()[id], rt = r && (r.a != null || r.b != null) ? r : null;
+    var t = !l ? rt : !rt ? l : ((rt.ta || 0) > (l.ta || 0) ? rt : l);
+    return t && (t.a != null || t.b != null) ? { a: t.a || 0, b: t.b || null, auto: !!t.auto } : null;
+  }
+  // play only the trimmed part: start at the snap, stop after the whistle (or loop the play)
+  function trimPlay(vid, tr, onEnd) {
+    vid._tr = tr || null; vid._trEnd = onEnd || null;
+    if (vid._trWired) return; vid._trWired = 1;
+    vid.addEventListener("loadedmetadata", function () { var t = vid._tr; if (t && t.a > 0) try { vid.currentTime = t.a } catch (e) {} });
+    vid.addEventListener("timeupdate", function () {
+      var t = vid._tr; if (!t || vid.paused) return;
+      if (vid.loop && t.a && vid.currentTime < t.a - 0.4 && vid.currentTime < 0.6) { try { vid.currentTime = t.a } catch (e) {} return }
+      if (t.b && vid.currentTime >= t.b) { if (vid.loop) { try { vid.currentTime = t.a || 0 } catch (e) {} } else { vid.pause(); if (vid._trEnd) vid._trEnd() } }
+    });
+  }
+  // coach fixes a trim by hand: "Start here" / "End here" at the current spot in the clip
+  function trimEdit(id, which, vid) {
+    if (!id || !vid) return; var cur = Math.round((vid.currentTime || 0) * 10) / 10, t = trimOf(id) || { a: 0, b: null };
+    if (which === "full") { vid._tr = null; toast("Showing the full clip"); return }
+    var tr = { a: which === "a" ? cur : t.a || 0, b: which === "b" ? cur : t.b, auto: 0, ta: Date.now() };
+    if (tr.b != null && tr.b <= tr.a + 0.5) { if (which === "a") tr.b = null; else { toast("End has to be after the start"); return } }
+    trimSave(filmKey(id), tr); vid._tr = { a: tr.a, b: tr.b, auto: false };
+    var rc = remoteClips()[id];
+    if (rc && rc.url && ONLINE) { Object.assign(rc, { a: tr.a, b: tr.b, auto: 0, ta: tr.ta }); solToken().then(function (tk) { return fetch(solSchoolBase() + "/games/" + encodeURIComponent(filmGame()) + "/clips/" + encodeURIComponent(id) + ".json?auth=" + encodeURIComponent(tk), { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ a: tr.a, b: tr.b, auto: 0, ta: tr.ta }) }) }).catch(function () {}) }
+    toast(which === "a" ? "Clip now starts at " + cur + "s" : "Clip now ends at " + cur + "s"); if (!$("plModal").hidden) plList();
   }
   function filmCut(snapId) {
     var r = FILM.rec; if (!r || r.state === "inactive") return;
-    var chunks = r._chunks;
-    r.onstop = function () { filmSaveBlob(snapId, new Blob(chunks, { type: FILM.mime.split(";")[0] || "video/webm" })) };
+    var chunks = r._chunks, seg = MOT.seg;
+    r.onstop = function () { filmSaveBlob(snapId, new Blob(chunks, { type: FILM.mime.split(";")[0] || "video/webm" }), seg) };
     r.stop();
     if (FILM.on) filmStartRec();
   }
@@ -3675,7 +3769,7 @@ textarea { min-height: 64px }
     var last = newer[newer.length - 1]; if (FILM.have[filmKey(last.id)]) return;
     FILM.lastId = last.id; FILM.lastCut = last.def ? { n: "D" + last.n, remote: true, call: "defense · " + (last.res || "") } : { n: S.snaps.indexOf(last) + 1, remote: !!remote, call: last.call || last.res || "" };
     if (FILM.on) filmCut(last.id);
-    else { filmSaveBlob(last.id, FILM.tail.blob); FILM.tail = null; toast("Saved the last clip to play #" + FILM.lastCut.n) }
+    else { filmSaveBlob(last.id, FILM.tail.blob, FILM.tail.seg); FILM.tail = null; toast("Saved the last clip to play #" + FILM.lastCut.n) }
     filmStatus();
   }
   // ---------- clips online: every clip uploads to Firebase Storage so every device can watch it ----------
@@ -3702,7 +3796,17 @@ textarea { min-height: 64px }
       return solToken().then(function (t) {
         return fetch("https://firebasestorage.googleapis.com/v0/b/" + BUCKET + "/o?uploadType=media&name=" + encodeURIComponent(path), { method: "POST", headers: { "Authorization": "Firebase " + t, "Content-Type": blob.type || "video/webm" }, body: blob }).then(function (r) { if (!r.ok) throw new Error("upload HTTP " + r.status); return r.json() }).then(function (j) {
           var url = "https://firebasestorage.googleapis.com/v0/b/" + BUCKET + "/o/" + encodeURIComponent(j.name) + "?alt=media&token=" + (j.downloadTokens || "").split(",")[0];
-          return fetch(solSchoolBase() + "/games/" + encodeURIComponent(it.code) + "/clips/" + encodeURIComponent(it.key) + ".json?auth=" + encodeURIComponent(t), { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: url, at: Date.now(), type: blob.type || "video/webm", size: blob.size }) }).then(function (r) { if (!r.ok) throw new Error("link HTTP " + r.status); return "ok" });
+          var rec = { url: url, at: Date.now(), type: blob.type || "video/webm", size: blob.size }, tr = trimsLocal()[it.fk];
+          if (tr) { rec.a = tr.a; if (tr.b != null) rec.b = tr.b; if (tr.snap != null) rec.snap = tr.snap; rec.auto = tr.auto ? 1 : 0; rec.ta = tr.ta || Date.now() }
+          var upFrame = function (which) {
+            return fget("frm|" + it.fk + "|" + which).then(function (fb) {
+              if (!fb) return null; var fp = "schools/" + a.school + "/frames/" + it.code + "/" + it.key + "_" + which + ".jpg";
+              return fetch("https://firebasestorage.googleapis.com/v0/b/" + BUCKET + "/o?uploadType=media&name=" + encodeURIComponent(fp), { method: "POST", headers: { "Authorization": "Firebase " + t, "Content-Type": "image/jpeg" }, body: fb }).then(function (r) { return r.ok ? r.json() : null }).then(function (fj) { if (fj) rec["f" + which] = "https://firebasestorage.googleapis.com/v0/b/" + BUCKET + "/o/" + encodeURIComponent(fj.name) + "?alt=media&token=" + (fj.downloadTokens || "").split(",")[0] });
+            }).catch(function () { return null }); // a still that won't upload never holds up the clip
+          };
+          return upFrame("pre").then(function () { return upFrame("post") }).then(function () {
+            return fetch(solSchoolBase() + "/games/" + encodeURIComponent(it.code) + "/clips/" + encodeURIComponent(it.key) + ".json?auth=" + encodeURIComponent(t), { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(rec) }).then(function (r) { if (!r.ok) throw new Error("link HTTP " + r.status); return "ok" });
+          });
         });
       });
     }).then(function () {
@@ -3739,7 +3843,8 @@ textarea { min-height: 64px }
   function filmOff() {
     FILM.on = false;
     // keep the footage since the last cut for a few seconds: if the play gets logged right after Stop, it still gets its clip
-    if (FILM.rec && FILM.rec.state !== "inactive") { var ch = FILM.rec._chunks; FILM.rec.onstop = function () { var b = new Blob(ch, { type: FILM.mime.split(";")[0] || "video/webm" }); FILM.tail = b.size > 2000 ? { blob: b, at: Date.now() } : null }; FILM.rec.stop() }
+    if (FILM.rec && FILM.rec.state !== "inactive") { var ch = FILM.rec._chunks, tseg = MOT.seg; FILM.rec.onstop = function () { var b = new Blob(ch, { type: FILM.mime.split(";")[0] || "video/webm" }); FILM.tail = b.size > 2000 ? { blob: b, at: Date.now(), seg: tseg } : null }; FILM.rec.stop() }
+    motStop();
     FILM.rec = null; if (FILM.stream) FILM.stream.getTracks().forEach(function (t) { t.stop() }); FILM.stream = null;
     try { FILM.lock && FILM.lock.release() } catch (e) {} FILM.lock = null; filmStatus();
   }
@@ -3753,10 +3858,10 @@ textarea { min-height: 64px }
       if (!b && !(rc && rc.url)) { toast("That clip isn't on this device yet."); return }
       if (clipUrl) { try { URL.revokeObjectURL(clipUrl) } catch (e) {} clipUrl = null }
       var src = b ? (clipUrl = URL.createObjectURL(b)) : rc.url, typ = b ? b.type : (rc.type || "");
-      $("clipVid").src = src; $("clipDl").href = src; $("clipDl").download = "Play_" + s.n + "_" + (S.opp || "game").replace(/\W+/g, "_") + (/mp4/.test(typ) ? ".mp4" : ".webm");
+      trimPlay($("clipVid"), trimOf(s.id)); $("clipVid").src = src; $("clipDl").href = src; $("clipDl").download = "Play_" + s.n + "_" + (S.opp || "game").replace(/\W+/g, "_") + (/mp4/.test(typ) ? ".mp4" : ".webm");
       $("clipTitle").textContent = "#" + s.n + " · Q" + s.qtr + " · " + ddLabel(s) + " · " + [s.form, s.call].filter(Boolean).join(" ") + " · " + (s.res || "") + (s.gain != null && s.kind !== "try" ? " " + s.gain : "");
       var L = clipList(), at = L.indexOf(i); $("clipPrev").disabled = at <= 0; $("clipNext").disabled = at < 0 || at >= L.length - 1;
-      $("clipModal").hidden = false; try { $("clipVid").play() } catch (e) {}
+      $("clipModal").hidden = false; try { var pp = $("clipVid").play(); if (pp && pp.catch) pp.catch(function () {}) } catch (e) {}
     });
   }
   // ---------- playlists: tap a row in the OC report and watch every clip for it, back to back ----------
@@ -3805,13 +3910,13 @@ textarea { min-height: 64px }
     fget(filmKey(id)).then(function (b) {
       if (PL.pos !== i) return;
       var rc = remoteClips()[id], src = b ? (PL.url = URL.createObjectURL(b)) : rc && rc.url; if (!src) return;
-      vid.src = src; vid.loop = $("plLoop").checked; vid.playbackRate = +$("plSpeed").value || 1; $("plDl").href = src; $("plDl").download = "Play_" + s.n + "_" + (S.opp || "game").replace(/\W+/g, "_") + (/mp4/.test(b ? b.type : (rc && rc.type) || "") ? ".mp4" : ".webm");
+      trimPlay(vid, trimOf(id), function () { if ($("plAuto").checked && PL.pos < PL.ids.length - 1) plGo(PL.pos + 1) }); vid.src = src; vid.loop = $("plLoop").checked; vid.playbackRate = +$("plSpeed").value || 1; $("plDl").href = src; $("plDl").download = "Play_" + s.n + "_" + (S.opp || "game").replace(/\W+/g, "_") + (/mp4/.test(b ? b.type : (rc && rc.type) || "") ? ".mp4" : ".webm");
       try { var pr = vid.play(); if (pr && pr.catch) pr.catch(function () {}) } catch (e) {}
     });
   }
   function plList() {
     var el = $("plList");
-    el.innerHTML = PL.ids.map(function (id, k) { var s = plSnap(id) || { n: "?" }, c = hasClip(id); return "<button type='button' data-pk='" + k + "' class='" + (k === PL.pos ? "on " : "") + (c ? "" : "nc") + "'>" + (c ? "▶ " : "") + esc(plLabel(s)) + (S.clipNotes && S.clipNotes[id] ? " 📝" : "") + (PL.reel ? "<span class='rm' data-rm='" + esc(id) + "' title='Remove from reel'>✕</span>" : "") + "</button>" }).join("");
+    el.innerHTML = PL.ids.map(function (id, k) { var s = plSnap(id) || { n: "?" }, c = hasClip(id); return "<button type='button' data-pk='" + k + "' class='" + (k === PL.pos ? "on " : "") + (c ? "" : "nc") + "'>" + (c ? "▶ " : "") + esc(plLabel(s)) + (S.clipNotes && S.clipNotes[id] ? " 📝" : "") + (function () { var t = trimOf(id); return t ? (t.auto ? " ✂" : " ✂✓") : "" })() + (PL.reel ? "<span class='rm' data-rm='" + esc(id) + "' title='Remove from reel'>✕</span>" : "") + "</button>" }).join("");
     el.querySelectorAll("[data-pk]").forEach(function (b) { b.addEventListener("click", function (e) { if (e.target.dataset.rm) { reelRemove(PL.reel, e.target.dataset.rm); return } plGo(+b.dataset.pk) }) });
     var on = el.querySelector(".on"); if (on && on.scrollIntoView) try { on.scrollIntoView({ block: "nearest" }) } catch (e) {}
   }
@@ -3840,7 +3945,7 @@ textarea { min-height: 64px }
   // ---------- share a reel: a link that plays just that reel, no sign-in ----------
   function reelPublish(r, quiet) {
     var a = authGet() || {}, rc = remoteClips(), notes = S.clipNotes || {};
-    var items = r.ids.map(plSnap).filter(Boolean).map(function (s) { var c = rc[s.id]; return { label: plLabel(s), look: plLook(s), note: notes[s.id] || "", url: c && c.url ? c.url : null, s: { n: s.n, qtr: s.qtr, dn: s.dn, dist: s.dist, yl: s.yl, gain: s.gain, td: !!s.td, pt: s.pt || null, res: s.res || null, shell: s.shell || null, blitz: s.blitz || null, kind: s.kind || null } } });
+    var items = r.ids.map(plSnap).filter(Boolean).map(function (s) { var c = rc[s.id]; var tr = trimOf(s.id); return { label: plLabel(s), look: plLook(s), note: notes[s.id] || "", url: c && c.url ? c.url : null, a: tr ? tr.a : null, b: tr ? tr.b : null, s: { n: s.n, qtr: s.qtr, dn: s.dn, dist: s.dist, yl: s.yl, gain: s.gain, td: !!s.td, pt: s.pt || null, res: s.res || null, shell: s.shell || null, blitz: s.blitz || null, kind: s.kind || null } } });
     var on = items.filter(function (x) { return x.url }).length, off = items.length - on;
     if (!on) { if (!quiet) toast("None of these clips are online yet. Turn on Clips online, then share."); return Promise.resolve(null) }
     var tok = r.share || (Date.now().toString(36) + Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10));
@@ -5360,6 +5465,9 @@ textarea { min-height: 64px }
   $("plClose").addEventListener("click", closePl); $("plAdd").addEventListener("click", reelToggle);
   $("plVid").addEventListener("ended", function () { if ($("plAuto").checked && PL.pos < PL.ids.length - 1) plGo(PL.pos + 1) });
   $("plSpeed").addEventListener("change", function () { $("plVid").playbackRate = +this.value || 1 });
+  $("plTA").addEventListener("click", function () { trimEdit(PL.ids[PL.pos], "a", $("plVid")) }); $("plTB").addEventListener("click", function () { trimEdit(PL.ids[PL.pos], "b", $("plVid")) }); $("plTF").addEventListener("click", function () { trimEdit(PL.ids[PL.pos], "full", $("plVid")) });
+  var clipId = function () { var s = S.snaps[clipIdx]; return s && s.id };
+  $("clipTA").addEventListener("click", function () { trimEdit(clipId(), "a", $("clipVid")) }); $("clipTB").addEventListener("click", function () { trimEdit(clipId(), "b", $("clipVid")) }); $("clipTF").addEventListener("click", function () { trimEdit(clipId(), "full", $("clipVid")) });
   $("plLoop").addEventListener("change", function () { $("plVid").loop = this.checked });
   $("plNoteIn").addEventListener("input", function () {
     var ta = this, id = ta.dataset.id; if (!id) return; clearTimeout(ta._t);

@@ -38,7 +38,7 @@ footer { color: var(--muted); font-size: 12.5px; text-align: center; padding: 20
     if (!d || !d.items || !d.items.length) { fail("This reel was turned off or doesn't exist anymore."); return }
     document.title = d.title + " · Film Reel";
     $("ttl").textContent = d.title; $("sub").textContent = [d.opp ? "vs " + d.opp : "", nice(d.date), d.items.length + " play" + (d.items.length === 1 ? "" : "s")].filter(Boolean).join(" · ");
-    var items = d.items.map(function (x) { return { s: x.s || {}, label: x.label, look: x.look, note: x.note, url: x.url } });
+    var items = d.items.map(function (x) { return { s: x.s || {}, label: x.label, look: x.look, note: x.note, url: x.url, a: x.a, b: x.b } });
     $("out").innerHTML = "<button class='play' id='go' type='button'>▶ Play reel</button>" + items.map(function (x, i) { return "<button class='row' type='button' data-i='" + i + "'>▶ " + esc(x.label) + (x.look ? "<small>vs " + esc(x.look) + "</small>" : "") + (x.note ? "<span class='nt'>📝 " + esc(x.note) + "</span>" : "") + "</button>" }).join("");
     $("go").onclick = function () { SolPL.open({ title: d.title, items: items }) };
     document.querySelectorAll("[data-i]").forEach(function (b) { b.onclick = function () { var i = +b.dataset.i; SolPL.open({ title: d.title, items: items.slice(i).concat(items.slice(0, i)) }) } });

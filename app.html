@@ -378,6 +378,13 @@ body.infinal #v-chart .panel, body.infinal #v-chart .spotpanel, body.infinal #v-
 .gdcheck ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 6px 14px } .gdcheck li { display: flex; gap: 10px; align-items: baseline; font-size: 15px; color: #cfd8e2 } .gdcheck li b { font-size: 17px; width: 20px; flex: none } .gdcheck li.ok b { color: #4ade80 } .gdcheck li.no b { color: #f87171 } .gdcheck li.na b { color: #64748b } .gdcheck li a { color: #a5e3ff }
 .bkbar { margin: 14px 36px 0; padding: 10px 14px; border-radius: 10px; background: #1b2633; color: #e8edf2; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 14.5px }
 @media (max-width: 640px) { .gdcheck, .bkbar { margin-left: 18px; margin-right: 18px } }
+#v-report tr.plrow td { cursor: pointer } #v-report tr.plrow:hover td { background: color-mix(in srgb, var(--red) 10%, transparent) } #v-report tr.plrow td:first-child::after { content: " ▶"; color: var(--red); font-size: 11px }
+.reels { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 0 0 10px; padding: 8px 10px; border-radius: 10px; background: var(--chip) } .reels b { font-family: var(--f-display); letter-spacing: .06em; text-transform: uppercase; font-size: 14px } .reels .btn { font-size: 14px; padding: 6px 10px }
+#plModal .mbox { max-width: 1100px } .plwrap { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 12px } @media (max-width: 820px) { .plwrap { grid-template-columns: 1fr } }
+#plVid { width: 100%; max-height: 62vh; background: #000; border-radius: 8px } .plinfo { font-weight: 700; margin: 6px 0 } .plinfo small { font-weight: 500; color: var(--muted) }
+.pllist { max-height: 62vh; overflow-y: auto; display: flex; flex-direction: column; gap: 4px } .pllist button { text-align: left; font: inherit; font-size: 13.5px; padding: 7px 9px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer }
+.pllist button.on { border-color: var(--red); background: color-mix(in srgb, var(--red) 14%, var(--bg)); font-weight: 700 } .pllist button.nc { opacity: .45 } .pllist button .rm { float: right; color: var(--muted) }
+.plctl { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 8px } .plctl .btn { font-size: 15px; padding: 7px 12px } .plctl select { font: inherit; font-size: 14px; padding: 6px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink) }
 .lkusers { display: grid; gap: 6px; margin-top: 8px } .lkusers label { display: flex; gap: 10px; align-items: center; font-size: 15px; padding: 6px 8px; border-radius: 8px; background: var(--chip) }
 
 .edgrid { margin-top: 10px } .edgrid input[type=text], .edgrid select { font-size: 16px; padding: 7px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); min-width: 120px }
@@ -692,6 +699,7 @@ textarea { min-height: 64px }
   <section id="v-report" hidden>
     <div class="actions" style="margin:0 0 10px"><button class="btn primary" id="htBtn" type="button">Halftime report</button><button class="btn" id="gpBtn2" type="button">Game plan</button><button class="btn" id="gmBtn2" type="button">Clock · 2-pt</button></div>
     <div class="actions" style="margin:0 0 10px;align-items:center"><b style="font-family:var(--f-display);letter-spacing:.06em;text-transform:uppercase;font-size:14px">Export OC reports</b><button class="btn" id="ocPdf" style="font-size:15px;padding:8px 14px">PDF</button><button class="btn" id="ocXlsx" style="font-size:15px;padding:8px 14px">Excel</button><span class="note" style="margin:0">Every between-series report from tonight plus all the tables on this tab.</span></div>
+    <div class="reels" id="reelBar"></div>
     <div class="oc" id="ocCard"></div>
     <div class="qscore" id="qScoreR"></div>
     <p class="note ncres" id="ncResRep" hidden></p>
@@ -1036,6 +1044,26 @@ textarea { min-height: 64px }
     <datalist id="dlMot"></datalist><datalist id="dlRpo"></datalist><datalist id="dlForms"></datalist><datalist id="dlCalls"></datalist><datalist id="dlBlitz"></datalist><datalist id="dlFronts"></datalist><datalist id="dlCovs"></datalist>
   </div>
 </div>
+<div class="modal" id="plModal" hidden role="dialog" aria-modal="true" aria-labelledby="plTitle">
+  <div class="mbox">
+    <h3 id="plTitle" style="margin:0 0 8px"></h3>
+    <div class="plwrap">
+      <div>
+        <video id="plVid" controls playsinline></video>
+        <div class="plinfo" id="plInfo"></div>
+        <div class="plctl">
+          <button class="btn" id="plPrev" type="button">◀ Previous</button><button class="btn" id="plNext" type="button">Next ▶</button>
+          <label class="note" style="margin:0;display:flex;gap:6px;align-items:center"><input type="checkbox" id="plAuto" checked> Play all</label>
+          <select id="plSpeed" aria-label="Speed"><option value="0.5">½ speed</option><option value="1" selected>1× speed</option><option value="1.5">1.5×</option></select>
+          <span style="flex:1"></span>
+          <select id="plReelSel" aria-label="Reel to add to"></select><button class="btn primary" id="plAdd" type="button">＋ Add to reel</button>
+          <a class="btn" id="plDl" download>Save clip</a><button class="btn" id="plClose" type="button">Close</button>
+        </div>
+      </div>
+      <div class="pllist" id="plList"></div>
+    </div>
+  </div>
+</div>
 <div class="modal" id="egModal" hidden role="dialog" aria-modal="true" aria-labelledby="egTitle">
   <div class="mbox">
     <h3 id="egTitle">End game</h3>
@@ -1358,7 +1386,7 @@ textarea { min-height: 64px }
   var DEFAULT_DB = "https://cardinal-booth-default-rtdb.firebaseio.com";
   var SYNC_KEY = "cardinals-booth-sync-v1" + NS, DEVICE = Math.random().toString(36).slice(2, 10);
   var SY = { cfg: null, es: null, status: "off", mirror: null, last: null, pushing: false, dirty: false, needApply: false, timer: null, retry: null, applying: false };
-  var META_KEYS = ["gc", "final", "lock", "dir", "wp", "clock", "clocks", "clk", "sheet", "sheetVer", "scout", "gameDate", "opp", "pre", "start", "lists", "dmode", "fast", "oppScore", "ourAdj", "scoreLog", "tryPending", "endAfter", "example", "cur"];
+  var META_KEYS = ["reels", "gc", "final", "lock", "dir", "wp", "clock", "clocks", "clk", "sheet", "sheetVer", "scout", "gameDate", "opp", "pre", "start", "lists", "dmode", "fast", "oppScore", "ourAdj", "scoreLog", "tryPending", "endAfter", "example", "cur"];
   function syncCfg() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || "null") } catch (e) { return null } }
   function setSyncCfg(c) { try { if (c) localStorage.setItem(SYNC_KEY, JSON.stringify(c)); else localStorage.removeItem(SYNC_KEY) } catch (e) {} }
   function newCode() { var a = "abcdefghjkmnpqrstuvwxyz23456789", t = ""; var r = new Uint8Array(18); (window.crypto || window.msCrypto).getRandomValues(r); for (var i = 0; i < 18; i++) t += a[r[i] % a.length]; return "mel-" + t }
@@ -3441,6 +3469,7 @@ textarea { min-height: 64px }
     $("tQtr").innerHTML = P.length ? h : "<tr><td>No snaps yet.</td></tr>";
 
     renderOC(P, calls);
+    try { plWire() } catch (e) {}
   }
   function conceptStats(P) {
     var m = {};
@@ -3717,6 +3746,94 @@ textarea { min-height: 64px }
       var L = clipList(), at = L.indexOf(i); $("clipPrev").disabled = at <= 0; $("clipNext").disabled = at < 0 || at >= L.length - 1;
       $("clipModal").hidden = false; try { $("clipVid").play() } catch (e) {}
     });
+  }
+  // ---------- playlists: tap a row in the OC report and watch every clip for it, back to back ----------
+  var PL = { title: "", ids: [], pos: 0, reel: null, url: null };
+  function plSnap(id) { for (var i = 0; i < S.snaps.length; i++) if (S.snaps[i].id === id) return S.snaps[i]; return null }
+  function plLabel(s) { return "#" + s.n + " · Q" + s.qtr + " · " + ddLabel(s) + " · " + ballText(s.yl) + " · " + ([s.form, s.motion, s.call].filter(Boolean).join(" ") || "no call") + " · " + (s.res || "") + (s.gain != null && s.kind !== "try" && s.res !== "Penalty" ? " " + (s.td ? "TD" : (s.gain > 0 ? "+" : "") + s.gain) : "") }
+  function plLook(s) { return [s.shell ? s.shell.toLowerCase() : "", s.front || "", s.cov ? covName(s.cov) : "", s.blitz && s.blitz !== "No" ? "blitz: " + s.blitz : ""].filter(Boolean).join(" · ") }
+  function openPlaylist(title, snaps, reel) {
+    var ids = snaps.map(function (x) { return x.id }).filter(Boolean); if (!ids.length) { toast("No plays there yet"); return }
+    var withClip = ids.filter(hasClip).length;
+    PL = { title: title, ids: ids, pos: 0, reel: reel || null };
+    var first = ids.findIndex ? ids.findIndex(hasClip) : 0; PL.pos = first < 0 ? 0 : first;
+    $("plTitle").textContent = title + " · " + withClip + " of " + ids.length + " play" + (ids.length === 1 ? "" : "s") + " with film";
+    plReelSel(); $("plModal").hidden = false; plGo(PL.pos);
+  }
+  function plGo(i) {
+    if (i < 0 || i >= PL.ids.length) return; PL.pos = i;
+    var id = PL.ids[i], s = plSnap(id) || {}, vid = $("plVid");
+    $("plInfo").innerHTML = esc(plLabel(s)) + (plLook(s) ? "<br><small>vs " + esc(plLook(s)) + "</small>" : "") + "<br><small>Play " + (i + 1) + " of " + PL.ids.length + "</small>";
+    plList(); plAddBtn();
+    $("plPrev").disabled = i <= 0; $("plNext").disabled = i >= PL.ids.length - 1;
+    if (PL.url) { try { URL.revokeObjectURL(PL.url) } catch (e) {} PL.url = null }
+    if (!hasClip(id)) { vid.removeAttribute("src"); try { vid.load() } catch (e) {} $("plInfo").innerHTML += "<br><small>No film for this play.</small>"; $("plDl").removeAttribute("href"); if ($("plAuto").checked) setTimeout(function () { if (PL.pos === i && i < PL.ids.length - 1) plGo(i + 1) }, 900); return }
+    fget(filmKey(id)).then(function (b) {
+      if (PL.pos !== i) return;
+      var rc = remoteClips()[id], src = b ? (PL.url = URL.createObjectURL(b)) : rc && rc.url; if (!src) return;
+      vid.src = src; vid.playbackRate = +$("plSpeed").value || 1; $("plDl").href = src; $("plDl").download = "Play_" + s.n + "_" + (S.opp || "game").replace(/\W+/g, "_") + (/mp4/.test(b ? b.type : (rc && rc.type) || "") ? ".mp4" : ".webm");
+      try { var pr = vid.play(); if (pr && pr.catch) pr.catch(function () {}) } catch (e) {}
+    });
+  }
+  function plList() {
+    var el = $("plList");
+    el.innerHTML = PL.ids.map(function (id, k) { var s = plSnap(id) || { n: "?" }, c = hasClip(id); return "<button type='button' data-pk='" + k + "' class='" + (k === PL.pos ? "on " : "") + (c ? "" : "nc") + "'>" + (c ? "▶ " : "") + esc(plLabel(s)) + (PL.reel ? "<span class='rm' data-rm='" + esc(id) + "' title='Remove from reel'>✕</span>" : "") + "</button>" }).join("");
+    el.querySelectorAll("[data-pk]").forEach(function (b) { b.addEventListener("click", function (e) { if (e.target.dataset.rm) { reelRemove(PL.reel, e.target.dataset.rm); return } plGo(+b.dataset.pk) }) });
+    var on = el.querySelector(".on"); if (on && on.scrollIntoView) try { on.scrollIntoView({ block: "nearest" }) } catch (e) {}
+  }
+  function plIsRun(s) { return s.res === "Rush" || s.res === "Scramble" || (s.res === "Fumble" && s.pt === "Run") }
+  function closePl() { $("plModal").hidden = true; try { $("plVid").pause() } catch (e) {} }
+  // ---------- reels: your own cut-up, saved with the game so every device can play it ----------
+  function reels() { if (!Array.isArray(S.reels)) S.reels = []; return S.reels }
+  var REEL_PICK = null;
+  function plReelSel() {
+    var R = reels().slice(); if (REEL_PICK && !R.some(function (r) { return r.name === REEL_PICK })) R.push({ name: REEL_PICK, ids: [] });
+    if (!R.length) R.push({ name: "Halftime reel", ids: [] });
+    if (!REEL_PICK) REEL_PICK = R[0].name;
+    $("plReelSel").innerHTML = R.map(function (r) { return "<option" + (r.name === REEL_PICK ? " selected" : "") + ">" + esc(r.name) + "</option>" }).join("") + "<option value='__new'>＋ New reel…</option>";
+  }
+  function plAddBtn() {
+    $("plReelSel").value = REEL_PICK; var r = reels().filter(function (x) { return x.name === REEL_PICK })[0], id = PL.ids[PL.pos], inR = r && r.ids.indexOf(id) >= 0;
+    $("plAdd").textContent = inR ? "✓ In " + r.name : "＋ Add to reel"; $("plAdd").classList.toggle("primary", !inR);
+  }
+  function reelToggle() {
+    var R = reels(), id = PL.ids[PL.pos]; if (!id) return; if (!REEL_PICK) REEL_PICK = "Halftime reel";
+    var r = R.filter(function (x) { return x.name === REEL_PICK })[0]; if (!r) { r = { name: REEL_PICK, ids: [], at: Date.now() }; R.push(r) }
+    var at = r.ids.indexOf(id); if (at >= 0) r.ids.splice(at, 1); else r.ids.push(id); r.at = Date.now();
+    save(); plAddBtn(); renderReels(); toast(at >= 0 ? "Removed from " + r.name : "Added to " + r.name + " · " + r.ids.length + " play" + (r.ids.length === 1 ? "" : "s"));
+  }
+  function reelRemove(name, id) { var r = reels().filter(function (x) { return x.name === name })[0]; if (!r) return; r.ids = r.ids.filter(function (x) { return x !== id }); save(); renderReels(); var cur = PL.ids[PL.pos]; PL.ids = r.ids.slice(); if (!PL.ids.length) { closePl(); return } PL.pos = Math.max(0, Math.min(PL.ids.indexOf(cur) >= 0 ? PL.ids.indexOf(cur) : PL.pos, PL.ids.length - 1)); plGo(PL.pos) }
+  var REEL_DEL = null;
+  function renderReels() {
+    var el = $("reelBar"); if (!el) return; var R = reels().filter(function (r) { return r.ids.length });
+    el.innerHTML = "<b>Reels</b>" + (R.length ? R.map(function (r) { return "<button class='btn' type='button' data-reel='" + esc(r.name) + "'>▶ " + esc(r.name) + " (" + r.ids.length + ")</button><button class='btn' type='button' data-rdel='" + esc(r.name) + "' title='Delete reel'>" + (REEL_DEL === r.name ? "Tap again to delete" : "✕") + "</button>" }).join("") : "<span class='note' style='margin:0'>Tap any row below to watch its clips. Add clips to a reel while you watch to build a cut-up for halftime or the coaches.</span>");
+    el.querySelectorAll("[data-reel]").forEach(function (b) { b.addEventListener("click", function () { var r = reels().filter(function (x) { return x.name === b.dataset.reel })[0]; if (!r) return; REEL_PICK = r.name; openPlaylist(r.name, r.ids.map(plSnap).filter(Boolean), r.name) }) });
+    el.querySelectorAll("[data-rdel]").forEach(function (b) { b.addEventListener("click", function () { var n = b.dataset.rdel; if (REEL_DEL !== n) { REEL_DEL = n; renderReels(); setTimeout(function () { REEL_DEL = null; renderReels() }, 4000); return } REEL_DEL = null; S.reels = reels().filter(function (x) { return x.name !== n }); save(); renderReels(); toast("Deleted " + n) }) });
+  }
+  // every row in the OC report opens its plays as a playlist
+  function plWire() {
+    var base = plays().filter(inQ), qn = ocQ ? (ocQ === 5 ? " · OT" : " · Q" + ocQ) : "";
+    var cell = function (tr) { var td = tr.querySelector("td"); if (!td) return ""; var t = td.childNodes[0]; return String(t ? t.textContent : td.textContent).trim() };
+    var hook = function (id, fn) {
+      var t = $(id); if (!t) return;
+      t.querySelectorAll("tr").forEach(function (tr) {
+        if (!tr.querySelector("td") || tr.querySelector("td[colspan]")) return; var k = cell(tr), f = fn(k, tr); if (!f) return;
+        var A = base.filter(f); if (!A.length) return; tr.classList.add("plrow");
+        tr.addEventListener("click", function () { openPlaylist(k + qn, A) });
+      });
+    };
+    var sitFn = function (k) { var r = SITS.filter(function (x) { return x[0] === k })[0]; return r ? r[1] : null };
+    hook("tSit", sitFn); hook("tZone", sitFn);
+    hook("tForm", function (k) { return function (s) { return s.form === k } });
+    var num = function (k) { var m = /^#(\d+)/.exec(k); return m ? m[1] : null };
+    hook("tPass", function (k) { var n = num(k); return n && function (s) { return s.pt === "Pass" && s.qb === n && s.res !== "Scramble" } });
+    hook("tRush", function (k) { var n = num(k); return n && function (s) { return s.carrier === n && plIsRun(s) } });
+    hook("tRec", function (k) { var n = num(k); return n && function (s) { return s.target === n && s.pt === "Pass" && s.res !== "Sack" && s.res !== "Scramble" } });
+    hook("tCall", function (k) { return function (s) { return s.call === k } });
+    hook("tConcept", function (k) { return function (s) { return s.call && conceptOf(s.call) === k } });
+    hook("tFull", function (k, tr) { var td = tr.querySelectorAll("td"), v = function (i) { var x = (td[i] ? td[i].textContent : "").trim(); return x === "–" ? "" : x }; var f = v(0), m = v(1), c = v(2), r = v(3); return function (s) { return (s.form || "") === f && (s.motion || "") === m && (s.call || "") === c && (s.rpo || "") === r } });
+    hook("tQtr", function (k) { var q = k === "OT" ? 5 : +String(k).replace(/^Q/, ""); return q ? function (s) { return s.qtr === q } : null });
+    renderReels();
   }
   function closeClip() { $("clipModal").hidden = true; try { $("clipVid").pause() } catch (e) {} }
   function renderLog() {
@@ -5180,6 +5297,14 @@ textarea { min-height: 64px }
   $("logBtn").addEventListener("click", logSnap);
   $("frzBtn").addEventListener("click", freeze); $("gsFrz").addEventListener("click", freeze);
   $("vicBtn").addEventListener("click", victory);
+  $("plPrev").addEventListener("click", function () { plGo(PL.pos - 1) }); $("plNext").addEventListener("click", function () { plGo(PL.pos + 1) });
+  $("plClose").addEventListener("click", closePl); $("plAdd").addEventListener("click", reelToggle);
+  $("plVid").addEventListener("ended", function () { if ($("plAuto").checked && PL.pos < PL.ids.length - 1) plGo(PL.pos + 1) });
+  $("plSpeed").addEventListener("change", function () { $("plVid").playbackRate = +this.value || 1 });
+  $("plReelSel").addEventListener("change", function () {
+    if (this.value === "__new") { var n = (prompt("Name the new reel", "Reel " + (reels().length + 1)) || "").trim(); REEL_PICK = n || REEL_PICK; plReelSel() } else REEL_PICK = this.value;
+    plAddBtn();
+  });
   $("cloudAuto").checked = cloudAuto(); $("cloudAuto").addEventListener("change", function () { try { localStorage.setItem("solutions-cloudauto" + NS, this.checked ? "1" : "0") } catch (e) {} cloudStatus(); if (this.checked) cloudRun() });
   $("cloudGo").addEventListener("click", function () { toast("Uploading clips…"); cloudRun(true) });
   setTimeout(function () { cloudStatus(); if (cloudAuto()) cloudRun() }, 3000);

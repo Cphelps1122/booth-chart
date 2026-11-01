@@ -387,6 +387,42 @@ body.infinal #v-chart .panel, body.infinal #v-chart .spotpanel, body.infinal #v-
 .plfilt { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 8px } .plfilt button { font: inherit; font-size: 13px; font-weight: 700; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer } .plfilt button[aria-pressed=true] { background: var(--red); border-color: var(--red); color: #fff }
 #plNoteIn { width: 100%; box-sizing: border-box; font: inherit; font-size: 15px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: #fff7cc; color: #3b3000; margin-top: 6px; min-height: 40px; resize: vertical }
 .nc-watch { display: inline-block; margin-top: 4px; font-size: 12.5px; font-weight: 800; padding: 3px 8px; border-radius: 999px; background: rgba(255,255,255,.12); color: #ffd400 } .nc-card.on .nc-watch { background: rgba(0,0,0,.08); color: #8a5a00 }
+/* ---------- new layout: doors, roles, areas ---------- */
+.h-doors { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 16px 0 } @media (max-width: 760px) { .h-doors { grid-template-columns: 1fr } }
+.h-door { background: #141b24; border: 1px solid #26354a; border-top: 4px solid var(--red); border-radius: 0 0 12px 12px; padding: 14px; color: #e8edf2 }
+.h-door .hd-t { font-family: var(--f-display); font-weight: 800; font-size: 22px; letter-spacing: .04em; text-transform: uppercase } .h-door .hd-s { color: #9aa7b6; font-size: 13px; margin: 0 0 10px }
+.h-door .hd-l { display: flex; flex-direction: column; gap: 6px }
+.h-door .hd-l a, .h-door .hd-l button { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; font: 700 16px Inter, system-ui, sans-serif; padding: 10px 12px; border-radius: 10px; border: 1px solid #26354a; background: #0f141b; color: #e8edf2; cursor: pointer; text-decoration: none }
+.h-door .hd-l a:hover, .h-door .hd-l button:hover { border-color: var(--red) } .h-door .hd-l small { font-weight: 500; color: #9aa7b6; font-size: 12.5px }
+.h-door .hd-l .pri { background: var(--red); border-color: var(--red); color: #fff } .h-door .hd-l .pri small { color: #ffe1e5 }
+.h-setrow { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 0 0 16px; color: #9aa7b6; font-size: 14px } .h-setrow button { font: 700 14px Inter, system-ui, sans-serif; padding: 8px 12px; border-radius: 999px; border: 1px solid #26354a; background: #0f141b; color: #e8edf2; cursor: pointer }
+body.inapp .h-hero, body.inapp .h-prod { display: none }
+.rolechip { cursor: pointer; border: 1px solid rgba(255,255,255,.35) !important; background: rgba(255,255,255,.08) !important; color: #fff !important; font-weight: 800 }
+#roleModal .mbox { max-width: 620px } .rolegrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 10px } @media (max-width: 560px) { .rolegrid { grid-template-columns: 1fr } }
+.rolegrid button { text-align: left; font: inherit; padding: 14px; border-radius: 12px; border: 2px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer } .rolegrid button:hover, .rolegrid button[aria-pressed=true] { border-color: var(--red) }
+.rolegrid b { display: block; font-family: var(--f-display); font-size: 20px; letter-spacing: .04em; text-transform: uppercase } .rolegrid span { font-size: 14px; color: var(--muted) }
+/* nav per role */
+nav [data-tab="games"], nav #t-drives, nav .navlink[href] { display: none }
+body.role-film nav #t-log, body.role-film nav #t-report, body.role-film nav #t-week { display: none }
+body.role-view nav #t-week, body.role-view nav #t-setup { display: none }
+/* view only: watch the game, no charting */
+body.role-view #v-chart .spotpanel, body.role-view #v-chart .inmode, body.role-view #v-chart #gsPanel, body.role-view #v-chart .grid2, body.role-view #v-chart #chartActs, body.role-view #v-chart .trypanel, body.role-view #filmBar { display: none !important }
+body.role-view #v-chart .panel:has(#cRes), body.role-view #v-chart .panel:has(#chartActs) { display: none !important }
+body.role-view .viewnote { display: block !important }
+.viewnote { display: none; margin: 0 0 12px; padding: 10px 14px; border-radius: 10px; background: var(--chip); font-weight: 700 }
+/* filming device: just the camera */
+body.role-film #v-chart > :not(#filmBar):not(.filmnote) { display: none !important } body.role-film .filmnote { display: block !important }
+.filmnote { display: none; margin: 0 0 12px; color: var(--muted) }
+/* This week vs Settings: the old Setup page split in two */
+body[data-area="week"] #v-setup [data-area="settings"], body[data-area="settings"] #v-setup [data-area="week"] { display: none !important }
+.areahead { margin: 0 0 12px } .areahead h2 { margin: 0; font-family: var(--f-display); letter-spacing: .04em; text-transform: uppercase } .areahead p { margin: 2px 0 0; color: var(--muted) }
+.wklinks { display: flex; gap: 8px; flex-wrap: wrap } .wklinks a { text-decoration: none }
+/* Plays: list or drives */
+.playseg { display: inline-flex; gap: 4px; padding: 3px; border-radius: 10px; background: var(--chip); margin: 0 0 12px } .playseg button { font: 700 15px Inter, system-ui, sans-serif; padding: 7px 14px; border-radius: 8px; border: 0; background: none; color: var(--ink); cursor: pointer } .playseg button[aria-pressed=true] { background: var(--card, #fff); box-shadow: 0 1px 3px rgba(0,0,0,.15) }
+/* chart: rare buttons go under More */
+.morewrap { margin-top: 10px } .morewrap > summary { cursor: pointer; font-weight: 800; padding: 8px 12px; border-radius: 10px; background: var(--chip); display: inline-block; list-style: none } .morewrap > summary::-webkit-details-marker { display: none }
+.morewrap .actions { margin-top: 10px }
+
 .trimbtns { display: inline-flex; gap: 6px; flex-wrap: wrap } .trimbtns .btn { font-size: 14px !important; padding: 6px 10px !important } body.inlocked .trimbtns { display: none }
 .plctl { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 8px } .plctl .btn { font-size: 15px; padding: 7px 12px } .plctl select { font: inherit; font-size: 14px; padding: 6px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink) }
 .lkusers { display: grid; gap: 6px; margin-top: 8px } .lkusers label { display: flex; gap: 10px; align-items: center; font-size: 15px; padding: 6px 8px; border-radius: 8px; background: var(--chip) }
@@ -459,16 +495,18 @@ textarea { min-height: 64px }
         <span class="pill fourth" id="p4th">4th: Go if 4</span>
         <button class="pill syncpill" id="pSync" hidden title="Live sync status">Live</button>
         <span class="pill sentok" id="pSent" hidden>✓ All sent</span>
+        <button class="pill rolechip" id="roleChip" type="button" title="Change what this device is doing">Pick a role ▾</button>
       </div>
     </div>
     <nav role="tablist">
       <button role="tab" id="t-home" aria-selected="false" data-tab="home">Home</button>
       <button role="tab" id="t-chart" aria-selected="true" data-tab="chart">Chart</button>
+      <button role="tab" id="t-log" aria-selected="false" data-tab="log">Plays</button>
       <button role="tab" id="t-report" aria-selected="false" data-tab="report">OC Report</button>
-      <button role="tab" id="t-log" aria-selected="false" data-tab="log">Log</button>
       <button role="tab" id="t-drives" aria-selected="false" data-tab="drives">Drives</button>
       <button role="tab" id="t-games" aria-selected="false" data-tab="games">Games</button>
-      <button role="tab" id="t-setup" aria-selected="false" data-tab="setup">Setup</button>
+      <button role="tab" id="t-week" aria-selected="false" data-tab="setup" data-area="week">This week</button>
+      <button role="tab" id="t-setup" aria-selected="false" data-tab="setup" data-area="settings">Settings</button>
       <a class="navlink" id="navDef" href="defense.html" hidden>Defense ›</a>
       <a class="navlink" id="navRep" href="reports.html" hidden>Reports ›</a>
       <a class="navlink" id="navStats" href="stats.html" hidden>Stats ›</a>
@@ -498,6 +536,27 @@ textarea { min-height: 64px }
       <div class="hcode" id="homeLock" hidden><span class="h-sub">This game has no game code yet.</span><input type="text" id="hlIn" autocomplete="off" autocapitalize="characters" placeholder="Set a game code" aria-label="Set a game code"><button class="h-btn" id="hlGo">Set code</button></div>
     </div>
 
+    <div class="h-doors">
+      <div class="h-door"><div class="hd-t">This week</div><p class="hd-s">Mon–Thu prep</p><div class="hd-l">
+        <button type="button" data-go="week">Set up the game <small>code, opponent, game plan</small></button>
+        <a href="reports.html">Scout &amp; reports <small>Hudl exports, game-day sheet</small></a>
+        <a href="reports.html">Pregame Sim <small>run the matchup</small></a>
+        <button type="button" data-go="practice">Practice game <small>try things, nothing counts</small></button>
+      </div></div>
+      <div class="h-door"><div class="hd-t">Game night</div><p class="hd-s">Pick what this device is doing</p><div class="hd-l">
+        <button type="button" class="pri" data-role="chart">Chart offense <small>one or more charters</small></button>
+        <a href="defense.html" data-role="defense">Chart defense <small>their plays vs our calls</small></a>
+        <button type="button" data-role="film">Film <small>camera on the field</small></button>
+        <button type="button" data-role="view">View only <small>OC, coaches, anyone watching</small></button>
+      </div></div>
+      <div class="h-door"><div class="hd-t">After the game</div><p class="hd-s">Sat–Sun review</p><div class="hd-l">
+        <a href="impact.html">Postgame &amp; Impact <small>graded vs the scout</small></a>
+        <button type="button" data-go="reels">Film &amp; reels <small>playlists, notes, share</small></button>
+        <a href="stats.html">Season stats <small>team and players</small></a>
+        <button type="button" data-go="export">Exports &amp; backup <small>Hudl CSV, PDF</small></button>
+      </div></div>
+    </div>
+    <div class="h-setrow"><button type="button" data-go="settings">⚙ Settings</button><span>School, roster, buttons, lock mode, clips online, sync</span><a class="h-btn" id="homeAdm" href="admin.html" hidden style="margin-left:auto">Admin</a></div>
     <div class="h-prod">
       <button class="h-card" id="homeOff" type="button">
         <div class="h-ico"><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="4" y="20" width="40" height="8" rx="2" fill="none" stroke="currentColor" stroke-width="2.5"/><circle cx="18" cy="24" r="3.5" fill="#a5e3ff"/><path d="M18 24 H34" stroke="#a5e3ff" stroke-width="2.5" stroke-dasharray="3 3"/></svg></div>
@@ -557,6 +616,8 @@ textarea { min-height: 64px }
 
   <!-- CHART -->
   <section id="v-chart">
+    <div class="viewnote">👁 View only on this device. Charting happens on the charters' iPads; everything here updates live. <button class="btn" type="button" data-role-open style="margin-left:8px;font-size:14px;padding:4px 10px">Change role</button></div>
+    <div class="filmnote">This device is filming. Point it at the field and leave it; clips cut themselves when a charter logs a play. <button class="btn" type="button" data-role-open style="margin-left:8px;font-size:14px;padding:4px 10px">Change role</button></div>
     <div class="nc" id="ncBox" hidden></div>
     <div class="panel filmbar" id="filmBar">
       <button class="btn" id="filmGo" type="button">🎥 Film this game</button>
@@ -676,12 +737,14 @@ textarea { min-height: 64px }
       <div class="chips" id="cRes"></div>
       <div class="prow" id="rowPlayer" hidden><span class="lbl" id="plLabel">Ball carrier</span><div class="chips" id="cPlayer"></div></div>
       <div class="prow"><span class="lbl">QB</span><div class="chips" id="cQB"></div><span class="fastnote">stays on until you change it</span></div>
-      <div class="actions">
+      <div class="actions" id="chartActs">
         <button class="btn primary" id="logBtn">Log snap</button>
         <button class="btn" id="undoBtn">Undo last</button>
+        <details class="morewrap" id="chartMore"><summary>More ▾ <span class="note" style="font-weight:500">end series, Victory, end game</span></summary><div class="actions">
         <button class="btn" id="endSeries">End series</button>
-        <button class="btn endbtn" id="endGameBtn" title="Mark the game Final and grade it against the scout">⏹ End game</button>
         <button class="btn vicbtn" id="vicBtn" title="Kneel: moves the ball and the clock, doesn't count in stats">🏁 Victory</button>
+        <button class="btn endbtn" id="endGameBtn" title="Mark the game Final and grade it against the scout">⏹ End game</button>
+        </div></details>
       </div>
       <label class="fastnote" style="display:flex;gap:8px;align-items:center;margin-top:10px"><input type="checkbox" id="fastLog" checked> Fast log: tapping the ball carrier or target logs the snap (Scramble and Sack log on tap). The next snap starts by tapping where the ball is spotted, which finishes the last play's yards and sets the down and distance. Penalty opens the penalty list.</label>
       <details style="margin-top:12px">
@@ -1046,6 +1109,19 @@ textarea { min-height: 64px }
       <button class="btn" id="editCancel">Cancel</button>
     </div>
     <datalist id="dlMot"></datalist><datalist id="dlRpo"></datalist><datalist id="dlForms"></datalist><datalist id="dlCalls"></datalist><datalist id="dlBlitz"></datalist><datalist id="dlFronts"></datalist><datalist id="dlCovs"></datalist>
+  </div>
+</div>
+<div class="modal" id="roleModal" hidden role="dialog" aria-modal="true" aria-labelledby="roleTitle">
+  <div class="mbox">
+    <h3 id="roleTitle" style="margin:0">What is this device doing tonight?</h3>
+    <p class="note" style="margin:4px 0 0">You can change it any time from the button at the top. Several devices can pick the same role.</p>
+    <div class="rolegrid">
+      <button type="button" data-pick="chart"><b>Chart offense</b><span>Log every snap. More than one charter can chart the same game.</span></button>
+      <button type="button" data-pick="defense"><b>Chart defense</b><span>Opens the defense chart for this game.</span></button>
+      <button type="button" data-pick="film"><b>Film</b><span>Camera only. Clips cut when a charter logs a play.</span></button>
+      <button type="button" data-pick="view"><b>View only</b><span>Next Call, OC report, plays and film. Can't change plays.</span></button>
+    </div>
+    <div class="actions" style="margin-top:12px"><button class="btn" id="roleClose" type="button">Close</button></div>
   </div>
 </div>
 <div class="modal" id="plModal" hidden role="dialog" aria-modal="true" aria-labelledby="plTitle">
@@ -5417,6 +5493,8 @@ textarea { min-height: 64px }
       ["home", "chart", "report", "log", "drives", "games", "setup"].forEach(function (t) { $("v-" + t).hidden = t !== b.dataset.tab });
       if (b.dataset.tab === "home") loadHome();
       document.body.classList.toggle("onhome", b.dataset.tab === "home");
+      if (b.dataset.tab === "setup") { document.body.dataset.area = b.dataset.area || "settings"; areaHead() } else delete document.body.dataset.area;
+      if (b.dataset.tab === "drives") $("t-log").setAttribute("aria-selected", "true");
       if (b.dataset.tab === "setup") renderSetup();
       window.scrollTo(0, 0);
     });
@@ -5602,6 +5680,63 @@ textarea { min-height: 64px }
   $("hsToggle").addEventListener("click", openSchedEd);
   $("homeSend").addEventListener("click", sendOnline); $("syncSend").addEventListener("click", sendOnline);
   $("homeOff").addEventListener("click", function () { document.getElementById("t-chart").click() });
+  // ---------- roles: each device picks its job for the night ----------
+  var ROLE_KEY = "solutions-role" + NS, ROLES = { chart: ["Charting", "Chart"], film: ["Filming", "Film"], view: ["View only", "Live"] };
+  function roleGet() { try { return localStorage.getItem(ROLE_KEY) || "" } catch (e) { return "" } }
+  function roleApply() {
+    var r = roleGet(); ["chart", "film", "view"].forEach(function (k) { document.body.classList.toggle("role-" + k, r === k) });
+    $("roleChip").textContent = (ROLES[r] ? ROLES[r][0] : "Pick a role") + " ▾";
+    $("t-chart").textContent = ROLES[r] ? ROLES[r][1] : "Chart";
+    document.querySelectorAll("#roleModal [data-pick]").forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.pick === r) });
+  }
+  function roleSet(r) {
+    if (r === "defense") { location.href = "defense.html"; return }
+    try { localStorage.setItem(ROLE_KEY, r) } catch (e) {}
+    roleApply(); $("roleModal").hidden = true; $("t-chart").click();
+    toast(r === "view" ? "View only: this device can't change plays" : r === "film" ? "Filming: tap Film this game to start" : "Charting");
+  }
+  function roleOpen() { roleApply(); $("roleModal").hidden = false }
+  $("roleChip").addEventListener("click", roleOpen); $("roleClose").addEventListener("click", function () { $("roleModal").hidden = true });
+  document.querySelectorAll("#roleModal [data-pick]").forEach(function (b) { b.addEventListener("click", function () { roleSet(b.dataset.pick) }) });
+  document.querySelectorAll("[data-role-open]").forEach(function (b) { b.addEventListener("click", roleOpen) });
+  document.querySelectorAll(".h-door [data-role]").forEach(function (b) { if (b.tagName === "BUTTON") b.addEventListener("click", function () { roleSet(b.dataset.role) }) });
+  document.querySelectorAll(".h-doors [data-go], .h-setrow [data-go]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var g = b.dataset.go;
+      if (g === "week") $("t-week").click(); else if (g === "settings") $("t-setup").click();
+      else if (g === "practice") { if (typeof openPractice === "function") openPractice() }
+      else if (g === "reels") { $("t-report").click(); setTimeout(function () { var rb = $("reelBar"); if (rb && rb.scrollIntoView) rb.scrollIntoView({ block: "start" }) }, 50) }
+      else if (g === "export") { $("t-setup").click(); setTimeout(function () { var ex = document.querySelector('#v-setup [data-sec="export"]'); if (ex && ex.scrollIntoView) ex.scrollIntoView({ block: "start" }) }, 50) }
+    });
+  });
+  // the old Setup page becomes two areas: This week (game prep) and Settings
+  (function () {
+    var WEEK = { "Game": 1, "Win probability": 1, "Game plan": 1, "Call sheet": 1 };
+    document.querySelectorAll("#v-setup .panel").forEach(function (p) {
+      var h = p.querySelector("h3"), t = h ? (h.childNodes[0] ? h.childNodes[0].textContent : h.textContent).trim() : "";
+      if (p.parentElement && p.parentElement.closest && p.parentElement.closest("#v-setup .panel")) return;
+      p.dataset.area = WEEK[t] ? "week" : "settings"; if (t === "Export") p.dataset.sec = "export";
+    });
+    var v = $("v-setup"), hd = document.createElement("div"); hd.className = "areahead"; hd.id = "areaHead"; v.insertBefore(hd, v.firstChild);
+    var wk = document.createElement("div"); wk.className = "panel"; wk.dataset.area = "week"; wk.style.marginBottom = "14px";
+    wk.innerHTML = "<h3>Scout &amp; reports <small>build Monday–Thursday</small></h3><div class='wklinks'><a class='btn' href='reports.html'>Scout from Hudl exports</a><a class='btn' href='reports.html'>Pregame Sim</a><a class='btn' href='reports.html'>Game-day sheet</a><button class='btn' type='button' id='wkPractice'>Practice game</button></div>";
+    v.insertBefore(wk, hd.nextSibling);
+    $("wkPractice").addEventListener("click", function () { if (typeof openPractice === "function") openPractice() });
+  })();
+  function areaHead() {
+    var w = document.body.dataset.area === "week", el = $("areaHead"); if (!el) return;
+    el.innerHTML = w ? "<h2>This week</h2><p>Set up the game, load the scout and call sheet, and build the game plan Next Call follows.</p>" : "<h2>Settings</h2><p>School, roster, buttons and lists, input timing, Next Call options, lock mode, sync, film and exports.</p>";
+  }
+  // Plays: one tab, list or drives
+  (function () {
+    ["v-log", "v-drives"].forEach(function (id) {
+      var v = $(id), seg = document.createElement("div"); seg.className = "playseg"; seg.setAttribute("role", "group"); seg.setAttribute("aria-label", "Show plays as");
+      seg.innerHTML = "<button type='button' data-pv='log' aria-pressed='" + (id === "v-log") + "'>List</button><button type='button' data-pv='drives' aria-pressed='" + (id === "v-drives") + "'>Drives</button>";
+      v.insertBefore(seg, v.firstChild);
+      seg.querySelectorAll("button").forEach(function (b) { b.addEventListener("click", function () { $("t-" + b.dataset.pv).click() }) });
+    });
+  })();
+  document.body.classList.add("inapp"); roleApply();
   var PROF = (ONLINE && ACC && ACC.profile) || {};
   if (ONLINE) { SCHOOL_NAME_H = PROF.name || (ACC.school || "").replace(/(^|-)([a-z])/g, function (m, d, c) { return (d ? " " : "") + c.toUpperCase() }) }
   $("hSchool").textContent = SCHOOL_NAME_H + " Football";
@@ -5659,10 +5794,10 @@ textarea { min-height: 64px }
     });
   }).then(function () { if (!$("v-home").hidden) loadHome() }, function () {});
   if (ONLINE) { $("navOut").hidden = false; $("navOut").addEventListener("click", function () { solLogout(); location.href = "index.html" });
-    solToken().then(function (t) { return fetch(SOL_DB + "/admins/" + ACC.uid + ".json?auth=" + t).then(function (r) { return r.json() }) }).then(function (ok) { if (ok === true) { $("navAdm").hidden = false; $("navOut").style.marginLeft = "12px" } }, function () {}) }
+    solToken().then(function (t) { return fetch(SOL_DB + "/admins/" + ACC.uid + ".json?auth=" + t).then(function (r) { return r.json() }) }).then(function (ok) { if (ok === true) { $("navAdm").hidden = false; if ($("homeAdm")) $("homeAdm").hidden = false; $("navOut").style.marginLeft = "12px" } }, function () {}) }
   $("schoolName").textContent = SCHOOL.name.toUpperCase(); document.documentElement.style.setProperty("--school", SCHOOL.color);
   $("hlGo").addEventListener("click", function () { var v = $("hlIn").value.trim(); if (v.length < 4) { toast("At least 4 letters or numbers"); return } seasonKey(true); S.lock = lockOf(v); lastIdx = null; save(); updateIndex(); $("hlIn").value = ""; toast("Game code set: " + v.toUpperCase()); setTimeout(loadHome, 600) });
-  $("homeContinue").addEventListener("click", function () { document.getElementById("t-chart").click() });
+  $("homeContinue").addEventListener("click", function () { if (!roleGet()) { roleOpen(); return } document.getElementById("t-chart").click() });
   function renderDirBtns() { var d = S.dir || {}; $("dirQ1").textContent = d.q1 === "L" ? "← Left" : "Right →"; var q3 = d.q3 || d.q1 || "R"; $("dirQ3").textContent = q3 === "L" ? "← Left" : "Right →" }
   $("dirQ1").addEventListener("click", function () { S.dir = S.dir || {}; S.dir.q1 = S.dir.q1 === "L" ? "R" : "L"; save(); renderAll(); renderDirBtns() });
   $("dirQ3").addEventListener("click", function () { S.dir = S.dir || {}; var cur = S.dir.q3 || S.dir.q1 || "R"; S.dir.q3 = cur === "L" ? "R" : "L"; save(); renderAll(); renderDirBtns() });

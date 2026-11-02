@@ -593,6 +593,7 @@
       var pu = y >= 62 ? -99 : -EP(Math.max(20, 100 - Math.min(99, y + net)));
       var A = [["GO", go], ["FG", fg], ["PUNT", pu]].sort(function (a, b) { return b[1] - a[1] }); var bold = opt.bold == null ? 1 : opt.bold; if (A[0][0] === "GO" && A[0][1] - A[1][1] < (y < 50 ? .8 : .45) * bold) A = [A[1], A[0], A[2]]; return { call: A[0][0], close: Math.abs(A[0][1] - A[1][1]) < .35 };
     };
+    G.SK.fourthCall = fourth;
     var spots = [["O20", 20], ["O25", 25], ["O30", 30], ["O35", 35], ["O40", 40], ["O45", 45], ["50", 50], ["X45", 55], ["X40", 60], ["X35", 65], ["X30", 70], ["X25", 75], ["X20", 80], ["X15", 85], ["X10", 90], ["X5", 95]];
     var col = { GO: ["#7cc576", "#cfe9cc"], FG: ["#8fb4e3", "#d6e3f5"], PUNT: ["#bdbdbd", "#ececec"] };
     var g4 = "<table class='skt cen' style='font-size:9.4px'><thead><tr><th>4TH &amp;</th>" + spots.map(function (s) { return "<th>" + s[0] + "</th>" }).join("") + "</tr></thead><tbody>" + [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(function (d) { return "<tr><td>" + d + "</td>" + spots.map(function (s) { if (s[1] + d > 100) return "<td></td>"; var f = fourth(d, s[1]); return "<td style='background:" + col[f.call][f.close ? 1 : 0] + "!important;font-weight:400'>" + f.call + "</td>" }).join("") + "</tr>" }).join("") + "</tbody></table>";

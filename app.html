@@ -1556,14 +1556,18 @@ textarea { min-height: 64px }
     var rep = localRep(), ops = [];
     Object.keys(rep.snaps).forEach(function (id) { if (SY.last.snaps[id] !== rep.snaps[id]) ops.push(["PUT", "/snaps/" + id, rep.snaps[id], id]) });
     Object.keys(SY.last.snaps).forEach(function (id) { if (!rep.snaps[id]) ops.push(["DELETE", "/snaps/" + id, null, id]) });
-    if (SY.last.meta !== rep.meta) ops.push(["PUT", "/meta", rep.meta, "meta"]);
+    // only the meta fields that changed go up, so two devices editing different things (clock, score, reels, notes) never overwrite each other
+    if (SY.last.meta !== rep.meta) { var mOld = {}, mNew = {}, patch = {}, nP = 0; try { mOld = SY.last.meta ? JSON.parse(SY.last.meta) : {} } catch (e) {} try { mNew = JSON.parse(rep.meta) } catch (e) {}
+      Object.keys(mNew).forEach(function (k) { if (JSON.stringify(mNew[k]) !== JSON.stringify(mOld[k])) { patch[k] = mNew[k]; nP++ } });
+      Object.keys(mOld).forEach(function (k) { if (!(k in mNew)) { patch[k] = null; nP++ } });
+      if (!SY.last.meta) ops.push(["PATCH", "/meta", rep.meta, "meta"]); else if (nP) ops.push(["PATCH", "/meta", JSON.stringify(patch), "meta", rep.meta]); else SY.last.meta = rep.meta }
     if (!ops.length) { SY.pushing = false; afterPush(); return }
     var i = 0;
     (function next() {
       if (i >= ops.length) { SY.pushing = false; if (SY.status !== "on" && SY.es && SY.es.readyState === 1) setStatus("on"); afterPush(); return }
       var op = ops[i++];
       req(op[0], op[1], op[2]).then(function () {
-        if (op[3] === "meta") SY.last.meta = op[2]; else if (op[0] === "DELETE") delete SY.last.snaps[op[3]]; else SY.last.snaps[op[3]] = op[2];
+        if (op[3] === "meta") SY.last.meta = op[4] || op[2]; else if (op[0] === "DELETE") delete SY.last.snaps[op[3]]; else SY.last.snaps[op[3]] = op[2];
         next();
       }, function () { SY.pushing = false; SY.dirty = true; setStatus("off"); clearTimeout(SY.retry); SY.retry = setTimeout(push, 4000) });
     })();
@@ -2002,6 +2006,7 @@ textarea { min-height: 64px }
 
   function load() { try { var r = localStorage.getItem(KEY); return r ? JSON.parse(r) : null } catch (e) { return null } }
   function save() { ensureIdsSafe(); if (typeof filmCheck === "function") filmCheck(); try { localStorage.setItem(KEY, JSON.stringify(S)); localStorage.setItem("cardinals-last-used" + NS, String(Date.now())) } catch (e) {} if (typeof schedulePush === "function") schedulePush() }
+  if (window.SOL_TEST) window.__sol = { get S() { return S }, save: save }; // test hook only, off in real use
   function ensureIdsSafe() { if (typeof ensureIds === "function" && S && S.snaps) ensureIds() }
   function $(id) { return document.getElementById(id) }
   function list(k) { if (S.lists[k] == null) S.lists[k] = DEF_LISTS[k]; return S.lists[k].split(",").map(function (s) { return s.trim() }).filter(Boolean) }

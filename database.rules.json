@@ -1,0 +1,72 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "admins": {
+      ".read": "auth != null && root.child('admins').child(auth.uid).val() === true",
+      "$uid": { ".read": "auth != null && auth.uid === $uid" }
+    },
+
+    "members": {
+      ".read": "auth != null && root.child('admins').child(auth.uid).val() === true",
+      ".write": "auth != null && root.child('admins').child(auth.uid).val() === true",
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".validate": "newData.isString()"
+      }
+    },
+
+    "users": {
+      ".read": "auth != null && root.child('admins').child(auth.uid).val() === true",
+      ".write": "auth != null && root.child('admins').child(auth.uid).val() === true"
+    },
+
+    "venues": {
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('admins').child(auth.uid).val() === true"
+    },
+
+    "leads": {
+      ".read": "auth != null && root.child('admins').child(auth.uid).val() === true",
+      "$id": {
+        ".write": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (!data.exists() && newData.exists())",
+        ".validate": "newData.hasChildren(['email', 'at'])",
+        "$f": { ".validate": "(newData.isString() && newData.val().length <= 2000) || newData.isNumber() || newData.isBoolean()" }
+      }
+    },
+
+    "share": {
+      "$tok": {
+        ".read": true,
+        ".write": "auth != null && (root.child('admins').child(auth.uid).val() === true || (!data.exists() && newData.child('by').val() === auth.uid) || data.child('by').val() === auth.uid)",
+        ".validate": "$tok.matches(/^[a-z0-9]{8,40}$/) && newData.hasChildren(['by', 'items'])"
+      }
+    },
+
+    "schools": {
+      ".read": "auth != null && root.child('admins').child(auth.uid).val() === true",
+      "$s": {
+        ".read": "auth != null && (root.child('admins').child(auth.uid).val() === true || root.child('members').child(auth.uid).val() === $s)",
+        ".write": "auth != null && root.child('admins').child(auth.uid).val() === true",
+
+        "locks": {
+          ".write": "auth != null && root.child('admins').child(auth.uid).val() === true"
+        },
+
+        "games": {
+          ".write": "auth != null && root.child('members').child(auth.uid).val() === $s && root.child('schools').child($s).child('locks').child(auth.uid).val() !== true",
+          "$code": {
+            "presence": {
+              "$device": { ".write": "auth != null && root.child('members').child(auth.uid).val() === $s" }
+            }
+          }
+        },
+
+        "$node": {
+          ".write": "auth != null && root.child('members').child(auth.uid).val() === $s && root.child('schools').child($s).child('locks').child(auth.uid).val() !== true"
+        }
+      }
+    }
+  }
+}

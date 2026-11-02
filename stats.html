@@ -139,10 +139,7 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
     <div><div class="brand"><span class="school" id="schoolName">MELISSA</span> SOLUTIONS STATS</div><div class="opp" id="sub">Team and player stats from every charted game</div></div>
     <div class="pills" id="solThemeSlot"></div>
   </div>
-  <div class="tabs">
-    <a href="app.html">Home</a><a href="app.html">Offense</a><a href="defense.html">Defense</a><a href="reports.html">Reports</a>
-    <button aria-selected="true" type="button">Stats</button><a href="impact.html">Impact</a>
-  </div>
+  <div class="tabs" data-solnav="stats"></div>
 </header>
 <main class="gut">
   <div class="stack">
@@ -389,4 +386,5 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
   setInterval(function () { if (document.visibilityState === "visible") load() }, 120000);
 })();
 </script>
+<script src="nav.js"></script>
 </body></html>

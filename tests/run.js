@@ -39,10 +39,12 @@ const wait=async(fn,ms=8000)=>{ const t=Date.now(); while(Date.now()-t<ms){ if(a
  console.log('3. One device drops offline, keeps charting, comes back');
  await C.ctx.setOffline(true); await log(C); await log(C); await log(A); // A and C now both chart blind to each other await A.waitForTimeout(2000);
  ok(srvSnaps()===4, 'while C is offline, database only has A\'s new play');
+ ok(await wait(async()=>/waiting/.test(await C.textContent('#pSync'))), 'C status light shows changes waiting ('+await C.textContent('#pSync')+')');
  await C.ctx.setOffline(false); await C.evaluate(()=>window.dispatchEvent(new Event('online')));
  ok(await wait(()=>srvSnaps()===6, 15000), 'after reconnect database has all 6 plays (has '+srvSnaps()+')');
  for (const [n,p] of [['A',A],['B',B],['C',C]]) ok(await wait(async()=>await snaps(p)===6, 15000), n+' shows 6 plays');
 
+ ok(await wait(async()=>await C.textContent('#pSync')==='Live'), 'C status light back to Live');
  console.log('4. End game');
  await st(A,()=>{ document.getElementById('egModal').hidden=false; document.getElementById('egUs').value='28'; document.getElementById('egThem').value='14' }); await A.click('#egGo');
  ok(await wait(()=>{ const f=(R.getAt(G+'/meta')||{}).final; return f && f.us===28 && f.them===14 }), 'final score saved');

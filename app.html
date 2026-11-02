@@ -1499,9 +1499,21 @@ textarea { min-height: 64px }
   function setStatus(st, txt) {
     SY.status = st; var pill = $("pSync");
     pill.hidden = st === "off"; pill.className = "pill syncpill " + (st === "on" ? "on" : st === "err" ? "err" : "off");
-    pill.textContent = st === "on" ? "Live" : st === "err" ? "Sync error" : "Offline";
+    pill.textContent = st === "on" ? "Live" : st === "err" ? "Sync error" : "Offline"; syncLight();
     $("syncState").textContent = txt || (st === "on" ? "live · " + (SY.cfg ? SY.cfg.code : "") : st === "off" ? "off" : "offline · will catch up");
   }
+  // status light: green Live = everything saved; amber = plays waiting to send (offline or slow signal); red = sync error
+  function syncWaiting() { if (!SY.cfg || !SY.last || LOCK.on) return 0; var r = localRep(), n = 0; Object.keys(r.snaps).forEach(function (k) { if (SY.last.snaps[k] !== r.snaps[k]) n++ }); Object.keys(SY.last.snaps).forEach(function (k) { if (!r.snaps[k]) n++ }); return n + (SY.last.meta && SY.last.meta !== r.meta ? 1 : 0) }
+  function syncLight() {
+    var pill = $("pSync"); if (!pill || !SY.cfg || SY.status === "err") return;
+    var n = syncWaiting(), now = Date.now(); if (!n) SY.waitSince = 0; else if (!SY.waitSince) SY.waitSince = now;
+    var slow = n && now - SY.waitSince > 5000, w = n + " change" + (n === 1 ? "" : "s");
+    if (SY.status === "on") { pill.className = "pill syncpill " + (slow ? "off" : "on"); pill.textContent = slow ? "Sending " + w + "…" : "Live" }
+    else { pill.className = "pill syncpill off"; pill.textContent = n ? "Offline · " + w + " waiting" : "Offline" }
+    var ago = SY.lastOk ? Math.round((now - SY.lastOk) / 1000) : null;
+    pill.title = (n ? w + " not saved online yet. They'll send on their own when the signal is back. " : "Everything is saved online. ") + (ago == null ? "" : "Last save " + (ago < 60 ? ago + "s" : Math.round(ago / 60) + " min") + " ago.");
+  }
+  setInterval(syncLight, 1500);
   function req(method, path, body) {
     return fetch(gameUrl(path), { method: method, headers: { "Content-Type": "application/json" }, body: body == null ? undefined : body }).then(function (r) {
       if (!r.ok) throw new Error("HTTP " + r.status); return r.text();
@@ -1567,7 +1579,7 @@ textarea { min-height: 64px }
       if (i >= ops.length) { SY.pushing = false; if (SY.status !== "on" && SY.es && SY.es.readyState === 1) setStatus("on"); afterPush(); return }
       var op = ops[i++];
       req(op[0], op[1], op[2]).then(function () {
-        if (op[3] === "meta") SY.last.meta = op[4] || op[2]; else if (op[0] === "DELETE") delete SY.last.snaps[op[3]]; else SY.last.snaps[op[3]] = op[2];
+        SY.lastOk = Date.now(); if (op[3] === "meta") SY.last.meta = op[4] || op[2]; else if (op[0] === "DELETE") delete SY.last.snaps[op[3]]; else SY.last.snaps[op[3]] = op[2];
         next();
       }, function () { SY.pushing = false; SY.dirty = true; setStatus("off"); clearTimeout(SY.retry); SY.retry = setTimeout(push, 4000) });
     })();

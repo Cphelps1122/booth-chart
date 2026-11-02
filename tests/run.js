@@ -25,6 +25,7 @@ const wait=async(fn,ms=8000)=>{ const t=Date.now(); while(Date.now()-t<ms){ if(a
  const srvSnaps=()=>Object.keys(R.getAt(G+'/snaps')||{}).length;
  const log=async p=>{ if(!await p.isVisible('#logBtn')) await p.click('#t-chart'); await p.evaluate(()=>{ const S=window.__sol.S, l=S.snaps[S.snaps.length-1]; if(l&&l.gain==null){ l.gain=4; window.__sol.save() } }); await p.click('#cRes [data-v="Rush"]'); await p.waitForTimeout(200); if(await p.isEnabled('#logBtn')) await p.click('#logBtn'); await p.waitForTimeout(300) }; // fast mode logs Rush on its own
 
+ await st(A,()=>{ window.__sol.S.reels={}; window.__sol.S.scoreLog=[]; window.__sol.save() }); // empty lists, which the real database drops
  console.log('1. Two devices edit different game info at the same moment');
  await Promise.all([ st(A,()=>{ window.__sol.S.oppScore=7; window.__sol.save() }), st(B,()=>{ window.__sol.S.clipNotes={x1:'watch the backside end'}; window.__sol.save() }) ]);
  await wait(()=>{ const m=R.getAt(G+'/meta')||{}; return m.oppScore===7 && m.clipNotes });

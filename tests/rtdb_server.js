@@ -1,5 +1,6 @@
 // tiny Realtime Database REST + streaming mock for tests
 const http=require('http');
+function prune(v){ if(v===null||v===undefined) return null; if(typeof v!=='object') return v; const isA=Array.isArray(v); let o=isA?[]:{}; let n=0; for(const k of Object.keys(v)){ const x=prune(v[k]); if(x!==null){ isA?o[k]=x:o[k]=x; n++ } } if(isA){ o=o.some(x=>x===undefined)?Object.fromEntries(Object.entries(o)):o } return n?o:null }
 function start(seed, port){
   const db=JSON.parse(JSON.stringify(seed)); const subs=[];
   const parts=p=>decodeURIComponent(p).replace(/\.json$/,'').split('/').filter(Boolean);
@@ -17,7 +18,7 @@ function start(seed, port){
     let body=''; req.on('data',c=>body+=c); req.on('end',()=>{
       let v=null; try{ v=body?JSON.parse(body):null }catch(e){}
       if (req.method==='GET'){ let x=getAt(ps); if(u.searchParams.get('shallow')==='true'&&x&&typeof x==='object'){const o={};Object.keys(x).forEach(k=>o[k]=true);x=o} res.setHeader('Content-Type','application/json'); return res.end(JSON.stringify(x)) }
-      if (req.method==='PUT') setAt(ps,v);
+      v=prune(v); if (req.method==='PUT') setAt(ps,v);
       if (req.method==='PATCH'){ const cur=getAt(ps)||{}; Object.keys(v||{}).forEach(k=>{ if(v[k]===null) delete cur[k]; else cur[k]=v[k] }); setAt(ps,cur) }
       if (req.method==='DELETE') setAt(ps,null);
       if (req.method==='POST'){ const id='p'+Date.now(); setAt(ps.concat(id),v) }

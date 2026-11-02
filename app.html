@@ -1503,8 +1503,9 @@ textarea { min-height: 64px }
     $("syncState").textContent = txt || (st === "on" ? "live · " + (SY.cfg ? SY.cfg.code : "") : st === "off" ? "off" : "offline · will catch up");
   }
   // status light: green Live = everything saved; amber = plays waiting to send (offline or slow signal); red = sync error
-  // same info in a different order is not a change: compare with keys sorted
-  function canon(s) { try { return JSON.stringify(JSON.parse(s), function (k, v) { return v && typeof v === "object" && !Array.isArray(v) ? Object.keys(v).sort().reduce(function (o, x) { o[x] = v[x]; return o }, {}) : v }) } catch (e) { return s } }
+  // the database drops empty lists and blanks, so compare the way it stores things
+  function fbForm(v) { if (v == null || v === "") return null; if (typeof v !== "object") return v; var o = {}, n = 0; Object.keys(v).sort().forEach(function (k) { var x = fbForm(v[k]); if (x != null) { o[k] = x; n++ } }); return n ? o : null }
+  function canon(s) { try { return JSON.stringify(fbForm(JSON.parse(s))) } catch (e) { return s } }
   function sameRep(a, b) { return a === b || (a != null && b != null && canon(a) === canon(b)) }
   function syncWaiting() { if (!SY.cfg || !SY.last || LOCK.on) return 0; var r = localRep(), n = 0; Object.keys(r.snaps).forEach(function (k) { if (!sameRep(SY.last.snaps[k], r.snaps[k])) n++ }); Object.keys(SY.last.snaps).forEach(function (k) { if (!r.snaps[k]) n++ }); return n + (SY.last.meta && !sameRep(SY.last.meta, r.meta) ? 1 : 0) }
   function syncLight() {

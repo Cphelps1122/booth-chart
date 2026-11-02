@@ -143,9 +143,9 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
 .flist { font-size: 13px; color: var(--muted); margin-top: 6px } .flist button { font: inherit; font-size: 12px; border: 0; background: none; color: var(--school); cursor: pointer; text-decoration: underline }
 .glist { display: flex; flex-direction: column; gap: 6px; margin-top: 8px } .grow { display: flex; gap: 8px; align-items: center; flex-wrap: wrap } .grow input[type=text] { font: inherit; font-size: 14px; padding: 5px 8px; border-radius: 7px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); width: 180px } .grow small { color: var(--muted) }
 .opts { display: flex; gap: 12px; flex-wrap: wrap; align-items: end } .opts label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted) } .opts input, .opts select { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); text-transform: none; letter-spacing: 0 }
-#pages { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 16px 0; background: #6b6f76; border-radius: 12px; overflow-x: auto } #pages .skpage { box-shadow: 0 6px 24px rgba(0,0,0,.35); flex: 0 0 auto }
+#pages { display: flex; flex-direction: column; align-items: safe center; gap: 16px; padding: 16px 0; background: #6b6f76; border-radius: 12px; overflow-x: auto } #pages .skpage { box-shadow: 0 6px 24px rgba(0,0,0,.35); flex: 0 0 auto }
 .srcseg { display: inline-flex; gap: 4px; padding: 3px; border-radius: 10px; background: var(--chip, #e9e7e3) } .srcseg button { font: 700 14px Barlow, sans-serif; padding: 6px 12px; border-radius: 8px; border: 0; background: none; color: var(--ink); cursor: pointer } .srcseg button[aria-pressed=true] { background: var(--panel); box-shadow: 0 1px 3px rgba(0,0,0,.15) }
-@media print { @page { size: letter; margin: 0 } html, body { background: #fff !important } body > *:not(main) { display: none !important } main > .stack > *:not(#pagesWrap) { display: none !important } main, .stack, #pagesWrap, #pages { padding: 0 !important; margin: 0 !important; background: #fff !important; gap: 0 !important; display: block !important; border-radius: 0 !important } #pagesWrap > :not(#pages) { display: none !important } #pages .skpage { box-shadow: none !important } }
+@media print { @page { size: letter; margin: 0 } html, body { background: #fff !important } body > *:not(main) { display: none !important } main > .stack > *:not(#pagesWrap) { display: none !important } main, .stack, #pagesWrap, #pages { padding: 0 !important; margin: 0 !important; background: #fff !important; gap: 0 !important; display: block !important; border-radius: 0 !important } #pagesWrap > :not(#pages) { display: none !important } #pages .skpage { box-shadow: none !important; zoom: 1 !important } }
 </style>
 <header class="gut">
   <div class="hrow">
@@ -373,9 +373,12 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
       var ex = "<div style='display:grid;grid-template-columns:100px 1fr;gap:2px 8px'><b>Opponent games:</b><span>" + src.games.map(function (g, i) { return (i + 1) + ". " + esc(g.name) }).join("  ") + "</span><b>Our data:</b><span>" + (ours && ours.games.length ? (SRC === "app" ? "Charted in the app" : "Self scout") + ", " + ours.games.length + " games (" + ours.games.map(function (g) { return esc(g.name) }).join(", ") + ")" : "None added") + "</span></div>";
       Object.assign(o, { subtitle: (REP === "opp" ? "DEFENSIVE SCOUT  |  " : "GAME PLAN  |  ") + team.toUpperCase() + (REP === "gm" && gd ? "  |  " + gd.toUpperCase() : ""), code: REP === "opp" ? "OS" : "GM", extraMeta: ex, metaRight: (gd ? "Game: " + gd + "  |  " : "") + "Built " + today, legend: false, foot: "Eff% = plays gaining 40% of distance (1st), 50% (2nd) or full distance (3rd/4th). Penalty plays excluded. P&10 = first play of a series. Explosive = run 10+ / pass 15+." });
     }
-    $("pages").hidden = false; var n = SK.paginate(S, $("pages"), o); $("printBtn").disabled = false; $("buildNote").textContent = n + " page" + (n === 1 ? "" : "s") + ". Print, then choose Save as PDF.";
+    $("pages").hidden = false; document.querySelectorAll("#pages .skpage").forEach(function (pg) { pg.style.zoom = "" }); var n = SK.paginate(S, $("pages"), o); fitPages(); $("printBtn").disabled = false; $("buildNote").textContent = n + " page" + (n === 1 ? "" : "s") + ". Print, then choose Save as PDF.";
     $("pages").scrollIntoView({ behavior: "smooth" });
   });
+  // on a phone or small iPad the letter pages shrink to fit the screen; printing always uses full size
+  function fitPages() { var w = $("pages").clientWidth - 16, z = Math.min(1, w / 816); document.querySelectorAll("#pages .skpage").forEach(function (pg) { pg.style.zoom = z < 1 ? z.toFixed(3) : "" }) }
+  window.addEventListener("resize", fitPages);
   $("printBtn").addEventListener("click", function () { window.print() });
   render();
 })();

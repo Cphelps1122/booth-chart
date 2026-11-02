@@ -1,0 +1,382 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="apple-mobile-web-app-title" content="Stats"><link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAIAAACyr5FlAAADMklEQVR4nOzcMWucdRzA8SehdupSEAoWNEJFUIog6FKXChbcsmQ22KEu0TeQN5BXkEKtq1ubxZiti1OFUojYCEKjkE7uBYfEcy39FuLdg0fu8+Gmu4f/8L8vz/OH437nLly8NMDLnBsgiIMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgLXocVz78+N2PPlleXn7h/ePj499+/un3Rw+HBba0yH9NeP/a9a+3v3/FBdvfrD9+sDcsquVhgX1w/fNXX/DetU+HBbbQj5XXzp+f8oKzzYGUJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA7SiHF8duPGxsbG5TcuD3Ngf39/a2vryZNfh+lcufLO5ubm1atXhzlw9Ozo9vbt3d0fhnGMODDu1q2v5qSMicnXubq6OkxtbW1tTsqYmGzvlzdvDqMZ8c7x9srKME9WVt4apjaTRWZo1E125iCJgyQOkjhI4iCJgyQOkjhI4iCJgyQOkjhII/4q+/TwcJgnh4d/DFObySIzNOomjxjHt3fuHD07GubD/v7+zs7OMLX79+9Nlhrmw2R7v7t7dxjNiI+Vvb0fJ6/hbDk4OFhf/2JYDM4cJHGQxEESB0kcJHGQxEESB0kcJHGQxEESB0kcJHGQxEESB0kcJHGQxEESB0kcJHGQxEESB0kcJHGQxEEyGP90DMafDYPxx2Yw/swYjH9azhwkcZDEQRIHSRwkcZDEQRIHSRwkcZDEQRIHyWD8/2GRGTIYfwYMxv8PDMY/HYPx4V/iIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEgjjn2af09/eTTlBWfbQt85Hu7e+/v589cvv7m0tPTCRycnJ38d/fn4wVkbW3UqSxcuXhrgZZw5SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SP8AAAD//3xWAykAAAAGSURBVAMAZviiR2dx64EAAAAASUVORK5CYII="><link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAIAAACyr5FlAAADMklEQVR4nOzcMWucdRzA8SehdupSEAoWNEJFUIog6FKXChbcsmQ22KEu0TeQN5BXkEKtq1ubxZiti1OFUojYCEKjkE7uBYfEcy39FuLdg0fu8+Gmu4f/8L8vz/OH437nLly8NMDLnBsgiIMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgLXocVz78+N2PPlleXn7h/ePj499+/un3Rw+HBba0yH9NeP/a9a+3v3/FBdvfrD9+sDcsquVhgX1w/fNXX/DetU+HBbbQj5XXzp+f8oKzzYGUJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA7SiHF8duPGxsbG5TcuD3Ngf39/a2vryZNfh+lcufLO5ubm1atXhzlw9Ozo9vbt3d0fhnGMODDu1q2v5qSMicnXubq6OkxtbW1tTsqYmGzvlzdvDqMZ8c7x9srKME9WVt4apjaTRWZo1E125iCJgyQOkjhI4iCJgyQOkjhI4iCJgyQOkjhII/4q+/TwcJgnh4d/DFObySIzNOomjxjHt3fuHD07GubD/v7+zs7OMLX79+9Nlhrmw2R7v7t7dxjNiI+Vvb0fJ6/hbDk4OFhf/2JYDM4cJHGQxEESB0kcJHGQxEESB0kcJHGQxEESB0kcJHGQxEESB0kcJHGQxEESB0kcJHGQxEESB0kcJHGQxEEyGP90DMafDYPxx2Yw/swYjH9azhwkcZDEQRIHSRwkcZDEQRIHSRwkcZDEQRIHyWD8/2GRGTIYfwYMxv8PDMY/HYPx4V/iIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEgjjn2af09/eTTlBWfbQt85Hu7e+/v589cvv7m0tPTCRycnJ38d/fn4wVkbW3UqSxcuXhrgZZw5SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SP8AAAD//3xWAykAAAAGSURBVAMAZviiR2dx64EAAAAASUVORK5CYII="><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}</style><script>
+// light / dark switch shared by every page; first visit follows the device, then remembers the choice
+(function () {
+  var K = "solutions-theme", root = document.documentElement, get = function () { try { return localStorage.getItem(K) } catch (e) { return null } };
+  var dev = function () { return window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light" };
+  var cur = function () { return get() || dev() };
+  function apply() { var t = cur(); root.setAttribute("data-theme", t); root.style.colorScheme = t; var b = document.getElementById("solTheme"); if (b) { b.textContent = t === "dark" ? "☀︎ Light" : "☾ Dark"; b.setAttribute("aria-label", t === "dark" ? "Switch to light mode" : "Switch to dark mode") } }
+  apply();
+  window.solThemeNow = cur;
+  // paper is always light
+  window.addEventListener("beforeprint", function () { root.setAttribute("data-theme", "light"); root.style.colorScheme = "light" });
+  window.addEventListener("afterprint", apply);
+  function mount() {
+    if (document.getElementById("solTheme")) return;
+    var b = document.createElement("button"); b.id = "solTheme"; b.type = "button";
+    b.addEventListener("click", function () { var n = cur() === "dark" ? "light" : "dark"; try { localStorage.setItem(K, n) } catch (e) {} apply(); try { window.dispatchEvent(new Event("solthemechange")) } catch (e) {} });
+    var slot = document.getElementById("solThemeSlot"), h = document.querySelector("header");
+    if (slot) { slot.appendChild(b); b.classList.add("inline") } else { (h || document.body).appendChild(b); if (!h) b.classList.add("float") }
+    apply();
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mount); else mount();
+  if (window.matchMedia) try { matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function () { if (!get()) apply() }) } catch (e) {}
+})();
+</script>
+<style>
+#solTheme { font: 700 13px/1 "Barlow", "Segoe UI", Arial, sans-serif; letter-spacing: .04em; padding: 7px 11px; border-radius: 999px; border: 1px solid rgba(255,255,255,.35); background: rgba(255,255,255,.1); color: #f4f4f5; cursor: pointer; white-space: nowrap; position: absolute; top: calc(env(safe-area-inset-top, 0px) + 8px); right: 10px; z-index: 50 }
+#solTheme:hover { background: rgba(255,255,255,.2) }
+#solTheme.inline { position: static; margin-left: 8px; align-self: center }
+#solTheme.float { position: fixed; background: #111; }
+header { position: relative }
+@media print { #solTheme { display: none } }
+
+</style>
+</head><body><title>Solutions Scout Reports</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Russo+One&family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600;700&display=swap">
+<style>
+/* Scout reports: print-ready self scout, opponent scout and game management card. */
+:root {
+  --bg: #f3f2f0; --panel: #ffffff; --ink: #16171b; --muted: #62656d; --line: #dcdad6;
+  --red: #e0302a; --hot: #fff1c7; --hotink: #6b4a00; --bar: #0d0e12; --barink: #f4f4f5;
+  --chip: #ecebe8; --chipon: #16171b; --chiponink: #fff; --blue: #2563eb; --school: #e0302a;
+  --f-display: "Barlow Condensed", "Arial Narrow", sans-serif; --f-body: "Barlow", "Segoe UI", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #121316; --panel: #1b1d21; --ink: #ecedef; --muted: #a2a5ad; --line: #2e3137; --hot: #4a3a10; --hotink: #ffe08a; --chip: #2a2d33; --chipon: #ecedef; --chiponink: #121316; color-scheme: dark } }
+:root[data-theme="dark"] { --red-txt: color-mix(in srgb, var(--red) 60%, #fff); --school-txt: color-mix(in srgb, var(--school) 60%, #fff); --bg: #121316; --panel: #1b1d21; --ink: #ecedef; --muted: #a2a5ad; --line: #2e3137; --hot: #4a3a10; --hotink: #ffe08a; --chip: #2a2d33; --chipon: #ecedef; --chiponink: #121316; color-scheme: dark }
+* { box-sizing: border-box } [hidden] { display: none !important }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.4; margin: 0 }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bar) }
+.gut { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)) }
+header { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bar); color: var(--barink); border-bottom: 3px solid var(--school); padding-block: 10px }
+.hrow { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; max-width: 1400px; margin: 0 auto }
+.brand { font-family: var(--f-display); font-weight: 800; font-size: 22px; letter-spacing: .03em; text-transform: uppercase }
+.brand .school { color: color-mix(in srgb, var(--school) 60%, #fff) }
+.opp { color: #b9bbc0; font-size: 13px }
+.side { display: inline-flex; border: 1px solid #33363d; border-radius: 9px; overflow: hidden }
+.side a, .side span { font-family: var(--f-display); font-weight: 800; font-size: 15px; letter-spacing: .08em; padding: 7px 14px; color: #9a9ca3; text-decoration: none }
+.side span { background: var(--school); color: #fff }
+.sb { display: flex; flex-direction: column; align-items: center; min-width: 88px; padding: 3px 12px 4px; border-radius: 8px; border: 1px solid #2c2f36; background: #050506 }
+.sb .tm { font-family: var(--f-display); font-weight: 700; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: #b9bbc0; max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.sb .pts { font-family: var(--f-display); font-weight: 800; font-size: 28px; line-height: 1; color: #ffb21e; font-variant-numeric: tabular-nums }
+.sb.us .pts { color: #ff4d45 }
+.board { display: flex; gap: 8px }
+.pills { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; align-items: center }
+.pill { font-family: var(--f-display); font-weight: 700; font-size: 20px; padding: 4px 10px; border-radius: 7px; background: #22252b; color: #f4f4f5; border: 0 }
+.pill.dd { background: var(--school) } .pill.on { color: #4ade80 } .pill.off { color: #fbbf24 } .pill.err { color: #f87171 }
+.tabs { display: flex; gap: 6px; max-width: 1400px; margin: 8px auto 0; flex-wrap: wrap }
+.tabs button, .tabs a { font-family: var(--f-display); font-weight: 700; font-size: 16px; letter-spacing: .06em; text-transform: uppercase; padding: 6px 12px; border-radius: 7px; border: 0; background: transparent; color: #b9bbc0; cursor: pointer; text-decoration: none }
+.tabs [aria-selected="true"] { background: #fff; color: #0d0e12 }
+.notice { background: var(--hot); color: var(--hotink); font-weight: 600; font-size: 14px; padding-block: 10px }
+.notice div { max-width: 1400px; margin: 0 auto; display: flex; gap: 10px; align-items: center; flex-wrap: wrap }
+main { max-width: 1400px; margin: 0 auto; padding-block: 14px }
+.grid { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 14px; align-items: start }
+@media (max-width: 980px) { .grid { grid-template-columns: minmax(0, 1fr) } }
+.col { display: flex; flex-direction: column; gap: 12px; min-width: 0 }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; min-width: 0 }
+h2 { font-family: var(--f-display); font-weight: 700; font-size: 15px; letter-spacing: .1em; text-transform: uppercase; margin: 0 0 8px; display: flex; gap: 8px; align-items: baseline }
+h2 small { font-family: var(--f-body); font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--muted); font-size: 12.5px; margin-left: auto }
+.lab { font-size: 11.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 8px 0 4px }
+.chips { display: flex; flex-wrap: wrap; gap: 6px }
+.chip { font-family: var(--f-display); font-weight: 700; font-size: 17px; letter-spacing: .03em; padding: 8px 13px; border-radius: 8px; border: 1px solid var(--line); background: var(--chip); color: var(--ink); cursor: pointer; min-height: 42px }
+.chip[aria-pressed="true"] { background: var(--chipon); color: var(--chiponink); border-color: var(--chipon) }
+.chip.run[aria-pressed="true"] { background: #b42318; border-color: #b42318; color: #fff }
+.chip.pass[aria-pressed="true"] { background: var(--blue); border-color: var(--blue); color: #fff }
+.chip.same { background: #6d28d9; border-color: #6d28d9; color: #fff; width: 100%; text-align: left; font-size: 19px }
+.chip:focus-visible, .btn:focus-visible { outline: 3px solid var(--school); outline-offset: 2px }
+.btn { font-family: var(--f-display); font-weight: 700; font-size: 16px; letter-spacing: .05em; text-transform: uppercase; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--chip); color: var(--ink); cursor: pointer }
+.btn.pri { background: var(--school); border-color: var(--school); color: var(--on-school, #fff) }
+.field { display: block; width: 100%; height: auto; border-radius: 10px; touch-action: none; user-select: none; -webkit-user-select: none }
+.spotrow { display: flex; gap: 8px; align-items: center; margin-top: 8px; flex-wrap: wrap }
+.spotout { flex: 1 1 200px; text-align: center; font-family: var(--f-display); font-weight: 800; font-size: 23px }
+.step { border-left: 4px solid transparent; padding-left: 10px; margin-left: -14px }
+.step.now { border-left-color: var(--school) }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px } @media (max-width: 560px) { .row2 { grid-template-columns: 1fr } }
+.gaps { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 4px }
+.gaps .chip { padding: 8px 0; text-align: center; font-size: 15px; min-width: 0 }
+.ol { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 4px; margin-top: 3px; font-size: 11px; color: var(--muted); text-align: center; font-weight: 700 }
+.tbl { overflow-x: auto }
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; font-variant-numeric: tabular-nums }
+th { background: var(--bar); color: var(--barink); font-family: var(--f-display); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; font-size: 12.5px; text-align: left; padding: 6px 8px; white-space: nowrap; border-bottom: 2px solid var(--school) }
+td { padding: 5px 8px; border-bottom: 1px solid var(--line); white-space: nowrap }
+td:first-child { font-weight: 700 } td.hot { background: var(--hot); color: var(--hotink); font-weight: 700 } tr.small td { color: var(--muted) }
+.dc { background: var(--bar); color: var(--barink); border-radius: 10px; padding: 14px 16px; border-left: 5px solid var(--school) }
+.dc h3 { margin: 0 0 8px; font-family: var(--f-display); font-size: 20px; letter-spacing: .03em }
+.dc ol { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px }
+.dc li { display: grid; grid-template-columns: 22px 1fr; gap: 8px }
+.dc li b { color: #ff4d45; font-family: var(--f-display); font-size: 20px }
+.dc .k { display: block; font-size: 11.5px; letter-spacing: .1em; text-transform: uppercase; color: #9a9ca3; font-weight: 700 }
+.bars { display: flex; flex-direction: column; gap: 6px }
+.bar { display: grid; grid-template-columns: 100px 1fr 92px; gap: 8px; align-items: center; font-size: 13.5px; font-weight: 600 }
+.track { height: 16px; border-radius: 4px; background: var(--chip); overflow: hidden } .track i { display: block; height: 100% }
+.note { color: var(--muted); font-size: 12.5px; margin: 6px 0 0 }
+.tag { display: inline-block; font-size: 11.5px; font-weight: 700; padding: 1px 6px; border-radius: 4px; background: var(--chip); margin-right: 3px }
+.tag.good { background: #dcfce7; color: #166534 } .tag.bad { background: #fee2e2; color: #991b1b }
+textarea { font: inherit; width: 100%; min-height: 60px; border: 1px solid var(--line); border-radius: 8px; padding: 8px; background: var(--bg); color: var(--ink) }
+label.f { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600; margin-bottom: 10px }
+.toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--bar); color: var(--barink); padding: 10px 16px; border-radius: 8px; font-weight: 600; z-index: 20; max-width: 90vw }
+</style>
+
+<style>
+.seg { display: flex; gap: 6px; flex-wrap: wrap }
+.seg button { font-family: var(--f-display); font-weight: 700; font-size: 15px; letter-spacing: .04em; padding: 7px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--chip); color: var(--ink); cursor: pointer }
+.seg button[aria-pressed="true"] { background: var(--chipon); color: var(--chiponink); border-color: var(--chipon) }
+.seg button small { display: block; font-family: var(--f-body); font-weight: 500; font-size: 11.5px; opacity: .8; letter-spacing: 0 }
+.stack { display: flex; flex-direction: column; gap: 12px }
+tr.tot td { font-weight: 800; background: var(--chip) }
+tr.pick td { background: var(--hot); color: var(--hotink) }
+.wl { font-weight: 800 } .wl.w { color: #16a34a } .wl.l { color: #dc2626 }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px }
+.kpi { background: var(--bar); color: var(--barink); border-radius: 10px; padding: 10px 12px; border-left: 4px solid var(--school) }
+.kpi b { display: block; font-family: var(--f-display); font-size: 26px; line-height: 1.1 } .kpi span { font-size: 12px; color: #b9bbc0; letter-spacing: .06em; text-transform: uppercase; font-weight: 700 }
+.empty { padding: 30px 10px; text-align: center; color: var(--muted) }
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px } @media (max-width: 1300px) { .grid3 { grid-template-columns: minmax(0, 1fr) } }
+select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--ink) }
+@media print { header .tabs, .noprint { display: none !important } .panel { break-inside: avoid } }
+</style>
+
+<style>
+.rgrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px } @media (max-width: 900px) { .rgrid { grid-template-columns: 1fr } }
+.rcard { border: 2px solid var(--line); border-radius: 12px; padding: 12px; background: var(--panel); cursor: pointer; text-align: left; font: inherit; color: var(--ink) } .rcard[aria-pressed=true] { border-color: var(--school) } .rcard b { display: block; font-family: var(--f-display); font-size: 20px; letter-spacing: .03em; text-transform: uppercase } .rcard span { font-size: 13.5px; color: var(--muted) }
+.drop2 { display: block; border: 2px dashed var(--line); border-radius: 12px; padding: 14px; cursor: pointer; text-align: center } .drop2 b { display: block } .drop2 .note { margin: 4px 0 0 }
+.files { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px } @media (max-width: 900px) { .files { grid-template-columns: 1fr } }
+.flist { font-size: 13px; color: var(--muted); margin-top: 6px } .flist button { font: inherit; font-size: 12px; border: 0; background: none; color: var(--school); cursor: pointer; text-decoration: underline }
+.glist { display: flex; flex-direction: column; gap: 6px; margin-top: 8px } .grow { display: flex; gap: 8px; align-items: center; flex-wrap: wrap } .grow input[type=text] { font: inherit; font-size: 14px; padding: 5px 8px; border-radius: 7px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); width: 180px } .grow small { color: var(--muted) }
+.opts { display: flex; gap: 12px; flex-wrap: wrap; align-items: end } .opts label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted) } .opts input, .opts select { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); text-transform: none; letter-spacing: 0 }
+#pages { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 16px 0; background: #6b6f76; border-radius: 12px; overflow-x: auto } #pages .skpage { box-shadow: 0 6px 24px rgba(0,0,0,.35); flex: 0 0 auto }
+.srcseg { display: inline-flex; gap: 4px; padding: 3px; border-radius: 10px; background: var(--chip, #e9e7e3) } .srcseg button { font: 700 14px Barlow, sans-serif; padding: 6px 12px; border-radius: 8px; border: 0; background: none; color: var(--ink); cursor: pointer } .srcseg button[aria-pressed=true] { background: var(--panel); box-shadow: 0 1px 3px rgba(0,0,0,.15) }
+@media print { @page { size: letter; margin: 0 } html, body { background: #fff !important } body > *:not(main) { display: none !important } main > .stack > *:not(#pagesWrap) { display: none !important } main, .stack, #pagesWrap, #pages { padding: 0 !important; margin: 0 !important; background: #fff !important; gap: 0 !important; display: block !important; border-radius: 0 !important } #pagesWrap > :not(#pages) { display: none !important } #pages .skpage { box-shadow: none !important } }
+</style>
+<header class="gut">
+  <div class="hrow">
+    <div><div class="brand"><span class="school" id="schoolName">MELISSA</span> SCOUT REPORTS</div><div class="opp" id="sub">Self scout, opponent scout and game management card from Hudl exports</div></div>
+    <div class="pills" id="solThemeSlot"></div>
+  </div>
+  <div class="tabs">
+    <a href="app.html">Home</a><a href="app.html">Offense</a><a href="defense.html">Defense</a><a href="reports.html">Reports</a><button aria-selected="true" type="button">Scout reports</button><a href="stats.html">Stats</a><a href="impact.html">Impact</a>
+  </div>
+</header>
+<main class="gut">
+  <div class="stack">
+    <section class="panel">
+      <h2>1 · Pick a report</h2>
+      <div class="rgrid">
+        <button type="button" class="rcard" data-rep="self" aria-pressed="true"><b>Offensive self scout</b><span>19 sections: tendencies, formations, down & distance, quarter, hash, RB, sequencing, RPO, red zone, drives, explosives, efficiency, tells to break.</span></button>
+        <button type="button" class="rcard" data-rep="opp" aria-pressed="false"><b>Opponent defensive scout</b><span>10 pages: their fronts, coverages and blitzes by situation and formation, what hurts them, matchup vs our offense, call ideas.</span></button>
+        <button type="button" class="rcard" data-rep="gm" aria-pressed="false"><b>Game management card</b><span>One page: 4th-down grid, 2-point chart, win % by score and possessions, kneel-down chart, their kicking game.</span></button>
+      </div>
+    </section>
+    <section class="panel">
+      <h2>2 · Add the data</h2>
+      <div style="margin-bottom:10px"><span class="note" style="margin-right:8px">Our offense comes from</span><div class="srcseg" id="srcSeg"><button type="button" data-src="hudl" aria-pressed="true">Hudl export</button><button type="button" data-src="app" aria-pressed="false">Games charted in the app</button></div> <span class="note" id="appNote"></span></div>
+      <div class="files">
+        <div id="boxOurs"><label class="drop2" for="fOurs"><b>Our offense (self scout)</b><span class="note">Hudl playlist export, .xlsx or .csv. Several files add together.</span><input type="file" id="fOurs" accept=".xlsx,.csv" multiple hidden></label><div class="flist" id="lOurs"></div></div>
+        <div id="boxOpp"><label class="drop2" for="fOpp"><b>Their defense</b><span class="note">Opponent film with their defense tagged (front, coverage, blitz).</span><input type="file" id="fOpp" accept=".xlsx,.csv" multiple hidden></label><div class="flist" id="lOpp"></div></div>
+        <div id="boxFull"><label class="drop2" for="fFull"><b>Their full games</b><span class="note">Offense, defense and kicking, for the game management card.</span><input type="file" id="fFull" accept=".xlsx,.csv" multiple hidden></label><div class="flist" id="lFull"></div></div>
+      </div>
+    </section>
+    <section class="panel">
+      <h2>3 · Games and names <small>untick a game to leave it out · rename short team names</small></h2>
+      <div id="games" class="note">Add a file to see its games.</div>
+      <div class="opts" style="margin-top:12px">
+        <label for="oppName">Opponent<input id="oppName" type="text" placeholder="e.g. Rival High"></label>
+        <label for="oppAbbr">Short name<input id="oppAbbr" type="text" maxlength="4" placeholder="RIV" style="width:80px"></label>
+        <label for="gameDay">Game day<input id="gameDay" type="date"></label>
+        <label for="bold">4th down lean<select id="bold"><option value="1.6">Conservative</option><option value="1" selected>Balanced</option><option value="0.4">Aggressive</option></select></label>
+      </div>
+    </section>
+    <div id="pagesWrap">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 10px"><button class="btn primary" type="button" id="buildBtn">Build report</button><button class="btn" type="button" id="printBtn" disabled>Print / Save as PDF</button><span class="note" id="buildNote"></span></div>
+      <div id="pages" hidden></div>
+    </div>
+  </div>
+</main>
+<div class="toast" id="toast" hidden></div>
+<script src="scoutkit.js"></script>
+<script>window.SOL_CONFIG = window.SOL_CONFIG || {"db": "https://cardinal-booth-default-rtdb.firebaseio.com", "apiKey": "AIzaSyDm0t01_w92gL5sm4_1RnVLip7xWkjb9ME"};</script>
+<script>
+(function () {
+  "use strict";
+  var SOL = window.SOL_CONFIG || {};
+  var SOL_DB = SOL.db || "https://cardinal-booth-default-rtdb.firebaseio.com", SOL_KEY = SOL.apiKey || "";
+  var AUTH_KEY = "solutions-auth-v1";
+  function authGet() { try { return JSON.parse(localStorage.getItem(AUTH_KEY) || "null") } catch (e) { return null } }
+  function authSet(a) { try { if (a) localStorage.setItem(AUTH_KEY, JSON.stringify(a)); else localStorage.removeItem(AUTH_KEY) } catch (e) {} }
+  function authErr(code) {
+    code = String(code || "");
+    if (/INVALID_LOGIN_CREDENTIALS|INVALID_PASSWORD|EMAIL_NOT_FOUND/.test(code)) return "That email and password don't match an account.";
+    if (/TOO_MANY_ATTEMPTS/.test(code)) return "Too many tries. Wait a few minutes, then try again.";
+    if (/USER_DISABLED/.test(code)) return "This account is turned off. Contact Solutions.";
+    if (/INVALID_EMAIL/.test(code)) return "Check the email address.";
+    if (/API key|API_KEY/.test(code)) return "Login isn't set up on this site yet (missing API key).";
+    return "Couldn't log in. Check the connection and try again.";
+  }
+  function solLogin(email, password) {
+    if (!SOL_KEY) return Promise.reject(new Error("API_KEY"));
+    return fetch("https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=" + SOL_KEY, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: email, password: password, returnSecureToken: true }) })
+      .then(function (r) { return r.json() }).then(function (d) {
+        if (d.error) throw new Error(d.error.message);
+        var a = { uid: d.localId, email: d.email, idToken: d.idToken, refreshToken: d.refreshToken, exp: Date.now() + (+d.expiresIn - 60) * 1000 };
+        authSet(a); return solLoadSchool(a);
+      });
+  }
+  function solToken() {
+    var a = authGet(); if (!a) return Promise.reject(new Error("NO_SESSION"));
+    if (a.exp > Date.now() + 60000) return Promise.resolve(a.idToken);
+    return fetch("https://securetoken.googleapis.com/v1/token?key=" + SOL_KEY, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "grant_type=refresh_token&refresh_token=" + encodeURIComponent(a.refreshToken) })
+      .then(function (r) { return r.json() }).then(function (d) {
+        if (d.error) throw new Error("NO_SESSION") // never log anyone out from this page
+        a.idToken = d.id_token; a.refreshToken = d.refresh_token; a.exp = Date.now() + (+d.expires_in - 60) * 1000; authSet(a); return a.idToken;
+      });
+  }
+  function solLoadSchool(a) {
+    return solToken().then(function (t) { return fetch(SOL_DB + "/members/" + a.uid + ".json?auth=" + t).then(function (r) { return r.json() }) }).then(function (school) {
+      a = authGet(); if (!school || typeof school !== "string") { a.school = null; authSet(a); return a }
+      a.school = school; authSet(a);
+      return solToken().then(function (t) { return fetch(SOL_DB + "/schools/" + encodeURIComponent(school) + "/profile.json?auth=" + t).then(function (r) { return r.json() }) }).then(function (p) { a = authGet(); a.profile = p || {}; authSet(a); return a });
+    });
+  }
+
+  var $ = function (id) { return document.getElementById(id) };
+  var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] }) };
+  var ONLINE = /^https?:/.test(location.protocol), ACC = authGet();
+  if (ONLINE && (!ACC || !ACC.school)) { location.replace("index.html#login"); return }
+  var PROF = (ACC && ACC.profile) || {};
+  var SCHOOL = PROF.name || (ACC && ACC.school) || "Melissa";
+  $("schoolName").textContent = String(SCHOOL).toUpperCase();
+  (function theme(p) {
+    var c1 = /^#[0-9a-f]{6}$/i.test(p.color || "") ? p.color : null; if (!c1) return;
+    document.documentElement.style.setProperty("--school", c1);
+  })(PROF);
+  var NS = (!ONLINE || (ACC && ACC.school === "melissa")) ? "" : "-" + ACC.school;
+
+
+  function get(path, shallow) {
+    return solToken().then(function (t) { return fetch(SOL_DB + "/schools/" + encodeURIComponent(ACC.school) + path + ".json?auth=" + encodeURIComponent(t) + (shallow ? "&shallow=true" : "")) })
+      .then(function (r) { return r.ok ? r.json() : null }, function () { return null });
+  }
+  function vals(o) { if (!o) return []; if (Array.isArray(o)) return o.filter(Boolean); return Object.keys(o).map(function (k) { var x = o[k]; if (typeof x === "string") { try { x = JSON.parse(x) } catch (e) { return null } } if (x && typeof x === "object") x.id = x.id || k; return x }).filter(Boolean) }
+  function toast(t) { var el = $("toast"); el.textContent = t; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(function () { el.hidden = true }, 2200) }
+  var REP = "self", SRC = "hudl", F = { ours: [], opp: [], full: [] }, OFF = {}, NAMES = {}, APP = null;
+  try { NAMES = JSON.parse(localStorage.getItem("solutions-teamnames" + NS) || "{}") } catch (e) {}
+  // ---- built-in .xlsx / .csv reader (no outside libraries) ----
+  function inflateRaw(u8) { var ds = new DecompressionStream("deflate-raw"); return new Response(new Blob([u8]).stream().pipeThrough(ds)).arrayBuffer().then(function (b) { return new Uint8Array(b) }) }
+  function unzip(buf) {
+    var u = new Uint8Array(buf), dv = new DataView(buf), e = -1;
+    for (var i = u.length - 22; i >= Math.max(0, u.length - 70000); i--) if (dv.getUint32(i, true) === 0x06054b50) { e = i; break }
+    if (e < 0) return Promise.reject(new Error("not a zip"));
+    var n = dv.getUint16(e + 10, true), off = dv.getUint32(e + 16, true), out = {}, jobs = [], td = new TextDecoder();
+    for (var k = 0; k < n; k++) {
+      var meth = dv.getUint16(off + 10, true), csz = dv.getUint32(off + 20, true), nl = dv.getUint16(off + 28, true), xl = dv.getUint16(off + 30, true), cl = dv.getUint16(off + 32, true), lo = dv.getUint32(off + 42, true);
+      var name = td.decode(u.subarray(off + 46, off + 46 + nl)); off += 46 + nl + xl + cl;
+      (function (name, meth, csz, lo) {
+        var ds = lo + 30 + dv.getUint16(lo + 26, true) + dv.getUint16(lo + 28, true), data = u.subarray(ds, ds + csz);
+        jobs.push((meth === 0 ? Promise.resolve(data) : inflateRaw(data)).then(function (d) { out[name] = td.decode(d) }));
+      })(name, meth, csz, lo);
+    }
+    return Promise.all(jobs).then(function () { return out });
+  }
+  function colIdx(ref) { var m = /^([A-Z]+)/.exec(ref), n = 0; for (var i = 0; i < m[1].length; i++) n = n * 26 + m[1].charCodeAt(i) - 64; return n - 1 }
+  function parseXlsx(buf) {
+    return unzip(buf).then(function (z) {
+      var P = new DOMParser(), ss = [];
+      if (z["xl/sharedStrings.xml"]) { var sd = P.parseFromString(z["xl/sharedStrings.xml"], "application/xml"); Array.prototype.forEach.call(sd.getElementsByTagName("si"), function (si) { ss.push(Array.prototype.map.call(si.getElementsByTagName("t"), function (t) { return t.textContent }).join("")) }) }
+      var sheetPath = "xl/worksheets/sheet1.xml";
+      try { var wb = P.parseFromString(z["xl/workbook.xml"], "application/xml"), first = wb.getElementsByTagName("sheet")[0], rid = first.getAttribute("r:id") || first.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships", "id");
+        var rel = P.parseFromString(z["xl/_rels/workbook.xml.rels"], "application/xml"); Array.prototype.forEach.call(rel.getElementsByTagName("Relationship"), function (r) { if (r.getAttribute("Id") === rid) { var t = r.getAttribute("Target").replace(/^\//, ""); sheetPath = t.indexOf("xl/") === 0 ? t : "xl/" + t } }) } catch (e) {}
+      if (!z[sheetPath]) sheetPath = Object.keys(z).filter(function (k) { return /^xl\/worksheets\/.*\.xml$/.test(k) }).sort()[0];
+      var sh = P.parseFromString(z[sheetPath], "application/xml"), rows = [];
+      Array.prototype.forEach.call(sh.getElementsByTagName("row"), function (r) {
+        var arr = [];
+        Array.prototype.forEach.call(r.getElementsByTagName("c"), function (c) {
+          var t = c.getAttribute("t"), v = c.getElementsByTagName("v")[0], val = null;
+          if (t === "s" && v) val = ss[+v.textContent]; else if (t === "inlineStr") { var is = c.getElementsByTagName("t")[0]; val = is ? is.textContent : null } else if (t === "b" && v) val = v.textContent === "1"; else if (v) { var x = v.textContent; val = t === "str" || t === "e" ? x : (isNaN(+x) ? x : +x) }
+          arr[colIdx(c.getAttribute("r") || "A")] = val;
+        });
+        for (var i = 0; i < arr.length; i++) if (arr[i] === undefined) arr[i] = null;
+        rows.push(arr);
+      });
+      return rows;
+    });
+  }
+  function parseCsv(text) {
+    var rows = [], row = [], f = "", q = false;
+    for (var i = 0; i < text.length; i++) { var ch = text[i];
+      if (q) { if (ch === '"') { if (text[i + 1] === '"') { f += '"'; i++ } else q = false } else f += ch }
+      else if (ch === '"') q = true; else if (ch === ",") { row.push(f); f = "" } else if (ch === "\n" || ch === "\r") { if (ch === "\r" && text[i + 1] === "\n") i++; row.push(f); rows.push(row); row = []; f = "" } else f += ch }
+    if (f || row.length) { row.push(f); rows.push(row) }
+    return rows.map(function (r) { return r.map(function (v) { v = v.trim(); return v === "" ? null : (isNaN(+v) ? v : +v) }) });
+  }
+
+  function readList(files, key) {
+    Promise.all(Array.prototype.map.call(files, function (f) {
+      return f.arrayBuffer().then(function (buf) { return /\.csv$/i.test(f.name) ? parseCsv(new TextDecoder().decode(buf)) : parseXlsx(buf) }).then(function (a) {
+        var hi = 0; for (var i = 0; i < Math.min(10, a.length); i++) { if ((a[i] || []).some(function (h) { return /ODK|^DN$|RESULT|PLAY ?#/i.test(String(h || "")) })) { hi = i; break } }
+        F[key].push({ name: f.name, header: a[hi] || [], rows: a.slice(hi + 1).filter(function (r) { return r && r.some(function (v) { return v != null && v !== "" }) }) });
+      }).catch(function () { toast("Couldn't read " + f.name + ". Export it from Hudl as Excel (.xlsx) or CSV.") });
+    })).then(render);
+  }
+  [["fOurs", "ours"], ["fOpp", "opp"], ["fFull", "full"]].forEach(function (x) {
+    $(x[0]).addEventListener("change", function () { readList(this.files, x[1]); this.value = "" });
+    var lab = $(x[0]).closest("label"); lab.addEventListener("dragover", function (e) { e.preventDefault() }); lab.addEventListener("drop", function (e) { e.preventDefault(); readList(e.dataTransfer.files, x[1]) });
+  });
+  // our charted games, turned into Hudl-style rows
+  function loadApp() {
+    if (APP) return Promise.resolve(APP); $("appNote").textContent = "Loading your charted games…";
+    return Promise.all([get("/season"), get("/games", true)]).then(function (R) {
+      var ks = {}; if (typeof R[0] === "string" && R[0]) ks[R[0]] = 1; Object.keys(R[1] || {}).forEach(function (k) { if (/^season-/.test(k)) ks[k] = 1 });
+      return Promise.all(Object.keys(ks).map(function (k) { return get("/games/" + encodeURIComponent(k) + "/list") }));
+    }).then(function (lists) {
+      var L = {}; (lists || []).forEach(function (l) { Object.keys(l || {}).forEach(function (c) { var e = l[c]; if (e && e.real && !e.unfiled) L[c] = e }) });
+      var codes = Object.keys(L).sort(function (a, b) { return String(L[a].date).localeCompare(String(L[b].date)) });
+      return Promise.all(codes.map(function (c) { return get("/games/" + encodeURIComponent(c) + "/snaps").then(function (sn) { return { e: L[c], snaps: vals(sn) } }) }));
+    }).then(function (G) {
+      var H = ["PLAY #", "ODK", "QTR", "SERIES", "DN", "DIST", "YARD LN", "PLAY TYPE", "RESULT", "GN/LS", "HASH", "O FORMATION", "MOTION", "RUN FAMILY", "PASS FAMILY", "RPO", "FRONT", "BLITZ", "MFC/MFO/0", "COVERAGE", "TARGET", "BALL CARRIER", "TEAM"], rows = [];
+      G.forEach(function (g) { g.snaps.sort(function (a, b) { return (a.t || 0) - (b.t || 0) }).forEach(function (s, i) {
+        if (s.vic || s.kind === "try") return;
+        var pt = s.res === "Penalty" ? "" : (s.pt || (s.res === "Rush" ? "Run" : "Pass"));
+        rows.push([i + 1, "O", s.qtr, s.series, s.dn, s.dist, s.yl, pt, (s.res || "") + (s.td ? ", TD" : ""), s.res === "Penalty" ? null : s.gain, s.hash, s.form, s.motion, pt === "Run" ? s.call : null, pt === "Pass" ? s.call : null, s.rpo, s.front, s.blitz === "No" ? null : s.blitz, ({ "1-HIGH": "MFC", "2-HIGH": "MFO", "ZERO": "0" })[s.shell] || null, s.cov, s.target, s.carrier, g.e.opp || "Game"]);
+      }) });
+      APP = [{ name: "Charted in the app", header: H, rows: rows }]; $("appNote").textContent = G.length + " charted game" + (G.length === 1 ? "" : "s") + ", " + rows.length + " plays"; return APP;
+    }, function () { $("appNote").textContent = "Couldn't load your charted games."; return [] });
+  }
+  function oursRaw() { return SRC === "app" ? (APP || []) : F.ours }
+  function loadAll() { var o = { names: NAMES }; return { ours: oursRaw().length ? SK.load(oursRaw(), o) : null, opp: F.opp.length ? SK.load(F.opp, o) : null, full: F.full.length ? SK.load(F.full, o) : null } }
+  function keep(d) { if (!d) return d; var gs = d.games.filter(function (g) { return !OFF[g.raw] }), ids = {}; gs.forEach(function (g) { ids[g.id] = 1 }); return { rows: d.rows.filter(function (r) { return ids[r.gid] }), games: gs, inferred: d.inferred } }
+  function render() {
+    document.querySelectorAll("[data-rep]").forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.rep === REP) });
+    document.querySelectorAll("[data-src]").forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.src === SRC) });
+    $("boxOurs").style.opacity = SRC === "app" ? .45 : 1; $("boxOpp").hidden = REP === "self"; $("boxFull").hidden = REP !== "gm";
+    [["lOurs", "ours"], ["lOpp", "opp"], ["lFull", "full"]].forEach(function (x) { $(x[0]).innerHTML = F[x[1]].map(function (f, i) { return esc(f.name) + " (" + f.rows.length + " rows) <button type='button' data-rm='" + x[1] + "|" + i + "'>remove</button>" }).join("<br>") });
+    document.querySelectorAll("[data-rm]").forEach(function (b) { b.onclick = function () { var p = b.dataset.rm.split("|"); F[p[0]].splice(+p[1], 1); render() } });
+    var D = loadAll(), seen = {}, h = "";
+    [["Our offense", D.ours], ["Their defense", REP === "self" ? null : D.opp], ["Their full games", REP === "gm" ? D.full : null]].forEach(function (x) {
+      if (!x[1]) return; h += "<div style='font-weight:700;margin-top:6px'>" + x[0] + "</div><div class='glist'>";
+      x[1].games.forEach(function (g) { var n = x[1].rows.filter(function (r) { return r.gid === g.id }).length, key = g.raw; h += "<div class='grow'><input type='checkbox' data-on='" + esc(key) + "'" + (OFF[key] ? "" : " checked") + " aria-label='Include " + esc(g.name) + "'>" + (seen[key] ? "<span>" + esc(g.name) + "</span>" : "<input type='text' data-nm='" + esc(key) + "' value='" + esc(g.name) + "' aria-label='Name for " + esc(key) + "'>") + "<small>" + n + " rows · Hudl TEAM: " + esc(key) + "</small></div>"; seen[key] = 1 });
+      h += "</div>";
+    });
+    $("games").innerHTML = h || "Add a file to see its games.";
+    document.querySelectorAll("[data-on]").forEach(function (c) { c.onchange = function () { OFF[c.dataset.on] = !c.checked } });
+    document.querySelectorAll("[data-nm]").forEach(function (t) { t.onchange = function () { NAMES[t.dataset.nm] = t.value.trim(); try { localStorage.setItem("solutions-teamnames" + NS, JSON.stringify(NAMES)) } catch (e) {} render() } });
+  }
+  document.querySelectorAll("[data-rep]").forEach(function (b) { b.addEventListener("click", function () { REP = b.dataset.rep; render() }) });
+  document.querySelectorAll("[data-src]").forEach(function (b) { b.addEventListener("click", function () { SRC = b.dataset.src; if (SRC === "app") loadApp().then(render); render() }) });
+  function niceDay(iso) { if (!iso) return ""; var p = iso.split("-"), d = new Date(+p[0], +p[1] - 1, +p[2]); return d.toLocaleDateString("en-US", { weekday: "short" }) + " " + ("0" + d.getDate()).slice(-2) + "-" + d.toLocaleDateString("en-US", { month: "short" }) + "-" + String(d.getFullYear()).slice(-2) }
+  var LOGO = PROF.logo || (ACC && ACC.school === "melissa" ? "team_logo_melissa.png" : null);
+  $("buildBtn").addEventListener("click", function () {
+    var D = loadAll(), ours = keep(D.ours), opp = keep(D.opp), full = keep(D.full), team = $("oppName").value.trim() || "Opponent", ab = ($("oppAbbr").value.trim() || team.split(/\s+/).pop().slice(0, 3)).toUpperCase();
+    var today = niceDay(new Date().toISOString().slice(0, 10)), gd = niceDay($("gameDay").value), S = null, o = { logo: LOGO, mark: String(SCHOOL).slice(0, 10).toUpperCase() };
+    if (REP === "self") { if (!ours || !ours.games.length) { toast(SRC === "app" ? "No charted games found." : "Add our offense's Hudl export first."); return } S = SK.selfScout(ours, {}); Object.assign(o, { subtitle: "OFFENSIVE SELF SCOUT", code: "SS", gameNames: ours.games.map(function (g) { return g.name }), date: today }) }
+    else {
+      var src = REP === "opp" ? opp : full; if (!src || !src.games.length) { toast(REP === "opp" ? "Add their defense's Hudl export first." : "Add their full-game Hudl export first."); return }
+      S = REP === "opp" ? SK.oppScout(opp, ours && ours.games.length ? ours : null, { team: team, abbr: ab }) : SK.gmCard(full, ours && ours.games.length ? ours : null, { team: team, abbr: ab, bold: +$("bold").value });
+      var ex = "<div style='display:grid;grid-template-columns:100px 1fr;gap:2px 8px'><b>Opponent games:</b><span>" + src.games.map(function (g, i) { return (i + 1) + ". " + esc(g.name) }).join("  ") + "</span><b>Our data:</b><span>" + (ours && ours.games.length ? (SRC === "app" ? "Charted in the app" : "Self scout") + ", " + ours.games.length + " games (" + ours.games.map(function (g) { return esc(g.name) }).join(", ") + ")" : "None added") + "</span></div>";
+      Object.assign(o, { subtitle: (REP === "opp" ? "DEFENSIVE SCOUT  |  " : "GAME PLAN  |  ") + team.toUpperCase() + (REP === "gm" && gd ? "  |  " + gd.toUpperCase() : ""), code: REP === "opp" ? "OS" : "GM", extraMeta: ex, metaRight: (gd ? "Game: " + gd + "  |  " : "") + "Built " + today, legend: false, foot: "Eff% = plays gaining 40% of distance (1st), 50% (2nd) or full distance (3rd/4th). Penalty plays excluded. P&10 = first play of a series. Explosive = run 10+ / pass 15+." });
+    }
+    $("pages").hidden = false; var n = SK.paginate(S, $("pages"), o); $("printBtn").disabled = false; $("buildNote").textContent = n + " page" + (n === 1 ? "" : "s") + ". Print, then choose Save as PDF.";
+    $("pages").scrollIntoView({ behavior: "smooth" });
+  });
+  $("printBtn").addEventListener("click", function () { window.print() });
+  render();
+})();
+</script>

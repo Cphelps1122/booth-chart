@@ -540,6 +540,7 @@ textarea { min-height: 64px }
       <div class="h-door"><div class="hd-t">This week</div><p class="hd-s">Mon–Thu prep</p><div class="hd-l">
         <button type="button" data-go="week">Set up the game <small>code, opponent, game plan</small></button>
         <a href="reports.html">Scout &amp; reports <small>Hudl exports, game-day sheet</small></a>
+        <a href="scout.html">Scout reports (PDF) <small>self scout, opponent scout, game card</small></a>
         <a href="reports.html">Pregame Sim <small>run the matchup</small></a>
         <button type="button" data-go="practice">Practice game <small>try things, nothing counts</small></button>
       </div></div>
@@ -5719,7 +5720,7 @@ textarea { min-height: 64px }
     });
     var v = $("v-setup"), hd = document.createElement("div"); hd.className = "areahead"; hd.id = "areaHead"; v.insertBefore(hd, v.firstChild);
     var wk = document.createElement("div"); wk.className = "panel"; wk.dataset.area = "week"; wk.style.marginBottom = "14px";
-    wk.innerHTML = "<h3>Scout &amp; reports <small>build Monday–Thursday</small></h3><div class='wklinks'><a class='btn' href='reports.html'>Scout from Hudl exports</a><a class='btn' href='reports.html'>Pregame Sim</a><a class='btn' href='reports.html'>Game-day sheet</a><button class='btn' type='button' id='wkPractice'>Practice game</button></div>";
+    wk.innerHTML = "<h3>Scout &amp; reports <small>build Monday–Thursday</small></h3><div class='wklinks'><a class='btn' href='reports.html'>Scout from Hudl exports</a><a class='btn' href='reports.html'>Pregame Sim</a><a class='btn' href='reports.html'>Game-day sheet</a><a class='btn' href='scout.html'>Scout reports (PDF)</a><button class='btn' type='button' id='wkPractice'>Practice game</button></div>";
     v.insertBefore(wk, hd.nextSibling);
     $("wkPractice").addEventListener("click", function () { if (typeof openPractice === "function") openPractice() });
   })();

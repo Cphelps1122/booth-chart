@@ -151,40 +151,48 @@
     var to = r() < (M.to[k] + M.oppTo[k]) / 2;
     return { g: g, run: run, to: to };
   }
-  function drive(M, pol, r, acc) {
-    var y = pick(M.starts, r), dn = 0, dist = 10, n = 0;
+  function drive(M, pol, r, acc, log) {
+    var y = pick(M.starts, r), dn = 0, dist = 10, n = 0, L = log ? { start: y, plays: [], res: null } : null, out = function (pts, res) { if (L) { L.end = y; L.res = res; L.pts = pts; log.push(L) } return pts };
     while (n < 25) {
       var b = bucket(dn, dist);
       if (dn === 4) {
-        if (dist > goLimit(y)) { if (y >= 75) { acc.fga++; if (r() < 0.72) { acc.fg++; return 3 } return 0 } acc.punt++; return 0 }
+        if (dist > goLimit(y)) { if (y >= 75) { acc.fga++; if (r() < 0.72) { acc.fg++; return out(3, "FG") } return out(0, "Missed FG") } acc.punt++; return out(0, "Punt") }
         acc.go4++;
       }
       var look = drawLook(M, b, y >= 80, r), c = pol(M, b, r), p = play(M, c, b, look, r), ndn = dn === 0 ? 1 : dn, ok;
       n++; acc.pl++; if (p.run) acc.ru++;
-      if (p.to) { acc.to++; if (dn === 3) acc.a3++; return 0 }
+      if (L) L.plays.push({ y: y, dn: dn, dist: dist, b: b, c: c, run: p.run, g: p.to ? 0 : Math.max(-15, Math.min(100 - y, p.g)), to: p.to, look: look });
+      if (p.to) { acc.to++; if (dn === 3) acc.a3++; return out(0, "Turnover") }
       var gain = Math.max(-15, Math.min(100 - y, p.g)); acc.yd += gain;
       ok = y + gain >= 100 || gain >= Math.ceil(need(ndn) * dist); if (ok) acc.ef++;
       if ((p.run && gain >= 10) || (!p.run && gain >= 15)) acc.ex++;
       if (dn === 3) { acc.a3++; if (y + gain >= 100 || gain >= dist) acc.c3++ }
       if (dn === 4 && (y + gain >= 100 || gain >= dist)) acc.c4++;
       y += gain;
-      if (y >= 100) { acc.td++; return r() < 0.9 ? 7 : 6 }
-      if (y <= 0) return -2;
+      if (y >= 100) { acc.td++; return out(r() < 0.9 ? 7 : 6, "TD") }
+      if (y <= 0) return out(-2, "Safety");
       if (gain >= dist) { dn = 1; dist = Math.min(10, 100 - y) }
-      else { dn = ndn + 1; dist -= gain; if (dn > 4) return 0 }
+      else { dn = ndn + 1; dist -= gain; if (dn > 4) return out(0, "Downs") }
     }
-    return 0;
+    return out(0, "Stopped");
+  }
+  // one full simulated game, drive by drive: the run of 300 whose points land closest to the middle
+  function sampleGame(M, which, seed) {
+    var r = rng(seed || 4242), pol = which === "best" ? callBest : callTend, games = [];
+    for (var i = 0; i < 300; i++) { var acc = { pl: 0, ru: 0, yd: 0, ef: 0, ex: 0, a3: 0, c3: 0, to: 0, td: 0, fg: 0, fga: 0, punt: 0, go4: 0, c4: 0 }, log = [], pts = 0; for (var d = 0; d < (M.drives || DRIVES); d++) pts += Math.max(0, drive(M, pol, r, acc, log)); games.push({ pts: pts, drives: log }) }
+    var mid = pct(games.map(function (g) { return g.pts }), 0.5); games.sort(function (a, b) { return Math.abs(a.pts - mid) - Math.abs(b.pts - mid) }); return games[0];
   }
   function run(M, which, nGames, seed) {
     var r = rng(seed || 12345), pol = which === "best" ? callBest : callTend, G = [];
     for (var i = 0; i < nGames; i++) {
       var acc = { pl: 0, ru: 0, yd: 0, ef: 0, ex: 0, a3: 0, c3: 0, to: 0, td: 0, fg: 0, fga: 0, punt: 0, go4: 0, c4: 0, pts: 0, dr: DRIVES, tdd: 0 };
-      for (var d = 0; d < DRIVES; d++) { var p = drive(M, pol, r, acc); acc.pts += p; if (p >= 6) acc.tdd++ }
+      for (var d = 0; d < (M.drives || DRIVES); d++) { var p = drive(M, pol, r, acc); acc.pts += p; if (p >= 6) acc.tdd++ }
+      acc.dr = M.drives || DRIVES;
       G.push(acc);
     }
     var col = function (f) { return G.map(f) }, band = function (a) { return { m: Math.round(10 * mean(a)) / 10, lo: Math.round(10 * pct(a, 0.1)) / 10, mid: Math.round(10 * pct(a, 0.5)) / 10, hi: Math.round(10 * pct(a, 0.9)) / 10 } };
     return {
-      n: nGames, drives: DRIVES,
+      n: nGames, drives: M.drives || DRIVES,
       pts: band(col(function (g) { return g.pts })), ppd: band(col(function (g) { return g.pts / g.dr })),
       ypp: band(col(function (g) { return g.pl ? g.yd / g.pl : 0 })), eff: band(col(function (g) { return g.pl ? 100 * g.ef / g.pl : 0 })),
       third: band(col(function (g) { return g.a3 ? 100 * g.c3 / g.a3 : 0 })), expl: band(col(function (g) { return g.ex })), to: band(col(function (g) { return g.to })),
@@ -201,10 +209,10 @@
     });
     return out;
   }
-  function forecast(oppRows, ourSnaps, cal, nGames) {
-    var M = build(oppRows, ourSnaps, cal), n = nGames || 1500;
+  function forecast(oppRows, ourSnaps, cal, nGames, opt) {
+    opt = opt || {}; var M = build(oppRows, ourSnaps, cal), n = nGames || 1500; if (opt.drives) M.drives = opt.drives;
     var best = {}; BUCKETS.forEach(function (b) { best[b] = (M.best[b] || []).slice(0, 3).map(function (x) { return { c: x.c, eff: Math.round(100 * x.eff), ypp: Math.round(10 * x.ypp) / 10, n: x.n, nb: x.nb, run: x.run } }) });
-    return { v: V, at: Date.now(), oppPlays: M.oppN, ourPlays: M.ourN, cal: M.cal, tend: run(M, "tend", n, 777), best: run(M, "best", n, 777), looks: lookTable(M), bestCalls: best };
+    return { v: V, at: Date.now(), oppPlays: M.oppN, ourPlays: M.ourN, cal: M.cal, tend: run(M, "tend", n, 777), best: run(M, "best", n, 777), looks: lookTable(M), bestCalls: best, sample: opt.sample ? sampleGame(M, "tend", 4242) : null };
   }
   window.SolSim = { forecast: forecast, bucket: bucket, concept: concept, BUCKETS: BUCKETS, shellN: shellN, covN: covN, blzN: blzN, fromChart: fromChart, eff: eff, toY: toY, goLimit: goLimit };
 })();

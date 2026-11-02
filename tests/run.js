@@ -36,6 +36,7 @@ const wait=async(fn,ms=8000)=>{ const t=Date.now(); while(Date.now()-t<ms){ if(a
  ok(await wait(()=>srvSnaps()===3), 'database has 3 plays (has '+srvSnaps()+')');
  for (const [n,p] of [['A',A],['B',B],['C',C]]) ok(await wait(async()=>await snaps(p)===3), n+' shows 3 plays');
 
+ await A.waitForTimeout(6500); for (const [n,p] of [['A',A],['B',B],['C',C]]) ok((await p.textContent('#pSync'))==='Live', n+' status light says Live once all is saved ('+await p.textContent('#pSync')+')');
  console.log('3. One device drops offline, keeps charting, comes back');
  await C.ctx.setOffline(true); await log(C); await log(C); await log(A); // A and C now both chart blind to each other await A.waitForTimeout(2000);
  ok(srvSnaps()===4, 'while C is offline, database only has A\'s new play');

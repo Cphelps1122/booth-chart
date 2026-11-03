@@ -634,7 +634,7 @@
       pageNo++; var pg = document.createElement("div"); pg.className = "skpage";
       pg.innerHTML = "<div class='skhead'>" + (opt.logo ? "<img src='" + opt.logo + "' alt=''>" : "<div class='lg'>" + esc(opt.mark || "") + "</div>") + "<div class='rp'>Report:</div><div><div class='tt'>" + esc(sec.title) + "</div><div class='st'>" + esc(opt.subtitle || "") + " &nbsp;|&nbsp; " + esc(opt.code || "SS") + " #" + ("0" + k).slice(-2) + "</div></div></div>" +
         "<div class='skbody'><div class='skmeta'><span>Page " + pageNo + "</span><span>" + esc(opt.metaRight || date) + "</span></div>" + (glist.length ? "<div class='skgames'><b>" + gl + "</b><div class='gl' style='grid-template-columns:repeat(" + Math.max(4, Math.ceil(glist.length / 2)) + ",auto);grid-template-rows:repeat(2,auto);grid-auto-flow:column;justify-content:space-between'>" + glist.map(function (g) { return "<span>" + g + "</span>" }).join("") + "</div>" + (opt.extraMeta || "") + "</div>" : (opt.extraMeta ? "<div class='skgames'>" + opt.extraMeta + "</div>" : "")) + "<div class='skc'></div></div>" +
-        "<div class='skfoot'>" + esc(opt.foot || EFFDEF) + (opt.legend === false ? "" : LEG) + "</div>";
+        "<div class='skfoot'>" + (opt.note ? "<b style='color:#b45309'>" + esc(opt.note) + "</b><br>" : "") + esc(opt.foot || EFFDEF) + (opt.legend === false ? "" : LEG) + "</div>";
       host.appendChild(pg); return pg;
     }
     function colsOrder(a) { var rows = 2, cols = Math.ceil(a.length / rows), out = []; for (var r = 0; r < rows; r++) for (var c = 0; c < cols; c++) { var i = c * rows + r; out.push(a[i] || "") } return out }
@@ -665,5 +665,48 @@
   // a heading glued to a row list: [h2 html, list] → list with a title
   function fixBlocks(S) { S.forEach(function (s) { s.blocks = s.blocks.map(function (b) { if (typeof b === "string" && b.indexOf("{\"") === 0) return b; return b }) }); return S }
 
-  G.SK = { oppScout: oppScout, gmCard: gmCard, load: load, plays: plays, selfScout: function (d, o) { var S = selfScout(d, o); S.forEach(function (s) { var out = []; s.blocks.forEach(function (b) { if (typeof b === "string" && /\[object Object\]$/.test(b)) return; out.push(b) }); s.blocks = out }); return S }, paginate: paginate, eff: eff, expl: expl, stat: stat, drives: drives, CSS: CSS };
+  // ---------- file check: read a Hudl export before any report is built ----------
+  // want: "D" their defense, "O" an offense, "full" everything. Returns { lvl: ok|warn|stop, items: [{lvl, t}] }
+  function check(d, opt) {
+    opt = opt || {}; var want = opt.want || "full", items = [], add = function (l, t) { items.push({ lvl: l, t: t }) };
+    var pct = function (a, b) { return b ? Math.round(100 * a / b) : 0 }, pl = function (n, w) { return n + " " + w + (n === 1 ? "" : "s") };
+    if (!d || !d.rows || !d.rows.length) { add("stop", "No plays found. Export a Hudl playlist to Excel (.xlsx) with the column headers row included."); return done() }
+    var I = d.rows[0].cols || {}, has = function (k) { return I[k] != null && I[k] >= 0 };
+    if (!has("dn") || !has("dist")) { add("stop", "No DN or DIST column. Every report needs down and distance. In Hudl, add the DN and DIST columns to the playlist before exporting."); return done() }
+    var cnt = { O: 0, D: 0, K: 0, other: 0 }; d.rows.forEach(function (r) { cnt[r.odk === "O" || r.odk === "D" || r.odk === "K" ? r.odk : "other"]++ });
+    if (want === "D" && !cnt.D && has("odk")) { add("stop", "This file has no defense (D) plays" + (cnt.O ? ". It looks like an offense export (" + cnt.O + " O plays)" : "") + ". Export their games with the defense tagged."); return done() }
+    if (want === "O" && !cnt.O && cnt.D && has("odk")) { add("stop", "This file has only defense (D) plays. This report needs an offense export."); return done() }
+    var side = want === "full" ? null : want, R = d.rows.filter(function (r) { return r.odk !== "K" && (!side || !has("odk") || r.odk === side || (!r.odk && side)) });
+    if (cnt.K) add("info", pl(cnt.K, "kicking play") + " left out (ODK K).");
+    if (want !== "full" && has("odk") && cnt[want === "D" ? "O" : "D"]) add("info", pl(cnt[want === "D" ? "O" : "D"], (want === "D" ? "offense" : "defense") + " play") + " in the file are skipped; this report only uses " + (want === "D" ? "defense" : "offense") + ".");
+    var pen = R.filter(function (r) { return r.pen }).length, P = R.filter(function (r) { return !r.pen }), N = P.length;
+    if (!N) { add("stop", "No plays left after taking out kicking and penalties."); return done() }
+    var none = P.filter(function (r) { return !r.type }), inf = P.filter(function (r) { return r.type && !r.ptRaw });
+    var tries = P.filter(function (r) { return r.dn === 0 }).length; if (tries) add("info", tries + " extra-point/2-point tr" + (tries === 1 ? "y" : "ies") + " (down 0) in the file.");
+    if (none.length) add(pct(none.length, N) >= 15 ? "stop" : pct(none.length, N) >= 5 ? "warn" : "info", none.length + " of " + N + " plays have no PLAY TYPE and nothing to guess run/pass from, so they're left out of every table." + (pct(none.length, N) >= 15 ? " That's " + pct(none.length, N) + "% of the file: tag PLAY TYPE (or RESULT) in Hudl and export again." : ""));
+    if (inf.length && pct(inf.length, N) >= 10) add("warn", inf.length + " of " + N + " plays have a blank PLAY TYPE, so run/pass was guessed from the result or the run/pass concept. Run and pass rates may be off.");
+    var nod = P.filter(function (r) { return r.dn == null || r.dist == null }).length; if (pct(nod, N) >= 5) add("warn", nod + " of " + N + " plays are missing down or distance. They're left out of the down-and-distance tables.");
+    var nog = P.filter(function (r) { return r.gain == null }).length; if (!has("gain")) add("warn", "No GN/LS (gain) column: averages and efficiency can't be figured."); else if (pct(nog, N) >= 10) add("warn", nog + " of " + N + " plays have no gain tagged. Averages only count plays with a gain.");
+    var tagged = function (k, lbl) { var ck = { runC: "run", passC: "pass" }[k] || k; if (!has(ck)) return lbl + " (no column)"; var n = P.filter(function (r) { return r[k] }).length; return pct(n, N) < 50 ? lbl + " (" + pct(n, N) + "% tagged)" : null };
+    var thin = (want === "D" ? [["front", "Front"], ["cov", "Coverage"], ["blitz", "Blitz"], ["shell", "Shell"]] : want === "O" ? [["form", "Formation"], ["runC", "Run concept"], ["passC", "Pass concept"]] : []).map(function (x) { return tagged(x[0], x[1]) }).filter(Boolean);
+    if (thin.length) add("warn", "Thin tagging: " + thin.join(", ") + ". Those tables will be mostly empty.");
+    var odd = []; P.forEach(function (r) { var w = r.dn != null && (r.dn < 0 || r.dn > 4) ? "down " + r.dn : r.dn !== 0 && r.dist != null && (r.dist <= 0 || r.dist > 50) ? "distance " + r.dist : r.gain != null && Math.abs(r.gain) > 99 ? "gain " + r.gain : null; if (w) odd.push((r.game ? r.game.short + " " : "") + "play " + (r.pn == null ? "?" : r.pn) + " (" + w + ")") });
+    var seen = {}, dup = []; R.forEach(function (r) { if (r.pn == null) return; var k = r.gid + "|" + r.pn; if (seen[k]) dup.push((r.game ? r.game.short + " " : "") + "play " + r.pn); seen[k] = 1 });
+    if (odd.length) add("warn", "Odd values on " + pl(odd.length, "play") + ": " + odd.slice(0, 5).join(", ") + (odd.length > 5 ? " and " + (odd.length - 5) + " more" : "") + ". Fix them in Hudl if they're typos.");
+    if (dup.length) add("warn", "Same play number twice: " + dup.slice(0, 5).join(", ") + (dup.length > 5 ? " and " + (dup.length - 5) + " more" : "") + ". Two games may be stuck together.");
+    var gs = d.games || [], small = gs.map(function (g) { return { g: g, n: P.filter(function (r) { return r.gid === g.id }).length } }).filter(function (x) { return x.n && x.n < 25 });
+    if (small.length) add("warn", small.map(function (x) { return x.g.name + " has only " + x.n + " plays" }).join("; ") + ". It may be a partial game or a game split in two.");
+    if (gs.length === 1) add("warn", "Only 1 game in the file. Tendencies from one game are thin: treat the percentages as rough.");
+    if (pen) add("info", pen + (pen === 1 ? " penalty" : " penalties") + " left out of the tables.");
+    add("ok", N + " plays from " + pl(gs.length, "game") + " ready" + (want === "D" ? " (their defense)" : want === "O" ? " (offense)" : "") + ".");
+    return done();
+    function done() { var lv = items.some(function (x) { return x.lvl === "stop" }) ? "stop" : items.some(function (x) { return x.lvl === "warn" }) ? "warn" : "ok"; return { lvl: lv, items: items, note: items.filter(function (x) { return x.lvl === "warn" }).map(function (x) { return x.t }) } }
+  }
+  function checkHTML(c, title) {
+    if (!c) return ""; var col = { ok: "#16a34a", info: "#64748b", warn: "#d97706", stop: "#dc2626" }, ic = { ok: "✓", info: "•", warn: "!", stop: "✕" };
+    var head = c.lvl === "stop" ? "Can't build from this file" : c.lvl === "warn" ? "File check: usable, with notes" : "File check: looks good";
+    return "<div class='skcheck' style='border:1px solid " + col[c.lvl === "ok" ? "ok" : c.lvl] + ";border-left-width:5px;border-radius:10px;padding:8px 12px;margin:8px 0;font-size:13.5px;line-height:1.4'><b style='color:" + col[c.lvl === "ok" ? "ok" : c.lvl] + "'>" + esc((title ? title + ": " : "") + head) + "</b>" +
+      c.items.map(function (x) { return "<div style='display:flex;gap:7px;margin-top:4px'><span style='color:" + col[x.lvl] + ";font-weight:800;min-width:12px;text-align:center'>" + ic[x.lvl] + "</span><span>" + esc(x.t) + "</span></div>" }).join("") + "</div>";
+  }
+  G.SK = { check: check, checkHTML: checkHTML, oppScout: oppScout, gmCard: gmCard, load: load, plays: plays, selfScout: function (d, o) { var S = selfScout(d, o); S.forEach(function (s) { var out = []; s.blocks.forEach(function (b) { if (typeof b === "string" && /\[object Object\]$/.test(b)) return; out.push(b) }); s.blocks = out }); return S }, paginate: paginate, eff: eff, expl: expl, stat: stat, drives: drives, CSS: CSS };
 })(typeof window !== "undefined" ? window : globalThis);

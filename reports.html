@@ -303,7 +303,7 @@ details.more > .rail { margin-top: 8px }
     <details class="more" id="moreSet"><summary>More settings</summary><div class="rail">
     <section class="panel" aria-labelledby="h-data">
       <h2 id="h-data">1 · Hudl data <small id="dataSum"></small></h2>
-      <label class="drop" id="drop" for="fileIn"><b>Drop Hudl exports here</b><span class="note">or tap to choose .xlsx or .csv files. Several files add together.</span><input type="file" id="fileIn" accept=".xlsx,.xls,.csv" multiple hidden></label>
+      <label class="drop" id="drop" for="fileIn"><b>Drop Hudl exports here</b><span class="note">or tap to choose .xlsx or .csv files. Several files add together.</span><input type="file" id="fileIn" accept=".xlsx,.xls,.csv" multiple hidden></label><div id="fileCheck"></div>
       <div class="samplebar" id="sampleBar" hidden style="margin-top:10px">Sample data: made-up teams and plays so you can look at and set up every template. Upload this week's Hudl files to see the real opponent. <button class="back" type="button" data-go="setup" style="font-size:14px">Add Hudl files</button></div>
       <div style="margin-top:10px" id="sideWrap"><div class="note" style="margin:0 0 4px">Read these plays as</div><div class="chips" id="sideChips"></div></div>
       <div style="margin-top:10px"><div class="note" style="margin:0 0 4px">Games <span id="gameNote"></span></div><div class="chips games" id="gameChips"></div></div>
@@ -795,8 +795,11 @@ details.more > .rail { margin-top: 8px }
   // ---------- render: data panel ----------
   function teamName() { return (CUR && CUR.team) || "Team" }
   function sideText() { return teamName() + (SIDE === "O" ? " on offense" : " on defense") }
+  // file check: the same read the Scout Reports page does, before anything is built
+  var RCK = {};
+  function rawCheck(want) { if (!RAW.length || SAMPLE || !window.SK || !SK.check) return null; var k = want + "|" + RAW.map(function (f) { return f.name + f.rows.length }).join(","); if (RCK[want] && RCK[want].k === k) return RCK[want].c; var c = SK.check(SK.load(RAW, {}), { want: want }); RCK[want] = { k: k, c: c }; return c }
   function renderData() {
-    $("sampleBar").hidden = !SAMPLE;
+    $("sampleBar").hidden = !SAMPLE; var fc = $("fileCheck"); if (fc) fc.innerHTML = window.SK && SK.checkHTML ? SK.checkHTML(rawCheck(SIDE === "O" ? "O" : "D"), "Their " + (SIDE === "O" ? "offense" : "defense")) : "";
     var all = ROWS.filter(function (r) { return GAMESON[r.gid] }), o = ROWS.filter(function (r) { return r.odk === "O" }).length, d = ROWS.filter(function (r) { return r.odk === "D" }).length;
     $("dataSum").textContent = RAW.length ? RAW.length + " file" + (RAW.length > 1 ? "s" : "") + " · " + GAMES.length + " games · " + ROWS.length + " plays" : "no data yet";
     var sc = $("sideChips"); sc.innerHTML = "";
@@ -1675,6 +1678,8 @@ details.more > .rail { margin-top: 8px }
     if (!P.length) return "<div class='simcard'><p class='tnote'>Add this week's Hudl files to build the preview.</p></div>";
     var f = SIM.key === simKey(P) ? SIM.res : null, opp = esc(WK.cur ? WK.cur.opp : (f && f.opp) || "Opponent"), us = esc((ACC && ACC.profile && ACC.profile.name) || "Us");
     var srcBar = "<div class='pv-src'><span>Our offense from</span>" + [["app", "Games charted in the app"], ["hudl", "Hudl self-scout file"], ["both", "Both"]].map(function (x) { return "<button type='button' data-simsrc='" + x[0] + "' aria-pressed='" + ((SIM.src || "app") === x[0]) + "'>" + x[1] + "</button>" }).join("") + "<label class='pv-file'>" + (SIM.hudlName ? "✓ " + esc(SIM.hudlName) + " · change" : "Add our Hudl export") + "<input type='file' id='simFile' accept='.xlsx,.csv' hidden></label></div>";
+    var dc = rawCheck("D"); if (dc && dc.lvl === "stop") return srcBar + SK.checkHTML(dc, "Their defense file");
+    srcBar += [[dc, "Their defense file"], [SIM.src && SIM.src !== "app" ? SIM.hudlChk : null, "Our Hudl file"]].map(function (x) { return x[0] && x[0].lvl !== "ok" ? SK.checkHTML(x[0], x[1]) : "" }).join("");
     if (SIM.err) return srcBar + "<div class='simcard'><p class='tnote'>The sim hit a problem: " + esc(SIM.err) + "</p></div>";
     if (!f) return srcBar + "<div class='simcard'><p class='tnote'>Simulating 1,500 games against " + opp + "…</p></div>";
     // blend: the play-by-play sim and the scores model each get a vote; show both when they disagree
@@ -1749,7 +1754,8 @@ details.more > .rail { margin-top: 8px }
     if (e.target.id !== "simFile" || !e.target.files.length) return; var f = e.target.files[0];
     f.arrayBuffer().then(function (buf) { return /\.csv$/i.test(f.name) ? parseCsv(new TextDecoder().decode(buf)) : parseXlsx(buf) }).then(function (a) {
       var hi = 0; for (var i = 0; i < Math.min(10, a.length); i++) { if ((a[i] || []).some(function (h) { return /ODK|^DN$|RESULT|PLAY ?#/i.test(String(h || "")) })) { hi = i; break } }
-      var d = SK.load([{ name: f.name, header: a[hi] || [], rows: a.slice(hi + 1) }], {});
+      var d = SK.load([{ name: f.name, header: a[hi] || [], rows: a.slice(hi + 1) }], {}), ck = SK.check(d, { want: "O" });
+      if (ck.lvl === "stop") { toast("Can't use " + f.name + ": " + ck.items.filter(function (x) { return x.lvl === "stop" })[0].t); return } SIM.hudlChk = ck;
       SIM.hudl = SK.plays(d).map(function (p) { return { dn: p.dn, dist: p.dist, yl: p.yl, pt: p.type, gain: p.gain, call: p.type === "Run" ? p.runC : p.passC, res: p.resRaw.split(",")[0].trim(), td: p.td, shell: p.shell, cov: p.cov, front: p.front, blitz: p.blitz, series: p.ser, gid: "h" + p.gid } });
       SIM.hudlName = f.name + " (" + d.games.length + " games)"; if (!SIM.src || SIM.src === "app") SIM.src = "hudl"; SIM.key = null; simKick(lastSimP || []); var bx = $("simBox"); if (bx) bx.innerHTML = simHTML(lastSimP || []); toast("Added " + SIM.hudl.length + " of our plays from " + f.name);
     }).catch(function () { toast("Couldn't read " + f.name + ". Export it from Hudl as Excel (.xlsx) or CSV.") });

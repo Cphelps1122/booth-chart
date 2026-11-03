@@ -341,13 +341,17 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
   function oursRaw() { return SRC === "app" ? (APP || []) : F.ours }
   function loadAll() { var o = { names: NAMES }; return { ours: oursRaw().length ? SK.load(oursRaw(), o) : null, opp: F.opp.length ? SK.load(F.opp, o) : null, full: F.full.length ? SK.load(F.full, o) : null } }
   function keep(d) { if (!d) return d; var gs = d.games.filter(function (g) { return !OFF[g.raw] }), ids = {}; gs.forEach(function (g) { ids[g.id] = 1 }); return { rows: d.rows.filter(function (r) { return ids[r.gid] }), games: gs, inferred: d.inferred } }
+  // read each file before building: warn about gaps, stop on files that can't make the report
+  var CHK = {};
+  function checks(D) { return { ours: SRC !== "app" && F.ours.length && D.ours ? SK.check(D.ours, { want: "O" }) : null, opp: F.opp.length && D.opp ? SK.check(D.opp, { want: "D" }) : null, full: F.full.length && D.full ? SK.check(D.full, { want: "full" }) : null } }
   function render() {
     document.querySelectorAll("[data-rep]").forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.rep === REP) });
     document.querySelectorAll("[data-src]").forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.src === SRC) });
     $("boxOurs").style.opacity = SRC === "app" ? .45 : 1; $("boxOpp").hidden = REP === "self"; $("boxFull").hidden = REP !== "gm";
     [["lOurs", "ours"], ["lOpp", "opp"], ["lFull", "full"]].forEach(function (x) { $(x[0]).innerHTML = F[x[1]].map(function (f, i) { return esc(f.name) + " (" + f.rows.length + " rows) <button type='button' data-rm='" + x[1] + "|" + i + "'>remove</button>" }).join("<br>") });
     document.querySelectorAll("[data-rm]").forEach(function (b) { b.onclick = function () { var p = b.dataset.rm.split("|"); F[p[0]].splice(+p[1], 1); render() } });
-    var D = loadAll(), seen = {}, h = "";
+    var D = loadAll(), seen = {}, h = ""; CHK = checks(D);
+    [["lOurs", "ours"], ["lOpp", "opp"], ["lFull", "full"]].forEach(function (x) { if (CHK[x[1]]) $(x[0]).innerHTML += SK.checkHTML(CHK[x[1]]) });
     [["Our offense", D.ours], ["Their defense", REP === "self" ? null : D.opp], ["Their full games", REP === "gm" ? D.full : null]].forEach(function (x) {
       if (!x[1]) return; h += "<div style='font-weight:700;margin-top:6px'>" + x[0] + "</div><div class='glist'>";
       x[1].games.forEach(function (g) { var n = x[1].rows.filter(function (r) { return r.gid === g.id }).length, key = g.raw; h += "<div class='grow'><input type='checkbox' data-on='" + esc(key) + "'" + (OFF[key] ? "" : " checked") + " aria-label='Include " + esc(g.name) + "'>" + (seen[key] ? "<span>" + esc(g.name) + "</span>" : "<input type='text' data-nm='" + esc(key) + "' value='" + esc(g.name) + "' aria-label='Name for " + esc(key) + "'>") + "<small>" + n + " rows · Hudl TEAM: " + esc(key) + "</small></div>"; seen[key] = 1 });
@@ -371,6 +375,10 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
       var ex = "<div style='display:grid;grid-template-columns:100px 1fr;gap:2px 8px'><b>Opponent games:</b><span>" + src.games.map(function (g, i) { return (i + 1) + ". " + esc(g.name) }).join("  ") + "</span><b>Our data:</b><span>" + (ours && ours.games.length ? (SRC === "app" ? "Charted in the app" : "Self scout") + ", " + ours.games.length + " games (" + ours.games.map(function (g) { return esc(g.name) }).join(", ") + ")" : "None added") + "</span></div>";
       Object.assign(o, { subtitle: (REP === "opp" ? "DEFENSIVE SCOUT  |  " : "GAME PLAN  |  ") + team.toUpperCase() + (REP === "gm" && gd ? "  |  " + gd.toUpperCase() : ""), code: REP === "opp" ? "OS" : "GM", extraMeta: ex, metaRight: (gd ? "Game: " + gd + "  |  " : "") + "Built " + today, legend: false, foot: "Eff% = plays gaining 40% of distance (1st), 50% (2nd) or full distance (3rd/4th). Penalty plays excluded. P&10 = first play of a series. Explosive = run 10+ / pass 15+." });
     }
+    var need = REP === "self" ? ["ours"] : REP === "opp" ? ["opp", "ours"] : ["full", "ours"], C = checks(D), bad = need.filter(function (k) { return C[k] && C[k].lvl === "stop" })[0];
+    if (bad) { toast("Can't build: " + C[bad].items.filter(function (x) { return x.lvl === "stop" })[0].t); return }
+    var notes = C[need[0]] ? C[need[0]].note.map(function (t) { return t.split(/\. /)[0].replace(/\.$/, "") }) : [];
+    if (notes.length) { var nt = "File notes: " + notes.join("; ") + "."; o.note = nt.length > 260 ? nt.slice(0, 257) + "…" : nt }
     $("pages").hidden = false; document.querySelectorAll("#pages .skpage").forEach(function (pg) { pg.style.zoom = "" }); var n = SK.paginate(S, $("pages"), o); fitPages(); $("printBtn").disabled = false; $("buildNote").textContent = n + " page" + (n === 1 ? "" : "s") + ". Print, then choose Save as PDF.";
     $("pages").scrollIntoView({ behavior: "smooth" });
   });

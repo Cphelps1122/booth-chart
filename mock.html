@@ -1,3 +1,4 @@
+<meta charset="utf-8">
 <title>Mock Game</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -74,13 +75,14 @@ label.f { display: grid; gap: 3px; font-size: 12px; color: var(--muted); font-we
 .call.sel { border-color: var(--us); background: #2a0f16 }
 body { padding-bottom: 90px }
 .toast { bottom: calc(84px + env(safe-area-inset-bottom, 0px)) !important }
+.sitenav { display: flex; flex-wrap: wrap; gap: 2px 12px; margin-top: 6px; font: 600 13px var(--f-body) } .sitenav a { color: var(--muted); text-decoration: none } .sitenav a.cur { color: var(--ink) }
 .toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--night); padding: 8px 14px; border-radius: 8px; font-weight: 600; z-index: 30 }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto } }
 </style>
 
 <div class="wrap">
   <div class="top">
-    <h1>Mock <span>Game</span></h1>
+    <div><h1>Mock <span>Game</span></h1><nav class="sitenav" data-solnav="mock"></nav></div>
     <div class="row"><button class="btn" id="editBtn" type="button">Fix alignments</button><button class="btn" id="dataBtn" type="button">Data</button><button class="btn" id="endBtn" type="button">End &amp; report</button></div>
   </div>
 
@@ -137,6 +139,7 @@ body { padding-bottom: 90px }
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="scoutkit.js"></script>
+<script src="nav.js"></script>
 <script>
 (function () {
   var $ = function (id) { return document.getElementById(id) };
@@ -167,7 +170,8 @@ body { padding-bottom: 90px }
     // their defense: real snaps by situation
     D.def = th.filter(function (r) { return r.odk === "D" && !r.pen && r.dn >= 1 }).map(function (r) { return { b: dnb(r.dn, r.dist), dn: r.dn, z: zone(ballOf(r.yl) == null ? 50 : 100 - ballOf(r.yl)), sh: shellOf(r), front: r.front ? titleCase(r.front) : null, blitz: r.blitz ? titleCase(r.blitz) : null, cov: r.cov ? titleCase(r.cov) : null } });
     // their offense: how their drives end
-    var drv = {}; th.forEach(function (r) { if (r.odk !== "O" || r.ser == null) return; var k = r.gid + "|" + r.ser, d = drv[k] = drv[k] || { n: 0, td: false, to: false }; if (!r.pen) d.n++; if (r.td) d.td = true; if (/INTERCEPT|FUMBLE/.test(r.res || "")) d.to = true });
+    // a drive = a run of their offensive snaps in a row (SERIES when tagged)
+    var drv = {}, dn = 0, prevO = false, prevG = null; th.forEach(function (r) { var isO = r.odk === "O"; if (isO && (!prevO || r.gid !== prevG)) dn++; prevO = isO; prevG = r.gid; if (!isO) return; var k = r.ser != null ? r.gid + "|s" + r.ser : r.gid + "|d" + dn, d = drv[k] = drv[k] || { n: 0, td: false, to: false }; if (!r.pen) d.n++; if (r.td) d.td = true; if (/INTERCEPT|FUMBLE/.test(r.res || "")) d.to = true });
     var dl = Object.keys(drv).map(function (k) { return drv[k] }).filter(function (d) { return d.n >= 1 });
     D.theirRates = dl.length >= 12 ? { td: dl.filter(function (d) { return d.td }).length / dl.length, to: dl.filter(function (d) { return d.to && !d.td }).length / dl.length, fg: .06, plays: dl.reduce(function (t, d) { return t + d.n }, 0) / dl.length, n: dl.length, real: true } : { td: .3, to: .1, fg: .06, plays: 6, n: 0, real: false };
     D.fronts = top(D.def.map(function (r) { return r.front }), 6);

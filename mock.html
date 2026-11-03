@@ -92,6 +92,7 @@ body { padding-bottom: 90px }
       <label class="drop" id="dOurs" for="fOurs"><b>Our offense</b><span id="nOurs">Self-scout export. Builds the call sheet and every result.</span><input type="file" id="fOurs" accept=".xlsx,.csv" multiple hidden></label>
       <label class="drop" id="dThem" for="fThem"><b>Their games</b><span id="nThem">Their defense tagged (front, shell, blitz). Full games also give their offense's drives.</span><input type="file" id="fThem" accept=".xlsx,.csv" multiple hidden></label>
     </div>
+    <div class="row" style="margin-top:8px"><button class="btn" id="clrOurs" type="button">Clear our files</button><button class="btn" id="clrThem" type="button">Clear their files</button><span class="note" id="saveNote" style="margin:0"></span></div>
     <div class="row" style="margin-top:10px"><label class="f">Opponent<input id="oppName" value="Liberty" style="font:inherit;background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:6px 8px"></label><label class="f">Game length<select id="len"><option value="4">Full game</option><option value="2">One half</option></select></label><button class="btn pri" id="startBtn" type="button">Start new game</button></div>
     <div id="chk"></div>
   </section>
@@ -148,6 +149,22 @@ body { padding-bottom: 90px }
   function toast(t) { var e = $("toast"); e.textContent = t; e.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(function () { e.hidden = true }, 2600) }
   var rand = Math.random, pick = function (a) { return a[Math.floor(rand() * a.length)] };
   var titleCase = function (s) { return String(s || "").toLowerCase().replace(/\b[a-z]/g, function (c) { return c.toUpperCase() }) };
+
+  // ======================= SAVING: school account (every device) + this device =======================
+  var SOL = window.SOL_CONFIG || { db: "https://cardinal-booth-default-rtdb.firebaseio.com", apiKey: "AIzaSyDm0t01_w92gL5sm4_1RnVLip7xWkjb9ME" };
+  function authGet() { try { return JSON.parse(localStorage.getItem("solutions-auth-v1") || "null") } catch (e) { return null } }
+  function solToken() { var a = authGet(); if (!a || !a.school) return Promise.reject(new Error("NO_SESSION")); if (a.exp > Date.now() + 60000) return Promise.resolve(a.idToken);
+    return fetch("https://securetoken.googleapis.com/v1/token?key=" + SOL.apiKey, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "grant_type=refresh_token&refresh_token=" + encodeURIComponent(a.refreshToken) }).then(function (r) { return r.json() }).then(function (d) { if (d.error) throw new Error("NO_SESSION"); a.idToken = d.id_token; a.refreshToken = d.refresh_token; a.exp = Date.now() + (+d.expires_in - 60) * 1000; try { localStorage.setItem("solutions-auth-v1", JSON.stringify(a)) } catch (e) {} return a.idToken }) }
+  function cloud(path, method, val) { var a = authGet(); return solToken().then(function (t) { return fetch(SOL.db + "/schools/" + encodeURIComponent(a.school) + "/mock/" + path + ".json?auth=" + encodeURIComponent(t), { method: method || "GET", body: val === undefined ? undefined : JSON.stringify(val) }) }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json() }) }
+  // files go up as one text value each: the database would drop the blank cells inside Hudl rows
+  function saveFiles() {
+    var pack = { ours: JSON.stringify(RAW.ours), them: JSON.stringify(RAW.them), opp: $("oppName").value.trim(), at: Date.now() };
+    store.set("sol-mock-files", pack);
+    $("saveNote").textContent = "Saved on this device.";
+    cloud("files", "PUT", pack).then(function () { $("saveNote").textContent = "Saved to your school. Opens on every device you sign in on." }, function () { $("saveNote").textContent = authGet() ? "Saved on this device. Couldn't reach your school account; check the connection." : "Saved on this device. Sign in to Solutions to keep it on every device." });
+  }
+  function usePack(p) { if (!p) return false; try { RAW.ours = JSON.parse(p.ours || "[]"); RAW.them = JSON.parse(p.them || "[]") } catch (e) { return false } if (p.opp) $("oppName").value = p.opp; return RAW.ours.length > 0 }
+  function saveAlign() { store.set("sol-mock-align", ALIGN); cloud("align", "PUT", JSON.stringify(ALIGN)).catch(function () {}) }
 
   // ======================= DATA =======================
   var D = { ours: null, them: null, opp: "Liberty", us: "Melissa" };
@@ -545,8 +562,8 @@ body { padding-bottom: 90px }
   ec.addEventListener("pointerup", function () { ED.drag = -1 });
   ec.addEventListener("pointercancel", function () { ED.drag = -1 });
   document.querySelectorAll("#edMode .chip").forEach(function (b) { b.onclick = function () { ED.mode = b.dataset.m; edSel(); edLoad(); edDraw() } });
-  $("edSave").onclick = function () { if (ED.mode === "def") ALIGN.def[defKey(ED.front, ED.sh, ED.ft)] = ED.pts; else ALIGN.off[ED.form] = ED.pts; store.set("sol-mock-align", ALIGN); edLoad(); edDraw(); toast("Saved. The mock game uses these spots now.") };
-  $("edReset").onclick = function () { if (ED.mode === "def") delete ALIGN.def[defKey(ED.front, ED.sh, ED.ft)]; else delete ALIGN.off[ED.form]; store.set("sol-mock-align", ALIGN); edLoad(); edDraw(); toast("Back to the standard alignment.") };
+  $("edSave").onclick = function () { if (ED.mode === "def") ALIGN.def[defKey(ED.front, ED.sh, ED.ft)] = ED.pts; else ALIGN.off[ED.form] = ED.pts; saveAlign(); edLoad(); edDraw(); toast("Saved. The mock game uses these spots now.") };
+  $("edReset").onclick = function () { if (ED.mode === "def") delete ALIGN.def[defKey(ED.front, ED.sh, ED.ft)]; else delete ALIGN.off[ED.form]; saveAlign(); edLoad(); edDraw(); toast("Back to the standard alignment.") };
   $("edClose").onclick = function () { $("editor").hidden = true; $("game").hidden = false; if (G && G.over) $("report").hidden = false; poses(); draw() };
   $("editBtn").onclick = edOpen;
 
@@ -565,9 +582,12 @@ body { padding-bottom: 90px }
     $("nThem").textContent = D.them ? RAW.them.map(function (f) { return f.name }).join(", ") + " · " + D.def.length + " defensive snaps" + (D.theirRates.real ? " · " + D.theirRates.n + " of their drives" : "") : "Their defense tagged (front, shell, blitz). Full games also give their offense's drives.";
     $("dOurs").classList.toggle("ok", !!D.ours); $("dThem").classList.toggle("ok", !!D.them);
   }
-  function addFiles(kind, files) { Promise.all(Array.prototype.map.call(files, parseFile)).then(function (L) { RAW[kind] = RAW[kind].concat(L); loadData(); toast("Loaded " + L.length + " file" + (L.length === 1 ? "" : "s")) }, function () { toast("Couldn't read that file. Export it from Hudl as Excel (.xlsx) or CSV.") }) }
+  function addFiles(kind, files) { Promise.all(Array.prototype.map.call(files, parseFile)).then(function (L) { RAW[kind] = RAW[kind].concat(L); loadData(); if (!window.MOCK_DATA) saveFiles(); toast("Loaded " + L.length + " file" + (L.length === 1 ? "" : "s")) }, function () { toast("Couldn't read that file. Export it from Hudl as Excel (.xlsx) or CSV.") }) }
   $("fOurs").onchange = function () { if (this.files.length) addFiles("ours", this.files); this.value = "" };
   $("fThem").onchange = function () { if (this.files.length) addFiles("them", this.files); this.value = "" };
+  $("clrOurs").onclick = function () { RAW.ours = []; loadData(); if (!window.MOCK_DATA) saveFiles() };
+  $("clrThem").onclick = function () { RAW.them = []; loadData(); if (!window.MOCK_DATA) saveFiles() };
+  $("oppName").onchange = function () { if (!window.MOCK_DATA) saveFiles() };
   $("dataBtn").onclick = function () { var s = $("setup"); s.hidden = !s.hidden; if (!s.hidden) s.scrollIntoView({ behavior: "smooth" }) };
   $("startBtn").onclick = function () { if (!D.calls || !D.calls.length) { toast("Add our offense's Hudl export first."); return } D.opp = $("oppName").value.trim() || "Opponent"; $("setup").hidden = true; newGame(); camBall = G.ball; refresh() };
   $("endBtn").onclick = function () { if (!G || !G.snaps.length) { toast("Run a few plays first."); return } G.over = true; if (G.drive) endDrive("Stopped"); refresh(); finishGame() };
@@ -577,7 +597,12 @@ body { padding-bottom: 90px }
   // ======================= START =======================
   size();
   if (window.MOCK_DATA) { RAW.ours = MOCK_DATA.ours || []; RAW.them = MOCK_DATA.them || []; D.us = MOCK_DATA.us || D.us; D.opp = MOCK_DATA.opp || D.opp; $("oppName").value = D.opp; loadData(); newGame(); camBall = G.ball; refresh() }
-  else { $("setup").hidden = false; G = null }
+  else {
+    G = null; var go = function () { D.opp = $("oppName").value.trim() || "Opponent"; loadData(); if (D.calls.length) { $("setup").hidden = true; newGame(); camBall = G.ball; refresh(); $("saveNote").textContent = "Loaded your saved files." } else $("setup").hidden = false };
+    var local = store.get("sol-mock-files"), had = usePack(local); go();
+    cloud("files").then(function (p) { if (p && p.at && (!local || p.at > (local.at || 0)) && usePack(p)) { store.set("sol-mock-files", p); go() } }, function () {});
+    cloud("align").then(function (a) { if (typeof a === "string") { try { ALIGN = JSON.parse(a); store.set("sol-mock-align", ALIGN) } catch (e) {} } }, function () {});
+  }
   document.fonts && document.fonts.ready.then(function () { draw() });
 })();
 </script>

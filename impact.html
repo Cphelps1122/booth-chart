@@ -377,7 +377,7 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
     var a = actualOff(g), T = f.tend, scale = a.drives / (T.drives || 11);
     // per-game totals scale with how many drives we really had
     var M = [["Points", "pts", T.pts, a.pts, scale, 1], ["Points a drive", "ppd", T.ppd, a.ppd, 1, 1], ["TD drives", "tdDrive", T.tdDrive, a.tdDrive, 1, 0, "%"], ["Yards a play", "ypp", T.ypp, a.ypp, 1, 1], ["Efficient plays", "eff", T.eff, a.eff, 1, 0, "%"], ["3rd down", "third", T.third, a.third, 1, 0, "%"], ["Explosive plays", "expl", T.expl, a.expl, scale, 1], ["Turnovers", "to", T.to, a.to, scale, 1]];
-    var rows = M.filter(function (m) { return m[3] != null }).map(function (m) { var b = m[2], k = m[4]; var lo = b.lo * k, hi = b.hi * k, mid = b.mid * k; return { lab: m[0], key: m[1], lo: lo, hi: hi, mid: mid, act: m[3], inR: m[3] >= lo - 1e-9 && m[3] <= hi + 1e-9, dec: m[5], u: m[6] || "" } });
+    var rows = M.filter(function (m) { return m[3] != null && m[2] }).map(function (m) { var b = m[2], k = m[4]; var lo = b.lo * k, hi = b.hi * k, mid = b.mid * k; return { lab: m[0], key: m[1], lo: lo, hi: hi, mid: mid, act: m[3], inR: m[3] >= lo - 1e-9 && m[3] <= hi + 1e-9, dec: m[5], u: m[6] || "" } });
     // looks: did their most likely shell / coverage per situation show up most?
     var P = g.off.filter(isPlay), lookHit = 0, lookN = 0, lookRows = [];
     Object.keys(f.looks || {}).forEach(function (b) {
@@ -446,7 +446,7 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
           return Promise.all([wk, pred, simP]).then(function (W) {
             var fin = obj(meta.final) || null;
             var us = fin ? +fin.us : +e.us || 0, them = fin ? +fin.them : +e.them || 0;
-            return { practice: code === "practice", code: code, opp: e.opp || meta.opp || "Opponent", date: date, season: code === "practice" ? "Practice" : seasonOf(date), us: us, them: them, final: !!(fin || e.final), off: off, scoreLog: obj(meta.scoreLog) || [], scout: W[0] && W[0].sits ? W[0] : null, pred: W[1] && W[1].us != null ? W[1] : null, sim: W[2] && W[2].tend ? W[2] : null };
+            return { practice: code === "practice", code: code, opp: e.opp || meta.opp || "Opponent", date: date, season: code === "practice" ? "Practice" : seasonOf(date), us: us, them: them, final: !!(fin || e.final), off: off, scoreLog: obj(meta.scoreLog) || [], scout: W[0] && W[0].sits ? W[0] : null, pred: W[1] && W[1].us != null ? W[1] : null, sim: W[2] && W[2].tend ? W[2] : null, pk: obj(meta.preKick) || null };
           });
         });
       }));
@@ -492,6 +492,35 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
   function plWire() {
     $("out").querySelectorAll("tr[data-pl]").forEach(function (tr) { tr.addEventListener("click", function () { var o = PLR[+tr.dataset.pl]; if (o) SolPL.open({ title: o.t, items: SolPL.itemsOf(o.A) }) }) });
   }
+  // ---------- grade the pregame models: scores model, play-by-play sim, and the blend shown on Game Preview ----------
+  function models(g) {
+    var pk = g.pk, out = [], r = function (v) { return v == null || isNaN(v) ? null : Math.round(+v) };
+    if (pk) { [["sc", "Scores model"], ["sim", "Sim"], ["bl", "Blended"]].forEach(function (x) { var m = pk[x[0]]; out.push({ k: x[0], lab: x[1], us: m ? r(m.us) : null, them: m ? r(m.them) : null, locked: true }) }); return out }
+    var sc = g.pred ? { us: r(g.pred.us), them: r(g.pred.them) } : null, sp = g.sim && g.sim.pred && g.sim.pred.us != null ? g.sim.pred : null; if (!sc && sp) sc = { us: r(sp.us), them: r(sp.them) };
+    var si = g.sim ? { us: r(g.sim.tend && g.sim.tend.pts && g.sim.tend.pts.mid), them: r(g.sim.them && g.sim.them.pts && g.sim.them.pts.mid) } : null;
+    var bl = si && si.us != null ? { us: sc ? Math.round((si.us + sc.us) / 2) : si.us, them: sc && si.them != null ? Math.round((si.them + sc.them) / 2) : sc ? sc.them : si.them } : null;
+    [["sc", "Scores model", sc], ["sim", "Sim", si], ["bl", "Blended", bl]].forEach(function (x) { out.push({ k: x[0], lab: x[1], us: x[2] ? x[2].us : null, them: x[2] ? x[2].them : null, locked: false }) });
+    return out;
+  }
+  function grade1(m, g) { if (m.us == null || !(g.final || g.us || g.them)) return null; var pm = m.them == null ? null : m.us - m.them, am = g.us - g.them; return { win: pm == null ? null : (pm > 0 && am > 0) || (pm < 0 && am < 0) || (pm === 0 && am === 0), offUs: m.us - g.us, offThem: m.them == null ? null : m.them - g.them, off: Math.abs(m.us - g.us) + (m.them == null ? 0 : Math.abs(m.them - g.them)) } }
+  function modelsHTML(g) {
+    var M = models(g).filter(function (m) { return m.us != null }); if (!M.length) return "<section class='panel'><h2>Pregame predictions</h2><p class='note'>No prediction was saved before this game. Open Reports → Game Preview during the week and it locks in at the first snap.</p></section>";
+    var rows = M.map(function (m) { var gr = grade1(m, g); return "<tr><td><b>" + m.lab + "</b></td><td>" + m.us + "</td><td>" + (m.them == null ? "–" : m.them) + "</td><td>" + (!gr || gr.win == null ? "–" : gr.win ? "✓" : "✗") + "</td><td>" + (gr ? gr.off + " pts" : "–") + "</td></tr>" }).join("");
+    var best = M.map(function (m) { return { m: m, gr: grade1(m, g) } }).filter(function (x) { return x.gr }).sort(function (a, b) { return a.gr.off - b.gr.off })[0];
+    return "<section class='panel'><h2>Pregame predictions vs the final <small>" + (M[0].locked ? "locked at the first snap" : "saved during the week, not locked (game was charted before locking existed)") + "</small></h2><div class='tbl'><table><tr><th></th><th>" + esc(SCHOOL) + "</th><th>" + esc(g.opp) + "</th><th>Winner</th><th>Off by</th></tr>" + rows +
+      "<tr><td><b>Final</b></td><td><b>" + g.us + "</b></td><td><b>" + g.them + "</b></td><td></td><td></td></tr></table></div>" + (best && M.length > 1 ? "<p class='note'>Closest: <b>" + best.m.lab + "</b>. Off by = our miss plus their miss.</p>" : "<p class='note'>Off by = our miss plus their miss.</p>") + "</section>";
+  }
+  function modelsSeasonHTML(G) {
+    var acc = {}; ["sc", "sim", "bl"].forEach(function (k) { acc[k] = { n: 0, w: 0, wn: 0, off: 0, bu: 0, bt: 0, nt: 0 } });
+    var lab = { sc: "Scores model", sim: "Sim", bl: "Blended" };
+    G.forEach(function (g) { models(g).forEach(function (m) { var gr = grade1(m, g); if (!gr) return; var a = acc[m.k]; a.n++; a.off += gr.off; a.bu += gr.offUs; if (gr.offThem != null) { a.bt += gr.offThem; a.nt++ } if (gr.win != null) { a.wn++; if (gr.win) a.w++ } }) });
+    var K = Object.keys(acc).filter(function (k) { return acc[k].n }); if (!K.length) return "";
+    var lean = function (v, side) { var x = Math.round(v); return Math.abs(x) < 3 ? "about right" : (x > 0 ? x + " high" : -x + " low") + " on " + side };
+    var rows = K.map(function (k) { var a = acc[k]; return "<tr><td><b>" + lab[k] + "</b></td><td>" + (a.wn ? a.w + " of " + a.wn : "–") + "</td><td>" + (a.off / a.n).toFixed(1) + "</td><td>" + lean(a.bu / a.n, "us") + "</td><td>" + (a.nt ? lean(a.bt / a.nt, "them") : "–") + "</td><td>" + a.n + "</td></tr>" }).join("");
+    var best = K.slice().sort(function (a, b) { return acc[a].off / acc[a].n - acc[b].off / acc[b].n })[0];
+    return "<section class='panel'><h2>Which prediction to trust <small>every game with a saved pregame prediction</small></h2><div class='tbl'><table><tr><th>Model</th><th>Picked winner</th><th>Avg off by (pts)</th><th>Our score runs</th><th>Their score runs</th><th>Games</th></tr>" + rows + "</table></div>" +
+      (K.length > 1 ? "<p class='note'>Closest on average so far: <b>" + lab[best] + "</b>." + (acc[best].n < 4 ? " Small sample: give it a few more games before leaning on it." : "") + "</p>" : "") + "</section>";
+  }
   function gameHTML(g) {
     var gr = g.gr, d = g.dec, n = g.nc, q = g.q, h = "";
     var predTxt = g.pred ? "Pregame projection " + g.pred.us + "–" + g.pred.them + " (" + (g.pred.us > g.pred.them ? "us" : g.pred.us < g.pred.them ? "them" : "even") + ")" : "No pregame projection saved";
@@ -510,6 +539,7 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
     var rowHTML = function (r) { return r.items.map(function (x, i) { return "<tr" + plA(r.A, r.k) + ">" + (i === 0 ? "<td rowspan='" + r.items.length + "'>" + esc(r.k) + "<br><span class='note'>" + r.n + " snaps tonight · scout " + r.sn + "</span></td>" : "") + "<td class='it'>" + x.lab + "</td><td>" + esc(fmtItem(x)) + "</td><td>" + chip(x.g) + "</td></tr>" }).join("") };
     h += simGameHTML(g);
     var sr = gr.rows.filter(function (r) { return r.items.length && r.k !== "ALL" }), all = gr.rows.filter(function (r) { return r.k === "ALL" })[0];
+    h += modelsHTML(g);
     h += "<section class='panel'><h2>Scout vs tonight · by situation <small>Held = same top look / within 10 pts · Close = their #2 look / within 20 · 5+ snaps to grade</small></h2>" +
       (sr.length || (all && all.items.length) ? "<div class='tbl'><table><tr><th>Situation</th><th>Item</th><th>Scout said · tonight</th><th>Grade</th></tr>" + (all && all.items.length ? rowHTML({ k: "Overall", A: all.A, n: all.n, sn: all.sn, items: all.items }) : "") + sr.map(rowHTML).join("") + "</table></div>" : "<p class='empty'>" + (g.scout ? "Not enough tagged snaps per situation yet." : "No scout for this game.") + "</p>") + "</section>";
     if (gr.frows.length) h += "<section class='panel'><h2>Scout vs tonight · by our formation</h2><div class='tbl'><table><tr><th>Formation</th><th>Item</th><th>Scout said · tonight</th><th>Grade</th></tr>" + gr.frows.map(rowHTML).join("") + "</table></div></section>";
@@ -554,6 +584,7 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
       k(pr.length ? right + "/" + pr.length : "–", "Projection picked winner", mErr != null ? "off by " + mErr.toFixed(1) + " pts a game" : "needs Matchup Predictor") +
       k(pcs(Q.look, Q.n), "Snaps with their look tagged", Q.n + " plays charted") +
       (function () { var SG = G.filter(function (g) { return g.sv }), inR = SG.reduce(function (t, g) { return t + g.sv.inR }, 0), tot = SG.reduce(function (t, g) { return t + g.sv.rows.length }, 0); return k(tot ? pcs(inR, tot) : "–", "Sim forecasts in range", SG.length ? SG.length + " game" + (SG.length === 1 ? "" : "s") + " with a pregame sim" : "run Pregame Sim on Reports") })() + "</div>";
+    h += modelsSeasonHTML(G);
     h += "<section class='panel'><h2>Game by game <small>tap a game above for its full postgame report</small></h2><div class='tbl'><table><tr><th>Game</th><th>Result</th><th>Projection</th><th>Scout grade</th><th>Look right</th><th>Blitz within 10</th><th>Next Call eff</th><th>Other calls eff</th><th>4th downs per chart</th><th>Sim in range</th><th>Look tagged</th></tr>" +
       G.map(function (g) { var nl = g.nc; return "<tr><td>" + esc(nice(g.date) + " " + g.opp) + "</td><td><span class='wl " + res(g) + "'>" + (res(g) ? res(g).toUpperCase() + " " : "") + g.us + "–" + g.them + "</span></td><td>" + (g.pred ? g.pred.us + "–" + g.pred.them : "–") + "</td><td>" + (g.gr.score == null ? (g.scout ? "too few tags" : "no scout") : g.gr.score + "% (" + g.gr.items.length + ")") + "</td><td>" + (g.gr.lookAcc == null ? "–" : g.gr.lookAcc + "%") + "</td><td>" + (g.gr.blitzAcc == null ? "–" : g.gr.blitzAcc + "%") + "</td><td>" + (nl.tracked ? pcs(nl.f.ef, nl.f.n) + " (" + nl.f.n + ")" : "–") + "</td><td>" + (nl.tracked ? pcs(nl.o.ef, nl.o.n) + " (" + nl.o.n + ")" : "–") + "</td><td>" + (g.dec.fourth.length ? g.dec.fourth.filter(function (x) { return x.ok }).length + "/" + g.dec.fourth.length : "–") + "</td><td>" + (g.sv ? g.sv.inR + "/" + g.sv.rows.length : "–") + "</td><td>" + pcs(g.q.look, g.q.n) + "</td></tr>" }).join("") + "</table></div></section>";
     // pitch lines

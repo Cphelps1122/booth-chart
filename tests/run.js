@@ -4,6 +4,7 @@ const {chromium}=require('playwright'); const {start}=require('./rtdb_server.js'
 const http=require('http'), fs=require('fs'), path=require('path');
 const ROOT=path.join(__dirname,'..'), SEASON='season-aaaaaaaaaaaaaaaa', d='2026-11-06', G='/schools/melissa/games/mel-anna';
 const R=start({admins:{},members:{u1:'melissa'},schools:{melissa:{season:SEASON,profile:{name:'Melissa'},schedule:[{date:d,opp:'Anna',ha:'H'}],
+  weeks:{[d]:{pred:{us:42,them:14,wp:93},sim:{tend:{pts:{mid:35,lo:20,hi:50}},them:{pts:{mid:17}},pred:{us:42,them:14}}}},
   games:{[SEASON]:{list:{'mel-anna':{opp:'Anna',date:d,plays:0,real:1,gc:'A1106',updated:1}}},'mel-anna':{meta:{opp:'Anna',gameDate:d,gc:'A1106'}}}}}},9124);
 const web=http.createServer((q,r)=>{ const f=path.join(ROOT,decodeURIComponent(q.url.split('?')[0])); if(!f.startsWith(ROOT)||!fs.existsSync(f)||fs.statSync(f).isDirectory()){r.statusCode=404;return r.end()}
   r.setHeader('Content-Type',{'.html':'text/html','.js':'text/javascript','.png':'image/png'}[path.extname(f)]||'application/octet-stream'); fs.createReadStream(f).pipe(r) }).listen(8765);
@@ -37,9 +38,11 @@ const wait=async(fn,ms=8000)=>{ const t=Date.now(); while(Date.now()-t<ms){ if(a
  ok(await wait(()=>srvSnaps()===3), 'database has 3 plays (has '+srvSnaps()+')');
  for (const [n,p] of [['A',A],['B',B],['C',C]]) ok(await wait(async()=>await snaps(p)===3), n+' shows 3 plays');
 
+ ok(await wait(()=>{ const k=(R.getAt(G+'/meta')||{}).preKick; return k&&k.sc&&k.sim&&k.bl }), 'pregame predictions locked at the first snap');
+ const pk=(R.getAt(G+'/meta')||{}).preKick||{}; ok(pk.sc&&pk.sc.us===42&&pk.sim.us===35&&pk.bl.us===39&&pk.bl.them===16, 'locked numbers: scores 42-14, sim 35-17, blend 39-16 ('+JSON.stringify(pk)+')');
  await A.waitForTimeout(6500); for (const [n,p] of [['A',A],['B',B],['C',C]]) ok((await p.textContent('#pSync'))==='Live', n+' status light says Live once all is saved ('+await p.textContent('#pSync')+')');
  console.log('3. One device drops offline, keeps charting, comes back');
- await C.ctx.setOffline(true); await log(C); await log(C); await log(A); // A and C now both chart blind to each other await A.waitForTimeout(2000);
+ await C.ctx.setOffline(true); await log(C); await log(C); await log(A); await A.waitForTimeout(2000); // A and C now both chart blind to each other
  ok(srvSnaps()===4, 'while C is offline, database only has A\'s new play');
  ok(await wait(async()=>/waiting/.test(await C.textContent('#pSync'))), 'C status light shows changes waiting ('+await C.textContent('#pSync')+')');
  await C.ctx.setOffline(false); await C.evaluate(()=>window.dispatchEvent(new Event('online')));
@@ -53,6 +56,12 @@ const wait=async(fn,ms=8000)=>{ const t=Date.now(); while(Date.now()-t<ms){ if(a
  ok(await wait(()=>st(B,()=>!!window.__sol.S.final)), 'other devices see the final');
  ok(srvSnaps()===6 && !!(R.getAt(G+'/meta')||{}).clipNotes, 'plays and notes still there after End game');
 
+ R.getAt('/schools/melissa/weeks/'+d).pred.us=70; await st(A,()=>{ window.__sol.S.preKick=window.__sol.S.preKick; window.__sol.save() }); await A.waitForTimeout(1500);
+ ok(((R.getAt(G+'/meta')||{}).preKick||{}).sc.us===42, 'changing the prediction after kickoff does not change the locked one');
+ console.log('5. Postgame grades on Impact');
+ await A.goto('http://localhost:8765/impact.html'); await A.waitForTimeout(3500); const body=await A.textContent('body');
+ ok(/Which prediction to trust/.test(body), 'season panel shows the model grades'); ok(/Blended/.test(body)&&/Scores model/.test(body), 'all three models graded');
+ await A.screenshot({path:'/tmp/claude-0/impact_models.png',fullPage:true});
  const errs=devs.flatMap(p=>p.errs); ok(errs.length===0, 'no page errors'+(errs.length?': '+errs.slice(0,3).join(' | '):''));
  console.log(`\n${pass} passed, ${fail} failed`); await b.close(); R.srv.close(); web.close(); process.exit(fail?1:0);
 })().catch(e=>{ console.error(e); process.exit(1) });

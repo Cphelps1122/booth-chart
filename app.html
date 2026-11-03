@@ -1470,7 +1470,7 @@ textarea { min-height: 64px }
   var DEFAULT_DB = "https://cardinal-booth-default-rtdb.firebaseio.com";
   var SYNC_KEY = "cardinals-booth-sync-v1" + NS, DEVICE = Math.random().toString(36).slice(2, 10);
   var SY = { cfg: null, es: null, status: "off", mirror: null, last: null, pushing: false, dirty: false, needApply: false, timer: null, retry: null, applying: false };
-  var META_KEYS = ["reels", "clipNotes", "gc", "final", "lock", "dir", "wp", "clock", "clocks", "clk", "sheet", "sheetVer", "scout", "gameDate", "opp", "pre", "start", "lists", "dmode", "fast", "oppScore", "ourAdj", "scoreLog", "tryPending", "endAfter", "example", "cur"];
+  var META_KEYS = ["reels", "clipNotes", "gc", "final", "lock", "dir", "wp", "clock", "clocks", "clk", "sheet", "sheetVer", "scout", "gameDate", "opp", "pre", "start", "lists", "dmode", "fast", "oppScore", "ourAdj", "scoreLog", "tryPending", "endAfter", "example", "cur", "preKick"];
   function syncCfg() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || "null") } catch (e) { return null } }
   function setSyncCfg(c) { try { if (c) localStorage.setItem(SYNC_KEY, JSON.stringify(c)); else localStorage.removeItem(SYNC_KEY) } catch (e) {} }
   function newCode() { var a = "abcdefghjkmnpqrstuvwxyz23456789", t = ""; var r = new Uint8Array(18); (window.crypto || window.msCrypto).getRandomValues(r); for (var i = 0; i < 18; i++) t += a[r[i] % a.length]; return "mel-" + t }
@@ -2021,8 +2021,21 @@ textarea { min-height: 64px }
   }
 
   function load() { try { var r = localStorage.getItem(KEY); return r ? JSON.parse(r) : null } catch (e) { return null } }
-  function save() { ensureIdsSafe(); if (typeof filmCheck === "function") filmCheck(); try { localStorage.setItem(KEY, JSON.stringify(S)); localStorage.setItem("cardinals-last-used" + NS, String(Date.now())) } catch (e) {} if (typeof schedulePush === "function") schedulePush() }
+  function save() { ensureIdsSafe(); try { preKickGrab() } catch (e) {} if (typeof filmCheck === "function") filmCheck(); try { localStorage.setItem(KEY, JSON.stringify(S)); localStorage.setItem("cardinals-last-used" + NS, String(Date.now())) } catch (e) {} if (typeof schedulePush === "function") schedulePush() }
   if (window.SOL_TEST) window.__sol = { get S() { return S }, save: save }; // test hook only, off in real use
+  // lock the pregame predictions at the first snap so the postgame grade checks what was really predicted
+  var PK_BUSY = false, PK_NONE = null;
+  function preKickGrab() {
+    if (PK_BUSY || S.preKick || PK_NONE === S.gameDate || !S.snaps.length || !ONLINE || !SY.cfg || isPractice() || S.example || !S.gameDate || LOCK.on || typeof solSchoolBase !== "function" || !solSchoolBase()) return;
+    PK_BUSY = true; var base = solSchoolBase() + "/weeks/" + S.gameDate, get = function (p) { return fetch(base + p + ".json" + solAuthQ()).then(function (r) { return r.ok ? r.json() : null }, function () { return null }) };
+    Promise.all([get("/pred"), get("/sim/tend/pts/mid"), get("/sim/them/pts/mid"), get("/sim/pred")]).then(function (R) {
+      var pk = { at: Date.now() }, pr = R[3] && R[3].us != null ? R[3] : R[0], sU = R[1], sT = R[2];
+      if (pr && pr.us != null) pk.sc = { us: Math.round(+pr.us), them: Math.round(+pr.them) };
+      if (sU != null) pk.sim = { us: Math.round(+sU), them: sT != null ? Math.round(+sT) : null };
+      if (pk.sim) { var bu = Math.round(pk.sc ? (+sU + +pr.us) / 2 : +sU), bt = pk.sc && sT != null ? Math.round((+sT + +pr.them) / 2) : pk.sc ? pk.sc.them : pk.sim.them; pk.bl = { us: bu, them: bt } }
+      if (!S.preKick && (pk.sc || pk.sim)) { S.preKick = pk; save() } else if (!pk.sc && !pk.sim) PK_NONE = S.gameDate; // nothing saved this week: don't ask again on every play
+    }).then(function () { PK_BUSY = false }, function () { PK_BUSY = false });
+  }
   function ensureIdsSafe() { if (typeof ensureIds === "function" && S && S.snaps) ensureIds() }
   function $(id) { return document.getElementById(id) }
   function list(k) { if (S.lists[k] == null) S.lists[k] = DEF_LISTS[k]; return S.lists[k].split(",").map(function (s) { return s.trim() }).filter(Boolean) }

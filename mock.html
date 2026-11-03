@@ -1,0 +1,578 @@
+<title>Mock Game</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@600;800&family=Barlow:wght@400;500;600;700&display=swap">
+<style>
+/* layout: press-box view — scoreboard strip, end-zone-camera field, the read and the call sheet beside it, drive log and report below */
+:root {
+  --night: #0b1016; --panel: #131b24; --panel2: #0f161e; --line: #24313f; --ink: #e9eef3; --muted: #8fa0b2;
+  --us: #d4213d; --them: #2e5aa8; --gold: #f2c14e; --good: #3fbf6f; --bad: #ef5a5a;
+  --f-display: "Saira Condensed", "Arial Narrow", sans-serif; --f-body: "Barlow", system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box }
+body { margin: 0; background: var(--night); color: var(--ink); font: 15px/1.45 var(--f-body); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 14px 40px }
+.wrap { max-width: 1060px; margin: 0 auto; display: grid; gap: 12px }
+h1 { margin: 0; font: 800 24px/1 var(--f-display); letter-spacing: .06em; text-transform: uppercase }
+h1 span { color: var(--us) }
+h2 { margin: 0 0 8px; font: 800 18px/1.1 var(--f-display); letter-spacing: .06em; text-transform: uppercase; text-wrap: balance }
+h2 span { color: var(--muted); font: 500 13px var(--f-body); letter-spacing: 0; text-transform: none }
+.top { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between }
+.board { display: flex; flex-wrap: wrap; gap: 8px }
+.cell { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; display: grid; align-content: center; min-width: 70px }
+.cell small { font: 600 11px/1.2 var(--f-body); letter-spacing: .1em; text-transform: uppercase; color: var(--muted) }
+.cell b { font: 800 26px/1.05 var(--f-display); letter-spacing: .02em; font-variant-numeric: tabular-nums }
+.cell.us b { color: var(--us) } .cell.them b { color: #7ea6ef } .cell.dd { background: var(--us); border-color: var(--us) } .cell.dd small { color: #ffd9de }
+.fieldbox { position: relative; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); background: #08111a }
+canvas { display: block; width: 100%; height: auto; max-width: 100%; touch-action: none }
+.tag { position: absolute; left: 10px; top: 8px; font: 600 12.5px/1.3 var(--f-body); background: rgba(11,16,22,.8); border: 1px solid var(--line); border-radius: 6px; padding: 5px 9px; max-width: calc(100% - 20px) }
+.tag b { color: var(--gold) }
+.result { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); font: 800 clamp(17px, 4.2vw, 32px)/1 var(--f-display); letter-spacing: .03em; text-transform: uppercase; background: rgba(11,16,22,.85); border-radius: 8px; padding: 8px 16px; white-space: nowrap }
+.result.good { color: var(--good) } .result.bad { color: var(--bad) } .result.td { color: var(--gold) }
+.cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr); gap: 12px; align-items: start }
+@media (max-width: 760px) { .cols { grid-template-columns: 1fr } }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; min-width: 0 }
+.bar { display: grid; grid-template-columns: 110px 1fr 44px; gap: 8px; align-items: center; margin: 4px 0; font-size: 14px }
+.bar .t { background: #1b2632; border-radius: 3px; overflow: hidden; height: 10px } .bar i { display: block; height: 10px; background: var(--them) } .bar i.r { background: var(--bad) }
+.bar em { font-style: normal; text-align: right; font-variant-numeric: tabular-nums; color: var(--muted) }
+.sub { font: 700 12px var(--f-body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 10px 0 2px }
+.note { color: var(--muted); font-size: 13px; margin: 8px 0 0 }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px }
+.chip, .btn { font: 700 14px var(--f-display); letter-spacing: .08em; text-transform: uppercase; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel2); color: var(--ink); cursor: pointer }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--night) }
+.btn.pri { background: var(--us); border-color: var(--us) } .btn.gold { background: var(--gold); border-color: var(--gold); color: #1a1406 }
+.btn:disabled { opacity: .45; cursor: default }
+.chip:focus-visible, .btn:focus-visible, .call:focus-visible, select:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px }
+.calls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; max-height: 520px; overflow-y: auto; padding-right: 2px }
+@media (max-width: 440px) { .calls { grid-template-columns: 1fr } }
+.call { text-align: left; font: inherit; color: var(--ink); background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; cursor: pointer; display: grid; gap: 1px }
+.call:hover:not(:disabled) { border-color: var(--us) } .call:disabled { opacity: .45; cursor: default }
+.call b { font: 800 17px/1.1 var(--f-display); letter-spacing: .04em; text-transform: uppercase }
+.call span { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums }
+.call .k { font: 700 11px var(--f-body); letter-spacing: .08em; text-transform: uppercase; color: var(--gold) }
+.call .k.thin { color: var(--muted) }
+.call.pick { border-color: var(--gold) }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center }
+.fourth { background: #2a1f08; border: 1px solid var(--gold); border-radius: 8px; padding: 10px; margin-bottom: 10px }
+.fourth p { margin: 0 0 8px }
+.their { background: #10203a; border: 1px solid var(--them); border-radius: 8px; padding: 10px 12px }
+.log { margin: 0; padding: 0; list-style: none; display: grid; gap: 3px; font-size: 13.5px; font-variant-numeric: tabular-nums; max-height: 320px; overflow-y: auto }
+.log li { display: grid; grid-template-columns: 120px minmax(0, 1fr) 54px; gap: 8px; border-top: 1px solid var(--line); padding-top: 3px }
+.log li.dv { grid-template-columns: 1fr; color: var(--muted); font-weight: 600 }
+.log .g { color: var(--good) } .log .r { color: var(--bad) } .log .y { color: var(--gold) }
+.tbl { overflow-x: auto } table { border-collapse: collapse; width: 100%; font-size: 13.5px; font-variant-numeric: tabular-nums } th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); white-space: nowrap } th { font: 700 11.5px var(--f-body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted) }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-bottom: 12px }
+.kpi { background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px } .kpi b { display: block; font: 800 28px/1 var(--f-display) } .kpi small { color: var(--muted) }
+.drop { display: grid; gap: 4px; border: 2px dashed var(--line); border-radius: 10px; padding: 14px; cursor: pointer; background: var(--panel2) }
+.drop b { font: 800 17px var(--f-display); letter-spacing: .05em; text-transform: uppercase } .drop span { color: var(--muted); font-size: 13px } .drop.ok { border-color: var(--good) }
+.grid3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px }
+select { font: inherit; background: var(--panel2); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px }
+label.f { display: grid; gap: 3px; font-size: 12px; color: var(--muted); font-weight: 600; letter-spacing: .06em; text-transform: uppercase }
+.snapbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 25; display: flex; gap: 10px; align-items: center; justify-content: center; background: rgba(11,16,22,.95); border-top: 2px solid var(--us); padding: 10px max(16px, env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)) }
+.snapbar span { font: 800 20px var(--f-display); letter-spacing: .04em; text-transform: uppercase; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.snapbar .btn.pri { font-size: 20px; padding: 10px 28px }
+.call.sel { border-color: var(--us); background: #2a0f16 }
+body { padding-bottom: 90px }
+.toast { bottom: calc(84px + env(safe-area-inset-bottom, 0px)) !important }
+.toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--night); padding: 8px 14px; border-radius: 8px; font-weight: 600; z-index: 30 }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto } }
+</style>
+
+<div class="wrap">
+  <div class="top">
+    <h1>Mock <span>Game</span></h1>
+    <div class="row"><button class="btn" id="editBtn" type="button">Fix alignments</button><button class="btn" id="dataBtn" type="button">Data</button><button class="btn" id="endBtn" type="button">End &amp; report</button></div>
+  </div>
+
+  <section class="panel" id="setup" hidden>
+    <h2>Game data <span>Hudl exports, .xlsx or .csv</span></h2>
+    <div class="grid3">
+      <label class="drop" id="dOurs" for="fOurs"><b>Our offense</b><span id="nOurs">Self-scout export. Builds the call sheet and every result.</span><input type="file" id="fOurs" accept=".xlsx,.csv" multiple hidden></label>
+      <label class="drop" id="dThem" for="fThem"><b>Their games</b><span id="nThem">Their defense tagged (front, shell, blitz). Full games also give their offense's drives.</span><input type="file" id="fThem" accept=".xlsx,.csv" multiple hidden></label>
+    </div>
+    <div class="row" style="margin-top:10px"><label class="f">Opponent<input id="oppName" value="Liberty" style="font:inherit;background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:6px 8px"></label><label class="f">Game length<select id="len"><option value="4">Full game</option><option value="2">One half</option></select></label><button class="btn pri" id="startBtn" type="button">Start new game</button></div>
+    <div id="chk"></div>
+  </section>
+
+  <section class="panel" id="editor" hidden>
+    <h2>Fix alignments <span>drag any player, then save. Saved spots are used every time that look comes up.</span></h2>
+    <div class="chips" id="edMode"><button class="chip" type="button" data-m="def" aria-pressed="true">Their defense</button><button class="chip" type="button" data-m="off" aria-pressed="false">Our formations</button></div>
+    <div class="row" id="edSel" style="margin-bottom:8px"></div>
+    <div class="fieldbox"><canvas id="ed" width="1280" height="760" aria-label="Top-down field for dragging players into place"></canvas></div>
+    <div class="row" style="margin-top:8px"><button class="btn pri" id="edSave" type="button">Save</button><button class="btn" id="edReset" type="button">Reset to standard</button><button class="btn" id="edClose" type="button">Back to the game</button><span class="note" id="edNote" style="margin:0"></span></div>
+  </section>
+
+  <div id="game">
+    <div class="board" aria-live="polite" style="margin-bottom:12px">
+      <div class="cell us"><small id="lUs">Melissa</small><b id="sUs">0</b></div>
+      <div class="cell them"><small id="lThem">Liberty</small><b id="sThem">0</b></div>
+      <div class="cell"><small id="sQ">Q1</small><b id="sClock">12:00</b></div>
+      <div class="cell dd"><small>Down</small><b id="sDD">1st &amp; 10</b></div>
+      <div class="cell"><small>Ball</small><b id="sBall">MEL 30</b></div>
+    </div>
+    <div class="fieldbox" style="margin-bottom:12px">
+      <canvas id="fld" width="1280" height="760" aria-label="View from behind our offense"></canvas>
+      <div class="tag" id="tag"></div>
+      <div class="result" id="res" hidden></div>
+    </div>
+    <div class="cols">
+      <section class="panel">
+        <h2>Pre-snap read <span id="readSub"></span></h2>
+        <div id="read"></div>
+      </section>
+      <section class="panel">
+        <div id="act"></div>
+        <h2>Call sheet <span id="callSub">our real results, this situation first</span></h2>
+        <div class="chips" id="cf"><button class="chip" type="button" data-f="all" aria-pressed="true">All</button><button class="chip" type="button" data-f="run" aria-pressed="false">Run</button><button class="chip" type="button" data-f="pass" aria-pressed="false">Pass</button></div>
+        <div class="calls" id="calls"></div>
+      </section>
+    </div>
+    <section class="panel" style="margin-top:12px"><h2>Play by play</h2><ul class="log" id="log"></ul></section>
+  </div>
+
+  <section class="panel" id="report" hidden></section>
+</div>
+<div class="snapbar" id="snapbar" hidden><span id="snapName"></span><button class="btn" id="unsel" type="button">Change</button><button class="btn pri" id="snapBtn" type="button">Snap</button></div>
+<div class="toast" id="toast" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="scoutkit.js"></script>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id) };
+  var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] }) };
+  var store = { get: function (k) { try { return JSON.parse(localStorage.getItem(k) || "null") } catch (e) { return null } }, set: function (k, v) { try { localStorage.setItem(k, JSON.stringify(v)) } catch (e) {} } };
+  function toast(t) { var e = $("toast"); e.textContent = t; e.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(function () { e.hidden = true }, 2600) }
+  var rand = Math.random, pick = function (a) { return a[Math.floor(rand() * a.length)] };
+  var titleCase = function (s) { return String(s || "").toLowerCase().replace(/\b[a-z]/g, function (c) { return c.toUpperCase() }) };
+
+  // ======================= DATA =======================
+  var D = { ours: null, them: null, opp: "Liberty", us: "Melissa" };
+  function ballOf(yl) { if (yl == null || isNaN(yl)) return null; return yl < 0 ? -yl : yl > 0 ? 100 - yl : 50 }
+  function dnb(dn, dist) { if (dn === 1) return "1st"; if (dn === 4) return "4th"; var l = dist <= 3 ? "short" : dist <= 6 ? "medium" : "long"; return (dn === 2 ? "2nd" : "3rd") + " & " + l }
+  function zone(b) { return b < 20 ? "backed up" : b >= 80 ? "red zone" : "open field" }
+  function shellOf(r) { var s = String(r.shell || "").toUpperCase(), c = String(r.cov || "").toUpperCase(); if (s === "MFO" || s === "MFC" || s === "0") return s; if (/^0|ZERO/.test(c)) return "0"; if (/^(2|4|6|QUARTER|TAMPA|SILVER|MATCH)/.test(c)) return "MFO"; if (/^(1|3|RED)/.test(c)) return "MFC"; return null }
+  var SHELLN = { MFO: "2-high", MFC: "1-high", "0": "No deep safety" };
+  function build() {
+    var ours = D.ours ? D.ours.rows : [], th = D.them ? D.them.rows : [];
+    // our calls: formation + concept
+    var C = {};
+    ours.forEach(function (r) {
+      if (r.odk && r.odk !== "O") return; if (!r.type || r.pen || r.dn === 0) return;
+      var concept = r.type === "Run" ? r.runC : r.passC; if (!r.form && !concept) return;
+      var k = titleCase([r.form, concept].filter(Boolean).join(" "));
+      (C[k] = C[k] || { name: k, form: titleCase(r.form || ""), concept: titleCase(concept || ""), plays: [] }).plays.push({ gain: r.gain == null ? 0 : r.gain, res: r.res || "", dn: r.dn, dist: r.dist, b: dnb(r.dn, r.dist), z: zone(ballOf(r.yl) || 50), sh: shellOf(r), run: r.type === "Run", td: r.td });
+    });
+    D.calls = Object.keys(C).map(function (k) { var c = C[k], n = c.plays.length, run = c.plays.filter(function (p) { return p.run }).length; c.run = run >= n / 2; c.n = n; c.avg = c.plays.reduce(function (t, p) { return t + p.gain }, 0) / n; c.eff = Math.round(100 * c.plays.filter(function (p) { return succ(p) }).length / n); c.scheme = /POWER|COUNTER|DART|TRAP/i.test(c.concept) ? "power" : "zone"; return c }).filter(function (c) { return c.n >= 4 }).sort(function (a, b) { return b.n - a.n });
+    // their defense: real snaps by situation
+    D.def = th.filter(function (r) { return r.odk === "D" && !r.pen && r.dn >= 1 }).map(function (r) { return { b: dnb(r.dn, r.dist), dn: r.dn, z: zone(ballOf(r.yl) == null ? 50 : 100 - ballOf(r.yl)), sh: shellOf(r), front: r.front ? titleCase(r.front) : null, blitz: r.blitz ? titleCase(r.blitz) : null, cov: r.cov ? titleCase(r.cov) : null } });
+    // their offense: how their drives end
+    var drv = {}; th.forEach(function (r) { if (r.odk !== "O" || r.ser == null) return; var k = r.gid + "|" + r.ser, d = drv[k] = drv[k] || { n: 0, td: false, to: false }; if (!r.pen) d.n++; if (r.td) d.td = true; if (/INTERCEPT|FUMBLE/.test(r.res || "")) d.to = true });
+    var dl = Object.keys(drv).map(function (k) { return drv[k] }).filter(function (d) { return d.n >= 1 });
+    D.theirRates = dl.length >= 12 ? { td: dl.filter(function (d) { return d.td }).length / dl.length, to: dl.filter(function (d) { return d.to && !d.td }).length / dl.length, fg: .06, plays: dl.reduce(function (t, d) { return t + d.n }, 0) / dl.length, n: dl.length, real: true } : { td: .3, to: .1, fg: .06, plays: 6, n: 0, real: false };
+    D.fronts = top(D.def.map(function (r) { return r.front }), 6);
+    D.forms = top(ours.filter(function (r) { return r.form }).map(function (r) { return titleCase(r.form) }), 12);
+  }
+  function succ(p) { var need = p.dn === 1 ? .4 : p.dn === 2 ? .5 : 1; return p.dist ? p.gain >= need * p.dist : p.gain >= 4 }
+  function top(a, n) { var c = {}; a.forEach(function (x) { if (x) c[x] = (c[x] || 0) + 1 }); return Object.keys(c).sort(function (x, y) { return c[y] - c[x] }).slice(0, n).map(function (k) { return { k: k, n: c[k] } }) }
+  // the snaps that fit this situation: narrow first, widen until there are enough
+  function defPool(b, z, dn) {
+    var tries = [[function (r) { return r.b === b && r.z === z }, b + ", " + z], [function (r) { return r.b === b }, b], [function (r) { return r.dn === dn }, ["", "1st", "2nd", "3rd", "4th"][dn] + " down"], [function () { return true }, "all downs"]];
+    for (var i = 0; i < tries.length; i++) { var p = D.def.filter(tries[i][0]); if (p.length >= 8 || i === tries.length - 1) return { rows: p, label: tries[i][1] } }
+  }
+
+  // ======================= GAME =======================
+  var G, look, call = null, anim = null, FILTER = "all";
+  var QLEN = 12 * 60;
+  function newGame() { SEL = null;
+    var halves = +$("len").value || 4;
+    G = { q: halves === 2 ? 1 : 1, qs: halves, clock: QLEN, us: 0, them: 0, ball: 30, dn: 1, dist: 10, hash: "M", poss: "us", snaps: [], drives: [], drive: null, over: false, kickoff2: false, fourth: false, wait: false };
+    startDrive("Kickoff");
+    $("log").innerHTML = ""; $("report").hidden = true; $("game").hidden = false;
+    logDiv("Q1 · " + D.us + " ball at " + spot(G.ball));
+    refresh();
+  }
+  function startDrive(how) { G.drive = { start: G.ball, how: how, plays: 0, yds: 0, q: G.q, clock: G.clock }; G.dn = 1; G.dist = Math.min(10, 100 - G.ball); G.fourth = false }
+  function endDrive(res) { var d = G.drive; d.res = res; d.end = G.ball; G.drives.push(d); G.drive = null }
+  function spot(b) { b = Math.round(b); return b === 50 ? "50" : b < 50 ? short(D.us) + " " + b : short(D.opp) + " " + (100 - b) }
+  function short(n) { return String(n || "").slice(0, 3).toUpperCase() }
+  function ord(n) { return ["", "1st", "2nd", "3rd", "4th"][n] }
+  function clk(s) { s = Math.max(0, Math.round(s)); return Math.floor(s / 60) + ":" + ("0" + s % 60).slice(-2) }
+  function qName() { return G.qs === 2 ? "H" + G.q : "Q" + G.q }
+  function board() {
+    $("lUs").textContent = D.us; $("lThem").textContent = D.opp; $("sUs").textContent = G.us; $("sThem").textContent = G.them;
+    $("sQ").textContent = G.over ? "Final" : qName(); $("sClock").textContent = clk(G.clock);
+    $("sDD").textContent = G.over ? "Final" : ord(G.dn) + " & " + (G.ball + G.dist >= 100 ? "Goal" : G.dist); $("sBall").textContent = spot(G.ball);
+  }
+  function situ() { return { b: dnb(G.dn, G.dist), z: zone(G.ball), dn: G.dn } }
+
+  function readHTML() {
+    var s = situ(), P = defPool(s.b, s.z, s.dn), R = P.rows, n = R.length;
+    $("readSub").textContent = D.opp + " · " + P.label + " · " + n + " snaps";
+    if (!n) return "<p class='note'>No defensive snaps loaded. Add their Hudl games under Data.</p>";
+    var sh = top(R.map(function (r) { return r.sh }), 3), tagged = R.filter(function (r) { return r.sh }).length;
+    var fr = top(R.map(function (r) { return r.front }), 3), fN = R.filter(function (r) { return r.front }).length;
+    var bl = R.filter(function (r) { return r.blitz }).length, bt = top(R.map(function (r) { return r.blitz }), 3);
+    var cv = top(R.map(function (r) { return r.cov }), 3), cN = R.filter(function (r) { return r.cov }).length;
+    var bar = function (lab, k, of, cls) { var p = of ? Math.round(100 * k / of) : 0; return "<div class='bar'><span>" + esc(lab) + "</span><span class='t'><i class='" + (cls || "") + "' style='width:" + p + "%'></i></span><em>" + p + "%</em></div>" };
+    return "<div class='sub'>Shell" + (tagged < n ? " · " + tagged + " tagged" : "") + "</div>" + sh.map(function (x) { return bar(SHELLN[x.k], x.n, tagged) }).join("") +
+      "<div class='sub'>Coverage</div>" + (cv.length ? cv.map(function (x) { return bar(x.k, x.n, cN) }).join("") : "<p class='note'>Not tagged.</p>") +
+      "<div class='sub'>Front</div>" + (fr.length ? fr.map(function (x) { return bar(x.k, x.n, fN) }).join("") : "<p class='note'>Not tagged.</p>") +
+      "<div class='sub'>Pressure</div>" + bar("Blitz", bl, n, "r") + (bt.length ? "<p class='note'>Top: " + bt.map(function (x) { return esc(x.k) + " (" + x.n + ")" }).join(", ") + "</p>" : "") +
+      (n < 15 ? "<p class='note'>Thin sample: " + n + " snaps.</p>" : "");
+  }
+  // situational line for a call: same down & distance first
+  // this down's numbers, pulled toward the call's overall numbers when there are only a few plays (K = 6 plays of weight)
+  function callStats(c) { var s = situ(), m = c.plays.filter(function (p) { return p.b === s.b }), K = 6, sum = function (L) { return L.reduce(function (t, p) { return t + p.gain }, 0) };
+    var allAvg = sum(c.plays) / c.plays.length, allEff = c.plays.filter(succ).length / c.plays.length, n = m.length;
+    return { n: n || c.plays.length, all: n >= 3, avg: (sum(m) + K * allAvg) / (n + K), eff: Math.round(100 * (m.filter(succ).length + K * allEff) / (n + K)), raw: n ? sum(m) / n : null } }
+  function dataPick() { var best = null; D.calls.forEach(function (c) { var st = callStats(c); if (!st.all) return; var sc = st.eff + st.avg; if (!best || sc > best.sc) best = { c: c, sc: sc, st: st } }); return best }
+  function callsHTML() {
+    var pk = dataPick(), L = D.calls.filter(function (c) { return FILTER === "all" || (FILTER === "run") === c.run }).map(function (c) { return { c: c, st: callStats(c) } });
+    L.sort(function (a, b) { return (b.st.all - a.st.all) || (b.st.eff + b.st.avg) - (a.st.eff + a.st.avg) });
+    if (!L.length) return "<p class='note'>No calls yet. Add our offense's Hudl export under Data.</p>";
+    return L.map(function (x) { var c = x.c, st = x.st, isPk = pk && pk.c === c; return "<button class='call" + (isPk ? " pick" : "") + "' type='button' data-c='" + esc(c.name) + "'><span class='k" + (st.all ? "" : " thin") + "'>" + (c.run ? "Run" : "Pass") + (isPk ? " · data's pick" : "") + (st.all ? " · " + st.n + " on this down" : " · few on this down") + (st.n < 6 && st.all ? " (thin)" : "") + "</span><b>" + esc(c.name) + "</b><span>" + c.n + " plays · " + st.avg.toFixed(1) + " yds · " + st.eff + "% success</span></button>" }).join("");
+  }
+  function refresh() {
+    board(); $("read").innerHTML = readHTML(); $("calls").innerHTML = callsHTML();
+    document.querySelectorAll("#calls .call").forEach(function (b) { b.disabled = !!(anim || G.wait || G.over || G.fourth); b.classList.toggle("sel", !!SEL && SEL.name === b.dataset.c); b.onclick = function () { var c = D.calls.filter(function (x) { return x.name === b.dataset.c })[0]; if (c) choose(c) } });
+    snapBar();
+    var act = "";
+    if (G.fourth && !G.over) { var fgd = 100 - G.ball + 17, fgp = fgProb(fgd); act = "<div class='fourth'><p><b>4th & " + G.dist + " at " + spot(G.ball) + ".</b> Go for it, punt, or kick?</p><div class='row'><button class='btn pri' type='button' data-4='go'>Go for it</button><button class='btn' type='button' data-4='punt'>Punt</button>" + (fgd <= 50 ? "<button class='btn' type='button' data-4='fg'>Field goal · " + fgd + " yds (" + Math.round(fgp * 100) + "%)</button>" : "") + "</div></div>" }
+    $("act").innerHTML = act; document.querySelectorAll("[data-4]").forEach(function (b) { b.onclick = function () { fourthDo(b.dataset["4"]) } });
+    if (!anim && !P.hold && !SEL) { if (!call && D.calls.length) call = D.calls[0]; camBall = G.ball; look = likely(); poses(); tagText(); draw() }
+  }
+  function likely() { var s = situ(), POOL = defPool(s.b, s.z, s.dn).rows, sh = top(POOL.map(function (r) { return r.sh }), 1)[0], fr = top(POOL.map(function (r) { return r.front }), 1)[0]; return { sh: sh ? sh.k : "MFO", front: fr ? fr.k : null, blitz: null, cov: null, likely: true } }
+  function tagText() { if (!look) return; $("tag").innerHTML = (look.likely ? "Their likely look: " : "They showed: ") + "<b>" + (SHELLN[look.sh] || "Shell not tagged") + "</b>" + (look.cov ? " · " + esc(look.cov) : "") + (look.front ? " · " + esc(look.front) + " front" : "") + (look.blitz ? " · <b style='color:var(--bad)'>" + esc(look.blitz) + "</b>" : "") + " · ball on " + ({ L: "left hash", R: "right hash", M: "middle" })[G.hash] }
+
+  // ---- pick a call: line it up against their likely look, wait for Snap ----
+  var SEL = null;
+  function choose(c) { if (anim || G.over || G.wait || G.fourth) return; clearTimeout(P.holdT); P.hold = false; SEL = c; call = c; camBall = G.ball; look = likely(); poses(); P.showPlan = true; tagText(); $("res").hidden = true; draw(); refresh() }
+  function snapBar() { var on = !!SEL && !anim && !G.over && !G.wait && !G.fourth; $("snapbar").hidden = !on; if (on) $("snapName").textContent = SEL.name }
+  $("snapBtn").onclick = function () { if (!SEL) return; var c = SEL; SEL = null; $("snapbar").hidden = true; snap(c) };
+  $("unsel").onclick = function () { SEL = null; P.showPlan = false; draw(); refresh(); var cs = $("calls"); if (cs) cs.scrollIntoView({ behavior: "smooth", block: "start" }) };
+  // ---- one of our snaps ----
+  function snap(c) {
+    if (anim || G.over || G.wait) return; clearTimeout(P.holdT); P.hold = false; camBall = G.ball; call = c;
+    var s = situ(), POOL = defPool(s.b, s.z, s.dn).rows, L = POOL.length ? pick(POOL) : { sh: "MFO" };
+    look = { sh: L.sh || "MFO", front: L.front, blitz: L.blitz, cov: L.cov, likely: false };
+    // the result: one of this call's real plays, leaning toward plays against the same shell and down
+    var W = c.plays.map(function (p) { return (p.sh && p.sh === look.sh ? 3 : 1) * (p.b === s.b ? 1.5 : 1) }), tot = W.reduce(function (a, b) { return a + b }, 0), r = rand() * tot, pl = c.plays[0];
+    for (var i = 0; i < W.length; i++) { r -= W[i]; if (r <= 0) { pl = c.plays[i]; break } }
+    var res = String(pl.res || "").toUpperCase(), gain = pl.gain || 0;
+    var out = { gain: gain, inc: false, int: /INTERCEPT/.test(res), fum: /FUMBLE/.test(res) && rand() < .5, sack: /SACK/.test(res) };
+    if (!c.run && !out.int && !out.sack && /INCOMPLETE/.test(res)) out.inc = true;
+    if (G.ball + out.gain > 100) out.gain = 100 - G.ball; if (G.ball + out.gain < 1) out.gain = 1 - G.ball;
+    poses(); tagText(); $("res").hidden = true; anim = true; refresh();
+    play(c, out, function (endX) { anim = null; apply(c, out, endX) });
+  }
+  function apply(c, o, endX) {
+    var before = spot(G.ball) + " · " + ord(G.dn) + "&" + G.dist, txt, cls, sit = situ();
+    G.snaps.push({ b: sit.b, z: sit.z, call: c.name, run: c.run, sh: look.sh, front: look.front, blitz: look.blitz, gain: o.inc || o.int ? 0 : o.gain, ok: false, pick: (dataPick() || {}).c ? dataPick().c.name : null, hist: callStats(c).avg, pickHist: dataPick() ? dataPick().st.avg : null });
+    var S = G.snaps[G.snaps.length - 1];
+    G.clock -= o.inc ? 8 : (c.run ? 36 : 30);
+    G.drive.plays++;
+    if (o.int || o.fum) { txt = o.int ? "Intercepted" : "Fumble · lost"; cls = "bad"; G.ball += o.int ? Math.max(0, o.gain) : o.gain; G.drive.yds += o.int ? 0 : o.gain; logSnap(before, c, o, txt, "r"); endDrive(o.int ? "Interception" : "Fumble"); show(txt, cls); return afterOurs(100 - G.ball) }
+    if (!o.inc) { G.ball += o.gain; G.drive.yds += o.gain; G.hash = endX < -6 ? "L" : endX > 6 ? "R" : "M" }
+    S.ok = succ({ gain: S.gain, dn: G.dn, dist: G.dist });
+    if (G.ball >= 100) { G.us += 7; txt = "Touchdown"; cls = "td"; logSnap(before, c, o, txt, "y"); endDrive("Touchdown"); show(txt, cls); return afterOurs(null, true) }
+    if (!o.inc && o.gain >= G.dist) { G.dn = 1; G.dist = Math.min(10, 100 - G.ball); txt = "Gain of " + o.gain + " · first down"; cls = "good" }
+    else { G.dn++; if (!o.inc) G.dist -= o.gain; txt = o.inc ? "Incomplete" : o.sack ? "Sack · loss of " + (-o.gain) : o.gain < 0 ? "Loss of " + (-o.gain) : o.gain === 0 ? "No gain" : "Gain of " + o.gain; cls = S.ok ? "good" : "bad" }
+    logSnap(before, c, o, txt, S.ok ? "g" : "r"); show(txt, cls);
+    if (G.dn > 4) { endDrive("Downs"); return afterOurs(100 - G.ball) }
+    if (G.dn === 4) G.fourth = true;
+    if (clockOut()) return;
+    refresh();
+  }
+  function fgProb(d) { return d <= 25 ? .9 : d <= 32 ? .78 : d <= 38 ? .6 : d <= 44 ? .4 : d <= 50 ? .2 : 0 }
+  function fourthDo(k) {
+    G.fourth = false;
+    if (k === "go") { refresh(); toast("Going for it. Pick the call."); return }
+    var before = spot(G.ball) + " · 4th&" + G.dist;
+    if (k === "punt") { var net = 33 + Math.round(rand() * 10), land = Math.min(80, G.ball + net); if (G.ball + net >= 100) land = 80; logLine(before, "Punt", "net " + (land - G.ball), ""); endDrive("Punt"); G.clock -= 10; return afterOurs(100 - land) }
+    var d = 100 - G.ball + 17, ok = rand() < fgProb(d); G.clock -= 6; logLine(before, "Field goal · " + d + " yds", ok ? "Good" : "No good", ok ? "y" : "r");
+    if (ok) { G.us += 3; endDrive("Field goal"); show("Field goal is good", "td"); return afterOurs(null, true) }
+    endDrive("Missed FG"); show("No good", "bad"); afterOurs(100 - Math.max(G.ball, 80));
+  }
+  // ---- their possession: real drive outcomes from their film ----
+  function afterOurs(theirStart, kick) {
+    if (clockOut(true)) return;
+    G.wait = true; refresh();
+    var start = kick ? 30 : Math.max(1, Math.min(99, theirStart)), R = D.theirRates, x = rand(), res = x < R.td ? "Touchdown" : x < R.td + R.fg ? "Field goal" : x < R.td + R.fg + R.to ? "Turnover" : "Punt";
+    var plays = Math.max(3, Math.round(R.plays + (rand() - .5) * 5)), secs = plays * 32, endBall = res === "Touchdown" ? 100 : res === "Field goal" ? 70 + Math.round(rand() * 12) : start + Math.round(rand() * 35);
+    var halfEnd = (G.qs === 4 && (G.q === 2 || G.q === 4)) || (G.qs === 2 && G.q === 2), used = secs;
+    if (secs > G.clock && halfEnd) { used = G.clock; G.clock = 0 }
+    else if (secs > G.clock) { G.clock = QLEN - (secs - G.clock); G.q++; logDiv("End of Q" + (G.q - 1)) }
+    else G.clock -= secs;
+    var pts = res === "Touchdown" ? 7 : res === "Field goal" ? 3 : 0, cut = secs > used + 1;  // only cut off at the end of a half
+    if (cut) { res = "End of quarter"; pts = 0 }
+    G.them += pts;
+    var nextBall = res === "Touchdown" || res === "Field goal" ? 30 : res === "Turnover" ? Math.max(5, Math.min(95, 100 - endBall)) : Math.max(5, Math.min(40, 100 - Math.min(97, endBall + 36)));
+    var card = "<div class='their'><b>" + esc(D.opp) + " ball at their " + start + ".</b> " + plays + " plays · " + clk(used) + " · <b>" + res + "</b>" + (pts ? " (+" + pts + ")" : "") + "<p class='note' style='margin:4px 0 8px'>" + (R.real ? "Drawn from their real drives: TD on " + Math.round(R.td * 100) + "% of " + R.n + "." : "Default rates. Add their full games to use their real drives.") + "</p><button class='btn pri' type='button' id='ourBall'>" + (cut ? "Continue" : "Our ball at " + spot(nextBall)) + "</button></div>";
+    G.theirLog = (G.theirLog || []).concat([{ start: start, plays: plays, res: res, pts: pts }]);
+    logDiv(esc(D.opp) + ": " + plays + " plays, " + res + (pts ? " (" + G.us + "–" + G.them + ")" : ""));
+    $("act").innerHTML = card; board();
+    $("ourBall").onclick = function () { G.wait = false; if (clockOut(true)) return; G.ball = nextBall; G.hash = "M"; startDrive(res === "Turnover" ? "Takeaway" : res === "Punt" ? "Punt" : "Kickoff"); logDiv("Our ball at " + spot(G.ball)); $("res").hidden = true; refresh() };
+  }
+  // quarters, halftime, final
+  function clockOut(between) {
+    if (G.clock > 0) return false;
+    var endQ = G.q;
+    if ((G.qs === 4 && G.q >= 4) || (G.qs === 2 && G.q >= 2)) { if (G.drive) endDrive("End of game"); G.over = true; refresh(); finishGame(); return true }
+    var halftime = G.qs === 4 ? G.q === 2 : G.q === 1;
+    G.q++; G.clock = QLEN; logDiv((G.qs === 4 ? "End of Q" + endQ : "Halftime") + " · " + G.us + "–" + G.them);
+    if (halftime) { if (G.drive) endDrive("End of half"); G.wait = false; if (!G.kickoff2) { G.kickoff2 = true; afterOurs(null, true); return true } }
+    return false;
+  }
+  function show(t, c) { var r = $("res"); r.textContent = t; r.className = "result " + c; r.hidden = false }
+  function logSnap(before, c, o, txt, cls) { var li = document.createElement("li"); li.innerHTML = "<span>" + esc(before) + "</span><span>" + esc(c.name) + " <span style='color:var(--muted)'>vs " + esc(SHELLN[look.sh] || "?") + (look.front ? " " + esc(look.front) : "") + (look.blitz ? " + " + esc(look.blitz) : "") + "</span></span><span class='" + cls + "'>" + (o.inc ? "Inc" : o.int ? "INT" : o.fum ? "FUM" : (o.gain > 0 ? "+" : "") + o.gain) + "</span>"; $("log").appendChild(li); li.scrollIntoView({ block: "nearest" }) }
+  function logLine(a, b, c, cls) { var li = document.createElement("li"); li.innerHTML = "<span>" + esc(a) + "</span><span>" + esc(b) + "</span><span class='" + cls + "'>" + esc(c) + "</span>"; $("log").appendChild(li) }
+  function logDiv(t) { var li = document.createElement("li"); li.className = "dv"; li.innerHTML = t; $("log").appendChild(li) }
+
+  // ======================= REPORT =======================
+  function finishGame() {
+    var S = G.snaps, n = S.length, yds = S.reduce(function (t, s) { return t + s.gain }, 0), ok = S.filter(function (s) { return s.ok }).length, runs = S.filter(function (s) { return s.run }).length;
+    var win = G.us > G.them ? "W" : G.us < G.them ? "L" : "T";
+    var group = function (key) { var m = {}; S.forEach(function (s) { var k = key(s); if (k == null) return; var g = m[k] = m[k] || { n: 0, yds: 0, ok: 0 }; g.n++; g.yds += s.gain; g.ok += s.ok ? 1 : 0 }); return Object.keys(m).map(function (k) { return { k: k, g: m[k] } }).sort(function (a, b) { return b.g.n - a.g.n }) };
+    var tab = function (title, rows, lab) { return rows.length ? "<div class='sub'>" + title + "</div><div class='tbl'><table><tr><th>" + lab + "</th><th>Plays</th><th>Yds/play</th><th>Success</th></tr>" + rows.map(function (r) { return "<tr><td>" + esc(r.k) + "</td><td>" + r.g.n + "</td><td>" + (r.g.yds / r.g.n).toFixed(1) + "</td><td>" + Math.round(100 * r.g.ok / r.g.n) + "%</td></tr>" }).join("") + "</table></div>" : "" };
+    var withPick = S.filter(function (s) { return s.pickHist != null }), mine = withPick.reduce(function (t, s) { return t + s.hist }, 0) / (withPick.length || 1), theirs = withPick.reduce(function (t, s) { return t + s.pickHist }, 0) / (withPick.length || 1), same = withPick.filter(function (s) { return s.pick === s.call }).length;
+    var h = "<h2>Final · " + esc(D.us) + " " + G.us + ", " + esc(D.opp) + " " + G.them + " <span>" + win + " · mock game against " + esc(D.opp) + "'s real tendencies</span></h2>" +
+      "<div class='kpis'><div class='kpi'><b>" + n + "</b><small>our plays</small></div><div class='kpi'><b>" + (n ? (yds / n).toFixed(1) : "–") + "</b><small>yards per play</small></div><div class='kpi'><b>" + (n ? Math.round(100 * ok / n) : 0) + "%</b><small>successful plays</small></div><div class='kpi'><b>" + (n ? Math.round(100 * runs / n) : 0) + "/" + (n ? 100 - Math.round(100 * runs / n) : 0) + "</b><small>run / pass %</small></div><div class='kpi'><b>" + G.drives.filter(function (d) { return d.res === "Touchdown" }).length + " of " + G.drives.length + "</b><small>drives ending in a TD</small></div></div>" +
+      (withPick.length ? "<p>Your calls averaged <b>" + mine.toFixed(1) + " yds</b> historically in the spots you called them. The data's top pick in those same spots averaged <b>" + theirs.toFixed(1) + "</b>. You matched the data's pick on " + same + " of " + withPick.length + " snaps.</p>" : "") +
+      "<div class='sub'>Our drives</div><div class='tbl'><table><tr><th>#</th><th>Start</th><th>Plays</th><th>Yds</th><th>Result</th></tr>" + G.drives.map(function (d, i) { return "<tr><td>" + (i + 1) + "</td><td>" + spot(d.start) + "</td><td>" + d.plays + "</td><td>" + d.yds + "</td><td>" + esc(d.res) + "</td></tr>" }).join("") + "</table></div>" +
+      tab("By their look", group(function (s) { return SHELLN[s.sh] || "Not tagged" }), "Shell") + tab("Against the blitz", group(function (s) { return s.blitz ? "Blitz" : "No blitz" }), "Pressure") +
+      tab("By down & distance", group(function (s) { return s.b }), "Situation") + tab("By call", group(function (s) { return s.call }), "Call") +
+      "<p class='note'>Results are drawn from our real plays, leaning toward plays against the same shell and down. " + esc(D.opp) + " plays to its film tendencies all game and never adjusts. Play it again for a different roll of the dice.</p><div class='row' style='margin-top:10px'><button class='btn pri' type='button' id='again'>Play again</button></div>";
+    var r = $("report"); r.innerHTML = h; r.hidden = false; r.scrollIntoView({ behavior: "smooth" });
+    $("again").onclick = function () { newGame(); window.scrollTo({ top: 0, behavior: "smooth" }) };
+  }
+
+  // ======================= FIELD MODEL =======================
+  var HASH = 8.9;
+  var ALIGN = store.get("sol-mock-align") || { def: {}, off: {} };
+  function bxOf() { return G && G.hash === "L" ? -HASH : G && G.hash === "R" ? HASH : 0 }
+  var OFF_LAB = ["LT", "LG", "C", "RG", "RT", "QB", "X", "H", "Y", "Z", "RB"], OFF_NUM = [72, 64, 55, 66, 77, 7, 1, 4, 84, 11, 22];
+  var DEF_LAB = ["DE", "DT", "NT", "DE", "M", "W", "CB", "CB", "N", "SS", "FS"], DEF_NUM = [91, 95, 99, 90, 44, 32, 21, 3, 8, 2, 5];
+  function formType(name) { var n = String(name || "").toUpperCase(); return /TRIG|TRIP|TREY|BUNCH|TEXAS/.test(n) ? "trips" : /DIP|HEAVY|TIGHT|BONE|PRO|WING|AGGIE|ACE/.test(n) ? "te" : /EMPTY/.test(n) ? "empty" : "2x2" }
+  // our formation in a standard frame: ball at x = 0
+  function stdOff(type) {
+    var o = [[-4.2, -.9], [-2.1, -.9], [0, -.9], [2.1, -.9], [4.2, -.9], [0, -5]];
+    if (type === "trips") o.push([-19, -1.2], [7.5, -1.6], [13, -1.6], [19, -1.2], [-2.2, -5.2]);
+    else if (type === "te") o.push([-19, -1.2], [-11.5, -1.6], [5.6, -1.1], [19, -1.2], [2.2, -5.2]);
+    else if (type === "empty") o.push([-19, -1.2], [-11.5, -1.6], [11.5, -1.6], [19, -1.2], [6.5, -1.6]);
+    else o.push([-19, -1.2], [-11.5, -1.6], [11.5, -1.6], [19, -1.2], [2.2, -5.2]);
+    return o.map(function (p) { return { x: p[0], y: p[1] } });
+  }
+  function offStd(form) { return (ALIGN.off[form] || stdOff(formType(form))).map(function (p) { return { x: p.x, y: p.y } }) }
+  // place a standard-frame formation on the field: wide receivers slide in from the boundary when the ball is on a hash
+  function placeOff(std, bx) { return std.map(function (p, i) { var x = bx + p.x; if (Math.abs(x) > 24) x = Math.sign(x) * 24; return { x: x, y: p.y, lab: OFF_LAB[i], num: OFF_NUM[i] } }) }
+  function strengthOf(o, bx) { var rec = o.slice(6, 11).filter(function (p, i) { return i < 4 || p.y > -2.5 }), l = rec.filter(function (r) { return r.x < bx - 3 }).length, r = rec.filter(function (r) { return r.x > bx + 3 }).length; return r > l ? 1 : l > r ? -1 : (bx < 0 ? 1 : bx > 0 ? -1 : 1) }
+  function ftypeOf(o, bx) { var s = strengthOf(o, bx), rec = o.slice(6, 10), strong = rec.filter(function (r) { return (r.x - bx) * s > 3 }).length, te = rec.some(function (r) { return Math.abs(r.x - bx) < 7 && r.y > -1.4 }); return strong >= 3 ? "trips" : te ? "te" : "2x2" }
+  function defKey(front, sh, ft) { return (front || "*") + "|" + (sh || "MFO") + "|" + ft }
+  // their defense in the standard frame: ball at 0, our strength to the right
+  function stdDef(front, sh, ft) {
+    var F = String(front || "").toUpperCase(), odd = /HEAD|ODD|MINT|TIGHT|3|BEAR/.test(F), under = /UNDER/.test(F);
+    var r = ft === "trips" ? [[-19], [7.5], [13], [19]] : ft === "te" ? [[-19], [-11.5], [5.6], [19]] : [[-19], [-11.5], [11.5], [19]];
+    var w1 = r[0][0], w2 = r[1][0] < 0 ? r[1][0] : null, s1 = r[3][0], s2 = ft === "trips" ? r[2][0] : r[2][0], s3 = ft === "trips" ? r[1][0] : null, te = ft === "te";
+    var d;
+    if (odd) d = [[te ? 7 : 5.8, 1.4], [3, 1.1], [0, 1.1], [-3, 1.1], [1.6, 4.6], [-5.8, 1.6]];
+    else if (under) d = [[te ? 7 : 4.8, 1.2], [.8, 1.1], [-2.8, 1.1], [-4.8, 1.2], [1.4, 4.6], [-3.3, 4.6]];
+    else d = [[te ? 6.6 : 4.8, 1.2], [2.8, 1.1], [-.8, 1.1], [-4.8, 1.2], [1.4, 4.6], [-3.3, 4.6]];
+    var off = sh === "0" ? 1.6 : 7;
+    d.push([w1 + 1, off], [s1 - 1, off]);
+    d.push(sh === "0" ? [s2 - .6, 2.4] : [(s2 + 4.5) / 2, 4.8]);
+    if (sh === "MFO") d.push([HASH, 11], [-HASH, 11.5]);
+    else if (sh === "MFC") d.push(w2 != null ? [(w2 - 4.5) / 2, 6] : [-6.5, 6], [0, 13]);
+    else d.push(s3 != null ? [s3 - .5, 3.2] : te ? [6.5, 5] : [2, 5.5], w2 != null ? [w2 + .5, 2.6] : [-2, 6]);
+    return d.map(function (p) { return { x: p[0], y: p[1] } });
+  }
+  function defStd(front, sh, ft) { return (ALIGN.def[defKey(front, sh, ft)] || ALIGN.def[defKey(null, sh, ft)] || stdDef(front, sh, ft)).map(function (p) { return { x: p.x, y: p.y } }) }
+  function placeDef(std, s, bx) { return std.map(function (p, i) { var x = bx + s * p.x; if (Math.abs(x) > 25) x = Math.sign(x) * 25; return { x: x, y: p.y, lab: DEF_LAB[i], num: DEF_NUM[i], blitz: false } }) }
+  function blitzers(d, name, s, bx) {
+    var n = String(name || "").toUpperCase(), who = /DBL|EDGE|BULLET/.test(n) ? [5, 8] : /BANDIT|STINGER|SS|SAF|CAT/.test(n) ? [9] : /W |WILL|WRAP/.test(n) ? [5, 4] : /MAX|ALL/.test(n) ? [4, 5, 8] : [4];
+    who.forEach(function (i) { var p = d[i]; p.y = Math.min(p.y, 2.6); p.blitz = { x: i === 8 ? bx + s * 6.5 : i === 5 ? bx - s * 6 : i === 9 ? bx + s * 5 : bx + s * .9 } });
+  }
+  var P = { o: [], d: [], ball: null, trail: [], tackle: null, tgt: 10, showPlan: false };
+  function poses() {
+    var bx = bxOf(); if (!call) return;
+    P.o = placeOff(offStd(call.form), bx); var s = strengthOf(P.o, bx), ft = ftypeOf(P.o, bx);
+    P.d = placeDef(defStd(look && look.front, look ? look.sh : "MFO", ft), s, bx); P.s = s;
+    if (look && look.blitz) blitzers(P.d, look.blitz, s, bx);
+    CAMX = bx * (NARROW ? .45 : .35); P.ball = { x: bx, y: -.2, z: 0 }; P.carry = -1; P.trail = []; P.tackle = null; P.showPlan = false;
+  }
+  function route(kind, S) { return { go: [[0, 0], [0, 4], [S * .4, 22]], seam: [[0, 0], [0, 6], [S * -.6, 20]], hitch: [[0, 0], [0, 6], [S * -.6, 5]], out: [[0, 0], [0, 7], [S * 5, 7]], dig: [[0, 0], [0, 11], [-S * 7, 11]], choice: [[0, 0], [0, 6], [-S * 3.5, 7]], flat: [[0, 0], [S * 1.5, 2], [S * 6, 3.2]], check: [[0, 0], [S * 2, .5], [S * 4, 3]], slant: [[0, 0], [0, 2], [-S * 5, 7]] }[kind] }
+  function routesFor(c) { var k = String(c.concept).toUpperCase(); if (/CHOICE|OPTION/.test(k)) return ["go", "choice", "flat", "hitch"]; if (/SLANT|QUICK/.test(k)) return ["slant", "slant", "flat", "slant"]; if (/DIG|CROSS|MESH|DRIVE/.test(k)) return ["go", "dig", "flat", "dig"]; if (/OUT|SPEED|SMASH/.test(k)) return ["hitch", "out", "out", "hitch"]; if (/HITCH|STICK|CURL/.test(k)) return ["hitch", "flat", "hitch", "hitch"]; return ["go", "seam", "seam", "go"] }
+
+  // ======================= DRAWING: high end-zone camera =======================
+  var cv = $("fld"), cx = cv.getContext("2d"), W, H, CAMY = -21, F, HOR, CAMH, CAMX = 0, NARROW = false, camBall = 30;
+  function size() { NARROW = cv.clientWidth < 620; W = cv.width = 1280; H = cv.height = NARROW ? 1100 : 760; F = W * (NARROW ? .62 : .44); HOR = H * .05; CAMH = (H * (NARROW ? .66 : .68) - HOR) * 21 / F }
+  function pr(x, y, z) { var dz = Math.max(.6, y - CAMY); return { x: W / 2 + (x - CAMX) * F / dz, y: HOR + ((CAMH - (z || 0)) * F) / dz, s: F / dz } }
+  function quad(c, a, b, cc, d, fill) { c.beginPath(); c.moveTo(a.x, a.y); c.lineTo(b.x, b.y); c.lineTo(cc.x, cc.y); c.lineTo(d.x, d.y); c.closePath(); c.fillStyle = fill; c.fill() }
+  function seg(c, a, b, col, w, dash) { c.strokeStyle = col; c.lineWidth = w; c.setLineDash(dash || []); c.beginPath(); c.moveTo(a.x, a.y); c.lineTo(b.x, b.y); c.stroke(); c.setLineDash([]) }
+  function poly(c, q, col, wid, dash, arrow) { if (q.length < 2) return; c.strokeStyle = col; c.lineWidth = wid; c.setLineDash(dash || []); c.lineJoin = "round"; c.beginPath(); c.moveTo(q[0].x, q[0].y); q.slice(1).forEach(function (p) { c.lineTo(p.x, p.y) }); c.stroke(); c.setLineDash([]);
+    if (arrow) { var a = q[q.length - 2], b = q[q.length - 1], ang = Math.atan2(b.y - a.y, b.x - a.x), L = Math.max(8, wid * 3.5); c.fillStyle = col; c.beginPath(); c.moveTo(b.x, b.y); c.lineTo(b.x - L * Math.cos(ang - .45), b.y - L * Math.sin(ang - .45)); c.lineTo(b.x - L * Math.cos(ang + .45), b.y - L * Math.sin(ang + .45)); c.closePath(); c.fill() } }
+  function path(pts, los, col, wid, dash, arrow) { poly(cx, pts.map(function (p) { return pr(p[0], p[1] + los) }), col, wid, dash, arrow) }
+  function draw() {
+    if (!G) return;
+    var g = cx.createLinearGradient(0, 0, 0, HOR + 30); g.addColorStop(0, "#04080d"); g.addColorStop(1, "#0f1a26"); cx.fillStyle = g; cx.fillRect(0, 0, W, H);
+    var near = -19, far = 64, off = camBall;
+    quad(cx, pr(-40, near), pr(40, near), pr(40, far), pr(-40, far), "#173f25");
+    for (var a = Math.floor((off + near) / 5) * 5; a < off + far; a += 5) { var y0 = a - off, y1 = y0 + 5; if (y1 < near || a < -10 || a >= 110) continue; quad(cx, pr(-26.7, Math.max(y0, near)), pr(26.7, Math.max(y0, near)), pr(26.7, y1), pr(-26.7, y1), (a / 5) % 2 ? "#215f37" : "#1d5631") }
+    if (off + far > 100) quad(cx, pr(-26.7, 100 - off), pr(26.7, 100 - off), pr(26.7, Math.min(110 - off, far)), pr(-26.7, Math.min(110 - off, far)), "#2c4e8f");
+    if (off + near < 0) quad(cx, pr(-26.7, Math.max(-10 - off, near)), pr(26.7, Math.max(-10 - off, near)), pr(26.7, -off), pr(-26.7, -off), "#7a1a2a");
+    var chalk = "rgba(232,239,230,.85)";
+    for (var l = Math.ceil((off + near) / 5) * 5; l <= Math.min(110, off + far); l += 5) { if (l < -10 || (l > 100 && l < 110) || (l < 0 && l > -10)) continue; var yy = l - off; seg(cx, pr(-26.7, yy), pr(26.7, yy), chalk, Math.max(1, pr(0, yy).s * .12));
+      if (l % 10 === 0 && l > 0 && l < 100) { var num = l <= 50 ? l : 100 - l; [-17.7, 17.7].forEach(function (x) { var q = pr(x, yy - 1.2); cx.fillStyle = "rgba(232,239,230,.7)"; cx.font = "800 " + Math.round(q.s * 2) + "px Saira Condensed, sans-serif"; cx.textAlign = "center"; cx.fillText(String(num), q.x, q.y) }) } }
+    for (var h = Math.max(1, Math.ceil(off + near)); h < Math.min(off + far, 100); h++) { [-HASH, HASH, -26.2, 26.2].forEach(function (x) { seg(cx, pr(x - .4, h - off), pr(x + .4, h - off), chalk, Math.max(1, pr(x, h - off).s * .08)) }) }
+    [-26.7, 26.7].forEach(function (x) { seg(cx, pr(x, near), pr(x, far), chalk, 3) });
+    var los = G.ball - off, ltg = Math.min(100, G.ball + G.dist) - off;
+    seg(cx, pr(-26.7, los), pr(26.7, los), "rgba(80,160,255,.9)", Math.max(2, pr(0, los).s * .2));
+    if (!G.over && G.ball + G.dist < 100) seg(cx, pr(-26.7, ltg), pr(26.7, ltg), "rgba(242,193,78,.95)", Math.max(2, pr(0, ltg).s * .2));
+    if (P.showPlan) plan(los);
+    P.d.forEach(function (p) { if (p.blitz) path([[p.x, p.y], [p.blitz.x, .3]], los, "rgba(239,90,90,.95)", pr(p.x, p.y + los).s * .16, [10, 7], true) });
+    if (P.trail.length > 1) path(P.trail, los, "rgba(242,193,78,.9)", pr(0, los).s * .14, [], false);
+    var all = P.d.map(function (p) { return { p: p, t: 0 } }).concat(P.o.map(function (p, i) { return { p: p, t: 1, i: i } }));
+    all.sort(function (a, b) { return b.p.y - a.p.y }); all.forEach(function (o) { man(o.p, los, o.t, o.t && o.i === P.carry) });
+    if (P.tackle) { var tk = pr(P.tackle.x, P.tackle.y + los), r = tk.s * .5; seg(cx, { x: tk.x - r, y: tk.y - r * .4 }, { x: tk.x + r, y: tk.y + r * .4 }, "#f2c14e", 3); seg(cx, { x: tk.x + r, y: tk.y - r * .4 }, { x: tk.x - r, y: tk.y + r * .4 }, "#f2c14e", 3) }
+    if (P.ball) { var b = pr(P.ball.x, P.ball.y + los, P.ball.z); cx.fillStyle = "#8a4b22"; cx.beginPath(); cx.ellipse(b.x, b.y, b.s * .34, b.s * .21, 0, 0, Math.PI * 2); cx.fill(); cx.strokeStyle = "#f3e6d2"; cx.lineWidth = 1; cx.stroke() }
+  }
+  function plan(los) {
+    var o = P.o, w = pr(0, los).s * .12, bx = o[2].x;
+    if (call.run) {
+      var play = call.scheme === "power" ? 1 : -1;
+      o.slice(0, 5).forEach(function (p, i) { var pull = call.scheme === "power" && i === 1; path(pull ? [[p.x, p.y], [p.x, p.y - 1.2], [bx + play * 5.5, -1], [bx + play * 6.5, 1.5]] : [[p.x, p.y], [p.x + play * 1.2 * (call.scheme === "power" ? -1 : 1), p.y + 1.8]], los, "rgba(255,255,255,.75)", w, pull ? [6, 5] : [], true) });
+      var rb = o[10]; path([[rb.x, rb.y], [bx + play * (call.scheme === "power" ? 3.2 : 1.5), -1], [bx + play * (call.scheme === "power" ? 4 : 2), 4]], los, "rgba(242,193,78,.95)", w * 1.3, [], true);
+    } else {
+      var R = routesFor(call); o.slice(6, 10).forEach(function (p, k) { var S = p.x < bx ? -1 : 1, r = route(R[k], S); path(r.map(function (q) { return [p.x + q[0], p.y + q[1]] }), los, 6 + k === P.tgt ? "rgba(242,193,78,.95)" : "rgba(255,255,255,.72)", w, [], true) });
+      var rb2 = o[10]; path(route("check", rb2.x < bx ? -1 : 1).map(function (q) { return [rb2.x + q[0], rb2.y + q[1]] }), los, P.tgt === 10 ? "rgba(242,193,78,.95)" : "rgba(255,255,255,.5)", w, [5, 5], true);
+    }
+  }
+  function figure(c, f, top, p, off, hot) {
+    var s = f.s; var c1 = off ? "#d4213d" : "#2e5aa8", c2 = off ? "#7a0f22" : "#16305e";
+    c.fillStyle = "rgba(0,0,0,.35)"; c.beginPath(); c.ellipse(f.x, f.y, s * .55, s * .2, 0, 0, Math.PI * 2); c.fill();
+    if (p.blitz) { c.strokeStyle = "rgba(239,90,90,.95)"; c.lineWidth = Math.max(2, s * .12); c.beginPath(); c.ellipse(f.x, f.y, s * .85, s * .32, 0, 0, Math.PI * 2); c.stroke() }
+    var bw = s * .78, bh = f.y - top.y;
+    c.fillStyle = c2; c.fillRect(f.x - bw * .36, f.y - bh * .45, bw * .3, bh * .45); c.fillRect(f.x + bw * .06, f.y - bh * .45, bw * .3, bh * .45);
+    c.fillStyle = c1; rr(c, f.x - bw / 2, f.y - bh * .92, bw, bh * .55, s * .16);
+    c.fillStyle = off ? "#f3f3f3" : "#c9d4e6"; c.beginPath(); c.arc(f.x, f.y - bh * .98, s * .27, 0, Math.PI * 2); c.fill();
+    if (s > 10) { c.fillStyle = "#fff"; c.font = "800 " + Math.round(bh * .3) + "px Saira Condensed, sans-serif"; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText(String(p.num), f.x, f.y - bh * .66); c.textBaseline = "alphabetic" }
+    if (hot) { c.strokeStyle = "#f2c14e"; c.lineWidth = Math.max(2, s * .1); c.beginPath(); c.ellipse(f.x, f.y, s * .8, s * .3, 0, 0, Math.PI * 2); c.stroke() }
+  }
+  function label(c, q, t, off, s) { c.font = "700 " + Math.max(11, Math.round(s)) + "px Barlow, sans-serif"; c.textAlign = "center"; c.lineWidth = 3; c.strokeStyle = "rgba(6,10,14,.85)"; c.strokeText(t, q.x, q.y); c.fillStyle = off ? "#ffd3da" : "#cfe0ff"; c.fillText(t, q.x, q.y) }
+  function man(p, los, off, hot) { var f = pr(p.x, p.y + los); if (f.y > H + 80 || f.s > 400) return; figure(cx, f, pr(p.x, p.y + los, 1.9), p, off, hot); label(cx, pr(p.x, p.y + los, 2.75), p.lab, off, f.s * .55) }
+  function rr(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); c.fill() }
+
+  // ======================= ANIMATION =======================
+  var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function along(pts, t) { var L = [], tot = 0, i; for (i = 1; i < pts.length; i++) { var d = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); L.push(d); tot += d } var want = t * tot; for (i = 1; i < pts.length; i++) { if (want <= L[i - 1] || i === pts.length - 1) { var k = L[i - 1] ? Math.min(1, want / L[i - 1]) : 1; return [pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * k, pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * k] } want -= L[i - 1] } return pts[pts.length - 1] }
+  function play(c, out, done) {
+    var o = P.o, bx = o[2].x, gain = out.gain, inc = out.inc || out.int, sack = out.sack, tgt = 10;
+    if (!c.run) { var R = routesFor(c), best = 1e9; o.slice(6, 10).forEach(function (p, k) { var pts = route(R[k], p.x < bx ? -1 : 1), dep = pts[pts.length - 1][1] * .7, sc = Math.abs(dep - Math.max(2, Math.min(gain, 16))); if (sc < best) { best = sc; tgt = 6 + k } }); if (gain > 0 && gain < 4 && rand() < .4) tgt = 10 }
+    P.tgt = tgt; P.showPlan = true;
+    var start = { o: o.map(function (p) { return { x: p.x, y: p.y } }), d: P.d.map(function (p) { return { x: p.x, y: p.y } }) };
+    var RR = c.run ? null : routesFor(c);
+    var paths = o.map(function (p, i) {
+      if (i < 5) return null; if (i === 5) return c.run ? [[p.x, p.y], [p.x + (c.scheme === "power" ? -1 : 1), p.y - .5]] : [[p.x, p.y], [p.x, p.y - 2.2]];
+      if (c.run) { if (i === 10) { var play = c.scheme === "power" ? 1 : -1, hole = bx + play * (c.scheme === "power" ? 3.6 : 1.8), endX = hole + play * Math.min(6, Math.abs(gain) * .25); return [[p.x, p.y], [hole, -1], [hole, Math.min(1.5, gain)], [endX, gain]] } return [[p.x, p.y], [p.x, p.y + 3], [p.x * .97 + bx * .03, p.y + 9]] }
+      var r = i === 10 ? route("check", p.x < bx ? -1 : 1) : route(RR[i - 6], p.x < bx ? -1 : 1), pts = r.map(function (q) { return [p.x + q[0], p.y + q[1]] });
+      if (i === tgt && !inc && !sack) { var cat = pts[pts.length - 1]; if (gain > cat[1]) pts.push([cat[0] + (cat[0] - bx) * .05, gain]); else pts[pts.length - 1] = [cat[0], Math.max(Math.min(cat[1], gain), -1)] }
+      return pts;
+    });
+    var T0 = performance.now(), PRE = reduce ? 0 : 1000, DUR = reduce ? 1 : 2600;
+    draw();
+    function step(now) {
+      var t = Math.min(1, Math.max(0, (now - T0 - PRE) / DUR)), e = t * t * (3 - 2 * t);
+      o.forEach(function (p, i) { var s0 = start.o[i]; if (i < 5) { p.y = s0.y + e * (c.run ? 1.6 : -1.3); p.x = s0.x + e * (c.run ? (c.scheme === "power" ? -.5 : .6) : 0); if (c.run && c.scheme === "power" && i === 1) { var q = along([[s0.x, s0.y], [s0.x, s0.y - 1.2], [bx + 5.5, -1], [bx + 6.5, 1.5]], e); p.x = q[0]; p.y = q[1] } } else { var q2 = along(paths[i], i === tgt && !c.run ? Math.min(1, e * 1.05) : e); p.x = q2[0]; p.y = q2[1] } });
+      var car = o[c.run ? 10 : tgt];
+      P.d.forEach(function (p, i) { var s0 = start.d[i], k = i < 4 ? .3 : .6, aim = sack ? o[5] : car, kk = sack && (i < 4 || p.blitz) ? 1 : k; if (p.blitz && !sack) kk = .45; if (out.int && i === 9) kk = 1; p.x = s0.x + (aim.x - s0.x) * e * kk; p.y = s0.y + (aim.y - s0.y) * e * kk });
+      if (c.run) { P.carry = t > .08 ? 10 : -1; var cr = o[t > .08 ? 10 : 5]; P.ball = { x: cr.x, y: cr.y, z: 1.1 }; if (t > .08) P.trail.push([cr.x, cr.y]) }
+      else if (sack) { P.carry = 5; P.ball = { x: o[5].x, y: o[5].y, z: 1.2 } }
+      else { var qb = o[5], k2 = Math.min(1, Math.max(0, (t - .3) / .35)); if (t < .3) P.ball = { x: qb.x, y: qb.y, z: 1.6 }; else if (k2 < 1 || inc) { var rv = o[tgt], ex = inc ? rv.x + 1.5 : rv.x, ey = inc ? rv.y + 3 : rv.y; P.ball = { x: qb.x + (ex - qb.x) * k2, y: qb.y + (ey - qb.y) * k2, z: Math.max(0, 1.6 + Math.sin(k2 * Math.PI) * (2.5 + Math.abs(ey) * .22) - (inc && k2 >= 1 ? 1.6 : 0)) } } else { P.carry = tgt; P.ball = { x: o[tgt].x, y: o[tgt].y, z: 1.1 }; P.trail.push([o[tgt].x, o[tgt].y]) } }
+      draw();
+      if (t < 1) { requestAnimationFrame(step); return }
+      if (!inc) P.tackle = { x: P.ball.x, y: P.ball.y }; draw(); P.hold = true; var ex2 = P.ball.x;
+      // hold the finished play on screen, then line up the next snap
+      setTimeout(function () { done(ex2); clearTimeout(P.holdT); P.holdT = setTimeout(function () { if (anim) return; P.hold = false; camBall = G.ball; refresh() }, 1700) }, 50);
+    }
+    requestAnimationFrame(step);
+  }
+
+  // ======================= ALIGNMENT EDITOR (top-down) =======================
+  var ED = { mode: "def", front: null, sh: "MFO", ft: "2x2", form: null, pts: [], ref: [], drag: -1 };
+  var ec = $("ed"), ex = ec.getContext("2d");
+  var EW = 1280, EH = 760, X0 = EW / 2, YS = 22, YL = EH * .62; // yards to pixels
+  function eSize() { var narrow = ec.clientWidth < 620; EH = ec.height = narrow ? 1000 : 760; YS = narrow ? 24 : 22; YL = EH * (narrow ? .6 : .62); X0 = EW / 2 }
+  function e2s(p) { return { x: X0 + p.x * YS, y: YL - p.y * YS } }
+  function s2e(x, y) { return { x: (x - X0) / YS, y: (YL - y) / YS } }
+  function edOpen() {
+    $("editor").hidden = false; $("game").hidden = true; $("report").hidden = true; $("setup").hidden = true;
+    ED.front = ED.front || (D.fronts[0] && D.fronts[0].k) || null; ED.form = ED.form || (call && call.form) || (D.forms[0] && D.forms[0].k) || "Gold";
+    edSel(); eSize(); edLoad(); edDraw(); $("editor").scrollIntoView({ behavior: "smooth" });
+  }
+  function edSel() {
+    document.querySelectorAll("#edMode .chip").forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.m === ED.mode) });
+    var sel = function (id, lab, opts, cur) { return "<label class='f'>" + lab + "<select id='" + id + "'>" + opts.map(function (o) { return "<option value='" + esc(o[0]) + "'" + (o[0] === cur ? " selected" : "") + ">" + esc(o[1]) + "</option>" }).join("") + "</select></label>" };
+    var h = ED.mode === "def" ? sel("eFront", "Front", D.fronts.map(function (f) { return [f.k, f.k + " (" + f.n + ")"] }).concat([["", "Any front"]]), ED.front || "") + sel("eSh", "Shell", [["MFO", "2-high"], ["MFC", "1-high"], ["0", "No deep safety"]], ED.sh) + sel("eFt", "Against", [["2x2", "2x2"], ["trips", "Trips"], ["te", "Tight end"]], ED.ft)
+      : sel("eForm", "Our formation", D.forms.map(function (f) { return [f.k, f.k + " (" + f.n + ")"] }), ED.form);
+    $("edSel").innerHTML = h;
+    ["eFront", "eSh", "eFt", "eForm"].forEach(function (id) { var e = $(id); if (e) e.onchange = function () { if (id === "eFront") ED.front = e.value || null; if (id === "eSh") ED.sh = e.value; if (id === "eFt") ED.ft = e.value; if (id === "eForm") ED.form = e.value; edLoad(); edDraw() } });
+  }
+  function edLoad() {
+    if (ED.mode === "def") { ED.pts = defStd(ED.front, ED.sh, ED.ft); ED.ref = stdOff(ED.ft); var k = defKey(ED.front, ED.sh, ED.ft); $("edNote").textContent = ALIGN.def[k] ? "Using your saved spots for this look." : "Standard alignment. Drag to match " + D.opp + "." }
+    else { ED.pts = offStd(ED.form); ED.ref = []; $("edNote").textContent = ALIGN.off[ED.form] ? "Using your saved spots for " + ED.form + "." : "Standard " + formType(ED.form) + " alignment. Drag to match how we line up." }
+  }
+  function edDraw() {
+    ex.fillStyle = "#1d5631"; ex.fillRect(0, 0, EW, EH);
+    for (var y = -15; y <= 25; y++) { var a = e2s({ x: -26.7, y: y }), b = e2s({ x: 26.7, y: y }); if (y % 5 === 0) seg(ex, a, b, "rgba(232,239,230,.6)", 2); [-HASH, HASH].forEach(function (hx) { seg(ex, e2s({ x: hx - .4, y: y }), e2s({ x: hx + .4, y: y }), "rgba(232,239,230,.6)", 2) }) }
+    [-26.7, 26.7].forEach(function (x) { seg(ex, e2s({ x: x, y: -15 }), e2s({ x: x, y: 25 }), "rgba(232,239,230,.9)", 3) });
+    seg(ex, e2s({ x: -26.7, y: 0 }), e2s({ x: 26.7, y: 0 }), "rgba(80,160,255,.9)", 3);
+    ex.fillStyle = "rgba(232,239,230,.7)"; ex.font = "600 18px Barlow, sans-serif"; ex.textAlign = "left";
+    for (var d = 5; d <= 20; d += 5) { var q = e2s({ x: -26, y: d }); ex.fillText(d + " yds", q.x + 6, q.y - 4) }
+    if (ED.mode === "def") { ex.textAlign = "right"; ex.fillText("our strength →", EW - 16, 26) }
+    var dot = function (p, lab, num, col, ghost) { var q = e2s(p), r = YS * .62; ex.globalAlpha = ghost ? .45 : 1; ex.fillStyle = col; ex.beginPath(); ex.arc(q.x, q.y, r, 0, Math.PI * 2); ex.fill(); ex.fillStyle = "#fff"; ex.font = "800 " + Math.round(r * .95) + "px Saira Condensed, sans-serif"; ex.textAlign = "center"; ex.textBaseline = "middle"; ex.fillText(lab, q.x, q.y + 1); ex.textBaseline = "alphabetic"; ex.globalAlpha = 1 };
+    ED.ref.forEach(function (p, i) { dot(p, OFF_LAB[i], 0, "#d4213d", true) });
+    ED.pts.forEach(function (p, i) { dot(p, ED.mode === "def" ? DEF_LAB[i] : OFF_LAB[i], 0, ED.mode === "def" ? "#2e5aa8" : "#d4213d", false) });
+    var bq = e2s({ x: 0, y: -.2 }); ex.fillStyle = "#8a4b22"; ex.beginPath(); ex.ellipse(bq.x, bq.y, 9, 6, 0, 0, Math.PI * 2); ex.fill();
+  }
+  function evPt(e) { var r = ec.getBoundingClientRect(); return { x: (e.clientX - r.left) * EW / r.width, y: (e.clientY - r.top) * EH / r.height } }
+  ec.addEventListener("pointerdown", function (e) { var p = evPt(e), best = -1, bd = 1e9; ED.pts.forEach(function (q, i) { var s = e2s(q), d = Math.hypot(s.x - p.x, s.y - p.y); if (d < bd) { bd = d; best = i } }); if (bd < YS * 1.4) { ED.drag = best; ec.setPointerCapture(e.pointerId); e.preventDefault() } });
+  ec.addEventListener("pointermove", function (e) { if (ED.drag < 0) return; var p = evPt(e), q = s2e(p.x, p.y); q.x = Math.max(-26.5, Math.min(26.5, Math.round(q.x * 2) / 2)); q.y = Math.max(-12, Math.min(22, Math.round(q.y * 2) / 2)); ED.pts[ED.drag] = q; edDraw() });
+  ec.addEventListener("pointerup", function () { ED.drag = -1 });
+  ec.addEventListener("pointercancel", function () { ED.drag = -1 });
+  document.querySelectorAll("#edMode .chip").forEach(function (b) { b.onclick = function () { ED.mode = b.dataset.m; edSel(); edLoad(); edDraw() } });
+  $("edSave").onclick = function () { if (ED.mode === "def") ALIGN.def[defKey(ED.front, ED.sh, ED.ft)] = ED.pts; else ALIGN.off[ED.form] = ED.pts; store.set("sol-mock-align", ALIGN); edLoad(); edDraw(); toast("Saved. The mock game uses these spots now.") };
+  $("edReset").onclick = function () { if (ED.mode === "def") delete ALIGN.def[defKey(ED.front, ED.sh, ED.ft)]; else delete ALIGN.off[ED.form]; store.set("sol-mock-align", ALIGN); edLoad(); edDraw(); toast("Back to the standard alignment.") };
+  $("edClose").onclick = function () { $("editor").hidden = true; $("game").hidden = false; if (G && G.over) $("report").hidden = false; poses(); draw() };
+  $("editBtn").onclick = edOpen;
+
+  // ======================= FILES =======================
+  var RAW = { ours: [], them: [] };
+  function parseFile(f) {
+    return f.arrayBuffer().then(function (buf) { return /\.csv$/i.test(f.name) ? csv(new TextDecoder().decode(buf)) : xlsx(buf) }).then(function (a) { var hi = 0; for (var i = 0; i < Math.min(10, a.length); i++) { if ((a[i] || []).some(function (h) { return /ODK|^DN$|RESULT|PLAY ?#/i.test(String(h || "")) })) { hi = i; break } } return { name: f.name, header: a[hi] || [], rows: a.slice(hi + 1).filter(function (r) { return r && r.some(function (v) { return v != null && v !== "" }) }) } });
+  }
+  function csv(t) { var rows = [], row = [], cur = "", q = false; for (var i = 0; i < t.length; i++) { var ch = t[i]; if (q) { if (ch === '"' && t[i + 1] === '"') { cur += '"'; i++ } else if (ch === '"') q = false; else cur += ch } else if (ch === '"') q = true; else if (ch === ",") { row.push(cur); cur = "" } else if (ch === "\n" || ch === "\r") { if (ch === "\r" && t[i + 1] === "\n") i++; row.push(cur); rows.push(row); row = []; cur = "" } else cur += ch } if (cur || row.length) { row.push(cur); rows.push(row) } return rows.map(function (r) { return r.map(function (v) { return v !== "" && !isNaN(v) ? +v : v }) }) }
+  function xlsx(buf) { if (!window.XLSX) return Promise.reject(new Error("xlsx")); var wb = XLSX.read(buf, { type: "array" }); return Promise.resolve(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: "" })) }
+  function loadData() {
+    D.ours = RAW.ours.length ? SK.load(RAW.ours, {}) : null; D.them = RAW.them.length ? SK.load(RAW.them, {}) : null; build();
+    var c1 = D.ours ? SK.check(D.ours, { want: "O" }) : null, c2 = D.them ? SK.check(D.them, { want: "D" }) : null;
+    $("chk").innerHTML = (c1 && c1.lvl !== "ok" ? SK.checkHTML(c1, "Our offense") : "") + (c2 && c2.lvl !== "ok" ? SK.checkHTML(c2, "Their games") : "");
+    $("nOurs").textContent = D.ours ? RAW.ours.map(function (f) { return f.name }).join(", ") + " · " + D.calls.length + " calls with 4+ plays" : "Self-scout export. Builds the call sheet and every result.";
+    $("nThem").textContent = D.them ? RAW.them.map(function (f) { return f.name }).join(", ") + " · " + D.def.length + " defensive snaps" + (D.theirRates.real ? " · " + D.theirRates.n + " of their drives" : "") : "Their defense tagged (front, shell, blitz). Full games also give their offense's drives.";
+    $("dOurs").classList.toggle("ok", !!D.ours); $("dThem").classList.toggle("ok", !!D.them);
+  }
+  function addFiles(kind, files) { Promise.all(Array.prototype.map.call(files, parseFile)).then(function (L) { RAW[kind] = RAW[kind].concat(L); loadData(); toast("Loaded " + L.length + " file" + (L.length === 1 ? "" : "s")) }, function () { toast("Couldn't read that file. Export it from Hudl as Excel (.xlsx) or CSV.") }) }
+  $("fOurs").onchange = function () { if (this.files.length) addFiles("ours", this.files); this.value = "" };
+  $("fThem").onchange = function () { if (this.files.length) addFiles("them", this.files); this.value = "" };
+  $("dataBtn").onclick = function () { var s = $("setup"); s.hidden = !s.hidden; if (!s.hidden) s.scrollIntoView({ behavior: "smooth" }) };
+  $("startBtn").onclick = function () { if (!D.calls || !D.calls.length) { toast("Add our offense's Hudl export first."); return } D.opp = $("oppName").value.trim() || "Opponent"; $("setup").hidden = true; newGame(); camBall = G.ball; refresh() };
+  $("endBtn").onclick = function () { if (!G || !G.snaps.length) { toast("Run a few plays first."); return } G.over = true; if (G.drive) endDrive("Stopped"); refresh(); finishGame() };
+  document.querySelectorAll("#cf .chip").forEach(function (b) { b.onclick = function () { FILTER = b.dataset.f; document.querySelectorAll("#cf .chip").forEach(function (x) { x.setAttribute("aria-pressed", x === b) }); refresh() } });
+  window.addEventListener("resize", function () { size(); if (!$("editor").hidden) { eSize(); edDraw() } draw() });
+
+  // ======================= START =======================
+  size();
+  if (window.MOCK_DATA) { RAW.ours = MOCK_DATA.ours || []; RAW.them = MOCK_DATA.them || []; D.us = MOCK_DATA.us || D.us; D.opp = MOCK_DATA.opp || D.opp; $("oppName").value = D.opp; loadData(); newGame(); camBall = G.ball; refresh() }
+  else { $("setup").hidden = false; G = null }
+  document.fonts && document.fonts.ready.then(function () { draw() });
+})();
+</script>

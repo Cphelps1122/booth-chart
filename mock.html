@@ -392,7 +392,7 @@ body { padding-bottom: 90px }
   function ftypeOf(o, bx) { var s = strengthOf(o, bx), rec = o.slice(6, 10), strong = rec.filter(function (r) { return (r.x - bx) * s > 3 }).length, te = rec.some(function (r) { return Math.abs(r.x - bx) < 7 && r.y > -1.4 }); return strong >= 3 ? "trips" : te ? "te" : "2x2" }
   function defKey(front, sh, ft) { return (front || "*") + "|" + (sh || "MFO") + "|" + ft }
   // their defense in the standard frame: ball at 0, our strength to the right
-  function stdDef(front, sh, ft) {
+  function stdDef(front, sh, ft, cov) {
     var F = String(front || "").toUpperCase(), odd = /HEAD|ODD|MINT|TIGHT|3|BEAR/.test(F), under = /UNDER/.test(F);
     var r = ft === "trips" ? [[-19], [7.5], [13], [19]] : ft === "te" ? [[-19], [-11.5], [5.6], [19]] : [[-19], [-11.5], [11.5], [19]];
     var w1 = r[0][0], w2 = r[1][0] < 0 ? r[1][0] : null, s1 = r[3][0], s2 = ft === "trips" ? r[2][0] : r[2][0], s3 = ft === "trips" ? r[1][0] : null, te = ft === "te";
@@ -405,11 +405,12 @@ body { padding-bottom: 90px }
     d.push([w1 + 1, off], [s1 - 1, off]);
     d.push(sh === "0" ? [s2 - .6, 2.4] : [(s2 + 4.5) / 2, 4.8]);
     if (sh === "MFO") d.push([HASH, 13], [-HASH, 13]);
+    else if (sh === "MFC" && /STRONG/i.test(cov || "")) d.push(s3 != null ? [s3, 6.5] : te ? [7.5, 6] : [(s2 + 4.5) / 2 + 2, 7], [0, 14.5]); // 3 Strong: SS rolls down to the strength (Liberty film)
     else if (sh === "MFC") d.push(w2 != null ? [(w2 - 4.5) / 2, 6] : [-6.5, 6], [0, 14.5]);
     else d.push(s3 != null ? [s3 - .5, 3.2] : te ? [6.5, 5] : [2, 5.5], w2 != null ? [w2 + .5, 2.6] : [-2, 6]);
     return d.map(function (p) { return { x: p[0], y: p[1] } });
   }
-  function defStd(front, sh, ft) { return (ALIGN.def[defKey(front, sh, ft)] || ALIGN.def[defKey(null, sh, ft)] || stdDef(front, sh, ft)).map(function (p) { return { x: p.x, y: p.y } }) }
+  function defStd(front, sh, ft, cov) { return (ALIGN.def[defKey(front, sh, ft)] || ALIGN.def[defKey(null, sh, ft)] || stdDef(front, sh, ft, cov)).map(function (p) { return { x: p.x, y: p.y } }) }
   function placeDef(std, s, bx) { return std.map(function (p, i) { var x = bx + s * p.x; if (Math.abs(x) > 25) x = Math.sign(x) * 25; return { x: x, y: p.y, lab: DEF_LAB[i], num: DEF_NUM[i], blitz: false } }) }
   function blitzers(d, name, s, bx) {
     var n = String(name || "").toUpperCase(), who = /DBL|EDGE|BULLET/.test(n) ? [5, 8] : /BANDIT|STINGER|SS|SAF|CAT/.test(n) ? [9] : /W |WILL|WRAP/.test(n) ? [5, 4] : /MAX|ALL/.test(n) ? [4, 5, 8] : [4];
@@ -419,7 +420,7 @@ body { padding-bottom: 90px }
   function poses() {
     var bx = bxOf(); if (!call) return;
     P.o = placeOff(offStd(call.form), bx); var s = strengthOf(P.o, bx), ft = ftypeOf(P.o, bx);
-    P.d = placeDef(defStd(look && look.front, look ? look.sh : "MFO", ft), s, bx); P.s = s;
+    P.d = placeDef(defStd(look && look.front, look ? look.sh : "MFO", ft, look && look.cov), s, bx); P.s = s;
     if (look && look.blitz) blitzers(P.d, look.blitz, s, bx);
     CAMX = bx * (NARROW ? .45 : .35); P.ball = { x: bx, y: -.2, z: 0 }; P.carry = -1; P.trail = []; P.tackle = null; P.showPlan = false;
   }

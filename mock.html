@@ -243,7 +243,8 @@ body { padding-bottom: 90px }
     snapBar();
     var act = "";
     if (G.fourth && !G.over) { var fgd = 100 - G.ball + 17, fgp = fgProb(fgd); act = "<div class='fourth'><p><b>4th & " + G.dist + " at " + spot(G.ball) + ".</b> Go for it, punt, or kick?</p><div class='row'><button class='btn pri' type='button' data-4='go'>Go for it</button><button class='btn' type='button' data-4='punt'>Punt</button>" + (fgd <= 50 ? "<button class='btn' type='button' data-4='fg'>Field goal · " + fgd + " yds (" + Math.round(fgp * 100) + "%)</button>" : "") + "</div></div>" }
-    $("act").innerHTML = act; document.querySelectorAll("[data-4]").forEach(function (b) { b.onclick = function () { fourthDo(b.dataset["4"]) } });
+    if (G.wait && G.theirCard) act = G.theirCard; // their drive stays on screen until we take the ball back
+    $("act").innerHTML = act; var ob = $("ourBall"); if (ob && G.ourBall) ob.onclick = G.ourBall; document.querySelectorAll("[data-4]").forEach(function (b) { b.onclick = function () { fourthDo(b.dataset["4"]) } });
     if (!anim && !P.hold && !SEL) { if (!call && D.calls.length) call = D.calls[0]; camBall = G.ball; look = likely(); poses(); tagText(); draw() }
   }
   function likely() { var s = situ(), POOL = defPool(s.b, s.z, s.dn).rows, sh = top(POOL.map(function (r) { return r.sh }), 1)[0], fr = top(POOL.map(function (r) { return r.front }), 1)[0]; return { sh: sh ? sh.k : "MFO", front: fr ? fr.k : null, blitz: null, cov: null, likely: true } }
@@ -315,8 +316,8 @@ body { padding-bottom: 90px }
     var card = "<div class='their'><b>" + esc(D.opp) + " ball at their " + start + ".</b> " + plays + " plays · " + clk(used) + " · <b>" + res + "</b>" + (pts ? " (+" + pts + ")" : "") + "<p class='note' style='margin:4px 0 8px'>" + (R.real ? "Drawn from their real drives: TD on " + Math.round(R.td * 100) + "% of " + R.n + "." : "Default rates. Add their full games to use their real drives.") + "</p><button class='btn pri' type='button' id='ourBall'>" + (cut ? "Continue" : "Our ball at " + spot(nextBall)) + "</button></div>";
     G.theirLog = (G.theirLog || []).concat([{ start: start, plays: plays, res: res, pts: pts }]);
     logDiv(esc(D.opp) + ": " + plays + " plays, " + res + (pts ? " (" + G.us + "–" + G.them + ")" : ""));
-    $("act").innerHTML = card; board();
-    $("ourBall").onclick = function () { G.wait = false; if (clockOut(true)) return; G.ball = nextBall; G.hash = "M"; startDrive(res === "Turnover" ? "Takeaway" : res === "Punt" ? "Punt" : "Kickoff"); logDiv("Our ball at " + spot(G.ball)); $("res").hidden = true; refresh() };
+    G.theirCard = card; G.ourBall = function () { G.wait = false; G.theirCard = null; if (clockOut(true)) return; G.ball = nextBall; G.hash = "M"; startDrive(res === "Turnover" ? "Takeaway" : res === "Punt" ? "Punt" : "Kickoff"); logDiv("Our ball at " + spot(G.ball)); $("res").hidden = true; clearTimeout(P.holdT); P.hold = false; refresh() };
+    refresh();
   }
   // quarters, halftime, final
   function clockOut(between) {

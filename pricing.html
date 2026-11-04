@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Plans · Solutions Analytics</title>
+<meta name="description" content="Solutions Analytics plans for high school football programs: Sideline, Coordinator and Program.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Russo+One&family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600;700&display=swap">
+<style>
+/* layout: same night-sky brand as the front page: header, three plan columns, a comparison table, then the request form */
+:root { --bg: #0b1016; --bg2: #0f161e; --card: #121a23; --line: #22303f; --ink: #e8edf2; --muted: #93a1b1; --ice: #a5e3ff; --ice2: #6cc8f2; --good: #4ade80; --red: #c8102e;
+  --f-brand: "Russo One", system-ui, sans-serif; --f-display: "Barlow Condensed", "Arial Narrow", sans-serif; --f-body: "Barlow", system-ui, sans-serif; color-scheme: dark }
+* { box-sizing: border-box }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 var(--f-body) }
+.gut { padding-left: max(18px, env(safe-area-inset-left, 0px)); padding-right: max(18px, env(safe-area-inset-right, 0px)) }
+.wrap { max-width: 1080px; margin: 0 auto }
+header { border-bottom: 1px solid var(--line); background: var(--bg2) }
+header .wrap { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 14px; flex-wrap: wrap }
+.brand { font: 400 20px var(--f-brand); letter-spacing: .02em; color: var(--ink); text-decoration: none } .brand span { color: var(--ice) }
+nav { display: flex; gap: 18px; flex-wrap: wrap } nav a { color: var(--muted); text-decoration: none; font-weight: 600 } nav a:hover, nav a[aria-current] { color: var(--ink) }
+h1 { font: 700 clamp(34px, 6vw, 54px)/1.02 var(--f-display); letter-spacing: .01em; text-transform: uppercase; margin: 40px 0 10px; text-wrap: balance }
+.lede { color: var(--muted); max-width: 62ch; font-size: 18px; margin: 0 0 24px }
+.found { border: 1px solid var(--ice2); background: rgba(108,200,242,.08); border-radius: 12px; padding: 14px 16px; margin: 0 0 26px; display: flex; gap: 14px; align-items: center; flex-wrap: wrap }
+.found b { font: 700 20px var(--f-display); text-transform: uppercase; letter-spacing: .04em; color: var(--ice) } .found p { margin: 0; flex: 1; min-width: 240px }
+.plans { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px }
+@media (max-width: 860px) { .plans { grid-template-columns: 1fr } }
+.plan { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 10px }
+.plan.pick { border-color: var(--ice); box-shadow: 0 0 0 1px var(--ice) inset }
+.tag { align-self: flex-start; font: 700 12px var(--f-body); letter-spacing: .1em; text-transform: uppercase; color: #06121c; background: var(--ice); border-radius: 999px; padding: 3px 10px }
+.plan h2 { margin: 0; font: 700 28px var(--f-display); text-transform: uppercase; letter-spacing: .03em }
+.price { font: 700 40px/1 var(--f-display) } .price small { font: 500 15px var(--f-body); color: var(--muted) }
+.who { color: var(--muted); margin: 0 }
+.plan ul { margin: 4px 0 0; padding: 0; list-style: none; display: grid; gap: 6px }
+.plan li { padding-left: 22px; position: relative } .plan li::before { content: "✓"; position: absolute; left: 0; color: var(--good); font-weight: 700 }
+.plan li.plus { color: var(--muted) } .plan li.plus::before { content: "+"; color: var(--ice) }
+.btn { display: inline-block; text-align: center; font: 700 16px var(--f-body); padding: 11px 16px; border-radius: 10px; text-decoration: none; border: 1px solid var(--line); background: var(--bg2); color: var(--ink); cursor: pointer; margin-top: auto }
+.btn.pri { background: var(--ice); color: #06121c; border-color: var(--ice) }
+.btn:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--ice); outline-offset: 2px }
+h3 { font: 700 26px var(--f-display); text-transform: uppercase; letter-spacing: .03em; margin: 46px 0 12px }
+.tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px }
+table { border-collapse: collapse; width: 100%; min-width: 560px } th, td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: left } th { font: 700 13px var(--f-body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted) }
+td.c, th.c { text-align: center } td.y { color: var(--good); font-weight: 700 } td.n { color: #4b5866 } tr:last-child td { border-bottom: 0 }
+.faq { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px } @media (max-width: 760px) { .faq { grid-template-columns: 1fr } }
+.faq div { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px } .faq b { display: block; margin-bottom: 4px }
+.faq p { margin: 0; color: var(--muted) }
+form { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 50px }
+@media (max-width: 640px) { form { grid-template-columns: 1fr } }
+label { display: grid; gap: 4px; font-weight: 600; font-size: 14px; color: var(--muted) } label.full { grid-column: 1 / -1 }
+input, select, textarea { font: inherit; color: var(--ink); background: var(--bg2); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px }
+.msg { grid-column: 1 / -1; margin: 0; font-weight: 600 } .ok { color: var(--good) } .err { color: #ff8a8a }
+footer { color: var(--muted); font-size: 14px; padding-block: 24px; border-top: 1px solid var(--line) }
+</style>
+</head>
+<body>
+<header class="gut"><div class="wrap"><a class="brand" href="index.html">SOLUTIONS <span>ANALYTICS</span></a><nav aria-label="Site"><a href="index.html">Home</a><a href="pricing.html" aria-current="page">Plans</a><a href="#ask">Get started</a><a href="app.html">Coach login</a></nav></div></header>
+<main class="gut"><div class="wrap">
+  <h1>One price a year. Every coach, every device.</h1>
+  <p class="lede">Each plan covers your whole football program for the school year, August through July. Unlimited coaches and devices. It works alongside Hudl: you keep your film there, and Solutions turns it into calls, scouting and game-day help.</p>
+  <div class="found"><b>Founding programs</b><p>The first 10 programs get Coordinator for <strong>$500 their first year</strong>, and that price is locked for three seasons. In return we ask for honest feedback and, if you're happy, a short testimonial.</p><a class="btn pri" href="#ask" data-plan="founding">Claim a spot</a></div>
+
+  <div class="plans">
+    <section class="plan">
+      <h2>Sideline</h2>
+      <div class="price">$700 <small>/ year</small></div>
+      <p class="who">Live charting on game night.</p>
+      <ul>
+        <li>Live charting on every staff device, synced in seconds</li>
+        <li>Next Call: the best plays for this down, distance and their look</li>
+        <li>4th-down and go-for-2 help</li>
+        <li>Scoreboard and win chance</li>
+        <li>Plays, drives, OC Report and Stats</li>
+        <li>Defensive charting</li>
+      </ul>
+      <a class="btn" href="#ask" data-plan="sideline">Choose Sideline</a>
+    </section>
+    <section class="plan pick">
+      <span class="tag">Most programs</span>
+      <h2>Coordinator</h2>
+      <div class="price">$1,400 <small>/ year</small></div>
+      <p class="who">Game-week prep plus game night.</p>
+      <ul>
+        <li class="plus">Everything in Sideline</li>
+        <li>Scout Reports: self scout, opponent scout and game card PDFs from your Hudl exports</li>
+        <li>Game Preview: projected score and drive-by-drive forecast</li>
+        <li>Weekly reports for the OC and DC</li>
+        <li>Film clips and shareable reels from charted games</li>
+        <li>Impact: how the scout and the predictions held up</li>
+      </ul>
+      <a class="btn pri" href="#ask" data-plan="coordinator">Choose Coordinator</a>
+    </section>
+    <section class="plan">
+      <h2>Program</h2>
+      <div class="price">$2,300 <small>/ year</small></div>
+      <p class="who">For staffs that want all of it.</p>
+      <ul>
+        <li class="plus">Everything in Coordinator</li>
+        <li>Mock game: call a full game against the opponent's real tendencies before you play it</li>
+        <li>Your formations and their fronts drawn exactly as you teach them</li>
+        <li>We set it up with your staff</li>
+      </ul>
+      <a class="btn" href="#ask" data-plan="program">Choose Program</a>
+    </section>
+  </div>
+
+  <h3>Compare plans</h3>
+  <div class="tbl"><table>
+    <thead><tr><th></th><th class="c">Sideline</th><th class="c">Coordinator</th><th class="c">Program</th></tr></thead>
+    <tbody>
+      <tr><td>Live charting, Next Call, 4th-down help</td><td class="c y">✓</td><td class="c y">✓</td><td class="c y">✓</td></tr>
+      <tr><td>Plays, OC Report, Stats, defensive charting</td><td class="c y">✓</td><td class="c y">✓</td><td class="c y">✓</td></tr>
+      <tr><td>Scout Reports (PDF)</td><td class="c n">–</td><td class="c y">✓</td><td class="c y">✓</td></tr>
+      <tr><td>Weekly reports and Game Preview</td><td class="c n">–</td><td class="c y">✓</td><td class="c y">✓</td></tr>
+      <tr><td>Film clips and reels</td><td class="c n">–</td><td class="c y">✓</td><td class="c y">✓</td></tr>
+      <tr><td>Impact grading</td><td class="c n">–</td><td class="c y">✓</td><td class="c y">✓</td></tr>
+      <tr><td>Mock game</td><td class="c n">–</td><td class="c n">–</td><td class="c y">✓</td></tr>
+      <tr><td>Formations and fronts set up with your staff</td><td class="c n">–</td><td class="c n">–</td><td class="c y">✓</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Questions</h3>
+  <div class="faq">
+    <div><b>How do we pay?</b><p>Most schools pay by purchase order or check. Send the form below and we'll email an invoice. Card payment is coming soon.</p></div>
+    <div><b>Can we try it first?</b><p>Yes. Pick "Free trial" below and we'll set your staff up to chart a scrimmage or a game for free.</p></div>
+    <div><b>What if our plan runs out?</b><p>Nothing is deleted. Your games, reports and stats stay viewable; you just can't chart new games until you renew.</p></div>
+    <div><b>Do we still need Hudl?</b><p>Yes. Solutions reads the Hudl exports you already make. It adds live calls, scouting and predictions on top.</p></div>
+  </div>
+
+  <h3 id="ask">Get started</h3>
+  <form id="f" novalidate>
+    <label>Your name<input id="fName" autocomplete="name" required></label>
+    <label>Role<select id="fRole"><option>Head coach</option><option>Offensive coordinator</option><option>Defensive coordinator</option><option>Assistant coach</option><option>Athletic director</option><option>Other</option></select></label>
+    <label>School<input id="fSchool" required></label>
+    <label>State<input id="fState" value="TX"></label>
+    <label>Email<input id="fEmail" type="email" autocomplete="email" required></label>
+    <label>Plan<select id="fPlan"><option value="trial">Free trial</option><option value="founding">Founding program ($500 first year)</option><option value="sideline">Sideline ($700/yr)</option><option value="coordinator" selected>Coordinator ($1,400/yr)</option><option value="program">Program ($2,300/yr)</option></select></label>
+    <label class="full">Anything we should know? (optional)<textarea id="fNote" rows="3" placeholder="e.g. we need an invoice for a PO, or we'd like to start before our scrimmage"></textarea></label>
+    <div style="grid-column:1/-1"><button class="btn pri" type="submit" id="fGo">Send</button></div>
+    <p class="msg" id="fMsg" aria-live="polite"></p>
+  </form>
+</div></main>
+<footer class="gut"><div class="wrap">Solutions Analytics · prices per football program, per school year</div></footer>
+<script>window.SOL_CONFIG = window.SOL_CONFIG || {"db": "https://cardinal-booth-default-rtdb.firebaseio.com"};</script>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id) };
+  document.querySelectorAll("[data-plan]").forEach(function (a) { a.addEventListener("click", function () { $("fPlan").value = a.dataset.plan }) });
+  $("f").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var d = { name: $("fName").value.trim(), role: $("fRole").value, school: $("fSchool").value.trim(), state: $("fState").value.trim(), email: $("fEmail").value.trim(), plan: $("fPlan").value, note: $("fNote").value.trim(), at: Date.now(), src: "pricing" };
+    var m = $("fMsg");
+    if (!d.name || !d.school || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.email)) { m.className = "msg err"; m.textContent = "Add your name, school and a working email."; return }
+    $("fGo").disabled = true; m.className = "msg"; m.textContent = "Sending…";
+    fetch(window.SOL_CONFIG.db + "/leads.json", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(d) }).then(function (r) {
+      if (!r.ok) throw new Error(r.status);
+      m.className = "msg ok"; m.textContent = d.plan === "trial" ? "Got it. We'll email you within a day to set up your free trial." : "Got it. We'll email you an invoice and next steps within a day."; $("f").reset();
+    }).catch(function () { m.className = "msg err"; m.textContent = "That didn't go through. Check your connection and try again." }).then(function () { $("fGo").disabled = false });
+  });
+})();
+</script>
+</body>
+</html>

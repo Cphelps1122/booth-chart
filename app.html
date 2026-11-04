@@ -1537,8 +1537,11 @@ textarea { min-height: 64px }
   function lockCheck() {
     if (!ONLINE || LOCK.admin) return;
     var a = authGet(); if (!a || !a.uid || !a.school) return;
-    solToken().then(function (t) { return fetch(SOL_DB + "/schools/" + encodeURIComponent(a.school) + "/locks/" + a.uid + ".json?auth=" + encodeURIComponent(t)) }).then(function (r) { return r.ok ? r.json() : null }).then(function (v) { lockApply(v === true && !LOCK.admin) }, function () {});
+    solToken().then(function (t) { return fetch(SOL_DB + "/schools/" + encodeURIComponent(a.school) + "/locks/" + a.uid + ".json?auth=" + encodeURIComponent(t)) }).then(function (r) { return r.ok ? r.json() : null }).then(function (v) { lockApply((v === true || PLAN_OFF) && !LOCK.admin) }, function () {});
+    // a school whose plan ended can still see everything, but can't chart new plays
+    if (window.SolPlan && !isPractice()) SolPlan.get().then(function (p) { var off = SolPlan.expired(p); if (off !== PLAN_OFF) { PLAN_OFF = off; lockApply(off && !LOCK.admin); var b = $("lockBar"); if (b && off) b.textContent = "Your school's Solutions plan ended " + p.until + ". Everything is still here to view; renew to chart new games." } }, function () {});
   }
+  var PLAN_OFF = false;
   function lockApi(path, method, body) { return solToken().then(function (t) { return fetch(SOL_DB + "/" + path + ".json?auth=" + encodeURIComponent(t), { method: method || "GET", body: body === undefined ? undefined : JSON.stringify(body) }) }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json() }) }
   function lockAdminInit() {
     if (!ONLINE) return; var a = authGet(); if (!a || !a.uid) return;
@@ -5944,4 +5947,5 @@ textarea { min-height: 64px }
   document.body.insertBefore(b, document.body.firstChild);
 })();
 </script>
+<script src="plan.js"></script>
 </body></html>

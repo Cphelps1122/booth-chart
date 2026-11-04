@@ -433,13 +433,10 @@ body { padding-bottom: 90px }
   function defKey(front, sh, ft) { return (front || "*") + "|" + (sh || "MFO") + "|" + ft }
   // their defense in the standard frame: ball at 0, our strength to the right
   function stdDef(front, sh, ft, cov) {
-    var F = String(front || "").toUpperCase(), odd = /HEAD|ODD|MINT|TIGHT|3|BEAR/.test(F), under = /UNDER/.test(F);
+    var F = String(front || "").toUpperCase();
     var r = ft === "bunch" ? [[-19], [8.5], [10], [11.5]] : ft === "trips" ? [[-19], [7.5], [13], [19]] : ft === "te" ? [[-19], [-11.5], [5.6], [19]] : [[-19], [-11.5], [11.5], [19]];
     var w1 = r[0][0], w2 = r[1][0] < 0 ? r[1][0] : null, s1 = r[3][0], s2 = r[2][0], s3 = ft === "trips" || ft === "bunch" ? r[1][0] : null, te = ft === "te", buzz = /BUZZ/i.test(cov || "");
-    var d;
-    if (odd) d = [[te ? 7 : 5.8, 1.4], [3, 1.1], [0, 1.1], [-3, 1.1], [1.6, 4.6], [-5.8, 1.6]];
-    else if (under) d = [[te ? 7 : 4.8, 1.2], [.8, 1.1], [-2.8, 1.1], [-4.8, 1.2], [1.4, 4.6], [-3.3, 4.6]];
-    else d = [[te ? 6.6 : 5.6, 1.2], [2.8, 1.1], [-.8, 1.1], [-5.6, 1.2], [1.4, 4.6], [-3.3, 4.6]];
+    var d = frontShape(F, te).map(function (p) { return p.slice() });
     var off = sh === "0" ? 5 : 7.5;
     if (sh === "0") { d[4][1] = 3.5; d[5][1] = d[5][1] > 3 ? 3.5 : d[5][1] }
     d.push([w1 + 1, off], ft === "bunch" ? [s1 + 1, buzz ? 10.5 : 6] : [s1 - 1, buzz ? 10.5 : off]);
@@ -449,10 +446,23 @@ body { padding-bottom: 90px }
     else if (sh === "MFC" && /STRONG/i.test(cov || "")) d.push(s3 != null ? [s3, 6.5] : te ? [7.5, 6] : [(s2 + 4.5) / 2 + 2, 7], [0, 14.5]); // 3 Strong: SS rolls down to the strength (Liberty film)
     else if (sh === "MFC") d.push(w2 != null ? [(w2 - 4.5) / 2, 6] : [-6.5, 6], [0, 14.5]);
     else d.push(s3 != null ? [s3 - .5, 3.2] : te ? [6.5, 5] : [2, 5.5], w2 != null ? [w2 + .5, 2.6] : [-2, 6]);
-    return d.map(function (p) { return { x: p[0], y: p[1] } });
+    return d.map(function (p) { return { x: p[0], y: p[1], lab: p[2], down: !!p[3] } });
   }
-  function defStd(front, sh, ft, cov) { return (ALIGN.def[defKey(front, sh, ft)] || ALIGN.def[defKey(null, sh, ft)] || stdDef(front, sh, ft, cov)).map(function (p) { return { x: p.x, y: p.y } }) }
-  function placeDef(std, s, bx) { return std.map(function (p, i) { var x = bx + s * p.x; if (Math.abs(x) > 25) x = Math.sign(x) * 25; return { x: x, y: p.y, lab: DEF_LAB[i], num: DEF_NUM[i], blitz: false } }) }
+  // Liberty's fronts (strong side +x). [x, depth, label, hand down]. From the Tight-camera film: Heads = nose head-up, two 4i's, stand-up edges;
+  // Over / Under = 4 down; Wide = edges spread wide with a backer walked up. "43" fronts are 4-down.
+  function frontShape(F, te) {
+    var E = te ? 7.2 : 5.8, rows;
+    if (/^43 (OVER|UNDER)/.test(F)) F = F.slice(3);
+    if (/HEAD|ODD|MINT|TIGHT|BEAR/.test(F)) rows = [[E, 1.3, "E", 0], [2.6, 1.1, "T", 1], [0, 1.1, "N", 1], [-2.6, 1.1, "T", 1], [1.4, 4.6, "M", 0], [-5.8, 1.3, "E", 0]];
+    else if (/UNDER/.test(F)) rows = [[te ? 6.8 : 5.4, 1.2, "DE", 1], [.8, 1.1, "N", 1], [-2.8, 1.1, "DT", 1], [-5.4, 1.2, "DE", 1], [1.4, 4.6, "M", 0], [-3.3, 4.6, "W", 0]];
+    else if (/WIDE/.test(F)) rows = [[te ? 8 : 7.2, 1.3, "DE", 1], [2.6, 1.1, "DT", 1], [0, 1.1, "N", 1], [-7.2, 1.3, "DE", 1], [1, 2.6, "M", 0], [-3.3, 4.6, "W", 0]];
+    else if (/EAGLE/.test(F)) rows = [[te ? 6.8 : 5.4, 1.2, "DE", 1], [2.8, 1.1, "DT", 1], [-.8, 1.1, "N", 1], [-3.6, 1.1, "DE", 1], [1.4, 4.6, "M", 0], [-5.8, 1.6, "W", 0]];
+    else if (/STACK/.test(F)) rows = [[te ? 6.6 : 5.4, 1.2, "DE", 1], [2.4, 1.1, "DT", 1], [-2.4, 1.1, "DT", 1], [-5.4, 1.2, "DE", 1], [2.4, 4.4, "M", 0], [-2.4, 4.4, "W", 0]];
+    else rows = [[te ? 6.6 : 5.4, 1.2, "DE", 1], [2.8, 1.1, "DT", 1], [-.8, 1.1, "N", 1], [-5.4, 1.2, "DE", 1], [1.4, 4.6, "M", 0], [-3.3, 4.6, "W", 0]]; // Over / Even / untagged
+    return rows;
+  }
+  function defStd(front, sh, ft, cov) { var st = stdDef(front, sh, ft, cov), sv = ALIGN.def[defKey(front, sh, ft)] || ALIGN.def[defKey(null, sh, ft)]; return (sv || st).map(function (p, i) { return { x: p.x, y: p.y, lab: st[i].lab, down: st[i].down } }) }
+  function placeDef(std, s, bx) { return std.map(function (p, i) { var x = bx + s * p.x; if (Math.abs(x) > 25) x = Math.sign(x) * 25; return { x: x, y: p.y, lab: p.lab || DEF_LAB[i], down: !!p.down, num: DEF_NUM[i], blitz: false } }) }
   // corners over each #1 (inside leverage), nickel apexed on the real #2, man defenders on top of their man in 0
   function keyOn(o, d, s, bx, ft, sh) {
     var rec = o.slice(6, 11).filter(function (p, i) { return i < 4 || p.y > -2.6 }), side = function (S) { return rec.filter(function (r) { return (r.x - bx) * S > 2.5 && r.y > -3 }).sort(function (a, b) { return (b.x - a.x) * S }) };
@@ -536,7 +546,7 @@ body { padding-bottom: 90px }
     if (hot) { c.strokeStyle = "#f2c14e"; c.lineWidth = Math.max(2, s * .1); c.beginPath(); c.ellipse(f.x, f.y, s * .8, s * .3, 0, 0, Math.PI * 2); c.stroke() }
   }
   function label(c, q, t, off, s) { c.font = "700 " + Math.max(11, Math.round(s)) + "px Barlow, sans-serif"; c.textAlign = "center"; c.lineWidth = 3; c.strokeStyle = "rgba(6,10,14,.85)"; c.strokeText(t, q.x, q.y); c.fillStyle = off ? "#ffd3da" : "#cfe0ff"; c.fillText(t, q.x, q.y) }
-  function man(p, los, off, hot) { var f = pr(p.x, p.y + los); if (f.y > H + 80 || f.s > 400) return; figure(cx, f, pr(p.x, p.y + los, 1.9), p, off, hot); label(cx, pr(p.x, p.y + los, 2.75), p.lab, off, f.s * .55) }
+  function man(p, los, off, hot) { var f = pr(p.x, p.y + los); if (f.y > H + 80 || f.s > 400) return; var ht = p.down && !anim ? 1.25 : 1.9; figure(cx, f, pr(p.x, p.y + los, ht), p, off, hot); label(cx, pr(p.x, p.y + los, ht + .85), p.lab, off, f.s * .55) }
   function rr(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); c.fill() }
 
   // ======================= ANIMATION =======================
@@ -608,12 +618,12 @@ body { padding-bottom: 90px }
     if (ED.mode === "def") { ex.textAlign = "right"; ex.fillText("our strength →", EW - 16, 26) }
     var dot = function (p, lab, num, col, ghost) { var q = e2s(p), r = YS * .62; ex.globalAlpha = ghost ? .45 : 1; ex.fillStyle = col; ex.beginPath(); ex.arc(q.x, q.y, r, 0, Math.PI * 2); ex.fill(); ex.fillStyle = "#fff"; ex.font = "800 " + Math.round(r * .95) + "px Saira Condensed, sans-serif"; ex.textAlign = "center"; ex.textBaseline = "middle"; ex.fillText(lab, q.x, q.y + 1); ex.textBaseline = "alphabetic"; ex.globalAlpha = 1 };
     ED.ref.forEach(function (p, i) { dot(p, OFF_LAB[i], 0, "#d4213d", true) });
-    ED.pts.forEach(function (p, i) { dot(p, ED.mode === "def" ? DEF_LAB[i] : OFF_LAB[i], 0, ED.mode === "def" ? "#2e5aa8" : "#d4213d", false) });
+    ED.pts.forEach(function (p, i) { dot(p, ED.mode === "def" ? (p.lab || DEF_LAB[i]) : OFF_LAB[i], 0, ED.mode === "def" ? "#2e5aa8" : "#d4213d", false) });
     var bq = e2s({ x: 0, y: -.2 }); ex.fillStyle = "#8a4b22"; ex.beginPath(); ex.ellipse(bq.x, bq.y, 9, 6, 0, 0, Math.PI * 2); ex.fill();
   }
   function evPt(e) { var r = ec.getBoundingClientRect(); return { x: (e.clientX - r.left) * EW / r.width, y: (e.clientY - r.top) * EH / r.height } }
   ec.addEventListener("pointerdown", function (e) { var p = evPt(e), best = -1, bd = 1e9; ED.pts.forEach(function (q, i) { var s = e2s(q), d = Math.hypot(s.x - p.x, s.y - p.y); if (d < bd) { bd = d; best = i } }); if (bd < YS * 1.4) { ED.drag = best; ec.setPointerCapture(e.pointerId); e.preventDefault() } });
-  ec.addEventListener("pointermove", function (e) { if (ED.drag < 0) return; var p = evPt(e), q = s2e(p.x, p.y); q.x = Math.max(-26.5, Math.min(26.5, Math.round(q.x * 2) / 2)); q.y = Math.max(-12, Math.min(22, Math.round(q.y * 2) / 2)); ED.pts[ED.drag] = q; edDraw() });
+  ec.addEventListener("pointermove", function (e) { if (ED.drag < 0) return; var p = evPt(e), q = s2e(p.x, p.y); q.x = Math.max(-26.5, Math.min(26.5, Math.round(q.x * 2) / 2)); q.y = Math.max(-12, Math.min(22, Math.round(q.y * 2) / 2)); q.lab = ED.pts[ED.drag].lab; q.down = ED.pts[ED.drag].down; ED.pts[ED.drag] = q; edDraw() });
   ec.addEventListener("pointerup", function () { ED.drag = -1 });
   ec.addEventListener("pointercancel", function () { ED.drag = -1 });
   document.querySelectorAll("#edMode .chip").forEach(function (b) { b.onclick = function () { ED.mode = b.dataset.m; edSel(); edLoad(); edDraw() } });

@@ -413,6 +413,9 @@ body { padding-bottom: 90px }
     "TEXAS": [[80, 432], [340, 456], [372, 432], [631, 456], [333, 487]],
     "AGGIE OVER": [[240, 432], [378, 432], [571, 442], [641, 432], [333, 487]],
     "AGGIE": [[73, 461], [240, 432], [370, 432], [641, 437], [333, 487]],
+    "BONE": [[63, 432], [250, 452], [366, 452], [688, 437], [333, 487]],
+    "BOSS": [[63, 432], [571, 460], [688, 437], [280, 487], [333, 487]],
+    "GOGO": [[63, 432], [571, 460], [688, 437], [366, 487], [333, 487]],
     "5 LT": [[77, 440], [502, 463], [571, 442], [718, 432], [185, 463]]
   };
   var BOOK_ALIAS = { "BUNCH": "BASH" };
@@ -421,10 +424,10 @@ body { padding-bottom: 90px }
   // place a formation from the sheet: detached receivers keep their field landmarks, close-in players stay tied to the ball; strength goes to the field
   function bookPlace(B, bx) {
     var flip = bx > 0 ? -1 : 1, o = [[-4.2, -.9], [-2.1, -.9], [0, -.9], [2.1, -.9], [4.2, -.9]].map(function (p) { return { x: bx + p[0], y: p[1] } }); o.push({ x: bx, y: -4.5 });
-    B.forEach(function (p, i) { var rel = (p[0] - 307) / 14, abs = (p[0] - 400) / 14, back = i === 4 && p[1] > 480; var x = back || Math.abs(rel) <= 7 ? bx + flip * rel : flip * abs; o.push({ x: Math.max(-22.5, Math.min(22.5, x)), y: back ? -5 : bookY(p[1]) }) });
+    B.forEach(function (p, i) { var rel = (p[0] - 307) / 14, abs = (p[0] - 400) / 14, back = p[1] > 480; var x = back || Math.abs(rel) <= 7 ? bx + flip * rel : flip * abs; o.push({ x: Math.max(-22.5, Math.min(22.5, x)), y: back ? -5 : bookY(p[1]) }) });
     return o.map(function (p, i) { return { x: p.x, y: p.y, lab: OFF_LAB[i], num: OFF_NUM[i] } });
   }
-  function bookStd(B) { return bookPlace(B, 0).map(function (p, i) { var B2 = i >= 6 ? B[i - 6] : null; return B2 && !(i === 10 && B2[1] > 480) ? { x: (B2[0] - 307) / 14, y: p.y } : { x: p.x, y: p.y } }) }
+  function bookStd(B) { return bookPlace(B, 0).map(function (p, i) { var B2 = i >= 6 ? B[i - 6] : null; return B2 && !(B2[1] > 480) ? { x: (B2[0] - 307) / 14, y: p.y } : { x: p.x, y: p.y } }) }
   function offStd(form) { if (!ALIGN.off[form] && bookOf(form)) return bookStd(bookOf(form)); return (ALIGN.off[form] || stdOff(formType(form))).map(function (p) { return { x: p.x, y: p.y } }) }
   // place a standard-frame formation on the field: wide receivers slide in from the boundary when the ball is on a hash
   function placeOff(std, bx) { return std.map(function (p, i) { var x = bx + p.x; if (Math.abs(x) > 24) x = Math.sign(x) * 24; return { x: x, y: p.y, lab: OFF_LAB[i], num: OFF_NUM[i] } }) }
@@ -485,7 +488,7 @@ body { padding-bottom: 90px }
     var bx = bxOf(); if (!call) return;
     var BK = !ALIGN.off[call.form] && bookOf(call.form); P.o = BK ? bookPlace(BK, bx) : placeOff(offStd(call.form), bx); var s = strengthOf(P.o, bx), ft = ftypeOf(P.o, bx);
     P.d = placeDef(defStd(look && look.front, look ? look.sh : "MFO", ft, look && look.cov), s, bx); P.s = s;
-    P.o.slice(6, 10).sort(function (a, b) { return a.x - b.x || b.y - a.y }).forEach(function (p, i) { p.lab = String(i + 1); p.num = p.lab }); P.o[10].lab = "0"; P.o[10].num = "0";
+    var RC = P.o.slice(6, 10); RC.filter(function (p) { return p.y < -4 }).forEach(function (p) { p.lab = "B"; p.num = "B" }); RC.filter(function (p) { return p.y >= -4 }).sort(function (a, b) { return a.x - b.x || b.y - a.y }).forEach(function (p, i) { p.lab = String(i + 1); p.num = p.lab }); P.o[10].lab = "0"; P.o[10].num = "0";
     if (!ALIGN.def[defKey(look && look.front, look ? look.sh : "MFO", ft)] && !ALIGN.def[defKey(null, look ? look.sh : "MFO", ft)]) keyOn(P.o, P.d, s, bx, ft, look ? look.sh : "MFO");
     if (look && look.blitz) blitzers(P.d, look.blitz, s, bx);
     CAMX = bx * (NARROW ? .45 : .35); P.ball = { x: bx, y: -.2, z: 0 }; P.carry = -1; P.trail = []; P.tackle = null; P.showPlan = false;

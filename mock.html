@@ -185,7 +185,7 @@ body { padding-bottom: 90px }
     });
     D.calls = Object.keys(C).map(function (k) { var c = C[k], n = c.plays.length, run = c.plays.filter(function (p) { return p.run }).length; c.run = run >= n / 2; c.n = n; c.avg = c.plays.reduce(function (t, p) { return t + p.gain }, 0) / n; c.eff = Math.round(100 * c.plays.filter(function (p) { return succ(p) }).length / n); c.scheme = /POWER|COUNTER|DART|TRAP/i.test(c.concept) ? "power" : "zone"; return c }).filter(function (c) { return c.n >= 4 }).sort(function (a, b) { return b.n - a.n });
     // their defense: real snaps by situation
-    D.def = th.filter(function (r) { return r.odk === "D" && !r.pen && r.dn >= 1 }).map(function (r) { return { b: dnb(r.dn, r.dist), dn: r.dn, z: zone(ballOf(r.yl) == null ? 50 : 100 - ballOf(r.yl)), sh: shellOf(r), front: r.front ? titleCase(r.front) : null, blitz: r.blitz ? titleCase(r.blitz) : null, cov: r.cov ? titleCase(r.cov) : null } });
+    D.def = th.filter(function (r) { return r.odk === "D" && !r.pen && r.dn >= 1 }).map(function (r) { return { form: r.form ? titleCase(r.form) : null, b: dnb(r.dn, r.dist), dn: r.dn, z: zone(ballOf(r.yl) == null ? 50 : 100 - ballOf(r.yl)), sh: shellOf(r), front: r.front ? titleCase(r.front) : null, blitz: r.blitz ? titleCase(r.blitz) : null, cov: r.cov ? titleCase(r.cov) : null } });
     // their offense: how their drives end
     // a drive = a run of their offensive snaps in a row (SERIES when tagged)
     var drv = {}, dn = 0, prevO = false, prevG = null; th.forEach(function (r) { var isO = r.odk === "O"; if (isO && (!prevO || r.gid !== prevG)) dn++; prevO = isO; prevG = r.gid; if (!isO) return; var k = r.ser != null ? r.gid + "|s" + r.ser : r.gid + "|d" + dn, d = drv[k] = drv[k] || { n: 0, td: false, to: false }; if (!r.pen) d.n++; if (r.td) d.td = true; if (/INTERCEPT|FUMBLE/.test(r.res || "")) d.to = true });
@@ -227,8 +227,15 @@ body { padding-bottom: 90px }
   }
   function situ() { return { b: dnb(G.dn, G.dist), z: zone(G.ball), dn: G.dn } }
 
+  function lookPool(form) {
+    var s = situ(), P = defPool(s.b, s.z, s.dn); if (!form) return P;
+    var f = String(form).toUpperCase(), same = function (r) { return r.form && r.form.toUpperCase() === f };
+    var a = P.rows.filter(same); if (a.length >= 5) return { rows: a, label: P.label + " vs " + form };
+    var b = D.def.filter(same); if (b.length >= 6) return { rows: b, label: "vs " + form + ", all downs" };
+    return { rows: P.rows, label: P.label + (b.length ? " (only " + b.length + " snaps vs " + form + ")" : "") };
+  }
   function readHTML() {
-    var s = situ(), P = defPool(s.b, s.z, s.dn), R = P.rows, n = R.length;
+    var s = situ(), P = lookPool(SEL && SEL.form), R = P.rows, n = R.length;
     $("readSub").textContent = D.opp + " · " + P.label + " · " + n + " snaps";
     if (!n) return "<p class='note'>No defensive snaps loaded. Add their Hudl games under Data.</p>";
     var sh = top(R.map(function (r) { return r.sh }), 3), tagged = R.filter(function (r) { return r.sh }).length;
@@ -264,7 +271,7 @@ body { padding-bottom: 90px }
     $("act").innerHTML = act; var ob = $("ourBall"); if (ob && G.ourBall) ob.onclick = G.ourBall; document.querySelectorAll("[data-4]").forEach(function (b) { b.onclick = function () { fourthDo(b.dataset["4"]) } });
     if (!anim && !P.hold && !SEL) { if (!call && D.calls.length) call = D.calls[0]; camBall = G.ball; look = likely(); poses(); tagText(); draw() }
   }
-  function likely() { var s = situ(), POOL = defPool(s.b, s.z, s.dn).rows, sh = top(POOL.map(function (r) { return r.sh }), 1)[0], fr = top(POOL.map(function (r) { return r.front }), 1)[0]; return { sh: sh ? sh.k : "MFO", front: fr ? fr.k : null, blitz: null, cov: null, likely: true } }
+  function likely() { var s = situ(), POOL = lookPool(SEL && SEL.form).rows, sh = top(POOL.map(function (r) { return r.sh }), 1)[0], fr = top(POOL.map(function (r) { return r.front }), 1)[0]; return { sh: sh ? sh.k : "MFO", front: fr ? fr.k : null, blitz: null, cov: null, likely: true } }
   function tagText() { if (!look) return; $("tag").innerHTML = (look.likely ? "Their likely look: " : "They showed: ") + "<b>" + (SHELLN[look.sh] || "Shell not tagged") + "</b>" + (look.cov ? " · " + esc(look.cov) : "") + (look.front ? " · " + esc(look.front) + " front" : "") + (look.blitz ? " · <b style='color:var(--bad)'>" + esc(look.blitz) + "</b>" : "") + " · ball on " + ({ L: "left hash", R: "right hash", M: "middle" })[G.hash] }
 
   // ---- pick a call: line it up against their likely look, wait for Snap ----
@@ -276,7 +283,7 @@ body { padding-bottom: 90px }
   // ---- one of our snaps ----
   function snap(c) {
     if (anim || G.over || G.wait) return; clearTimeout(P.holdT); P.hold = false; camBall = G.ball; call = c;
-    var s = situ(), POOL = defPool(s.b, s.z, s.dn).rows, L = POOL.length ? pick(POOL) : { sh: "MFO" };
+    var s = situ(), POOL = lookPool(c.form).rows, L = POOL.length ? pick(POOL) : { sh: "MFO" };
     look = { sh: L.sh || "MFO", front: L.front, blitz: L.blitz, cov: L.cov, likely: false };
     // the result: one of this call's real plays, leaning toward plays against the same shell and down
     var W = c.plays.map(function (p) { return (p.sh && p.sh === look.sh ? 3 : 1) * (p.b === s.b ? 1.5 : 1) }), tot = W.reduce(function (a, b) { return a + b }, 0), r = rand() * tot, pl = c.plays[0];

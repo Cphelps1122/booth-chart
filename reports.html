@@ -245,7 +245,7 @@ details.more > .rail { margin-top: 8px }
 <main>
   <div style="grid-column:1/-1;display:flex;gap:10px;align-items:stretch;flex-wrap:wrap"><div class="wkbar" id="wkBar" style="flex:1;margin:0"></div><button class="big" type="button" data-go="settings">Settings</button></div><div id="wkMsg" hidden class="note" style="grid-column:1/-1;margin:-6px 0 12px"></div>
   <section class="view" id="vHome">
-    <div class="wkhead"><div class="k" id="hmWhen">This week</div><h1 id="hmTitle">Scout reports</h1></div>
+    <div class="wkhead"><div class="k" id="hmWhen">This week</div><h1 id="hmTitle">This week's reports</h1></div>
     <div class="steps">
       <div class="step" id="st1"><div class="n">1</div><div class="tx"><b id="st1b">Add this week's Hudl files</b><span id="st1s">Pick what you're scouting, then drop the files. About a minute.</span></div><button class="big pri" id="st1go" type="button">Start</button></div>
       <div class="step" id="st2"><div class="n">2</div><div class="tx"><b>Check the report</b><span id="st2s">Ready after step 1.</span></div><button class="big" id="st2go" type="button">Open report</button></div>
@@ -287,8 +287,9 @@ details.more > .rail { margin-top: 8px }
       <div style="font-size:15px"><b id="smFiles"></b> <button class="back" type="button" data-go="setup" style="font-size:14px">Add or change files</button></div>
       <div class="note" style="margin:6px 0 0;font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-size:12px">Show in the report</div>
       <div id="smSecs"></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px"><button class="big pri" id="smSend" type="button">Send to chart</button><button class="big" id="smPdf" type="button">PDF</button><button class="big" id="smXls" type="button">Excel</button></div>
+      <div hidden style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px"><button class="big pri" id="smSend" type="button">Send to chart</button><button class="big" id="smPdf" type="button">PDF</button><button class="big" id="smXls" type="button">Excel</button></div>
     </section>
+    <details class="more" id="custSet"><summary>Customize this report &amp; your own templates</summary><div class="rail">
     <section class="panel simple" aria-labelledby="h-cust">
       <h2 id="h-cust">Customize this template</h2>
       <div class="note" style="margin:0;font-size:13px">Turn parts on or off, reorder them, and pick what each one shows. Saved for your staff.</div>
@@ -300,6 +301,7 @@ details.more > .rail { margin-top: 8px }
       <div id="myTpls"></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><label class="big" for="tplFile" style="cursor:pointer">Upload template<input type="file" id="tplFile" accept=".xlsx,.docx,.pptx" hidden></label><button class="big" id="tagOpen" type="button">Tag list</button></div>
     </section>
+    </div></details>
     <details class="more" id="moreSet"><summary>More settings</summary><div class="rail">
     <section class="panel" aria-labelledby="h-data">
       <h2 id="h-data">1 · Hudl data <small id="dataSum"></small></h2>
@@ -1145,7 +1147,7 @@ details.more > .rail { margin-top: 8px }
     flowRender(); try { window.scrollTo(0, 0) } catch (e) {}
   }
   document.addEventListener("click", function (ev) { var b = ev.target.closest("[data-go]"); if (b) go(b.dataset.go) });
-  function weekTitle() { var us = (ACC && ACC.profile && ACC.profile.name) || "Our team"; return WK.cur ? us + (WK.cur.ha === "A" ? " at " : " vs ") + WK.cur.opp : "Scout reports" }
+  function weekTitle() { var us = (ACC && ACC.profile && ACC.profile.name) || "Our team"; return WK.cur ? us + (WK.cur.ha === "A" ? " at " : " vs ") + WK.cur.opp : "This week's reports" }
   function weekWhen() { if (!WK.cur) return "No week picked"; var nx = wkNext(WK.list); return (nx && nx.date === WK.cur.date ? "This week · " : "") + wkNice(WK.cur).split(" · ")[0] }
   function pickId() { return CUR ? (CUR.id === "self" ? "S" : CUR.side === "O" ? "O" : "D") : "D" }
   function choose(k) {
@@ -1522,16 +1524,16 @@ details.more > .rail { margin-top: 8px }
     classic: { t: "Classic tables", sides: "DO", r: function () { return "" } }
   };
   var TPLS = [
-    { id: "dash", name: "Defensive Tendency Dashboard", who: "For the OC", side: "D", blocks: ["kpiD", "top3", "heat", "donut", "zones", "tells", "blitzbars"] },
-    { id: "third", name: "3rd Down & Red Zone", who: "For the OC", side: "D", blocks: ["top3", "third", "zones", "fourth", "tells"] },
+    { id: "dash", main: 1, name: "Defensive Tendency Dashboard", who: "For the OC", side: "D", blocks: ["kpiD", "top3", "heat", "donut", "zones", "tells", "blitzbars"] },
+    { id: "third", main: 1, name: "3rd Down & Red Zone", who: "For the OC", side: "D", blocks: ["top3", "third", "zones", "fourth", "tells"] },
     { id: "off", name: "Opponent Offense Report", who: "For the DC", side: "O", blocks: ["kpiO", "top3", "pers", "forms", "bftells", "hit", "ddrp", "expl", "openers", "hashrp"] },
-    { id: "one", name: "Game-Week One-Pager", who: "Everyone", side: "*", blocks: ["kpi", "top3", "main", "zones", "tells"] },
+    { id: "one", main: 1, name: "Game-Week One-Pager", who: "Everyone", side: "*", blocks: ["kpi", "top3", "main", "zones", "tells"] },
     { id: "self", name: "Self-Scout Alarm", who: "Self scout", side: "O", blocks: ["kpiO", "alarm", "ddrp", "forms", "pers"] },
-    { id: "sim", name: "Game Preview (sim)", who: "For the OC", side: "D", blocks: ["sim"] },
+    { id: "sim", main: 1, name: "Game Preview (sim)", who: "For the OC", side: "D", blocks: ["sim"] },
     { id: "pred", name: "Matchup Predictor", who: "Everyone", side: "*", blocks: ["predict"] },
     { id: "classic", name: "Classic tables", who: "Everyone", side: "*", blocks: ["classic"] }
   ];
-  var TSEL = "dash", TPREF = {};
+  var TSEL = "dash", TPREF = {}, MOREREP = (function () { try { return !!localStorage.getItem("solutions-morerep") } catch (e) { return false } })();
   function tplOf(id) { return TPLS.filter(function (t) { return t.id === id })[0] }
   function tplBlocks(t) { var side = SIDE, b = t.blocks.map(function (k) { return k === "kpi" ? (side === "D" ? "kpiD" : "kpiO") : k === "main" ? (side === "D" ? "heat" : "ddrp") : k }); var pf = TPREF[t.id]; if (pf && pf.order) { var ord = pf.order.filter(function (k) { return b.indexOf(k) >= 0 }); b.forEach(function (k) { if (ord.indexOf(k) < 0) ord.push(k) }); b = ord } return b }
   function blockOn(t, k) { var pf = TPREF[t.id]; return !(pf && pf.off && pf.off[k]) }
@@ -1543,7 +1545,10 @@ details.more > .rail { margin-top: 8px }
     var t0 = tplOf(TSEL) || TPLS[0];
     if (t0.side !== "*" && t0.side !== SIDE) { TSEL = SIDE === "D" ? "dash" : "off" }
     var t = tplOf(TSEL) || TPLS[0], fits = function (x) { return x.side === "*" || x.side === SIDE || (x.id === "self" && SIDE === "O") };
-    $("tplList").innerHTML = TPLS.map(function (x) { return "<button type='button' class='tpick" + (x.id === t.id ? " on" : "") + (fits(x) ? "" : " dim") + "' data-tpl='" + x.id + "'><b>" + esc(x.name) + "</b><span>" + esc(x.who) + (fits(x) ? "" : " · needs " + (x.side === "D" ? "their defense" : "offense") + " files") + "</span></button>" }).join("");
+    var shown = TPLS.filter(function (x) { return x.main || MOREREP || x.id === t.id });
+    $("tplList").innerHTML = shown.map(function (x) { return "<button type='button' class='tpick" + (x.id === t.id ? " on" : "") + (fits(x) ? "" : " dim") + "' data-tpl='" + x.id + "'><b>" + esc(x.name) + "</b><span>" + esc(x.who) + (fits(x) ? "" : " · needs " + (x.side === "D" ? "their defense" : "offense") + " files") + "</span></button>" }).join("");
+    $("tplList").innerHTML += "<button type='button' class='tpick' id='moreRep'><b>" + (MOREREP ? "Fewer reports" : "More reports") + "</b><span>" + (MOREREP ? "back to the main four" : "Offense report, self-scout alarm, matchup predictor, classic tables") + "</span></button>";
+    $("moreRep").onclick = function () { MOREREP = !MOREREP; try { localStorage.setItem("solutions-morerep", MOREREP ? "1" : "") } catch (e) {} renderTemplates() };
     var classic = t.id === "classic"; $("report").hidden = !classic || VIEW !== "report"; $("tplOut").hidden = classic;
     renderFilters(); renderCustom(t);
     if (classic) { renderReport(); return }

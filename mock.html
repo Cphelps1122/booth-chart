@@ -456,7 +456,8 @@ body { padding-bottom: 90px }
     if (/HEAD|ODD|MINT|TIGHT|BEAR/.test(F)) rows = [[E, 1.3, "E", 0], [2.6, 1.1, "T", 1], [0, 1.1, "N", 1], [-2.6, 1.1, "T", 1], [1.4, 4.6, "M", 0], [-5.8, 1.3, "E", 0]];
     else if (/UNDER/.test(F)) rows = [[te ? 6.8 : 5.4, 1.2, "DE", 1], [.8, 1.1, "N", 1], [-2.8, 1.1, "DT", 1], [-5.4, 1.2, "DE", 1], [1.4, 4.6, "M", 0], [-3.3, 4.6, "W", 0]];
     else if (/WIDE/.test(F)) rows = [[te ? 8 : 7.2, 1.3, "DE", 1], [2.6, 1.1, "DT", 1], [0, 1.1, "N", 1], [-7.2, 1.3, "DE", 1], [1, 2.6, "M", 0], [-3.3, 4.6, "W", 0]];
-    else if (/EAGLE/.test(F)) rows = [[te ? 6.8 : 5.4, 1.2, "DE", 1], [2.8, 1.1, "DT", 1], [-.8, 1.1, "N", 1], [-3.6, 1.1, "DE", 1], [1.4, 4.6, "M", 0], [-5.8, 1.6, "W", 0]];
+    // Eagle (Wyatt Tight-camera clips 115-130): 3 down, tight to the ball (3 technique, nose shaded weak, weak tackle in a 4i), stand-up edges both sides, backers ~4-5
+    else if (/EAGLE/.test(F)) rows = [[E, 1.3, "E", 0], [2.7, 1.1, "T", 1], [-.8, 1.1, "N", 1], [-3.2, 1.1, "T", 1], [1.4, 4.6, "M", 0], [-5.8, 1.3, "E", 0]];
     else if (/STACK/.test(F)) rows = [[te ? 6.6 : 5.4, 1.2, "DE", 1], [2.4, 1.1, "DT", 1], [-2.4, 1.1, "DT", 1], [-5.4, 1.2, "DE", 1], [2.4, 4.4, "M", 0], [-2.4, 4.4, "W", 0]];
     else rows = [[te ? 6.6 : 5.4, 1.2, "DE", 1], [2.8, 1.1, "DT", 1], [-.8, 1.1, "N", 1], [-5.4, 1.2, "DE", 1], [1.4, 4.6, "M", 0], [-3.3, 4.6, "W", 0]]; // Over / Even / untagged
     return rows;

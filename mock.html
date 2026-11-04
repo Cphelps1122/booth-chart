@@ -395,8 +395,8 @@ body { padding-bottom: 90px }
     "RED WIDE": [[63, 432], [571, 438], [711, 476], [711, 438], [333, 487]],
     "RED": [[63, 432], [508, 460], [616, 460], [711, 438], [333, 487]],
     "BASH": [[63, 432], [476, 465], [505, 432], [542, 465], [333, 487]],
-    "SLOT DIP": [[63, 432], [258, 454], [571, 454], [673, 432], [333, 487]],
-    "SLOT TRIG": [[63, 432], [351, 454], [571, 454], [673, 432], [333, 487]],
+    "SLOT DIP": [[63, 432], [250, 452], [571, 454], [673, 432], [333, 487]],
+    "SLOT TRIG": [[63, 432], [571, 454], [556, 478], [673, 432], [333, 487]],
     "SLOT": [[63, 432], [258, 454], [571, 454], [673, 432], [333, 487]],
     "GRAY": [[63, 454], [240, 432], [571, 454], [673, 432], [333, 487]],
     "PRO": [[63, 432], [370, 432], [571, 454], [673, 454], [333, 487]],
@@ -465,6 +465,7 @@ body { padding-bottom: 90px }
     var bx = bxOf(); if (!call) return;
     var BK = !ALIGN.off[call.form] && bookOf(call.form); P.o = BK ? bookPlace(BK, bx) : placeOff(offStd(call.form), bx); var s = strengthOf(P.o, bx), ft = ftypeOf(P.o, bx);
     P.d = placeDef(defStd(look && look.front, look ? look.sh : "MFO", ft, look && look.cov), s, bx); P.s = s;
+    P.o.slice(6, 10).sort(function (a, b) { return a.x - b.x || b.y - a.y }).forEach(function (p, i) { p.lab = String(i + 1); p.num = p.lab }); P.o[10].lab = "0"; P.o[10].num = "0";
     if (!ALIGN.def[defKey(look && look.front, look ? look.sh : "MFO", ft)] && !ALIGN.def[defKey(null, look ? look.sh : "MFO", ft)]) keyOn(P.o, P.d, s, bx, ft, look ? look.sh : "MFO");
     if (look && look.blitz) blitzers(P.d, look.blitz, s, bx);
     CAMX = bx * (NARROW ? .45 : .35); P.ball = { x: bx, y: -.2, z: 0 }; P.carry = -1; P.trail = []; P.tackle = null; P.showPlan = false;

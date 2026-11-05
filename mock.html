@@ -4,140 +4,74 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@600;800&family=Barlow:wght@400;500;600;700&display=swap">
 <style>
-/* layout: press-box view — scoreboard strip, end-zone-camera field, the read and the call sheet beside it, drive log and report below */
-:root {
-  --night: #0b1016; --panel: #131b24; --panel2: #0f161e; --line: #24313f; --ink: #e9eef3; --muted: #8fa0b2;
-  --us: #d4213d; --them: #2e5aa8; --gold: #f2c14e; --good: #3fbf6f; --bad: #ef5a5a;
-  --f-display: "Saira Condensed", "Arial Narrow", sans-serif; --f-body: "Barlow", system-ui, sans-serif;
-  color-scheme: dark;
-}
-* { box-sizing: border-box }
-body { margin: 0; background: var(--night); color: var(--ink); font: 15px/1.45 var(--f-body); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 14px 40px }
-.wrap { max-width: 1060px; margin: 0 auto; display: grid; gap: 12px }
-h1 { margin: 0; font: 800 24px/1 var(--f-display); letter-spacing: .06em; text-transform: uppercase }
-h1 span { color: var(--us) }
-h2 { margin: 0 0 8px; font: 800 18px/1.1 var(--f-display); letter-spacing: .06em; text-transform: uppercase; text-wrap: balance }
-h2 span { color: var(--muted); font: 500 13px var(--f-body); letter-spacing: 0; text-transform: none }
-.top { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between }
-.board { display: flex; flex-wrap: wrap; gap: 8px }
-.cell { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; display: grid; align-content: center; min-width: 70px }
-.cell small { font: 600 11px/1.2 var(--f-body); letter-spacing: .1em; text-transform: uppercase; color: var(--muted) }
-.cell b { font: 800 26px/1.05 var(--f-display); letter-spacing: .02em; font-variant-numeric: tabular-nums }
-.cell.us b { color: var(--us) } .cell.them b { color: #7ea6ef } .cell.dd { background: var(--us); border-color: var(--us) } .cell.dd small { color: #ffd9de }
-.fieldbox { position: relative; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); background: #08111a }
-canvas { display: block; width: 100%; height: auto; max-width: 100%; touch-action: none }
-.tag { position: absolute; left: 10px; top: 8px; font: 600 12.5px/1.3 var(--f-body); background: rgba(11,16,22,.8); border: 1px solid var(--line); border-radius: 6px; padding: 5px 9px; max-width: calc(100% - 20px) }
-.tag b { color: var(--gold) }
-.result { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); font: 800 clamp(17px, 4.2vw, 32px)/1 var(--f-display); letter-spacing: .03em; text-transform: uppercase; background: rgba(11,16,22,.85); border-radius: 8px; padding: 8px 16px; white-space: nowrap }
-.result.good { color: var(--good) } .result.bad { color: var(--bad) } .result.td { color: var(--gold) }
-.cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr); gap: 12px; align-items: start }
-@media (max-width: 760px) { .cols { grid-template-columns: 1fr } }
-.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; min-width: 0 }
-.bar { display: grid; grid-template-columns: 110px 1fr 44px; gap: 8px; align-items: center; margin: 4px 0; font-size: 14px }
-.bar .t { background: #1b2632; border-radius: 3px; overflow: hidden; height: 10px } .bar i { display: block; height: 10px; background: var(--them) } .bar i.r { background: var(--bad) }
-.bar em { font-style: normal; text-align: right; font-variant-numeric: tabular-nums; color: var(--muted) }
-.sub { font: 700 12px var(--f-body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 10px 0 2px }
-.note { color: var(--muted); font-size: 13px; margin: 8px 0 0 }
-.chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px }
-.chip, .btn { font: 700 14px var(--f-display); letter-spacing: .08em; text-transform: uppercase; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel2); color: var(--ink); cursor: pointer }
-.chip[aria-pressed="true"] { background: var(--ink); color: var(--night) }
-.btn.pri { background: var(--us); border-color: var(--us) } .btn.gold { background: var(--gold); border-color: var(--gold); color: #1a1406 }
-.btn:disabled { opacity: .45; cursor: default }
-.chip:focus-visible, .btn:focus-visible, .call:focus-visible, select:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px }
-.calls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; max-height: 520px; overflow-y: auto; padding-right: 2px }
-@media (max-width: 440px) { .calls { grid-template-columns: 1fr } }
-.call { text-align: left; font: inherit; color: var(--ink); background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; cursor: pointer; display: grid; gap: 1px }
-.call:hover:not(:disabled) { border-color: var(--us) } .call:disabled { opacity: .45; cursor: default }
-.call b { font: 800 17px/1.1 var(--f-display); letter-spacing: .04em; text-transform: uppercase }
-.call span { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums }
-.call .k { font: 700 11px var(--f-body); letter-spacing: .08em; text-transform: uppercase; color: var(--gold) }
-.call .k.thin { color: var(--muted) }
-.call.pick { border-color: var(--gold) }
-.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center }
-.fourth { background: #2a1f08; border: 1px solid var(--gold); border-radius: 8px; padding: 10px; margin-bottom: 10px }
-.fourth p { margin: 0 0 8px }
-.their { background: #10203a; border: 1px solid var(--them); border-radius: 8px; padding: 10px 12px }
-.log { margin: 0; padding: 0; list-style: none; display: grid; gap: 3px; font-size: 13.5px; font-variant-numeric: tabular-nums; max-height: 320px; overflow-y: auto }
-.log li { display: grid; grid-template-columns: 120px minmax(0, 1fr) 54px; gap: 8px; border-top: 1px solid var(--line); padding-top: 3px }
-.log li.dv { grid-template-columns: 1fr; color: var(--muted); font-weight: 600 }
-.log .g { color: var(--good) } .log .r { color: var(--bad) } .log .y { color: var(--gold) }
-.tbl { overflow-x: auto } table { border-collapse: collapse; width: 100%; font-size: 13.5px; font-variant-numeric: tabular-nums } th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); white-space: nowrap } th { font: 700 11.5px var(--f-body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted) }
-.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-bottom: 12px }
-.kpi { background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px } .kpi b { display: block; font: 800 28px/1 var(--f-display) } .kpi small { color: var(--muted) }
-.drop { display: grid; gap: 4px; border: 2px dashed var(--line); border-radius: 10px; padding: 14px; cursor: pointer; background: var(--panel2) }
-.drop b { font: 800 17px var(--f-display); letter-spacing: .05em; text-transform: uppercase } .drop span { color: var(--muted); font-size: 13px } .drop.ok { border-color: var(--good) }
-.grid3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px }
-select { font: inherit; background: var(--panel2); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px }
-label.f { display: grid; gap: 3px; font-size: 12px; color: var(--muted); font-weight: 600; letter-spacing: .06em; text-transform: uppercase }
-.snapbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 25; display: flex; gap: 10px; align-items: center; justify-content: center; background: rgba(11,16,22,.95); border-top: 2px solid var(--us); padding: 10px max(16px, env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)) }
-.snapbar span { font: 800 20px var(--f-display); letter-spacing: .04em; text-transform: uppercase; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
-.snapbar .btn.pri { font-size: 20px; padding: 10px 28px }
-.call.sel { border-color: var(--us); background: #2a0f16 }
-body { padding-bottom: 90px }
-.toast { bottom: calc(84px + env(safe-area-inset-bottom, 0px)) !important }
+/* layout: same order as the live chart — scoreboard, spot strip, the call sheet on screen, drives drawn on the field, play by play */
+:root { --night: #0b1016; --panel: #131b24; --panel2: #0f161e; --line: #24313f; --ink: #e9eef3; --muted: #8fa0b2; --us: #d4213d; --them: #2e5aa8; --gold: #f2c14e; --good: #3fbf6f; --bad: #ef5a5a; --f-display: "Saira Condensed", "Arial Narrow", sans-serif; --f-body: "Barlow", system-ui, sans-serif; color-scheme: dark }
+* { box-sizing: border-box } [hidden] { display: none !important }
+body { margin: 0; background: var(--night); color: var(--ink); font: 15px/1.45 var(--f-body); padding: 12px max(16px, env(safe-area-inset-right, 0px)) 96px max(16px, env(safe-area-inset-left, 0px)) }
+.wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 12px; min-width: 0 } #game { display: grid; gap: 12px; min-width: 0 }
+h1 { margin: 0; font: 800 24px/1 var(--f-display); letter-spacing: .06em; text-transform: uppercase } h1 span { color: var(--us) }
+h2 { margin: 0 0 8px; font: 800 18px/1.1 var(--f-display); letter-spacing: .06em; text-transform: uppercase } h2 span, h2 small { color: var(--muted); font: 500 13px var(--f-body); letter-spacing: 0; text-transform: none }
+.top, .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center } .top { justify-content: space-between }
 .sitenav { display: flex; flex-wrap: wrap; gap: 2px 12px; margin-top: 6px; font: 600 13px var(--f-body) } .sitenav a { color: var(--muted); text-decoration: none } .sitenav a.cur { color: var(--ink) }
-.toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--night); padding: 8px 14px; border-radius: 8px; font-weight: 600; z-index: 30 }
-@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto } }
+.board { display: flex; flex-wrap: wrap; gap: 8px } .cell { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; min-width: 70px } .cell small { display: block; font: 600 11px/1.2 var(--f-body); letter-spacing: .1em; text-transform: uppercase; color: var(--muted) } .cell b { font: 800 26px/1.05 var(--f-display); font-variant-numeric: tabular-nums } .cell.us b { color: #ff6b81 } .cell.them b { color: #7ea6ef } .cell.dd { background: var(--us); border-color: var(--us) } .cell.dd small { color: #ffd9de }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; min-width: 0 }
+.field { position: relative; border-radius: 10px; overflow: hidden; border: 1px solid var(--line) } .field svg { display: block; width: 100%; height: auto; font-family: "Barlow", Arial, sans-serif }
+.result { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); font: 800 clamp(16px, 3.6vw, 26px)/1 var(--f-display); text-transform: uppercase; background: rgba(11,16,22,.88); padding: 6px 12px; border-radius: 6px; white-space: nowrap; pointer-events: none } .result.good { color: var(--good) } .result.bad { color: var(--bad) } .result.td { color: var(--gold) }
+.btn { font: 700 14px var(--f-display); letter-spacing: .08em; text-transform: uppercase; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel2); color: var(--ink); cursor: pointer; min-height: 40px } .btn.pri { background: var(--us); border-color: var(--us) } .btn.gold { background: var(--gold); border-color: var(--gold); color: #1a1406 } .btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px }
+.gswrap { overflow: auto; border: 1px solid #222; max-height: 62vh; -webkit-overflow-scrolling: touch }
+.gsgrid { display: grid; background: #fff; color: #000; font: 700 12px Arial, Helvetica, sans-serif; width: max-content; min-width: 100% }
+.gsgrid > div { background: #fff; min-height: 24px; box-shadow: 0 0 0 .5px #9aa3ad; display: flex; align-items: center; padding: 1px 3px; overflow: hidden } .gsgrid .gh { justify-content: center; text-align: center; font-weight: 900 } .gsgrid .sit-on { outline: 3px solid #ffd400; outline-offset: -3px } .gsgrid .gc.sit-on { background: #fff9d6 } .gsgrid .gc { gap: 2px; flex-wrap: wrap }
+.gsgrid .gc button { font: inherit; border: 1px solid transparent; background: none; padding: 5px; border-radius: 5px; cursor: pointer; flex: 1 1 auto; text-align: left; white-space: nowrap; line-height: 1.15 } .gsgrid .gc button:hover:enabled { border-color: #9aa3ad } .gsgrid .gc button:disabled { cursor: default } .gsgrid .gc button[aria-pressed=true] { background: #111; color: #fff } .gsgrid .k-run { color: #d00000 } .gsgrid .k-pass { color: #0030d0 } .gsgrid .k-scr { color: #000 } .gsgrid .d { font-size: .8em; opacity: .7; margin-right: 3px } .gsgrid .n { font-size: .78em; background: #ffd400; color: #000; border-radius: 4px; padding: 0 3px; margin-left: 3px }
+.bar { display: grid; grid-template-columns: 110px 1fr 44px; gap: 8px; align-items: center; margin: 4px 0; font-size: 14px } .bar .t { background: #1b2632; border-radius: 3px; overflow: hidden; height: 10px } .bar i { display: block; height: 10px; background: var(--them) } .bar i.r { background: var(--bad) } .bar em { font-style: normal; text-align: right; color: var(--muted) }
+.sub { font: 700 12px var(--f-body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 10px 0 2px } .note { color: var(--muted); font-size: 13px; margin: 8px 0 0 }
+.fourth { background: #2a1f08; border: 1px solid var(--gold); border-radius: 8px; padding: 10px } .fourth p { margin: 0 0 8px } .their { background: #10203a; border: 1px solid var(--them); border-radius: 8px; padding: 10px 12px }
+.drill { background: #10203a; border: 1px solid var(--gold); border-radius: 8px; padding: 10px 12px } .drill small { display: block; color: var(--muted); font-weight: 600; letter-spacing: .08em; text-transform: uppercase } .drill b { font: 800 24px/1.15 var(--f-display); text-transform: uppercase } .drill p { margin: 2px 0 0; color: var(--muted) }
+.log { margin: 0; padding: 0; list-style: none; display: grid; gap: 3px; font-size: 13.5px; max-height: 300px; overflow-y: auto } .log li { display: grid; grid-template-columns: 120px minmax(0, 1fr) 44px; gap: 8px; border-top: 1px solid var(--line); padding-top: 3px } .log li.dv { grid-template-columns: 1fr; color: var(--muted); font-weight: 600 } .log .g { color: var(--good) } .log .r { color: var(--bad) } .log .y { color: var(--gold) }
+.tbl { overflow-x: auto } table { border-collapse: collapse; width: 100%; font-size: 13.5px } th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); white-space: nowrap } th { font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted) }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin-bottom: 12px } .kpi { background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px } .kpi b { display: block; font: 800 28px/1 var(--f-display) } .kpi small { color: var(--muted) }
+.drop { display: grid; gap: 4px; border: 2px dashed var(--line); border-radius: 10px; padding: 14px; cursor: pointer; background: var(--panel2); min-width: 0 } .drop b { font: 800 17px var(--f-display); text-transform: uppercase; letter-spacing: .05em } .drop span { color: var(--muted); font-size: 13px; overflow-wrap: anywhere } .drop.ok { border-color: var(--good) } .drop.big { padding: 22px } .grid3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px }
+label.f { display: grid; gap: 3px; font-size: 12px; color: var(--muted); font-weight: 600; letter-spacing: .06em; text-transform: uppercase } input[type=text], select { font: inherit; background: var(--panel2); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 7px 8px; min-height: 38px } .mode { display: flex; gap: 8px; align-items: flex-start; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel2); cursor: pointer } .mode b { display: block }
+summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
+.snapbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 25; display: flex; gap: 10px; align-items: center; justify-content: center; background: rgba(11,16,22,.95); border-top: 2px solid var(--us); padding: 10px max(16px, env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)) } .snapbar span { font: 800 20px var(--f-display); text-transform: uppercase; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap } .snapbar .btn.pri { font-size: 20px; padding: 10px 28px }
+.toast { position: fixed; left: 50%; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--night); padding: 8px 14px; border-radius: 8px; font-weight: 600; z-index: 30; max-width: 90vw }
 </style>
 
 <div class="wrap">
   <div class="top">
     <div><h1>Mock <span>Game</span></h1><nav class="sitenav" data-solnav="mock"></nav></div>
-    <div class="row"><button class="btn" id="editBtn" type="button">Fix alignments</button><button class="btn" id="dataBtn" type="button">Data</button><button class="btn" id="endBtn" type="button">End &amp; report</button></div>
+    <div class="row"><span class="note" id="modeTag" style="margin:0"></span><button class="btn" id="setupBtn" type="button">Setup</button><button class="btn" id="endBtn" type="button">End &amp; report</button></div>
   </div>
 
-  <section class="panel" id="setup" hidden>
-    <h2>Game data <span>Hudl exports, .xlsx or .csv</span></h2>
-    <div class="grid3">
-      <label class="drop" id="dOurs" for="fOurs"><b>Our offense</b><span id="nOurs">Self-scout export. Builds the call sheet and every result.</span><input type="file" id="fOurs" accept=".xlsx,.csv" multiple hidden></label>
-      <label class="drop" id="dThem" for="fThem"><b>Their games</b><span id="nThem">Their defense tagged (front, shell, blitz). Full games also give their offense's drives.</span><input type="file" id="fThem" accept=".xlsx,.csv" multiple hidden></label>
+  <section class="panel" id="setup">
+    <h2>Run a game your way <small>Practice calling a game, or practice charting one</small></h2>
+    <label class="drop big" id="dSheet" for="fSheet"><b>Upload your call sheet</b><span id="nSheet">Your sheet, laid out like it is on game day. Google Sheets: File, Download, Microsoft Excel (.xlsx).</span><input type="file" id="fSheet" accept=".xlsx" hidden></label>
+    <div class="grid3" style="margin-top:10px">
+      <label class="mode"><input type="radio" name="mode" value="call" checked><span><b>Call the game</b><span class="note">Tap a play, snap it, and the result comes back on its own.</span></span></label>
+      <label class="mode"><input type="radio" name="mode" value="chart"><span><b>Charting practice</b><span class="note">Hear the call, then chart the play, result and spot. You're graded on it.</span></span></label>
     </div>
-    <div class="row" style="margin-top:8px"><button class="btn" id="clrOurs" type="button">Clear our files</button><button class="btn" id="clrThem" type="button">Clear their files</button><span class="note" id="saveNote" style="margin:0"></span></div>
-    <div class="row" style="margin-top:10px"><label class="f">Opponent<input id="oppName" value="Liberty" style="font:inherit;background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:6px 8px"></label><label class="f">Game length<select id="len"><option value="4">Full game</option><option value="2">One half</option></select></label><button class="btn pri" id="startBtn" type="button">Start new game</button></div>
-    <div id="chk"></div>
+    <div class="row" style="margin-top:10px;align-items:flex-end"><label class="f">Your team<input type="text" id="usName" value="Our team"></label><label class="f">Opponent<input type="text" id="oppName" value="Opponent"></label><label class="f">Game length<select id="len"><option value="4">Full game</option><option value="2">One half</option></select></label><button class="btn pri" id="startBtn" type="button">Start</button><button class="btn" id="sampleBtn" type="button">Try a sample game</button></div>
+    <details><summary>Make results more real with Hudl film (optional)</summary>
+      <div class="grid3"><label class="drop" id="dOurs" for="fOurs"><b>Our offense</b><span id="nOurs"></span><input type="file" id="fOurs" accept=".xlsx,.csv" multiple hidden></label><label class="drop" id="dThem" for="fThem"><b>Their games</b><span id="nThem"></span><input type="file" id="fThem" accept=".xlsx,.csv" multiple hidden></label></div>
+      <div class="row" style="margin-top:8px"><button class="btn" id="clrFilm" type="button">Clear film</button><span class="note" id="saveNote" style="margin:0"></span></div>
+    </details>
   </section>
 
-  <section class="panel" id="editor" hidden>
-    <h2>Fix alignments <span>drag any player, then save. Saved spots are used every time that look comes up.</span></h2>
-    <div class="chips" id="edMode"><button class="chip" type="button" data-m="def" aria-pressed="true">Their defense</button><button class="chip" type="button" data-m="off" aria-pressed="false">Our formations</button></div>
-    <div class="row" id="edSel" style="margin-bottom:8px"></div>
-    <div class="fieldbox"><canvas id="ed" width="1280" height="760" aria-label="Top-down field for dragging players into place"></canvas></div>
-    <div class="row" style="margin-top:8px"><button class="btn pri" id="edSave" type="button">Save</button><button class="btn" id="edReset" type="button">Reset to standard</button><button class="btn" id="edClose" type="button">Back to the game</button><span class="note" id="edNote" style="margin:0"></span></div>
-  </section>
-
-  <div id="game">
-    <div class="board" aria-live="polite" style="margin-bottom:12px">
-      <div class="cell us"><small id="lUs">Melissa</small><b id="sUs">0</b></div>
-      <div class="cell them"><small id="lThem">Liberty</small><b id="sThem">0</b></div>
-      <div class="cell"><small id="sQ">Q1</small><b id="sClock">12:00</b></div>
-      <div class="cell dd"><small>Down</small><b id="sDD">1st &amp; 10</b></div>
-      <div class="cell"><small>Ball</small><b id="sBall">MEL 30</b></div>
+  <div id="game" hidden>
+    <div class="board" aria-live="polite">
+      <div class="cell us"><small id="lUs"></small><b id="sUs">0</b></div><div class="cell them"><small id="lThem"></small><b id="sThem">0</b></div>
+      <div class="cell"><small id="sQ">Q1</small><b id="sClock">12:00</b></div><div class="cell dd"><small>Down</small><b id="sDD">1st &amp; 10</b></div><div class="cell"><small>Ball</small><b id="sBall"></b></div>
     </div>
-    <div class="fieldbox" style="margin-bottom:12px">
-      <canvas id="fld" width="1280" height="760" aria-label="View from behind our offense"></canvas>
-      <div class="tag" id="tag"></div>
-      <div class="result" id="res" hidden></div>
-    </div>
-    <div class="cols">
-      <section class="panel">
-        <h2>Pre-snap read <span id="readSub"></span></h2>
-        <div id="read"></div>
-      </section>
-      <section class="panel">
-        <div id="act"></div>
-        <h2>Call sheet <span id="callSub">our real results, this situation first</span></h2>
-        <div class="chips" id="cf"><button class="chip" type="button" data-f="all" aria-pressed="true">All</button><button class="chip" type="button" data-f="run" aria-pressed="false">Run</button><button class="chip" type="button" data-f="pass" aria-pressed="false">Pass</button></div>
-        <div class="calls" id="calls"></div>
-      </section>
-    </div>
-    <section class="panel" style="margin-top:12px"><h2>Play by play</h2><ul class="log" id="log"></ul></section>
+    <div class="field"><svg id="strip" viewBox="0 0 1000 150" role="img" aria-label="Field showing the ball, line of scrimmage and line to gain"></svg><div class="result" id="res" hidden></div></div>
+    <div id="act"></div>
+    <section class="panel"><h2>Call sheet <small id="sheetSit"></small></h2><div class="gswrap"><div class="gsgrid" id="grid"></div></div></section>
+    <section class="panel" id="readPanel" hidden><h2>Pre-snap read <span id="readSub"></span></h2><div id="read"></div></section>
+    <section class="panel"><h2>Drives</h2><div class="field"><svg id="drives" viewBox="0 0 1000 120" role="img" aria-label="Drives drawn on the field"></svg></div></section>
+    <section class="panel"><h2>Play by play</h2><ul class="log" id="log"></ul></section>
   </div>
-
   <section class="panel" id="report" hidden></section>
 </div>
 <div class="snapbar" id="snapbar" hidden><span id="snapName"></span><button class="btn" id="unsel" type="button">Change</button><button class="btn pri" id="snapBtn" type="button">Snap</button></div>
 <div class="toast" id="toast" hidden></div>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="scoutkit.js"></script>
 <script src="nav.js"></script>
@@ -149,7 +83,6 @@ body { padding-bottom: 90px }
   function toast(t) { var e = $("toast"); e.textContent = t; e.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(function () { e.hidden = true }, 2600) }
   var rand = Math.random, pick = function (a) { return a[Math.floor(rand() * a.length)] };
   var titleCase = function (s) { return String(s || "").toLowerCase().replace(/\b[a-z]/g, function (c) { return c.toUpperCase() }) };
-
   // ======================= SAVING: school account (every device) + this device =======================
   var SOL = window.SOL_CONFIG || { db: "https://cardinal-booth-default-rtdb.firebaseio.com", apiKey: "AIzaSyDm0t01_w92gL5sm4_1RnVLip7xWkjb9ME" };
   function authGet() { try { return JSON.parse(localStorage.getItem("solutions-auth-v1") || "null") } catch (e) { return null } }
@@ -163,11 +96,9 @@ body { padding-bottom: 90px }
     $("saveNote").textContent = "Saved on this device.";
     cloud("files", "PUT", pack).then(function () { $("saveNote").textContent = "Saved to your school. Opens on every device you sign in on." }, function () { $("saveNote").textContent = authGet() ? "Saved on this device. Couldn't reach your school account; check the connection." : "Saved on this device. Sign in to Solutions to keep it on every device." });
   }
-  function usePack(p) { if (!p) return false; try { RAW.ours = JSON.parse(p.ours || "[]"); RAW.them = JSON.parse(p.them || "[]") } catch (e) { return false } if (p.opp) $("oppName").value = p.opp; return RAW.ours.length > 0 }
-  function saveAlign() { store.set("sol-mock-align", ALIGN); cloud("align", "PUT", JSON.stringify(ALIGN)).catch(function () {}) }
-
+  function usePack(p) { if (!p) return false; try { RAW.ours = JSON.parse(p.ours || "[]"); RAW.them = JSON.parse(p.them || "[]") } catch (e) { return false } return true }
   // ======================= DATA =======================
-  var D = { ours: null, them: null, opp: "Liberty", us: "Melissa" };
+  var D = { ours: null, them: null, opp: "Opponent", us: "Our team" };
   function ballOf(yl) { if (yl == null || isNaN(yl)) return null; return yl < 0 ? -yl : yl > 0 ? 100 - yl : 50 }
   function dnb(dn, dist) { if (dn === 1) return "1st"; if (dn === 4) return "4th"; var l = dist <= 3 ? "short" : dist <= 6 ? "medium" : "long"; return (dn === 2 ? "2nd" : "3rd") + " & " + l }
   function zone(b) { return b < 20 ? "backed up" : b >= 80 ? "red zone" : "open field" }
@@ -201,18 +132,6 @@ body { padding-bottom: 90px }
     var tries = [[function (r) { return r.b === b && r.z === z }, b + ", " + z], [function (r) { return r.b === b }, b], [function (r) { return r.dn === dn }, ["", "1st", "2nd", "3rd", "4th"][dn] + " down"], [function () { return true }, "all downs"]];
     for (var i = 0; i < tries.length; i++) { var p = D.def.filter(tries[i][0]); if (p.length >= 8 || i === tries.length - 1) return { rows: p, label: tries[i][1] } }
   }
-
-  // ======================= GAME =======================
-  var G, look, call = null, anim = null, FILTER = "all";
-  var QLEN = 12 * 60;
-  function newGame() { SEL = null;
-    var halves = +$("len").value || 4;
-    G = { q: halves === 2 ? 1 : 1, qs: halves, clock: QLEN, us: 0, them: 0, ball: 30, dn: 1, dist: 10, hash: "M", poss: "us", snaps: [], drives: [], drive: null, over: false, kickoff2: false, fourth: false, wait: false };
-    startDrive("Kickoff");
-    $("log").innerHTML = ""; $("report").hidden = true; $("game").hidden = false;
-    logDiv("Q1 · " + D.us + " ball at " + spot(G.ball));
-    refresh();
-  }
   function startDrive(how) { G.drive = { start: G.ball, how: how, plays: 0, yds: 0, q: G.q, clock: G.clock }; G.dn = 1; G.dist = Math.min(10, 100 - G.ball); G.fourth = false }
   function endDrive(res) { var d = G.drive; d.res = res; d.end = G.ball; G.drives.push(d); G.drive = null }
   function spot(b) { b = Math.round(b); return b === 50 ? "50" : b < 50 ? short(D.us) + " " + b : short(D.opp) + " " + (100 - b) }
@@ -226,7 +145,6 @@ body { padding-bottom: 90px }
     $("sDD").textContent = G.over ? "Final" : ord(G.dn) + " & " + (G.ball + G.dist >= 100 ? "Goal" : G.dist); $("sBall").textContent = spot(G.ball);
   }
   function situ() { return { b: dnb(G.dn, G.dist), z: zone(G.ball), dn: G.dn } }
-
   function lookPool(form) {
     var s = situ(), P = defPool(s.b, s.z, s.dn); if (!form) return P;
     var f = String(form).toUpperCase(), same = function (r) { return r.form && r.form.toUpperCase() === f };
@@ -251,68 +169,6 @@ body { padding-bottom: 90px }
   }
   // situational line for a call: same down & distance first
   // this down's numbers, pulled toward the call's overall numbers when there are only a few plays (K = 6 plays of weight)
-  function callStats(c) { var s = situ(), m = c.plays.filter(function (p) { return p.b === s.b }), K = 6, sum = function (L) { return L.reduce(function (t, p) { return t + p.gain }, 0) };
-    var allAvg = sum(c.plays) / c.plays.length, allEff = c.plays.filter(succ).length / c.plays.length, n = m.length;
-    return { n: n || c.plays.length, all: n >= 3, avg: (sum(m) + K * allAvg) / (n + K), eff: Math.round(100 * (m.filter(succ).length + K * allEff) / (n + K)), raw: n ? sum(m) / n : null } }
-  function dataPick() { var best = null; D.calls.forEach(function (c) { var st = callStats(c); if (!st.all) return; var sc = st.eff + st.avg; if (!best || sc > best.sc) best = { c: c, sc: sc, st: st } }); return best }
-  function callsHTML() {
-    var pk = dataPick(), L = D.calls.filter(function (c) { return FILTER === "all" || (FILTER === "run") === c.run }).map(function (c) { return { c: c, st: callStats(c) } });
-    L.sort(function (a, b) { return (b.st.all - a.st.all) || (b.st.eff + b.st.avg) - (a.st.eff + a.st.avg) });
-    if (!L.length) return "<p class='note'>No calls yet. Add our offense's Hudl export under Data.</p>";
-    return L.map(function (x) { var c = x.c, st = x.st, isPk = pk && pk.c === c; return "<button class='call" + (isPk ? " pick" : "") + "' type='button' data-c='" + esc(c.name) + "'><span class='k" + (st.all ? "" : " thin") + "'>" + (c.run ? "Run" : "Pass") + (isPk ? " · data's pick" : "") + (st.all ? " · " + st.n + " on this down" : " · few on this down") + (st.n < 6 && st.all ? " (thin)" : "") + "</span><b>" + esc(c.name) + "</b><span>" + c.n + " plays · " + st.avg.toFixed(1) + " yds · " + st.eff + "% success</span></button>" }).join("");
-  }
-  function refresh() {
-    board(); $("read").innerHTML = readHTML(); $("calls").innerHTML = callsHTML();
-    document.querySelectorAll("#calls .call").forEach(function (b) { b.disabled = !!(anim || G.wait || G.over || G.fourth); b.classList.toggle("sel", !!SEL && SEL.name === b.dataset.c); b.onclick = function () { var c = D.calls.filter(function (x) { return x.name === b.dataset.c })[0]; if (c) choose(c) } });
-    snapBar();
-    var act = "";
-    if (G.fourth && !G.over) { var fgd = 100 - G.ball + 17, fgp = fgProb(fgd); act = "<div class='fourth'><p><b>4th & " + G.dist + " at " + spot(G.ball) + ".</b> Go for it, punt, or kick?</p><div class='row'><button class='btn pri' type='button' data-4='go'>Go for it</button><button class='btn' type='button' data-4='punt'>Punt</button>" + (fgd <= 50 ? "<button class='btn' type='button' data-4='fg'>Field goal · " + fgd + " yds (" + Math.round(fgp * 100) + "%)</button>" : "") + "</div></div>" }
-    if (G.wait && G.theirCard) act = G.theirCard; // their drive stays on screen until we take the ball back
-    $("act").innerHTML = act; var ob = $("ourBall"); if (ob && G.ourBall) ob.onclick = G.ourBall; document.querySelectorAll("[data-4]").forEach(function (b) { b.onclick = function () { fourthDo(b.dataset["4"]) } });
-    if (!anim && !P.hold && !SEL) { if (!call && D.calls.length) call = D.calls[0]; camBall = G.ball; look = likely(); poses(); tagText(); draw() }
-  }
-  function likely() { var s = situ(), POOL = lookPool(SEL && SEL.form).rows, sh = top(POOL.map(function (r) { return r.sh }), 1)[0], fr = top(POOL.map(function (r) { return r.front }), 1)[0]; return { sh: sh ? sh.k : "MFO", front: fr ? fr.k : null, blitz: null, cov: null, likely: true } }
-  function tagText() { if (!look) return; $("tag").innerHTML = (look.likely ? "Their likely look: " : "They showed: ") + "<b>" + (SHELLN[look.sh] || "Shell not tagged") + "</b>" + (look.cov ? " · " + esc(look.cov) : "") + (look.front ? " · " + esc(look.front) + " front" : "") + (look.blitz ? " · <b style='color:var(--bad)'>" + esc(look.blitz) + "</b>" : "") + " · ball on " + ({ L: "left hash", R: "right hash", M: "middle" })[G.hash] }
-
-  // ---- pick a call: line it up against their likely look, wait for Snap ----
-  var SEL = null;
-  function choose(c) { if (anim || G.over || G.wait || G.fourth) return; clearTimeout(P.holdT); P.hold = false; SEL = c; call = c; camBall = G.ball; look = likely(); poses(); P.showPlan = true; tagText(); $("res").hidden = true; draw(); refresh() }
-  function snapBar() { var on = !!SEL && !anim && !G.over && !G.wait && !G.fourth; $("snapbar").hidden = !on; if (on) $("snapName").textContent = SEL.name }
-  $("snapBtn").onclick = function () { if (!SEL) return; var c = SEL; SEL = null; $("snapbar").hidden = true; snap(c) };
-  $("unsel").onclick = function () { SEL = null; P.showPlan = false; draw(); refresh(); var cs = $("calls"); if (cs) cs.scrollIntoView({ behavior: "smooth", block: "start" }) };
-  // ---- one of our snaps ----
-  function snap(c) {
-    if (anim || G.over || G.wait) return; clearTimeout(P.holdT); P.hold = false; camBall = G.ball; call = c;
-    var s = situ(), POOL = lookPool(c.form).rows, L = POOL.length ? pick(POOL) : { sh: "MFO" };
-    look = { sh: L.sh || "MFO", front: L.front, blitz: L.blitz, cov: L.cov, likely: false };
-    // the result: one of this call's real plays, leaning toward plays against the same shell and down
-    var W = c.plays.map(function (p) { return (p.sh && p.sh === look.sh ? 3 : 1) * (p.b === s.b ? 1.5 : 1) }), tot = W.reduce(function (a, b) { return a + b }, 0), r = rand() * tot, pl = c.plays[0];
-    for (var i = 0; i < W.length; i++) { r -= W[i]; if (r <= 0) { pl = c.plays[i]; break } }
-    var res = String(pl.res || "").toUpperCase(), gain = pl.gain || 0;
-    var out = { gain: gain, inc: false, int: /INTERCEPT/.test(res), fum: /FUMBLE/.test(res) && rand() < .5, sack: /SACK/.test(res) };
-    if (!c.run && !out.int && !out.sack && /INCOMPLETE/.test(res)) out.inc = true;
-    if (G.ball + out.gain > 100) out.gain = 100 - G.ball; if (G.ball + out.gain < 1) out.gain = 1 - G.ball;
-    poses(); tagText(); $("res").hidden = true; anim = true; refresh();
-    play(c, out, function (endX) { anim = null; apply(c, out, endX) });
-  }
-  function apply(c, o, endX) {
-    var before = spot(G.ball) + " · " + ord(G.dn) + "&" + G.dist, txt, cls, sit = situ();
-    G.snaps.push({ b: sit.b, z: sit.z, call: c.name, run: c.run, sh: look.sh, front: look.front, blitz: look.blitz, gain: o.inc || o.int ? 0 : o.gain, ok: false, pick: (dataPick() || {}).c ? dataPick().c.name : null, hist: callStats(c).avg, pickHist: dataPick() ? dataPick().st.avg : null });
-    var S = G.snaps[G.snaps.length - 1];
-    G.clock -= o.inc ? 8 : (c.run ? 36 : 30);
-    G.drive.plays++;
-    if (o.int || o.fum) { txt = o.int ? "Intercepted" : "Fumble · lost"; cls = "bad"; G.ball += o.int ? Math.max(0, o.gain) : o.gain; G.drive.yds += o.int ? 0 : o.gain; logSnap(before, c, o, txt, "r"); endDrive(o.int ? "Interception" : "Fumble"); show(txt, cls); return afterOurs(100 - G.ball) }
-    if (!o.inc) { G.ball += o.gain; G.drive.yds += o.gain; G.hash = endX < -6 ? "L" : endX > 6 ? "R" : "M" }
-    S.ok = succ({ gain: S.gain, dn: G.dn, dist: G.dist });
-    if (G.ball >= 100) { G.us += 7; txt = "Touchdown"; cls = "td"; logSnap(before, c, o, txt, "y"); endDrive("Touchdown"); show(txt, cls); return afterOurs(null, true) }
-    if (!o.inc && o.gain >= G.dist) { G.dn = 1; G.dist = Math.min(10, 100 - G.ball); txt = "Gain of " + o.gain + " · first down"; cls = "good" }
-    else { G.dn++; if (!o.inc) G.dist -= o.gain; txt = o.inc ? "Incomplete" : o.sack ? "Sack · loss of " + (-o.gain) : o.gain < 0 ? "Loss of " + (-o.gain) : o.gain === 0 ? "No gain" : "Gain of " + o.gain; cls = S.ok ? "good" : "bad" }
-    logSnap(before, c, o, txt, S.ok ? "g" : "r"); show(txt, cls);
-    if (G.dn > 4) { endDrive("Downs"); return afterOurs(100 - G.ball) }
-    if (G.dn === 4) G.fourth = true;
-    if (clockOut()) return;
-    refresh();
-  }
   function fgProb(d) { return d <= 25 ? .9 : d <= 32 ? .78 : d <= 38 ? .6 : d <= 44 ? .4 : d <= 50 ? .2 : 0 }
   function fourthDo(k) {
     G.fourth = false;
@@ -340,7 +196,7 @@ body { padding-bottom: 90px }
     var card = "<div class='their'><b>" + esc(D.opp) + " ball at their " + start + ".</b> " + plays + " plays · " + clk(used) + " · <b>" + res + "</b>" + (pts ? " (+" + pts + ")" : "") + "<p class='note' style='margin:4px 0 8px'>" + (R.real ? "Drawn from their real drives: TD on " + Math.round(R.td * 100) + "% of " + R.n + "." : "Default rates. Add their full games to use their real drives.") + "</p><button class='btn pri' type='button' id='ourBall'>" + (cut ? "Continue" : "Our ball at " + spot(nextBall)) + "</button></div>";
     G.theirLog = (G.theirLog || []).concat([{ start: start, plays: plays, res: res, pts: pts }]);
     logDiv(esc(D.opp) + ": " + plays + " plays, " + res + (pts ? " (" + G.us + "–" + G.them + ")" : ""));
-    G.theirCard = card; G.ourBall = function () { G.wait = false; G.theirCard = null; if (clockOut(true)) return; G.ball = nextBall; G.hash = "M"; startDrive(res === "Turnover" ? "Takeaway" : res === "Punt" ? "Punt" : "Kickoff"); logDiv("Our ball at " + spot(G.ball)); $("res").hidden = true; clearTimeout(P.holdT); P.hold = false; refresh() };
+    G.theirCard = card; G.ourBall = function () { G.wait = false; G.theirCard = null; if (clockOut(true)) return; G.ball = nextBall; G.hash = "M"; startDrive(res === "Turnover" ? "Takeaway" : res === "Punt" ? "Punt" : "Kickoff"); logDiv("Our ball at " + spot(G.ball)); $("res").hidden = true; refresh(); drillTheirDone() };
     refresh();
   }
   // quarters, halftime, final
@@ -354,329 +210,256 @@ body { padding-bottom: 90px }
     return false;
   }
   function show(t, c) { var r = $("res"); r.textContent = t; r.className = "result " + c; r.hidden = false }
-  function logSnap(before, c, o, txt, cls) { var li = document.createElement("li"); li.innerHTML = "<span>" + esc(before) + "</span><span>" + esc(c.name) + " <span style='color:var(--muted)'>vs " + esc(SHELLN[look.sh] || "?") + (look.front ? " " + esc(look.front) : "") + (look.blitz ? " + " + esc(look.blitz) : "") + "</span></span><span class='" + cls + "'>" + (o.inc ? "Inc" : o.int ? "INT" : o.fum ? "FUM" : (o.gain > 0 ? "+" : "") + o.gain) + "</span>"; $("log").appendChild(li); li.scrollIntoView({ block: "nearest" }) }
-  function logLine(a, b, c, cls) { var li = document.createElement("li"); li.innerHTML = "<span>" + esc(a) + "</span><span>" + esc(b) + "</span><span class='" + cls + "'>" + esc(c) + "</span>"; $("log").appendChild(li) }
-  function logDiv(t) { var li = document.createElement("li"); li.className = "dv"; li.innerHTML = t; $("log").appendChild(li) }
-
-  // ======================= REPORT =======================
-  function finishGame() {
-    var S = G.snaps, n = S.length, yds = S.reduce(function (t, s) { return t + s.gain }, 0), ok = S.filter(function (s) { return s.ok }).length, runs = S.filter(function (s) { return s.run }).length;
-    var win = G.us > G.them ? "W" : G.us < G.them ? "L" : "T";
-    var group = function (key) { var m = {}; S.forEach(function (s) { var k = key(s); if (k == null) return; var g = m[k] = m[k] || { n: 0, yds: 0, ok: 0 }; g.n++; g.yds += s.gain; g.ok += s.ok ? 1 : 0 }); return Object.keys(m).map(function (k) { return { k: k, g: m[k] } }).sort(function (a, b) { return b.g.n - a.g.n }) };
-    var tab = function (title, rows, lab) { return rows.length ? "<div class='sub'>" + title + "</div><div class='tbl'><table><tr><th>" + lab + "</th><th>Plays</th><th>Yds/play</th><th>Success</th></tr>" + rows.map(function (r) { return "<tr><td>" + esc(r.k) + "</td><td>" + r.g.n + "</td><td>" + (r.g.yds / r.g.n).toFixed(1) + "</td><td>" + Math.round(100 * r.g.ok / r.g.n) + "%</td></tr>" }).join("") + "</table></div>" : "" };
-    var withPick = S.filter(function (s) { return s.pickHist != null }), mine = withPick.reduce(function (t, s) { return t + s.hist }, 0) / (withPick.length || 1), theirs = withPick.reduce(function (t, s) { return t + s.pickHist }, 0) / (withPick.length || 1), same = withPick.filter(function (s) { return s.pick === s.call }).length;
-    var h = "<h2>Final · " + esc(D.us) + " " + G.us + ", " + esc(D.opp) + " " + G.them + " <span>" + win + " · mock game against " + esc(D.opp) + "'s real tendencies</span></h2>" +
-      "<div class='kpis'><div class='kpi'><b>" + n + "</b><small>our plays</small></div><div class='kpi'><b>" + (n ? (yds / n).toFixed(1) : "–") + "</b><small>yards per play</small></div><div class='kpi'><b>" + (n ? Math.round(100 * ok / n) : 0) + "%</b><small>successful plays</small></div><div class='kpi'><b>" + (n ? Math.round(100 * runs / n) : 0) + "/" + (n ? 100 - Math.round(100 * runs / n) : 0) + "</b><small>run / pass %</small></div><div class='kpi'><b>" + G.drives.filter(function (d) { return d.res === "Touchdown" }).length + " of " + G.drives.length + "</b><small>drives ending in a TD</small></div></div>" +
-      (withPick.length ? "<p>Your calls averaged <b>" + mine.toFixed(1) + " yds</b> historically in the spots you called them. The data's top pick in those same spots averaged <b>" + theirs.toFixed(1) + "</b>. You matched the data's pick on " + same + " of " + withPick.length + " snaps.</p>" : "") +
-      "<div class='sub'>Our drives</div><div class='tbl'><table><tr><th>#</th><th>Start</th><th>Plays</th><th>Yds</th><th>Result</th></tr>" + G.drives.map(function (d, i) { return "<tr><td>" + (i + 1) + "</td><td>" + spot(d.start) + "</td><td>" + d.plays + "</td><td>" + d.yds + "</td><td>" + esc(d.res) + "</td></tr>" }).join("") + "</table></div>" +
-      tab("By their look", group(function (s) { return SHELLN[s.sh] || "Not tagged" }), "Shell") + tab("Against the blitz", group(function (s) { return s.blitz ? "Blitz" : "No blitz" }), "Pressure") +
-      tab("By down & distance", group(function (s) { return s.b }), "Situation") + tab("By call", group(function (s) { return s.call }), "Call") +
-      "<p class='note'>Results are drawn from our real plays, leaning toward plays against the same shell and down. " + esc(D.opp) + " plays to its film tendencies all game and never adjusts. Play it again for a different roll of the dice.</p><div class='row' style='margin-top:10px'><button class='btn pri' type='button' id='again'>Play again</button></div>";
-    var r = $("report"); r.innerHTML = h; r.hidden = false; r.scrollIntoView({ behavior: "smooth" });
-    $("again").onclick = function () { newGame(); window.scrollTo({ top: 0, behavior: "smooth" }) };
-  }
-
-  // ======================= FIELD MODEL =======================
-  var HASH = 8.9;
-  var ALIGN = store.get("sol-mock-align") || { def: {}, off: {} };
-  function bxOf() { return G && G.hash === "L" ? -HASH : G && G.hash === "R" ? HASH : 0 }
-  var OFF_LAB = ["LT", "LG", "C", "RG", "RT", "QB", "1", "2", "3", "4", "0"], OFF_NUM = [72, 64, 55, 66, 77, 7, 1, 4, 84, 11, 22];
-  var DEF_LAB = ["DE", "DT", "NT", "DE", "M", "W", "CB", "CB", "N", "SS", "FS"], DEF_NUM = [91, 95, 99, 90, 44, 32, 21, 3, 8, 2, 5];
-  function formType(name) { var n = String(name || "").toUpperCase(); return /BUNCH|BITE/.test(n) ? "bunch" : /TRIG|TRIP|TREY|TEXAS/.test(n) ? "trips" : /DIP|HEAVY|TIGHT|BONE|PRO|WING|AGGIE|ACE/.test(n) ? "te" : /EMPTY/.test(n) ? "empty" : "2x2" }
-  // our formation in a standard frame: ball at x = 0
-  function stdOff(type) {
-    var o = [[-4.2, -.9], [-2.1, -.9], [0, -.9], [2.1, -.9], [4.2, -.9], [0, -5]];
-    if (type === "bunch") o.push([-19, -1.2], [8.5, -1.2], [10, -2.6], [11.5, -1.4], [-2.2, -5.2]);
-    else if (type === "trips") o.push([-19, -1.2], [7.5, -1.6], [13, -1.6], [19, -1.2], [-2.2, -5.2]);
-    else if (type === "te") o.push([-19, -1.2], [-11.5, -1.6], [5.6, -1.1], [19, -1.2], [2.2, -5.2]);
-    else if (type === "empty") o.push([-19, -1.2], [-11.5, -1.6], [11.5, -1.6], [19, -1.2], [6.5, -1.6]);
-    else o.push([-19, -1.2], [-11.5, -1.6], [11.5, -1.6], [19, -1.2], [2.2, -5.2]);
-    return o.map(function (p) { return { x: p[0], y: p[1] } });
-  }
-  // ---- our formation sheet (FORMATIONS.pdf): spots for 1, 2, 3, 4 and the back (0), measured off the drawings.
-  // The drawings put the ball on the left hash with the field to the right; 14 px = 1 yard, ball at x 307, field middle at x 400, line at y 432.
-  var BOOK = {
-    "GOLD STACK": [[60, 481], [70, 438], [585, 426], [604, 469], [333, 487]],
-    "GOLD": [[63, 432], [145, 460], [571, 460], [688, 437], [333, 487]],
-    "RED STACK": [[63, 432], [571, 438], [571, 476], [711, 438], [333, 487]],
-    "RED WIDE": [[63, 432], [571, 438], [711, 476], [711, 438], [333, 487]],
-    "RED": [[63, 432], [508, 460], [616, 460], [711, 438], [333, 487]],
-    "BASH": [[63, 432], [476, 465], [505, 432], [542, 465], [333, 487]],
-    "SLOT DIP": [[63, 432], [250, 452], [571, 454], [673, 432], [333, 487]],
-    "SLOT TRIG": [[63, 432], [366, 452], [571, 454], [673, 432], [333, 487]],
-    "SLOT": [[63, 432], [258, 454], [571, 454], [673, 432], [333, 487]],
-    "GRAY": [[63, 454], [240, 432], [571, 454], [673, 432], [333, 487]],
-    "PRO": [[63, 432], [370, 432], [571, 454], [673, 454], [333, 487]],
-    "BLUE": [[240, 432], [515, 454], [600, 454], [685, 432], [333, 487]],
-    "CREW": [[80, 432], [357, 456], [395, 432], [433, 456], [333, 487]],
-    "TEXAS OVER": [[80, 432], [150, 456], [372, 432], [395, 456], [333, 487]],
-    "TEXAS": [[80, 432], [340, 456], [372, 432], [631, 456], [333, 487]],
-    "AGGIE OVER": [[240, 432], [378, 432], [571, 442], [641, 432], [333, 487]],
-    "AGGIE": [[73, 461], [240, 432], [370, 432], [641, 437], [333, 487]],
-    "BONE": [[63, 432], [250, 452], [366, 452], [688, 437], [333, 487]],
-    "BOSS": [[63, 432], [571, 460], [688, 437], [280, 487], [333, 487]],
-    "GOGO": [[63, 432], [571, 460], [688, 437], [366, 487], [333, 487]],
-    "5 LT": [[77, 440], [502, 463], [571, 442], [718, 432], [185, 463]]
-  };
-  var BOOK_ALIAS = { "BUNCH": "BASH" };
-  function bookOf(form) { var up = String(form || "").toUpperCase().trim(), keys = Object.keys(BOOK).sort(function (a, b) { return b.length - a.length }); up = BOOK_ALIAS[up] || up; for (var i = 0; i < keys.length; i++) { var k = keys[i]; if (up === k || up.indexOf(k + " ") === 0) return BOOK[k] } return null }
-  function bookY(py) { return py <= 441 ? -1.1 : py <= 470 ? -2.4 : -3.3 }
-  // place a formation from the sheet: detached receivers keep their field landmarks, close-in players stay tied to the ball; strength goes to the field
-  function bookPlace(B, bx) {
-    var flip = bx > 0 ? -1 : 1, o = [[-4.2, -.9], [-2.1, -.9], [0, -.9], [2.1, -.9], [4.2, -.9]].map(function (p) { return { x: bx + p[0], y: p[1] } }); o.push({ x: bx, y: -4.5 });
-    B.forEach(function (p, i) { var rel = (p[0] - 307) / 14, abs = (p[0] - 400) / 14, back = p[1] > 480; var x = back || Math.abs(rel) <= 7 ? bx + flip * rel : flip * abs; o.push({ x: Math.max(-22.5, Math.min(22.5, x)), y: back ? -5 : bookY(p[1]) }) });
-    return o.map(function (p, i) { return { x: p.x, y: p.y, lab: OFF_LAB[i], num: OFF_NUM[i] } });
-  }
-  function bookStd(B) { return bookPlace(B, 0).map(function (p, i) { var B2 = i >= 6 ? B[i - 6] : null; return B2 && !(B2[1] > 480) ? { x: (B2[0] - 307) / 14, y: p.y } : { x: p.x, y: p.y } }) }
-  function offStd(form) { if (!ALIGN.off[form] && bookOf(form)) return bookStd(bookOf(form)); return (ALIGN.off[form] || stdOff(formType(form))).map(function (p) { return { x: p.x, y: p.y } }) }
-  // place a standard-frame formation on the field: wide receivers slide in from the boundary when the ball is on a hash
-  function placeOff(std, bx) { return std.map(function (p, i) { var x = bx + p.x; if (Math.abs(x) > 24) x = Math.sign(x) * 24; return { x: x, y: p.y, lab: OFF_LAB[i], num: OFF_NUM[i] } }) }
-  function strengthOf(o, bx) { var rec = o.slice(6, 11).filter(function (p, i) { return i < 4 || p.y > -2.5 }), l = rec.filter(function (r) { return r.x < bx - 3 }).length, r = rec.filter(function (r) { return r.x > bx + 3 }).length; return r > l ? 1 : l > r ? -1 : (bx < 0 ? 1 : bx > 0 ? -1 : 1) }
-  function ftypeOf(o, bx) { var s = strengthOf(o, bx), rec = o.slice(6, 10), strong = rec.filter(function (r) { return (r.x - bx) * s > 3 }).length, te = rec.some(function (r) { return Math.abs(r.x - bx) < 7 && r.y > -1.4 }); var sr = rec.filter(function (r) { return (r.x - bx) * s > 3 }).map(function (r) { return r.x }); if (sr.length >= 3 && Math.max.apply(null, sr) - Math.min.apply(null, sr) < 5) return "bunch"; return strong >= 3 ? "trips" : te ? "te" : "2x2" }
-  function defKey(front, sh, ft) { return (front || "*") + "|" + (sh || "MFO") + "|" + ft }
-  // their defense in the standard frame: ball at 0, our strength to the right
-  function stdDef(front, sh, ft, cov) {
-    var F = String(front || "").toUpperCase();
-    var r = ft === "bunch" ? [[-19], [8.5], [10], [11.5]] : ft === "trips" ? [[-19], [7.5], [13], [19]] : ft === "te" ? [[-19], [-11.5], [5.6], [19]] : [[-19], [-11.5], [11.5], [19]];
-    var w1 = r[0][0], w2 = r[1][0] < 0 ? r[1][0] : null, s1 = r[3][0], s2 = r[2][0], s3 = ft === "trips" || ft === "bunch" ? r[1][0] : null, te = ft === "te", buzz = /BUZZ/i.test(cov || "");
-    var d = frontShape(F, te).map(function (p) { return p.slice() });
-    var off = sh === "0" ? 5 : 7.5;
-    if (sh === "0") { d[4][1] = 3.5; d[5][1] = d[5][1] > 3 ? 3.5 : d[5][1] }
-    d.push([w1 + 1, off], ft === "bunch" ? [s1 + 1, buzz ? 10.5 : 6] : [s1 - 1, buzz ? 10.5 : off]);
-    d.push(ft === "bunch" ? [s3 + .5, sh === "0" ? 3 : 5] : sh === "0" ? [s2 - .6, 2.4] : [(s2 + 4.5) / 2, 4.8]);
-    if (ft === "bunch" && sh !== "0") d.push([s2 + .5, 6.5], sh === "MFO" ? [-HASH * .6, 13] : [0, 14.5]); // stack over the bunch
-    else if (sh === "MFO") d.push([HASH, 13], [-HASH, 13]);
-    else if (sh === "MFC" && /STRONG/i.test(cov || "")) d.push(s3 != null ? [s3, 6.5] : te ? [7.5, 6] : [(s2 + 4.5) / 2 + 2, 7], [0, 14.5]); // 3 Strong: SS rolls down to the strength (Liberty film)
-    else if (sh === "MFC") d.push(w2 != null ? [(w2 - 4.5) / 2, 6] : [-6.5, 6], [0, 14.5]);
-    else d.push(s3 != null ? [s3 - .5, 3.2] : te ? [6.5, 5] : [2, 5.5], w2 != null ? [w2 + .5, 2.6] : [-2, 6]);
-    return d.map(function (p) { return { x: p[0], y: p[1], lab: p[2], down: !!p[3] } });
-  }
-  // Liberty's fronts (strong side +x). [x, depth, label, hand down]. From the Tight-camera film: Heads = nose head-up, two 4i's, stand-up edges;
-  // Over / Under = 4 down; Wide = edges spread wide with a backer walked up. "43" fronts are 4-down.
-  function frontShape(F, te) {
-    var E = te ? 7.2 : 5.8, rows;
-    if (/^43 (OVER|UNDER)/.test(F)) F = F.slice(3);
-    if (/HEAD|ODD|MINT|TIGHT|BEAR/.test(F)) rows = [[E, 1.3, "E", 0], [2.6, 1.1, "T", 1], [0, 1.1, "N", 1], [-2.6, 1.1, "T", 1], [1.4, 4.6, "M", 0], [-5.8, 1.3, "E", 0]];
-    else if (/UNDER/.test(F)) rows = [[te ? 6.8 : 5.4, 1.2, "DE", 1], [.8, 1.1, "N", 1], [-2.8, 1.1, "DT", 1], [-5.4, 1.2, "DE", 1], [1.4, 4.6, "M", 0], [-3.3, 4.6, "W", 0]];
-    else if (/WIDE/.test(F)) rows = [[te ? 8 : 7.2, 1.3, "DE", 1], [2.6, 1.1, "DT", 1], [0, 1.1, "N", 1], [-7.2, 1.3, "DE", 1], [1, 2.6, "M", 0], [-3.3, 4.6, "W", 0]];
-    // Hawk (vs Aggie, clips 126-131): 3 down tight inside, stand-up edges out over both tight ends, backers ~4
-    else if (/HAWK/.test(F)) rows = [[7.2, 1.3, "E", 0], [2.6, 1.1, "T", 1], [-.6, 1.1, "N", 1], [-2.8, 1.1, "T", 1], [1.4, 4.2, "M", 0], [-7.2, 1.3, "E", 0]];
-    // Eagle (Wyatt Tight-camera clips 115-130): 3 down, tight to the ball (3 technique, nose shaded weak, weak tackle in a 4i), stand-up edges both sides, backers ~4-5
-    else if (/EAGLE/.test(F)) rows = [[E, 1.3, "E", 0], [2.7, 1.1, "T", 1], [-.8, 1.1, "N", 1], [-3.2, 1.1, "T", 1], [1.4, 4.6, "M", 0], [-5.8, 1.3, "E", 0]];
-    else if (/STACK/.test(F)) rows = [[te ? 6.6 : 5.4, 1.2, "DE", 1], [2.4, 1.1, "DT", 1], [-2.4, 1.1, "DT", 1], [-5.4, 1.2, "DE", 1], [2.4, 4.4, "M", 0], [-2.4, 4.4, "W", 0]];
-    else rows = [[te ? 6.6 : 5.4, 1.2, "DE", 1], [2.8, 1.1, "DT", 1], [-.8, 1.1, "N", 1], [-5.4, 1.2, "DE", 1], [1.4, 4.6, "M", 0], [-3.3, 4.6, "W", 0]]; // Over / Even / untagged
-    return rows;
-  }
-  function defStd(front, sh, ft, cov) { var st = stdDef(front, sh, ft, cov), sv = ALIGN.def[defKey(front, sh, ft)] || ALIGN.def[defKey(null, sh, ft)]; return (sv || st).map(function (p, i) { return { x: p.x, y: p.y, lab: st[i].lab, down: st[i].down } }) }
-  function placeDef(std, s, bx) { return std.map(function (p, i) { var x = bx + s * p.x; if (Math.abs(x) > 25) x = Math.sign(x) * 25; return { x: x, y: p.y, lab: p.lab || DEF_LAB[i], down: !!p.down, num: DEF_NUM[i], blitz: false } }) }
-  // corners over each #1 (inside leverage), nickel apexed on the real #2, man defenders on top of their man in 0
-  function keyOn(o, d, s, bx, ft, sh) {
-    var rec = o.slice(6, 11).filter(function (p, i) { return i < 4 || p.y > -2.6 }), side = function (S) { return rec.filter(function (r) { return (r.x - bx) * S > 2.5 && r.y > -3 }).sort(function (a, b) { return (b.x - a.x) * S }) };
-    var st = side(s), wk = side(-s);
-    if (wk[0] && Math.abs(wk[0].x - bx) > 7) d[6].x = wk[0].x + s * (sh === "0" ? .3 : 1);
-    if (st[0] && Math.abs(st[0].x - bx) > 7 && ft !== "bunch") d[7].x = st[0].x - s * (sh === "0" ? .3 : 1);
-    if (st[1] && ft !== "bunch") d[8].x = sh === "0" ? st[1].x - s * .5 : (st[1].x + bx + s * 4.5) / 2;
-    if (sh === "0" && st[2]) d[9].x = st[2].x - s * .5;
-    if (sh === "0" && wk[1]) d[10].x = wk[1].x + s * .5;
-  }
-  function blitzers(d, name, s, bx) {
-    var n = String(name || "").toUpperCase(), who = /DBL|EDGE|BULLET/.test(n) ? [5, 8] : /BANDIT|STINGER|SS|SAF|CAT/.test(n) ? [9] : /W |WILL|WRAP/.test(n) ? [5, 4] : /MAX|ALL/.test(n) ? [4, 5, 8] : [4];
-    who.forEach(function (i) { var p = d[i]; p.y = Math.min(p.y, 2.6); p.blitz = { x: i === 8 ? bx + s * 6.5 : i === 5 ? bx - s * 6 : i === 9 ? bx + s * 5 : bx + s * .9 } });
-  }
-  var P = { o: [], d: [], ball: null, trail: [], tackle: null, tgt: 10, showPlan: false };
-  function poses() {
-    var bx = bxOf(); if (!call) return;
-    var BK = !ALIGN.off[call.form] && bookOf(call.form); P.o = BK ? bookPlace(BK, bx) : placeOff(offStd(call.form), bx); var s = strengthOf(P.o, bx), ft = ftypeOf(P.o, bx);
-    P.d = placeDef(defStd(look && look.front, look ? look.sh : "MFO", ft, look && look.cov), s, bx); P.s = s;
-    var RC = P.o.slice(6, 10); RC.filter(function (p) { return p.y < -4 }).forEach(function (p) { p.lab = "B"; p.num = "B" }); RC.filter(function (p) { return p.y >= -4 }).sort(function (a, b) { return a.x - b.x || b.y - a.y }).forEach(function (p, i) { p.lab = String(i + 1); p.num = p.lab }); P.o[10].lab = "0"; P.o[10].num = "0";
-    if (!ALIGN.def[defKey(look && look.front, look ? look.sh : "MFO", ft)] && !ALIGN.def[defKey(null, look ? look.sh : "MFO", ft)]) keyOn(P.o, P.d, s, bx, ft, look ? look.sh : "MFO");
-    if (look && look.blitz) blitzers(P.d, look.blitz, s, bx);
-    CAMX = bx * (NARROW ? .45 : .35); P.ball = { x: bx, y: -.2, z: 0 }; P.carry = -1; P.trail = []; P.tackle = null; P.showPlan = false;
-  }
-  function route(kind, S) { return { go: [[0, 0], [0, 4], [S * .4, 22]], seam: [[0, 0], [0, 6], [S * -.6, 20]], hitch: [[0, 0], [0, 6], [S * -.6, 5]], out: [[0, 0], [0, 7], [S * 5, 7]], dig: [[0, 0], [0, 11], [-S * 7, 11]], choice: [[0, 0], [0, 6], [-S * 3.5, 7]], flat: [[0, 0], [S * 1.5, 2], [S * 6, 3.2]], check: [[0, 0], [S * 2, .5], [S * 4, 3]], slant: [[0, 0], [0, 2], [-S * 5, 7]] }[kind] }
-  function routesFor(c) { var k = String(c.concept).toUpperCase(); if (/CHOICE|OPTION/.test(k)) return ["go", "choice", "flat", "hitch"]; if (/SLANT|QUICK/.test(k)) return ["slant", "slant", "flat", "slant"]; if (/DIG|CROSS|MESH|DRIVE/.test(k)) return ["go", "dig", "flat", "dig"]; if (/OUT|SPEED|SMASH/.test(k)) return ["hitch", "out", "out", "hitch"]; if (/HITCH|STICK|CURL/.test(k)) return ["hitch", "flat", "hitch", "hitch"]; return ["go", "seam", "seam", "go"] }
-
-  // ======================= DRAWING: high end-zone camera =======================
-  var cv = $("fld"), cx = cv.getContext("2d"), W, H, CAMY = -21, F, HOR, CAMH, CAMX = 0, NARROW = false, camBall = 30;
-  function size() { NARROW = cv.clientWidth < 620; W = cv.width = 1280; H = cv.height = NARROW ? 1100 : 760; F = W * (NARROW ? .56 : .4); HOR = H * .05; CAMH = (H * (NARROW ? .66 : .68) - HOR) * 21 / F }
-  function pr(x, y, z) { var dz = Math.max(.6, y - CAMY); return { x: W / 2 + (x - CAMX) * F / dz, y: HOR + ((CAMH - (z || 0)) * F) / dz, s: F / dz } }
-  function quad(c, a, b, cc, d, fill) { c.beginPath(); c.moveTo(a.x, a.y); c.lineTo(b.x, b.y); c.lineTo(cc.x, cc.y); c.lineTo(d.x, d.y); c.closePath(); c.fillStyle = fill; c.fill() }
-  function seg(c, a, b, col, w, dash) { c.strokeStyle = col; c.lineWidth = w; c.setLineDash(dash || []); c.beginPath(); c.moveTo(a.x, a.y); c.lineTo(b.x, b.y); c.stroke(); c.setLineDash([]) }
-  function poly(c, q, col, wid, dash, arrow) { if (q.length < 2) return; c.strokeStyle = col; c.lineWidth = wid; c.setLineDash(dash || []); c.lineJoin = "round"; c.beginPath(); c.moveTo(q[0].x, q[0].y); q.slice(1).forEach(function (p) { c.lineTo(p.x, p.y) }); c.stroke(); c.setLineDash([]);
-    if (arrow) { var a = q[q.length - 2], b = q[q.length - 1], ang = Math.atan2(b.y - a.y, b.x - a.x), L = Math.max(8, wid * 3.5); c.fillStyle = col; c.beginPath(); c.moveTo(b.x, b.y); c.lineTo(b.x - L * Math.cos(ang - .45), b.y - L * Math.sin(ang - .45)); c.lineTo(b.x - L * Math.cos(ang + .45), b.y - L * Math.sin(ang + .45)); c.closePath(); c.fill() } }
-  function path(pts, los, col, wid, dash, arrow) { poly(cx, pts.map(function (p) { return pr(p[0], p[1] + los) }), col, wid, dash, arrow) }
-  function draw() {
-    if (!G) return;
-    var g = cx.createLinearGradient(0, 0, 0, HOR + 30); g.addColorStop(0, "#04080d"); g.addColorStop(1, "#0f1a26"); cx.fillStyle = g; cx.fillRect(0, 0, W, H);
-    var near = -19, far = 64, off = camBall;
-    quad(cx, pr(-40, near), pr(40, near), pr(40, far), pr(-40, far), "#173f25");
-    for (var a = Math.floor((off + near) / 5) * 5; a < off + far; a += 5) { var y0 = a - off, y1 = y0 + 5; if (y1 < near || a < -10 || a >= 110) continue; quad(cx, pr(-26.7, Math.max(y0, near)), pr(26.7, Math.max(y0, near)), pr(26.7, y1), pr(-26.7, y1), (a / 5) % 2 ? "#215f37" : "#1d5631") }
-    if (off + far > 100) quad(cx, pr(-26.7, 100 - off), pr(26.7, 100 - off), pr(26.7, Math.min(110 - off, far)), pr(-26.7, Math.min(110 - off, far)), "#2c4e8f");
-    if (off + near < 0) quad(cx, pr(-26.7, Math.max(-10 - off, near)), pr(26.7, Math.max(-10 - off, near)), pr(26.7, -off), pr(-26.7, -off), "#7a1a2a");
-    var chalk = "rgba(232,239,230,.85)";
-    for (var l = Math.ceil((off + near) / 5) * 5; l <= Math.min(110, off + far); l += 5) { if (l < -10 || (l > 100 && l < 110) || (l < 0 && l > -10)) continue; var yy = l - off; seg(cx, pr(-26.7, yy), pr(26.7, yy), chalk, Math.max(1, pr(0, yy).s * .12));
-      if (l % 10 === 0 && l > 0 && l < 100) { var num = l <= 50 ? l : 100 - l; [-17.7, 17.7].forEach(function (x) { var q = pr(x, yy - 1.2); cx.fillStyle = "rgba(232,239,230,.7)"; cx.font = "800 " + Math.round(q.s * 2) + "px Saira Condensed, sans-serif"; cx.textAlign = "center"; cx.fillText(String(num), q.x, q.y) }) } }
-    for (var h = Math.max(1, Math.ceil(off + near)); h < Math.min(off + far, 100); h++) { [-HASH, HASH, -26.2, 26.2].forEach(function (x) { seg(cx, pr(x - .4, h - off), pr(x + .4, h - off), chalk, Math.max(1, pr(x, h - off).s * .08)) }) }
-    [-26.7, 26.7].forEach(function (x) { seg(cx, pr(x, near), pr(x, far), chalk, 3) });
-    var los = G.ball - off, ltg = Math.min(100, G.ball + G.dist) - off;
-    seg(cx, pr(-26.7, los), pr(26.7, los), "rgba(80,160,255,.9)", Math.max(2, pr(0, los).s * .2));
-    if (!G.over && G.ball + G.dist < 100) seg(cx, pr(-26.7, ltg), pr(26.7, ltg), "rgba(242,193,78,.95)", Math.max(2, pr(0, ltg).s * .2));
-    if (P.showPlan) plan(los);
-    P.d.forEach(function (p) { if (p.blitz) path([[p.x, p.y], [p.blitz.x, .3]], los, "rgba(239,90,90,.95)", pr(p.x, p.y + los).s * .16, [10, 7], true) });
-    if (P.trail.length > 1) path(P.trail, los, "rgba(242,193,78,.9)", pr(0, los).s * .14, [], false);
-    var all = P.d.map(function (p) { return { p: p, t: 0 } }).concat(P.o.map(function (p, i) { return { p: p, t: 1, i: i } }));
-    all.sort(function (a, b) { return b.p.y - a.p.y }); all.forEach(function (o) { man(o.p, los, o.t, o.t && o.i === P.carry) });
-    if (P.tackle) { var tk = pr(P.tackle.x, P.tackle.y + los), r = tk.s * .5; seg(cx, { x: tk.x - r, y: tk.y - r * .4 }, { x: tk.x + r, y: tk.y + r * .4 }, "#f2c14e", 3); seg(cx, { x: tk.x + r, y: tk.y - r * .4 }, { x: tk.x - r, y: tk.y + r * .4 }, "#f2c14e", 3) }
-    if (P.ball) { var b = pr(P.ball.x, P.ball.y + los, P.ball.z); cx.fillStyle = "#8a4b22"; cx.beginPath(); cx.ellipse(b.x, b.y, b.s * .34, b.s * .21, 0, 0, Math.PI * 2); cx.fill(); cx.strokeStyle = "#f3e6d2"; cx.lineWidth = 1; cx.stroke() }
-  }
-  function plan(los) {
-    var o = P.o, w = pr(0, los).s * .12, bx = o[2].x;
-    if (call.run) {
-      var play = call.scheme === "power" ? 1 : -1;
-      o.slice(0, 5).forEach(function (p, i) { var pull = call.scheme === "power" && i === 1; path(pull ? [[p.x, p.y], [p.x, p.y - 1.2], [bx + play * 5.5, -1], [bx + play * 6.5, 1.5]] : [[p.x, p.y], [p.x + play * 1.2 * (call.scheme === "power" ? -1 : 1), p.y + 1.8]], los, "rgba(255,255,255,.75)", w, pull ? [6, 5] : [], true) });
-      var rb = o[10]; path([[rb.x, rb.y], [bx + play * (call.scheme === "power" ? 3.2 : 1.5), -1], [bx + play * (call.scheme === "power" ? 4 : 2), 4]], los, "rgba(242,193,78,.95)", w * 1.3, [], true);
-    } else {
-      var R = routesFor(call); o.slice(6, 10).forEach(function (p, k) { var S = p.x < bx ? -1 : 1, r = route(R[k], S); path(r.map(function (q) { return [p.x + q[0], p.y + q[1]] }), los, 6 + k === P.tgt ? "rgba(242,193,78,.95)" : "rgba(255,255,255,.72)", w, [], true) });
-      var rb2 = o[10]; path(route("check", rb2.x < bx ? -1 : 1).map(function (q) { return [rb2.x + q[0], rb2.y + q[1]] }), los, P.tgt === 10 ? "rgba(242,193,78,.95)" : "rgba(255,255,255,.5)", w, [5, 5], true);
-    }
-  }
-  function figure(c, f, top, p, off, hot) {
-    var s = f.s; var c1 = off ? "#d4213d" : "#2e5aa8", c2 = off ? "#7a0f22" : "#16305e";
-    c.fillStyle = "rgba(0,0,0,.35)"; c.beginPath(); c.ellipse(f.x, f.y, s * .55, s * .2, 0, 0, Math.PI * 2); c.fill();
-    if (p.blitz) { c.strokeStyle = "rgba(239,90,90,.95)"; c.lineWidth = Math.max(2, s * .12); c.beginPath(); c.ellipse(f.x, f.y, s * .85, s * .32, 0, 0, Math.PI * 2); c.stroke() }
-    var bw = s * .78, bh = f.y - top.y;
-    c.fillStyle = c2; c.fillRect(f.x - bw * .36, f.y - bh * .45, bw * .3, bh * .45); c.fillRect(f.x + bw * .06, f.y - bh * .45, bw * .3, bh * .45);
-    c.fillStyle = c1; rr(c, f.x - bw / 2, f.y - bh * .92, bw, bh * .55, s * .16);
-    c.fillStyle = off ? "#f3f3f3" : "#c9d4e6"; c.beginPath(); c.arc(f.x, f.y - bh * .98, s * .27, 0, Math.PI * 2); c.fill();
-    if (s > 10) { c.fillStyle = "#fff"; c.font = "800 " + Math.round(bh * .3) + "px Saira Condensed, sans-serif"; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText(String(p.num), f.x, f.y - bh * .66); c.textBaseline = "alphabetic" }
-    if (hot) { c.strokeStyle = "#f2c14e"; c.lineWidth = Math.max(2, s * .1); c.beginPath(); c.ellipse(f.x, f.y, s * .8, s * .3, 0, 0, Math.PI * 2); c.stroke() }
-  }
-  function label(c, q, t, off, s) { c.font = "700 " + Math.max(11, Math.round(s)) + "px Barlow, sans-serif"; c.textAlign = "center"; c.lineWidth = 3; c.strokeStyle = "rgba(6,10,14,.85)"; c.strokeText(t, q.x, q.y); c.fillStyle = off ? "#ffd3da" : "#cfe0ff"; c.fillText(t, q.x, q.y) }
-  function man(p, los, off, hot) { var f = pr(p.x, p.y + los); if (f.y > H + 80 || f.s > 400) return; var ht = p.down && !anim ? 1.25 : 1.9; figure(cx, f, pr(p.x, p.y + los, ht), p, off, hot); label(cx, pr(p.x, p.y + los, ht + .85), p.lab, off, f.s * .55) }
-  function rr(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); c.fill() }
-
-  // ======================= ANIMATION =======================
-  var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
-  function along(pts, t) { var L = [], tot = 0, i; for (i = 1; i < pts.length; i++) { var d = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); L.push(d); tot += d } var want = t * tot; for (i = 1; i < pts.length; i++) { if (want <= L[i - 1] || i === pts.length - 1) { var k = L[i - 1] ? Math.min(1, want / L[i - 1]) : 1; return [pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * k, pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * k] } want -= L[i - 1] } return pts[pts.length - 1] }
-  function play(c, out, done) {
-    var o = P.o, bx = o[2].x, gain = out.gain, inc = out.inc || out.int, sack = out.sack, tgt = 10;
-    if (!c.run) { var R = routesFor(c), best = 1e9; o.slice(6, 10).forEach(function (p, k) { var pts = route(R[k], p.x < bx ? -1 : 1), dep = pts[pts.length - 1][1] * .7, sc = Math.abs(dep - Math.max(2, Math.min(gain, 16))); if (sc < best) { best = sc; tgt = 6 + k } }); if (gain > 0 && gain < 4 && rand() < .4) tgt = 10 }
-    P.tgt = tgt; P.showPlan = true;
-    var start = { o: o.map(function (p) { return { x: p.x, y: p.y } }), d: P.d.map(function (p) { return { x: p.x, y: p.y } }) };
-    var RR = c.run ? null : routesFor(c);
-    var paths = o.map(function (p, i) {
-      if (i < 5) return null; if (i === 5) return c.run ? [[p.x, p.y], [p.x + (c.scheme === "power" ? -1 : 1), p.y - .5]] : [[p.x, p.y], [p.x, p.y - 2.2]];
-      if (c.run) { if (i === 10) { var play = c.scheme === "power" ? 1 : -1, hole = bx + play * (c.scheme === "power" ? 3.6 : 1.8), endX = hole + play * Math.min(6, Math.abs(gain) * .25); return [[p.x, p.y], [hole, -1], [hole, Math.min(1.5, gain)], [endX, gain]] } return [[p.x, p.y], [p.x, p.y + 3], [p.x * .97 + bx * .03, p.y + 9]] }
-      var r = i === 10 ? route("check", p.x < bx ? -1 : 1) : route(RR[i - 6], p.x < bx ? -1 : 1), pts = r.map(function (q) { return [p.x + q[0], p.y + q[1]] });
-      if (i === tgt && !inc && !sack) { var cat = pts[pts.length - 1]; if (gain > cat[1]) pts.push([cat[0] + (cat[0] - bx) * .05, gain]); else pts[pts.length - 1] = [cat[0], Math.max(Math.min(cat[1], gain), -1)] }
-      return pts;
-    });
-    var T0 = performance.now(), PRE = reduce ? 0 : 1000, DUR = reduce ? 1 : 2600;
-    draw();
-    function step(now) {
-      var t = Math.min(1, Math.max(0, (now - T0 - PRE) / DUR)), e = t * t * (3 - 2 * t);
-      o.forEach(function (p, i) { var s0 = start.o[i]; if (i < 5) { p.y = s0.y + e * (c.run ? 1.6 : -1.3); p.x = s0.x + e * (c.run ? (c.scheme === "power" ? -.5 : .6) : 0); if (c.run && c.scheme === "power" && i === 1) { var q = along([[s0.x, s0.y], [s0.x, s0.y - 1.2], [bx + 5.5, -1], [bx + 6.5, 1.5]], e); p.x = q[0]; p.y = q[1] } } else { var q2 = along(paths[i], i === tgt && !c.run ? Math.min(1, e * 1.05) : e); p.x = q2[0]; p.y = q2[1] } });
-      var car = o[c.run ? 10 : tgt];
-      P.d.forEach(function (p, i) { var s0 = start.d[i], k = i < 4 ? .3 : .6, aim = sack ? o[5] : car, kk = sack && (i < 4 || p.blitz) ? 1 : k; if (p.blitz && !sack) kk = .45; if (out.int && i === 9) kk = 1; p.x = s0.x + (aim.x - s0.x) * e * kk; p.y = s0.y + (aim.y - s0.y) * e * kk });
-      if (c.run) { P.carry = t > .08 ? 10 : -1; var cr = o[t > .08 ? 10 : 5]; P.ball = { x: cr.x, y: cr.y, z: 1.1 }; if (t > .08) P.trail.push([cr.x, cr.y]) }
-      else if (sack) { P.carry = 5; P.ball = { x: o[5].x, y: o[5].y, z: 1.2 } }
-      else { var qb = o[5], k2 = Math.min(1, Math.max(0, (t - .3) / .35)); if (t < .3) P.ball = { x: qb.x, y: qb.y, z: 1.6 }; else if (k2 < 1 || inc) { var rv = o[tgt], ex = inc ? rv.x + 1.5 : rv.x, ey = inc ? rv.y + 3 : rv.y; P.ball = { x: qb.x + (ex - qb.x) * k2, y: qb.y + (ey - qb.y) * k2, z: Math.max(0, 1.6 + Math.sin(k2 * Math.PI) * (2.5 + Math.abs(ey) * .22) - (inc && k2 >= 1 ? 1.6 : 0)) } } else { P.carry = tgt; P.ball = { x: o[tgt].x, y: o[tgt].y, z: 1.1 }; P.trail.push([o[tgt].x, o[tgt].y]) } }
-      draw();
-      if (t < 1) { requestAnimationFrame(step); return }
-      if (!inc) P.tackle = { x: P.ball.x, y: P.ball.y }; draw(); P.hold = true; var ex2 = P.ball.x;
-      // hold the finished play on screen, then line up the next snap
-      setTimeout(function () { done(ex2); clearTimeout(P.holdT); P.holdT = setTimeout(function () { if (anim) return; P.hold = false; camBall = G.ball; refresh() }, 1700) }, 50);
-    }
-    requestAnimationFrame(step);
-  }
-
-  // ======================= ALIGNMENT EDITOR (top-down) =======================
-  var ED = { mode: "def", front: null, sh: "MFO", ft: "2x2", form: null, pts: [], ref: [], drag: -1 };
-  var ec = $("ed"), ex = ec.getContext("2d");
-  var EW = 1280, EH = 760, X0 = EW / 2, YS = 22, YL = EH * .62; // yards to pixels
-  function eSize() { var narrow = ec.clientWidth < 620; EH = ec.height = narrow ? 1000 : 760; YS = narrow ? 24 : 22; YL = EH * (narrow ? .6 : .62); X0 = EW / 2 }
-  function e2s(p) { return { x: X0 + p.x * YS, y: YL - p.y * YS } }
-  function s2e(x, y) { return { x: (x - X0) / YS, y: (YL - y) / YS } }
-  function edOpen() {
-    $("editor").hidden = false; $("game").hidden = true; $("report").hidden = true; $("setup").hidden = true;
-    ED.front = ED.front || (D.fronts[0] && D.fronts[0].k) || null; ED.form = ED.form || (call && call.form) || (D.forms[0] && D.forms[0].k) || "Gold";
-    edSel(); eSize(); edLoad(); edDraw(); $("editor").scrollIntoView({ behavior: "smooth" });
-  }
-  function edSel() {
-    document.querySelectorAll("#edMode .chip").forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.m === ED.mode) });
-    var sel = function (id, lab, opts, cur) { return "<label class='f'>" + lab + "<select id='" + id + "'>" + opts.map(function (o) { return "<option value='" + esc(o[0]) + "'" + (o[0] === cur ? " selected" : "") + ">" + esc(o[1]) + "</option>" }).join("") + "</select></label>" };
-    var h = ED.mode === "def" ? sel("eFront", "Front", D.fronts.map(function (f) { return [f.k, f.k + " (" + f.n + ")"] }).concat([["", "Any front"]]), ED.front || "") + sel("eSh", "Shell", [["MFO", "2-high"], ["MFC", "1-high"], ["0", "No deep safety"]], ED.sh) + sel("eFt", "Against", [["2x2", "2x2"], ["trips", "Trips"], ["bunch", "Bunch"], ["te", "Tight end"]], ED.ft)
-      : sel("eForm", "Our formation", D.forms.map(function (f) { return [f.k, f.k + " (" + f.n + ")"] }), ED.form);
-    $("edSel").innerHTML = h;
-    ["eFront", "eSh", "eFt", "eForm"].forEach(function (id) { var e = $(id); if (e) e.onchange = function () { if (id === "eFront") ED.front = e.value || null; if (id === "eSh") ED.sh = e.value; if (id === "eFt") ED.ft = e.value; if (id === "eForm") ED.form = e.value; edLoad(); edDraw() } });
-  }
-  function edLoad() {
-    if (ED.mode === "def") { ED.pts = defStd(ED.front, ED.sh, ED.ft); ED.ref = stdOff(ED.ft); var k = defKey(ED.front, ED.sh, ED.ft); $("edNote").textContent = ALIGN.def[k] ? "Using your saved spots for this look." : "Standard alignment. Drag to match " + D.opp + "." }
-    else { ED.pts = offStd(ED.form); ED.ref = []; $("edNote").textContent = ALIGN.off[ED.form] ? "Using your saved spots for " + ED.form + "." : "Standard " + formType(ED.form) + " alignment. Drag to match how we line up." }
-  }
-  function edDraw() {
-    ex.fillStyle = "#1d5631"; ex.fillRect(0, 0, EW, EH);
-    for (var y = -15; y <= 25; y++) { var a = e2s({ x: -26.7, y: y }), b = e2s({ x: 26.7, y: y }); if (y % 5 === 0) seg(ex, a, b, "rgba(232,239,230,.6)", 2); [-HASH, HASH].forEach(function (hx) { seg(ex, e2s({ x: hx - .4, y: y }), e2s({ x: hx + .4, y: y }), "rgba(232,239,230,.6)", 2) }) }
-    [-26.7, 26.7].forEach(function (x) { seg(ex, e2s({ x: x, y: -15 }), e2s({ x: x, y: 25 }), "rgba(232,239,230,.9)", 3) });
-    seg(ex, e2s({ x: -26.7, y: 0 }), e2s({ x: 26.7, y: 0 }), "rgba(80,160,255,.9)", 3);
-    ex.fillStyle = "rgba(232,239,230,.7)"; ex.font = "600 18px Barlow, sans-serif"; ex.textAlign = "left";
-    for (var d = 5; d <= 20; d += 5) { var q = e2s({ x: -26, y: d }); ex.fillText(d + " yds", q.x + 6, q.y - 4) }
-    if (ED.mode === "def") { ex.textAlign = "right"; ex.fillText("our strength →", EW - 16, 26) }
-    var dot = function (p, lab, num, col, ghost) { var q = e2s(p), r = YS * .62; ex.globalAlpha = ghost ? .45 : 1; ex.fillStyle = col; ex.beginPath(); ex.arc(q.x, q.y, r, 0, Math.PI * 2); ex.fill(); ex.fillStyle = "#fff"; ex.font = "800 " + Math.round(r * .95) + "px Saira Condensed, sans-serif"; ex.textAlign = "center"; ex.textBaseline = "middle"; ex.fillText(lab, q.x, q.y + 1); ex.textBaseline = "alphabetic"; ex.globalAlpha = 1 };
-    ED.ref.forEach(function (p, i) { dot(p, OFF_LAB[i], 0, "#d4213d", true) });
-    ED.pts.forEach(function (p, i) { dot(p, ED.mode === "def" ? (p.lab || DEF_LAB[i]) : OFF_LAB[i], 0, ED.mode === "def" ? "#2e5aa8" : "#d4213d", false) });
-    var bq = e2s({ x: 0, y: -.2 }); ex.fillStyle = "#8a4b22"; ex.beginPath(); ex.ellipse(bq.x, bq.y, 9, 6, 0, 0, Math.PI * 2); ex.fill();
-  }
-  function evPt(e) { var r = ec.getBoundingClientRect(); return { x: (e.clientX - r.left) * EW / r.width, y: (e.clientY - r.top) * EH / r.height } }
-  ec.addEventListener("pointerdown", function (e) { var p = evPt(e), best = -1, bd = 1e9; ED.pts.forEach(function (q, i) { var s = e2s(q), d = Math.hypot(s.x - p.x, s.y - p.y); if (d < bd) { bd = d; best = i } }); if (bd < YS * 1.4) { ED.drag = best; ec.setPointerCapture(e.pointerId); e.preventDefault() } });
-  ec.addEventListener("pointermove", function (e) { if (ED.drag < 0) return; var p = evPt(e), q = s2e(p.x, p.y); q.x = Math.max(-26.5, Math.min(26.5, Math.round(q.x * 2) / 2)); q.y = Math.max(-12, Math.min(22, Math.round(q.y * 2) / 2)); q.lab = ED.pts[ED.drag].lab; q.down = ED.pts[ED.drag].down; ED.pts[ED.drag] = q; edDraw() });
-  ec.addEventListener("pointerup", function () { ED.drag = -1 });
-  ec.addEventListener("pointercancel", function () { ED.drag = -1 });
-  document.querySelectorAll("#edMode .chip").forEach(function (b) { b.onclick = function () { ED.mode = b.dataset.m; edSel(); edLoad(); edDraw() } });
-  $("edSave").onclick = function () { if (ED.mode === "def") ALIGN.def[defKey(ED.front, ED.sh, ED.ft)] = ED.pts; else ALIGN.off[ED.form] = ED.pts; saveAlign(); edLoad(); edDraw(); toast("Saved. The mock game uses these spots now.") };
-  $("edReset").onclick = function () { if (ED.mode === "def") delete ALIGN.def[defKey(ED.front, ED.sh, ED.ft)]; else delete ALIGN.off[ED.form]; saveAlign(); edLoad(); edDraw(); toast("Back to the standard alignment.") };
-  $("edClose").onclick = function () { $("editor").hidden = true; $("game").hidden = false; if (G && G.over) $("report").hidden = false; poses(); draw() };
-  $("editBtn").onclick = edOpen;
-
-  // ======================= FILES =======================
+  function logDiv(t) { var li = document.createElement("li"); li.className = "dv"; li.innerHTML = t; $("log").prepend(li) }
   var RAW = { ours: [], them: [] };
   function parseFile(f) {
     return f.arrayBuffer().then(function (buf) { return /\.csv$/i.test(f.name) ? csv(new TextDecoder().decode(buf)) : xlsx(buf) }).then(function (a) { var hi = 0; for (var i = 0; i < Math.min(10, a.length); i++) { if ((a[i] || []).some(function (h) { return /ODK|^DN$|RESULT|PLAY ?#/i.test(String(h || "")) })) { hi = i; break } } return { name: f.name, header: a[hi] || [], rows: a.slice(hi + 1).filter(function (r) { return r && r.some(function (v) { return v != null && v !== "" }) }) } });
   }
   function csv(t) { var rows = [], row = [], cur = "", q = false; for (var i = 0; i < t.length; i++) { var ch = t[i]; if (q) { if (ch === '"' && t[i + 1] === '"') { cur += '"'; i++ } else if (ch === '"') q = false; else cur += ch } else if (ch === '"') q = true; else if (ch === ",") { row.push(cur); cur = "" } else if (ch === "\n" || ch === "\r") { if (ch === "\r" && t[i + 1] === "\n") i++; row.push(cur); rows.push(row); row = []; cur = "" } else cur += ch } if (cur || row.length) { row.push(cur); rows.push(row) } return rows.map(function (r) { return r.map(function (v) { return v !== "" && !isNaN(v) ? +v : v }) }) }
   function xlsx(buf) { if (!window.XLSX) return Promise.reject(new Error("xlsx")); var wb = XLSX.read(buf, { type: "array" }); return Promise.resolve(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: "" })) }
-  function loadData() {
-    D.ours = RAW.ours.length ? SK.load(RAW.ours, {}) : null; D.them = RAW.them.length ? SK.load(RAW.them, {}) : null; build();
-    var c1 = D.ours ? SK.check(D.ours, { want: "O" }) : null, c2 = D.them ? SK.check(D.them, { want: "D" }) : null;
-    $("chk").innerHTML = (c1 && c1.lvl !== "ok" ? SK.checkHTML(c1, "Our offense") : "") + (c2 && c2.lvl !== "ok" ? SK.checkHTML(c2, "Their games") : "");
-    $("nOurs").textContent = D.ours ? RAW.ours.map(function (f) { return f.name }).join(", ") + " · " + D.calls.length + " calls with 4+ plays" : "Self-scout export. Builds the call sheet and every result.";
-    $("nThem").textContent = D.them ? RAW.them.map(function (f) { return f.name }).join(", ") + " · " + D.def.length + " defensive snaps" + (D.theirRates.real ? " · " + D.theirRates.n + " of their drives" : "") : "Their defense tagged (front, shell, blitz). Full games also give their offense's drives.";
-    $("dOurs").classList.toggle("ok", !!D.ours); $("dThem").classList.toggle("ok", !!D.them);
+  function csUnzip(buf) {
+    var u = new Uint8Array(buf), dv = new DataView(buf), td = new TextDecoder(), e = u.length - 22;
+    while (e >= 0 && dv.getUint32(e, true) !== 0x06054b50) e--; if (e < 0) return Promise.reject(new Error("zip"));
+    var n = dv.getUint16(e + 10, true), off = dv.getUint32(e + 16, true), out = {}, jobs = [];
+    for (var i = 0; i < n; i++) {
+      var meth = dv.getUint16(off + 10, true), csz = dv.getUint32(off + 20, true), nl = dv.getUint16(off + 28, true), xl = dv.getUint16(off + 30, true), cl = dv.getUint16(off + 32, true), lo = dv.getUint32(off + 42, true);
+      var name = td.decode(u.subarray(off + 46, off + 46 + nl)); off += 46 + nl + xl + cl;
+      if (!/^xl\/(sharedStrings|styles|workbook|worksheets\/sheet\d+|_rels\/workbook)\.xml(\.rels)?$/.test(name) && !/^xl\/_rels\//.test(name)) continue;
+      (function (name, meth, csz, lo) {
+        var ds = lo + 30 + dv.getUint16(lo + 26, true) + dv.getUint16(lo + 28, true), data = u.slice(ds, ds + csz);
+        var p = meth === 0 ? Promise.resolve(data) : new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer().then(function (b) { return new Uint8Array(b) });
+        jobs.push(p.then(function (d) { out[name] = td.decode(d) }));
+      })(name, meth, csz, lo);
+    }
+    return Promise.all(jobs).then(function () { return out });
   }
-  function addFiles(kind, files) { Promise.all(Array.prototype.map.call(files, parseFile)).then(function (L) { RAW[kind] = RAW[kind].concat(L); loadData(); if (!window.MOCK_DATA) saveFiles(); toast("Loaded " + L.length + " file" + (L.length === 1 ? "" : "s")) }, function () { toast("Couldn't read that file. Export it from Hudl as Excel (.xlsx) or CSV.") }) }
+  function csRGB(el) { if (!el) return null; var r = el.getAttribute("rgb"); if (r) return r.slice(-6).toUpperCase(); var t = el.getAttribute("theme"); if (t != null) return t === "1" || t === "0" ? (t === "1" ? "000000" : "FFFFFF") : null; var ix = el.getAttribute("indexed"); if (ix === "8") return "000000"; if (ix === "9" || ix === "64") return "FFFFFF"; if (ix === "10") return "FF0000"; if (ix === "12") return "0000FF"; return null }
+  function csKind(hex) { // font color → run / pass / screen
+    if (!hex) return "scr"; var r = parseInt(hex.slice(0, 2), 16), g = parseInt(hex.slice(2, 4), 16), b = parseInt(hex.slice(4, 6), 16);
+    if (r > 140 && r > g * 1.6 && r > b * 1.6) return "run";
+    if (b > 120 && b > r * 1.4 && b > g * 1.1) return "pass";
+    return "scr";
+  }
+  function csGrid(z) {
+    var P = new DOMParser(), X = function (k) { return z[k] ? P.parseFromString(z[k], "application/xml") : null }, tag = function (d, t) { return d ? Array.prototype.slice.call(d.getElementsByTagName(t)) : [] };
+    var ss = tag(X("xl/sharedStrings.xml"), "si").map(function (si) { return tag(si, "t").map(function (t) { return t.textContent }).join("") });
+    var st = X("xl/styles.xml"), fonts = tag(st && st.getElementsByTagName("fonts")[0], "font").map(function (f) { return { c: csRGB(f.getElementsByTagName("color")[0]), b: !!f.getElementsByTagName("b")[0] } });
+    var fills = tag(st && st.getElementsByTagName("fills")[0], "fill").map(function (f) { var p = f.getElementsByTagName("patternFill")[0]; if (!p || p.getAttribute("patternType") === "none" || !p.getAttribute("patternType")) return null; return csRGB(p.getElementsByTagName("fgColor")[0]) });
+    var xfs = tag(st && st.getElementsByTagName("cellXfs")[0], "xf").map(function (x) { return { f: +(x.getAttribute("fontId") || 0), l: +(x.getAttribute("fillId") || 0) } });
+    var sheets = Object.keys(z).filter(function (k) { return /^xl\/worksheets\/sheet\d+\.xml$/.test(k) }).sort(function (a, b) { return parseInt(a.match(/\d+/)[0]) - parseInt(b.match(/\d+/)[0]) });
+    if (!sheets.length) return null;
+    var sh = X(sheets[0]), cells = {}, col = function (ref) { var m = /^([A-Z]+)(\d+)/.exec(ref), n = 0; for (var i = 0; i < m[1].length; i++) n = n * 26 + m[1].charCodeAt(i) - 64; return [n - 1, +m[2] - 1] };
+    tag(sh, "c").forEach(function (c) {
+      var rc = col(c.getAttribute("r")), t = c.getAttribute("t"), v = c.getElementsByTagName("v")[0], val = "";
+      if (t === "s" && v) val = ss[+v.textContent] || ""; else if (t === "inlineStr") val = tag(c, "t").map(function (x) { return x.textContent }).join(""); else if (v) val = v.textContent;
+      var x = xfs[+(c.getAttribute("s") || 0)] || { f: 0, l: 0 }, fo = fonts[x.f] || {}, fi = fills[x.l] || null;
+      cells[rc[1] + "," + rc[0]] = { v: String(val).replace(/\s+/g, " ").trim(), fc: fo.c, bold: fo.b, fill: fi && fi !== "FFFFFF" ? fi : null, r: rc[1], c: rc[0] };
+    });
+    var merges = tag(sh, "mergeCell").map(function (m) { var p = m.getAttribute("ref").split(":"), a = col(p[0]), b = col(p[1] || p[0]); return { r0: a[1], c0: a[0], r1: b[1], c1: b[0] } });
+    merges.forEach(function (m) { var top = cells[m.r0 + "," + m.c0]; if (!top) return; for (var r = m.r0; r <= m.r1; r++) for (var c = m.c0; c <= m.c1; c++) if (r !== m.r0 || c !== m.c0) cells[r + "," + c] = { v: "", fill: top.fill, part: true, r: r, c: c } });
+    return { cells: cells, merges: merges };
+  }
+  function expandCall(text) {
+    var t = String(text || "").toUpperCase().replace(/\s+/g, " ").trim(); if (!t) return [];
+    var orig = [], prot = [];
+    t = t.replace(/\([^)]*\)/g, function (m) { orig.push(m); prot.push(m.replace(/\*/g, "/")); return "\u0001" + String.fromCharCode(65 + prot.length - 1) + "\u0002" });
+    var un = function (x) { return x.replace(/\u0001([A-Z])\u0002/g, function (_, c) { return prot[c.charCodeAt(0) - 65] }).replace(/\s+/g, " ").trim() };
+    var alts = t.split(/\s\/\s/).map(function (a) { a = a.trim(); var m = a.match(/^\u0001([A-Z])\u0002$/); return m ? orig[m[1].charCodeAt(0) - 65].slice(1, -1) : a });
+    var m = alts[0].match(/^(.*\s|)(\d+\*\d+|\d+)\s+(.*)$/), out = [];
+    alts.forEach(function (a, i) {
+      if (i > 0 && m && !/\d/.test(a) && a.split(" ").length <= 2) a = m[1] + m[2] + " " + a;
+      var con = a.replace(/([#\w]+)\*([#\w]+)/g, function (_, x, y) { return /^\d+$/.test(x) && /^\d+$/.test(y) ? "" : x + "/" + y }).replace(/\b\d+\b/g, "").replace(/\u0001[A-Z]\u0002/g, "").replace(/\([^)]*\)/g, "").replace(/\s+/g, " ").trim();
+      FORM_WORDS.some(function (f) { if (con.indexOf(f + " ") === 0) { con = con.slice(f.length + 1); return true } });
+      var outs = [a], re = /([#\w]+)\*([#\w]+)/g, mm;
+      while ((mm = re.exec(a))) { var whole = mm[0], x = mm[1], y = mm[2]; outs = [].concat.apply([], outs.map(function (o) { return [o.replace(whole, x), o.replace(whole, y)] })) }
+      outs.forEach(function (o) { var tt = un(o); out.push({ t: tt, g: con || tt }) });
+    });
+    var seen = {}; return out.filter(function (x) { if (seen[x.t]) return false; seen[x.t] = 1; return true });
+  }
+  function csExpand(t) { // trailing "(DIP / TRIG)" applies to every play in the cell, not just the last one
+    var m = String(t).match(/^(.*?\S)((?:\s*\([^)]*\))+)\s*$/); if (!m || m[1].indexOf(" / ") < 0) return expandCall(t);
+    var tail = m[2].trim(), seen = {}; return expandCall(m[1]).map(function (p) { return { t: p.t + " " + tail, g: p.g } }).filter(function (p) { if (seen[p.t]) return false; seen[p.t] = 1; return true });
+  }
+  var FORM_WORDS = [];
+  var CS_SIT = [[/2\s*P(T|OINT)/, "2PT"], [/GOAL ?LINE|5 ?& ?IN|TIGHT ZONE/, "TZ"], [/SCORE ?ZONE/, "SZ"], [/RED ?ZONE/, "RZ"], [/BACKED|COMING OUT/, "CO"], [/4TH/, "4TH"], [/OFF SCHED|2ND/, "2L"], [/^LONG|3RD.*(LONG|11|7)/, "3L7"], [/^MEDIUM|3RD.*(MED|4-6)/, "3M"], [/^SHORT|3RD.*(SHORT|1-3)/, "3S"]];
+  var CS_OTHER = /2 ?MIN|4 ?MIN|MAN BEAT|CLOUD|BRACKET|PALMS|BLITZ|DROP 8|COV 3|END OF|ATTACK|2 PLAY SERIES|TEMPO|SERIES|BEATERS/;
+  var CS_SKIP = /^(NOTES?|FAST|FEARLESS|PHYSICAL|3RD DOWN|\d+ PERSONNEL|PERSONNEL)$|BULLDOGS|\d{1,2}-\d{1,2}-\d{2}/;
+  function csParse(G) {
+    var C = G.cells, keys = Object.keys(C), maxR = 0, maxC = 0; keys.forEach(function (k) { var x = C[k]; if (x.r > maxR) maxR = x.r; if (x.c > maxC) maxC = x.c });
+    var isHead = function (x) { return x && x.fill && !x.part && x.v };
+    var span = function (x) { var m = G.merges.filter(function (m) { return m.r0 === x.r && m.c0 === x.c })[0]; return m ? [m.c0, m.c1] : [x.c, x.c] };
+    var boxes = [], skipped = 0;
+    keys.map(function (k) { return C[k] }).filter(isHead).sort(function (a, b) { return a.r - b.r || a.c - b.c }).forEach(function (h) {
+      var name = h.v.toUpperCase(); if (CS_SKIP.test(name)) return;
+      var sp = span(h), plays = [];
+      for (var r = h.r + 1; r <= maxR; r++) {
+        var stop = false, rowCells = [];
+        for (var c = sp[0]; c <= sp[1]; c++) { var x = C[r + "," + c]; if (x && x.fill && (isHead(x) || x.part) && !(x.part && x.fill === h.fill && false)) { stop = true; break } if (x && x.v && !x.part) rowCells.push(x) }
+        if (stop) break;
+        rowCells.forEach(function (x) { plays.push(x) });
+      }
+      var sit = null; CS_SIT.some(function (p) { if (p[0].test(name)) { sit = p[1]; return true } });
+      var other = !sit && CS_OTHER.test(name);
+      var box = { name: name, kind: sit || other ? "sit" : "form", plays: [] };
+      if (sit) box.key = sit; else if (other) box.key = ""; else box.form = name;
+      plays.forEach(function (x) {
+        var t = x.v.toUpperCase(), d = null, m = t.match(/^(\d+(?:\s*-\s*\d+)?\+?)\s*:\s*(.*)$/); if (m) { d = m[1].replace(/\s/g, ""); t = m[2] } if (!t) return;
+        var k = csKind(x.fc), col = k === "run" ? "run" : k === "pass" ? "pass" : "scr";
+        csExpand(t).forEach(function (p) { var pl = { t: p.t, g: p.g, c: col, rp: k }; if (d) pl.d = d; box.plays.push(pl) });
+      });
+      if (box.plays.length) { plays.forEach(function (x) { x.bi = boxes.length }); boxes.push(box) } else skipped++;
+    });
+    var grid = { cells: [] }, mr = 0, mc = 0;
+    keys.map(function (k) { return C[k] }).forEach(function (x) {
+      if (x.part || (!x.v && !x.fill)) return; var sp = G.merges.filter(function (m) { return m.r0 === x.r && m.c0 === x.c })[0];
+      var o = { r: x.r, c: x.c, rs: sp ? sp.r1 - sp.r0 + 1 : 1, cs: sp ? sp.c1 - sp.c0 + 1 : 1, v: x.v };
+      if (x.fill) o.f = x.fill; if (x.fc) o.fc = x.fc; if (isHead(x)) o.h = 1; else if (x.v) { o.k = csKind(x.fc); if (x.bi != null) o.b = x.bi }
+      if (x.r + o.rs > mr) mr = x.r + o.rs; if (x.c + o.cs > mc) mc = x.c + o.cs; grid.cells.push(o);
+    });
+    grid.rows = mr; grid.cols = mc;
+    // a "LONG" box covers 3rd & 11+ too
+    boxes.filter(function (b) { return b.key === "3L7" }).forEach(function (b) { boxes.push({ name: b.name + " (11+)", kind: "sit", key: "3L11", plays: JSON.parse(JSON.stringify(b.plays)) }) });
+    return { boxes: boxes, empty: skipped, grid: grid };
+  }
+  function logLine(a, b, c, cls) { var li = document.createElement("li"); li.innerHTML = "<span>" + esc(a) + "</span><span>" + esc(b) + "</span><span class='" + cls + "'>" + esc(c) + "</span>"; $("log").prepend(li) }
+  // ======================= CALL SHEET =======================
+  var SHEET = null; // { boxes, grid, name }
+  function sitKeys() { var k = [], g = G; if (g.dn === 3) k.push(g.dist <= 3 ? "3S" : g.dist <= 6 ? "3M" : g.dist <= 10 ? "3L7" : "3L11"); if (g.dn === 2 && g.dist >= 7) k.push("2L"); if (g.dn === 4) k.push("4TH"); if (g.ball >= 95) k.push("TZ"); if (g.ball >= 90 && g.ball < 95) k.push("SZ"); if (g.ball >= 80 && g.ball < 90) k.push("RZ"); if (g.ball <= 10) k.push("CO"); return k }
+  function cellPlays(c) { var box = SHEET.grid.boxes ? null : SHEET.boxes[c.b]; if (!box) return []; var t = String(c.v).toUpperCase(), d = null, m = t.match(/^(\d+(?:\s*-\s*\d+)?\+?)\s*:\s*(.*)$/); if (m) { d = m[1].replace(/\s/g, ""); t = m[2] } if (!t) return [];
+    return csExpand(t).map(function (p) { var form = box.kind === "form" ? box.form : ""; return { name: ((form ? form + " " : "") + p.t).replace(/\s+/g, " ").trim(), lab: p.t, d: d, form: titleCase(form), kind: c.k || "scr", run: c.k === "run", id: c.r + ":" + c.c + ":" + p.t } }) }
+  function allPlays() { var o = []; SHEET.grid.cells.forEach(function (c) { if (c.b != null) o = o.concat(cellPlays(c)) }); return o }
+  function useSheet(s) { if (!s || !s.grid || !s.boxes) return false; SHEET = s; $("nSheet").textContent = s.name + " · " + allPlays().length + " plays"; $("dSheet").classList.add("ok"); return true }
+  function saveSheet() { var txt = JSON.stringify(SHEET); store.set("sol-mock-sheet", SHEET); if (!SHEET.sample) cloud("sheet", "PUT", txt).catch(function () {}) }
+  $("fSheet").onchange = function () { var f = this.files[0]; this.value = ""; if (!f) return;
+    f.arrayBuffer().then(csUnzip).then(function (z) { var g = csGrid(z); if (!g) throw 0; var r = csParse(g); if (!r.boxes.length) throw 0; r.name = f.name; useSheet(r); saveSheet(); toast("Call sheet loaded") }).catch(function () { toast("Couldn't read that sheet. In Google Sheets: File, Download, Microsoft Excel (.xlsx).") }) };
+  // made-up sheet so anyone can try it, and for demos
+  function sampleSheet() {
+    var cols = [["GUN TRIPS", "2F2F2F", [["run", "INSIDE ZONE"], ["run", "POWER"], ["pass", "STICK"], ["pass", "MESH"], ["scr", "BUBBLE"]]], ["DOUBLES", "1F4E8C", [["run", "COUNTER"], ["run", "OUTSIDE ZONE"], ["pass", "VERTS"], ["pass", "SLANT FLAT"], ["scr", "JET SCREEN"]]], ["TIGHT", "2E7D4F", [["run", "DUO"], ["run", "TOSS"], ["pass", "BOOT"], ["pass", "Y CROSS"], ["scr", "RB SCREEN"]]], ["3RD SHORT", "B8860B", [["run", "QB SNEAK"], ["run", "POWER"], ["pass", "SLANT FLAT"], ["pass", "STICK"], ["run", "DUO"]]], ["3RD LONG", "8C1F2F", [["pass", "MESH"], ["pass", "Y CROSS"], ["pass", "VERTS"], ["scr", "RB SCREEN"], ["run", "DRAW"]]], ["RED ZONE", "5B3A8C", [["run", "POWER"], ["pass", "FADE"], ["pass", "STICK"], ["run", "INSIDE ZONE"], ["scr", "JET SCREEN"]]]];
+    var cells = [], boxes = [];
+    cols.forEach(function (c, i) { var sit = /3RD SHORT/.test(c[0]) ? "3S" : /3RD LONG/.test(c[0]) ? "3L7" : /RED/.test(c[0]) ? "RZ" : null, box = { name: c[0], kind: sit ? "sit" : "form", plays: [] }; if (sit) box.key = sit; else box.form = c[0]; boxes.push(box); cells.push({ r: 0, c: i, rs: 1, cs: 1, v: c[0], f: c[1], h: 1 }); c[2].forEach(function (p, j) { box.plays.push({ t: p[1], c: p[0] }); cells.push({ r: j + 1, c: i, rs: 1, cs: 1, v: p[1], k: p[0], b: i }) }) });
+    return { boxes: boxes, grid: { cells: cells, rows: 6, cols: cols.length }, name: "Sample call sheet", sample: true };
+  }
+  $("sampleBtn").onclick = function () { useSheet(sampleSheet()); $("usName").value = "Central Eagles"; $("oppName").value = "Westlake"; startGame() };
+
+  // ======================= RESULTS =======================
+  var WORDS = function (s) { return String(s || "").toUpperCase().split(/[^A-Z0-9]+/).filter(function (w) { return w.length > 1 }) };
+  function filmFor(p) { // the film history for a sheet play: same concept, same formation when it has one
+    var w = WORDS(p.name), best = null, bs = 0; (D.calls || []).forEach(function (c) { var con = WORDS(c.concept); if (!con.length || !con.every(function (x) { return w.indexOf(x) >= 0 })) return; var f = WORDS(c.form), sc = con.length * 2 + (f.length && f.every(function (x) { return w.indexOf(x) >= 0 }) ? 3 : 0) + Math.min(1, c.n / 50); if (sc > bs) { bs = sc; best = c } }); return best }
+  function estimate(p) { // no film on this play: a plain high school average, tougher on long yardage
+    var x = rand(), long = G.dist >= 7 && G.dn >= 2, gain = function (a) { return a[Math.floor(rand() * a.length)] };
+    if (p.run) { if (x < .012) return { gain: -2, fum: true }; if (x < .2) return { gain: gain([-3, -2, -1, 0, 0]) }; if (x < .9) return { gain: gain([1, 2, 3, 3, 4, 4, 5, 5, 6, 7, 8]) }; return { gain: gain([10, 12, 14, 18, 25, 40]) } }
+    if (p.kind === "scr") { if (x < .1) return { inc: true, gain: 0 }; if (x < .3) return { gain: gain([-2, -1, 0, 1]) }; if (x < .9) return { gain: gain([2, 3, 4, 5, 6, 7, 9]) }; return { gain: gain([12, 15, 22, 35]) } }
+    var comp = long ? .48 : .58; if (x < .025) return { int: true, gain: 8 }; if (x < .09) return { sack: true, gain: -gain([4, 5, 6, 7, 8]) }; if (x < .09 + comp) return { gain: rand() < .14 ? gain([18, 22, 28, 35, 48]) : gain([3, 5, 6, 7, 8, 9, 10, 12, 14]) }; return { inc: true, gain: 0 } }
+  function rollResult(p) {
+    var s = situ(), POOL = lookPool(p.form).rows, L = POOL.length ? pick(POOL) : {}, c = filmFor(p), out;
+    look = { sh: L.sh, front: L.front, blitz: L.blitz, cov: L.cov };
+    if (c) { var W = c.plays.map(function (q) { return (q.sh && q.sh === look.sh ? 3 : 1) * (q.b === s.b ? 1.5 : 1) }), tot = W.reduce(function (a, b) { return a + b }, 0), r = rand() * tot, pl = c.plays[0]; for (var i = 0; i < W.length; i++) { r -= W[i]; if (r <= 0) { pl = c.plays[i]; break } }
+      var res = String(pl.res || "").toUpperCase(); out = { gain: pl.gain || 0, int: /INTERCEPT/.test(res), fum: /FUMBLE/.test(res) && rand() < .5, sack: /SACK/.test(res), film: true }; if (!c.run && !out.int && !out.sack && /INCOMPLETE/.test(res)) out.inc = true }
+    else out = estimate(p);
+    if (G.ball + out.gain > 100) out.gain = 100 - G.ball; if (G.ball + out.gain < 1) out.gain = 1 - G.ball;
+    return out }
+
+  // ======================= GAME =======================
+  var G, look = {}, anim = false, SEL = null, P = {}, MODE = "call", FORM = null;
+  var QLEN = 12 * 60;
+  function newGame() { SEL = null; var n = +$("len").value || 4;
+    G = { q: 1, qs: n, clock: QLEN, us: 0, them: 0, ball: 30, dn: 1, dist: 10, hash: "M", snaps: [], drives: [], theirD: [], over: false, kickoff2: false, fourth: false, wait: false, last: null, pr: { calls: 0, callsOk: 0, res: 0, resOk: 0, spots: 0, spotsOk: 0, t: 0, n: 0 } };
+    startDrive("Kickoff"); $("log").innerHTML = ""; $("report").hidden = true; $("res").hidden = true; $("game").hidden = false; $("modeTag").textContent = MODE === "chart" ? "Charting practice" : "Calling the game";
+    logDiv("Q1 · " + esc(D.us) + " ball at " + spot(G.ball)); P = {}; refresh(); if (MODE === "chart") nextDrill() }
+  function startGame() { if (!SHEET) { toast("Upload your call sheet first."); return } D.us = $("usName").value.trim() || "Our team"; D.opp = $("oppName").value.trim() || "Opponent"; MODE = document.querySelector("[name=mode]:checked").value; store.set("sol-mock-names", { us: D.us, opp: D.opp }); $("setup").hidden = true; newGame(); window.scrollTo({ top: 0 }) }
+  $("startBtn").onclick = startGame;
+
+  function stripSVG(ballAt) { var H = 150, X = function (y) { return 80 + 8.4 * y }, g = G, h = "<rect width='1000' height='150' fill='#266b33'/><rect width='80' height='150' fill='#b3182f'/><rect x='920' width='80' height='150' fill='#2b2e35'/>";
+    h += "<text x='40' y='75' fill='#fff' font-weight='800' font-size='16' letter-spacing='2' text-anchor='middle' dominant-baseline='middle' transform='rotate(-90 40 75)'>" + esc(short(D.us)) + "</text><text x='960' y='75' fill='#fff' font-weight='800' font-size='16' letter-spacing='2' text-anchor='middle' dominant-baseline='middle' transform='rotate(90 960 75)'>TD</text>";
+    for (var y = 0; y <= 100; y += 5) h += "<line x1='" + X(y) + "' y1='0' x2='" + X(y) + "' y2='150' stroke='rgba(255,255,255," + (y % 10 ? .25 : .55) + ")' stroke-width='" + (y % 50 ? 1.3 : 3) + "'/>" + (y % 10 === 0 && y > 0 && y < 100 ? "<text x='" + X(y) + "' y='32' fill='#fff' font-weight='800' font-size='22' text-anchor='middle'>" + (y <= 50 ? y : 100 - y) + "</text>" : "");
+    h += "<line x1='" + X(g.ball) + "' y1='0' x2='" + X(g.ball) + "' y2='150' stroke='#3b82f6' stroke-width='4'/>"; if (g.ball + g.dist < 100) h += "<line x1='" + X(g.ball + g.dist) + "' y1='0' x2='" + X(g.ball + g.dist) + "' y2='150' stroke='#facc15' stroke-width='4'/>";
+    var b = X(ballAt == null ? g.ball : ballAt); h += "<ellipse cx='" + b + "' cy='84' rx='14' ry='9' fill='#7a3b12' stroke='#fff' stroke-width='2.5'/>"; if (P.need === "spot") h += "<text x='500' y='128' fill='#fff' font-weight='800' font-size='18' text-anchor='middle' style='paint-order:stroke' stroke='rgba(0,0,0,.65)' stroke-width='4'>Tap where the ball was spotted</text>"; $("strip").innerHTML = h }
+  function driveSVG() { var L = G.drives.concat(G.drive && G.drive.plays ? [Object.assign({}, G.drive, { res: "Now", end: G.ball })] : []), lane = 30, H = Math.max(120, 40 + L.length * lane + 12), X = function (y) { return 80 + 8.4 * y }, COL = { Touchdown: "#3fbf6f", "Field goal": "#f2c14e", Punt: "#8fa0b2", Downs: "#ef5a5a", Interception: "#ef5a5a", Fumble: "#ef5a5a", "Missed FG": "#ef5a5a", Now: "#7ea6ef" }, h = "<rect width='1000' height='" + H + "' fill='#174a25'/><rect width='80' height='" + H + "' fill='#b3182f'/><rect x='920' width='80' height='" + H + "' fill='#2b2e35'/>";
+    for (var y = 0; y <= 100; y += 10) h += "<line x1='" + X(y) + "' y1='0' x2='" + X(y) + "' y2='" + H + "' stroke='rgba(255,255,255,.3)'/>" + (y > 0 && y < 100 ? "<text x='" + X(y) + "' y='24' fill='rgba(255,255,255,.85)' font-weight='700' font-size='18' text-anchor='middle'>" + (y <= 50 ? y : 100 - y) + "</text>" : "");
+    if (!L.length) h += "<text x='500' y='78' fill='rgba(255,255,255,.85)' font-size='20' text-anchor='middle'>Drives show here as you play</text>";
+    L.forEach(function (d, i) { var yy = 44 + i * lane + lane / 2, a = X(Math.min(100, d.start)), b = X(Math.min(100, d.end)), col = COL[d.res] || "#9aa0a6", lo = Math.min(a, b), w = Math.max(5, Math.abs(b - a)), lab = "D" + (i + 1) + " · " + d.plays + (d.plays === 1 ? " play, " : " plays, ") + (d.yds >= 0 ? "+" : "") + d.yds + " · " + (d.res === "Now" ? "on the field" : d.res), right = Math.max(a, b) < 620; h += "<rect x='" + lo + "' y='" + (yy - 7) + "' width='" + w + "' height='14' rx='7' fill='" + col + "'/><circle cx='" + a + "' cy='" + yy + "' r='6' fill='#fff' stroke='" + col + "' stroke-width='3'/><text x='" + (right ? Math.max(a, b) + 14 : lo - 12) + "' y='" + (yy + 5) + "' fill='#fff' font-weight='600' font-size='14' text-anchor='" + (right ? "start" : "end") + "' style='paint-order:stroke' stroke='rgba(0,0,0,.55)' stroke-width='3'>" + esc(lab) + "</text>" });
+    var s = $("drives"); s.setAttribute("viewBox", "0 0 1000 " + H); s.innerHTML = h }
+  function gridDraw() { var g = $("grid"), S = SHEET.grid, locked = anim || G.over || G.wait || G.fourth || (MODE === "chart" && P.need !== "call"), keys = sitKeys(), on = {}; SHEET.boxes.forEach(function (b, i) { if (b.kind === "sit" && keys.indexOf(b.key) >= 0) on[i] = 1 });
+    var names = Object.keys(on).map(function (i) { return SHEET.boxes[i].name }); $("sheetSit").textContent = names.length ? "· " + names.join(", ") + " is up" : ""; g.innerHTML = ""; g.style.gridTemplateColumns = "repeat(" + S.cols + ", minmax(120px, auto))";
+    S.cells.forEach(function (c) { var el = document.createElement("div"); el.style.gridRow = (c.r + 1) + " / span " + c.rs; el.style.gridColumn = (c.c + 1) + " / span " + c.cs; if (c.f) { el.style.background = "#" + c.f; el.style.color = lum(c.f) < .4 ? "#fff" : "#000" }
+      if (c.h) { el.className = "gh"; el.textContent = c.v; if (names.some(function (n) { return n.indexOf(String(c.v).toUpperCase()) === 0 })) el.classList.add("sit-on") }
+      else if (c.b != null && SHEET.boxes[c.b]) { el.className = "gc k-" + (c.k || "scr"); if (on[c.b]) el.classList.add("sit-on"); cellPlays(c).forEach(function (p) { var b = document.createElement("button"), n = G.snaps.filter(function (s) { return s.call === p.name }).length; b.type = "button"; b.className = "k-" + p.kind; b.disabled = !!locked; b.setAttribute("aria-pressed", SEL && SEL.id === p.id ? "true" : "false"); b.innerHTML = (p.d ? "<span class='d'>" + esc(p.d) + "</span>" : "") + esc(p.lab) + (n ? "<span class='n'>×" + n + "</span>" : ""); b.onclick = function () { tapPlay(p) }; el.appendChild(b) }) }
+      else { el.className = "gx"; el.textContent = c.v } g.appendChild(el) }) }
+  function lum(h) { return (parseInt(h.slice(0, 2), 16) * .3 + parseInt(h.slice(2, 4), 16) * .59 + parseInt(h.slice(4, 6), 16) * .11) / 255 }
+  function refresh() { if (!G) return; board(); stripSVG(); driveSVG(); gridDraw();
+    var hasRead = D.def && D.def.length; $("readPanel").hidden = !hasRead; if (hasRead) $("read").innerHTML = readHTML();
+    var act = "";
+    if (G.wait && G.theirCard) act = G.theirCard;
+    else if (MODE === "chart") act = drillHTML();
+    else if (G.fourth && !G.over) { var fgd = 100 - G.ball + 17, fgp = fgProb(fgd); act = "<div class='fourth'><p><b>4th & " + G.dist + " at " + spot(G.ball) + ".</b> Go for it, punt, or kick?</p><div class='row'><button class='btn pri' type='button' data-4='go'>Go for it</button><button class='btn' type='button' data-4='punt'>Punt</button>" + (fgd <= 50 ? "<button class='btn' type='button' data-4='fg'>Field goal · " + fgd + " yds (" + Math.round(fgp * 100) + "%)</button>" : "") + "</div></div>" }
+    else if (G.last && !G.over && !anim) act = "<div class='row'><button class='btn gold' type='button' id='againBtn'>↻ Run it again · " + esc(G.last.name) + "</button><span class='note' style='margin:0'>Same call, on the ball. Uses less clock.</span></div>";
+    $("act").innerHTML = act; var ob = $("ourBall"); if (ob && G.ourBall) ob.onclick = G.ourBall; var ag = $("againBtn"); if (ag) ag.onclick = function () { var c = G.last; SEL = null; snap(c, true) };
+    document.querySelectorAll("[data-4]").forEach(function (b) { b.onclick = function () { fourthDo(b.dataset["4"]) } }); document.querySelectorAll("[data-r]").forEach(function (b) { b.onclick = function () { tapResult(b.dataset.r) } });
+    var on = MODE === "call" && !!SEL && !anim && !G.over && !G.wait && !G.fourth; $("snapbar").hidden = !on; if (on) $("snapName").textContent = SEL.name }
+  function tapPlay(p) { if (MODE === "chart") return drillPlay(p); if (anim || G.over || G.wait || G.fourth) return; SEL = SEL && SEL.id === p.id ? null : p; refresh() }
+  $("snapBtn").onclick = function () { if (!SEL) return; var c = SEL; SEL = null; snap(c, false) };
+  $("unsel").onclick = function () { SEL = null; refresh() };
+  function snap(c, tempo) { if (anim || G.over || G.wait) return; var o = rollResult(c); $("res").hidden = true; anim = true; G.last = null; refresh(); run(c, o, tempo) }
+  function run(c, o, tempo) { var from = G.ball, to = o.inc ? from : from + o.gain, t0 = null, dur = matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 750; (function step(t) { if (t0 == null) t0 = t; var f = dur ? Math.min(1, (t - t0) / dur) : 1; stripSVG(from + (to - from) * f); if (f < 1) requestAnimationFrame(step); else { anim = false; apply(c, o, tempo) } })(performance.now()) }
+  function apply(c, o, tempo) { var before = spot(G.ball) + " · " + ord(G.dn) + "&" + G.dist, sit = situ(), txt, cls, S = { b: sit.b, call: c.name, run: c.run, gain: o.inc || o.int ? 0 : o.gain, ok: false, tempo: !!tempo, film: !!o.film, sh: look.sh }; G.snaps.push(S);
+    G.clock -= o.inc ? 8 : (tempo ? 16 : c.run ? 36 : 30); G.drive.plays++;
+    if (o.int || o.fum) { txt = o.int ? "Intercepted" : "Fumble · lost"; G.ball += o.int ? Math.max(0, o.gain) : o.gain; G.drive.yds += o.int ? 0 : o.gain; logSnap(before, c, o, "r"); endDrive(o.int ? "Interception" : "Fumble"); show(txt, "bad"); return afterOurs(100 - G.ball) }
+    if (!o.inc) { G.ball += o.gain; G.drive.yds += o.gain }
+    S.ok = succ({ gain: S.gain, dn: G.dn, dist: G.dist });
+    if (G.ball >= 100) { G.us += 7; logSnap(before, c, o, "y"); endDrive("Touchdown"); show("Touchdown", "td"); return afterOurs(null, true) }
+    if (!o.inc && o.gain >= G.dist) { G.dn = 1; G.dist = Math.min(10, 100 - G.ball); txt = "Gain of " + o.gain + " · first down"; cls = "good" }
+    else { G.dn++; if (!o.inc) G.dist -= o.gain; txt = o.inc ? "Incomplete" : o.sack ? "Sack · loss of " + (-o.gain) : o.gain < 0 ? "Loss of " + (-o.gain) : o.gain === 0 ? "No gain" : "Gain of " + o.gain; cls = S.ok ? "good" : "bad" }
+    logSnap(before, c, o, S.ok ? "g" : "r"); show(txt, cls);
+    if (G.dn > 4) { endDrive("Downs"); return afterOurs(100 - G.ball) }
+    if (G.dn === 4) G.fourth = true;
+    if (clockOut()) return;
+    G.last = c; refresh(); if (MODE === "chart") nextDrill() }
+  function logSnap(before, c, o, cls) { var li = document.createElement("li"); li.innerHTML = "<span>" + esc(before) + "</span><span>" + esc(c.name) + "</span><span class='" + cls + "'>" + (o.inc ? "Inc" : o.int ? "INT" : o.fum ? "FUM" : (o.gain > 0 ? "+" : "") + o.gain) + "</span>"; $("log").prepend(li) }
+
+  // ======================= CHARTING PRACTICE =======================
+  function resKind(o) { return o.int || o.fum ? "turnover" : o.inc ? "inc" : o.sack ? "sack" : "gain" }
+  function nextDrill() { if (G.over || G.wait) return; if (G.fourth) { var d = 100 - G.ball + 17; if (G.ball >= 60 && G.dist <= 3) { G.fourth = false } else { fourthDo(d <= 35 ? "fg" : "punt"); return } }
+    var L = allPlays(); if (!L.length) return; var p = pick(L); P = { need: "call", play: p, out: rollResult(p), t0: Date.now(), miss: false }; G.pr.calls++; refresh() }
+  function drillHTML() { if (!P.need) return ""; var o = P.out, to = G.ball + (o.inc ? 0 : o.gain);
+    if (P.need === "call") return "<div class='drill'><small>Coach on the headset</small><b>“" + esc(P.play.name) + "”</b><p>Find it on the sheet and tap it.</p></div>";
+    var what = resKind(o) === "turnover" ? (o.int ? "Picked off." : "Fumble, they got it.") : o.inc ? "Ball hits the ground." : o.sack ? "Quarterback's down behind the line." : to >= 100 ? "He's in! Touchdown." : "Tackled at the " + spot(to) + ".";
+    if (P.need === "res") return "<div class='drill'><small>On the field</small><b>" + esc(what) + "</b><div class='row' style='margin-top:8px'>" + [["gain", "Gain"], ["inc", "Incomplete"], ["sack", "Sack"], ["turnover", "Turnover"]].map(function (r) { return "<button class='btn' type='button' data-r='" + r[0] + "'>" + r[1] + "</button>" }).join("") + "</div></div>";
+    return "<div class='drill'><small>On the field</small><b>" + esc(what) + "</b><p>Tap the spot on the field above.</p></div>" }
+  function drillPlay(p) { if (P.need !== "call") return; if (p.name !== P.play.name) { if (!P.miss) P.miss = true; toast("That's " + p.name + ". Listen again: " + P.play.name); return } if (!P.miss) G.pr.callsOk++; P.need = "res"; P.miss = false; G.pr.res++; $("res").hidden = true; refresh() }
+  function tapResult(k) { if (P.need !== "res") return; if (k !== resKind(P.out)) { if (!P.miss) P.miss = true; toast("Not that one. Read it again."); return } if (!P.miss) G.pr.resOk++; if (k === "inc" || k === "turnover") return drillDone(); P.need = "spot"; G.pr.spots++; refresh() }
+  $("strip").addEventListener("click", function (e) { if (P.need !== "spot") return; var r = this.getBoundingClientRect(), x = (e.clientX - r.left) * 1000 / r.width, y = (x - 80) / 8.4, to = Math.min(100, G.ball + P.out.gain); if (y > 100) y = 100; var off = Math.abs(y - to); if (off <= 1.5) G.pr.spotsOk++; else toast("Off by " + Math.round(off) + ". Ball was at " + spot(to) + "."); drillDone() });
+  function drillDone() { G.pr.t += (Date.now() - P.t0) / 1000; G.pr.n++; var c = P.play, o = P.out; P = {}; apply(c, o, false) }
+  function drillTheirDone() { if (MODE === "chart" && !G.over && !G.wait) nextDrill() }
+
+  // ======================= REPORT =======================
+  function finishGame() { var S = G.snaps, n = S.length, yds = S.reduce(function (t, s) { return t + s.gain }, 0), ok = S.filter(function (s) { return s.ok }).length, runs = S.filter(function (s) { return s.run }).length, film = S.filter(function (s) { return s.film }).length, pr = G.pr, pc = function (a, b) { return b ? Math.round(100 * a / b) + "%" : "–" };
+    var group = function (key) { var m = {}; S.forEach(function (s) { var k = key(s); if (k == null) return; var g = m[k] = m[k] || { n: 0, yds: 0, ok: 0 }; g.n++; g.yds += s.gain; g.ok += s.ok ? 1 : 0 }); return Object.keys(m).map(function (k) { return { k: k, g: m[k] } }).sort(function (a, b) { return b.g.n - a.g.n }) };
+    var tab = function (title, rows, lab) { return rows.length ? "<div class='sub'>" + title + "</div><div class='tbl'><table><tr><th>" + lab + "</th><th>Plays</th><th>Yds/play</th><th>Success</th></tr>" + rows.map(function (r) { return "<tr><td>" + esc(r.k) + "</td><td>" + r.g.n + "</td><td>" + (r.g.yds / r.g.n).toFixed(1) + "</td><td>" + Math.round(100 * r.g.ok / r.g.n) + "%</td></tr>" }).join("") + "</table></div>" : "" };
+    var kpi = function (b, s) { return "<div class='kpi'><b>" + b + "</b><small>" + s + "</small></div>" };
+    var h = "<h2>Final · " + esc(D.us) + " " + G.us + ", " + esc(D.opp) + " " + G.them + "</h2>" + (MODE === "chart" ? "<div class='sub'>Your charting</div><div class='kpis'>" + kpi(pc(pr.callsOk, pr.calls), "calls right first tap") + kpi(pc(pr.resOk, pr.res), "results right first tap") + kpi(pc(pr.spotsOk, pr.spots), "spots within a yard") + kpi(pr.n ? (pr.t / pr.n).toFixed(1) + "s" : "–", "average per play") + "</div>" : "") +
+      "<div class='kpis'>" + kpi(n, "plays") + kpi(n ? (yds / n).toFixed(1) : "–", "yards per play") + kpi(n ? Math.round(100 * ok / n) + "%" : "–", "successful plays") + kpi(n ? Math.round(100 * runs / n) + "/" + (100 - Math.round(100 * runs / n)) : "–", "run / pass %") + kpi(S.filter(function (s) { return s.tempo }).length, "run it again snaps") + "</div>" +
+      "<div class='sub'>Drives</div><div class='tbl'><table><tr><th>#</th><th>Start</th><th>Plays</th><th>Yds</th><th>Result</th></tr>" + G.drives.map(function (d, i) { return "<tr><td>" + (i + 1) + "</td><td>" + spot(d.start) + "</td><td>" + d.plays + "</td><td>" + d.yds + "</td><td>" + esc(d.res) + "</td></tr>" }).join("") + "</table></div>" + tab("By down & distance", group(function (s) { return s.b }), "Situation") + tab("By call", group(function (s) { return s.call }), "Call") +
+      "<p class='note'>" + film + " of " + n + " results came from your film. The rest are estimates from typical high school averages, not your team. " + esc(D.opp) + " never adjusts.</p><div class='row' style='margin-top:10px'><button class='btn pri' type='button' id='again'>Play again</button></div>";
+    var r = $("report"); r.innerHTML = h; r.hidden = false; r.scrollIntoView({ behavior: "smooth" }); $("again").onclick = function () { newGame(); window.scrollTo({ top: 0, behavior: "smooth" }) } }
+
+  function loadData() { D.ours = RAW.ours.length ? SK.load(RAW.ours, {}) : null; D.them = RAW.them.length ? SK.load(RAW.them, {}) : null; build();
+    $("nOurs").textContent = D.ours ? RAW.ours.length + " file(s) · " + D.calls.length + " calls with 4+ plays" : "Optional. Lets results come from your own plays.";
+    $("nThem").textContent = D.them ? RAW.them.length + " file(s) · " + D.def.length + " defensive snaps" : "Optional. Adds the pre-snap read and their real drive results.";
+    $("dOurs").classList.toggle("ok", !!D.ours); $("dThem").classList.toggle("ok", !!D.them) }
+  function addFiles(kind, files) { Promise.all(Array.prototype.map.call(files, parseFile)).then(function (L) { RAW[kind] = RAW[kind].concat(L); loadData(); saveFiles(); toast("Loaded") }, function () { toast("Couldn't read that file. Export it from Hudl as Excel (.xlsx) or CSV.") }) }
   $("fOurs").onchange = function () { if (this.files.length) addFiles("ours", this.files); this.value = "" };
   $("fThem").onchange = function () { if (this.files.length) addFiles("them", this.files); this.value = "" };
-  $("clrOurs").onclick = function () { RAW.ours = []; loadData(); if (!window.MOCK_DATA) saveFiles() };
-  $("clrThem").onclick = function () { RAW.them = []; loadData(); if (!window.MOCK_DATA) saveFiles() };
-  $("oppName").onchange = function () { if (!window.MOCK_DATA) saveFiles() };
-  $("dataBtn").onclick = function () { var s = $("setup"); s.hidden = !s.hidden; if (!s.hidden) s.scrollIntoView({ behavior: "smooth" }) };
-  $("startBtn").onclick = function () { if (!D.calls || !D.calls.length) { toast("Add our offense's Hudl export first."); return } D.opp = $("oppName").value.trim() || "Opponent"; $("setup").hidden = true; newGame(); camBall = G.ball; refresh() };
-  $("endBtn").onclick = function () { if (!G || !G.snaps.length) { toast("Run a few plays first."); return } G.over = true; if (G.drive) endDrive("Stopped"); refresh(); finishGame() };
-  document.querySelectorAll("#cf .chip").forEach(function (b) { b.onclick = function () { FILTER = b.dataset.f; document.querySelectorAll("#cf .chip").forEach(function (x) { x.setAttribute("aria-pressed", x === b) }); refresh() } });
-  window.addEventListener("resize", function () { size(); if (!$("editor").hidden) { eSize(); edDraw() } draw() });
-
+  $("clrFilm").onclick = function () { RAW.ours = []; RAW.them = []; loadData(); saveFiles() };
+  $("setupBtn").onclick = function () { var s = $("setup"); s.hidden = !s.hidden; if (!s.hidden) window.scrollTo({ top: 0, behavior: "smooth" }) };
+  $("endBtn").onclick = function () { if (!G || !G.snaps.length) { toast("Run a few plays first."); return } G.over = true; if (G.drive) endDrive("Stopped"); P = {}; refresh(); finishGame() };
   // ======================= START =======================
-  size();
-  if (window.MOCK_DATA) { RAW.ours = MOCK_DATA.ours || []; RAW.them = MOCK_DATA.them || []; D.us = MOCK_DATA.us || D.us; D.opp = MOCK_DATA.opp || D.opp; $("oppName").value = D.opp; loadData(); newGame(); camBall = G.ball; refresh() }
-  else {
-    G = null; var go = function () { D.opp = $("oppName").value.trim() || "Opponent"; loadData(); if (D.calls.length) { $("setup").hidden = true; newGame(); camBall = G.ball; refresh(); $("saveNote").textContent = "Loaded your saved files." } else $("setup").hidden = false };
-    var local = store.get("sol-mock-files"), had = usePack(local); go();
-    cloud("files").then(function (p) { if (p && p.at && (!local || p.at > (local.at || 0)) && usePack(p)) { store.set("sol-mock-files", p); go() } }, function () {});
-    cloud("align").then(function (a) { if (typeof a === "string") { try { ALIGN = JSON.parse(a); store.set("sol-mock-align", ALIGN) } catch (e) {} } }, function () {});
-  }
-  document.fonts && document.fonts.ready.then(function () { draw() });
+  var nm = store.get("sol-mock-names"); if (nm) { $("usName").value = nm.us; $("oppName").value = nm.opp }
+  useSheet(store.get("sol-mock-sheet")); D.calls = []; D.def = []; D.theirRates = { td: .3, to: .1, fg: .06, plays: 6, n: 0, real: false };
+  var local = store.get("sol-mock-files"); usePack(local); loadData();
+  cloud("files").then(function (p) { if (p && p.at && (!local || p.at > (local.at || 0)) && usePack(p)) { store.set("sol-mock-files", p); loadData() } }, function () {});
+  cloud("sheet").then(function (t) { if (typeof t === "string") { try { var s = JSON.parse(t); if (useSheet(s)) store.set("sol-mock-sheet", s) } catch (e) {} } }, function () {});
+
 })();
 </script>
 
 <script src="plan.js"></script>
-<script>if (window.SolPlan && !window.MOCK_DATA) SolPlan.gate("mock");</script>

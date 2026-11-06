@@ -1,0 +1,190 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Play Tracking</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@600;800&family=Barlow:wght@400;500;600;700&display=swap">
+<style>
+/* Play Tracking: watch a game clip with the automatic player trails drawn over it.
+   Reads only: games/<code>/clips + snaps (from the chart) and tracking + trackdata (from the GitHub job). Writes nothing. */
+:root { --bg: #1A1F22; --panel: #22282C; --panel2: #1E2326; --line: #3A4348; --ink: #EDF1EE; --muted: #A3ADA6; --green: #6EC926; --gold: #f2c14e; --bad: #ef5a5a; --f-display: "Saira Condensed", "Arial Narrow", sans-serif; --f-body: "Barlow", system-ui, sans-serif; color-scheme: dark }
+* { box-sizing: border-box } [hidden] { display: none !important }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 var(--f-body); padding: 12px max(16px, env(safe-area-inset-right, 0px)) 40px max(16px, env(safe-area-inset-left, 0px)) }
+.wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 12px; min-width: 0 }
+h1 { margin: 0; font: 800 24px/1 var(--f-display); letter-spacing: .06em; text-transform: uppercase } h1 span { color: var(--green) }
+h2 { margin: 0 0 8px; font: 800 17px/1.1 var(--f-display); letter-spacing: .06em; text-transform: uppercase }
+.top { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; min-width: 0 }
+.note { color: var(--muted); font-size: 13px; margin: 6px 0 0 }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center }
+select, .btn { font: 600 14px var(--f-body); background: var(--panel2); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; min-height: 40px }
+select { max-width: 100% }
+.btn { cursor: pointer; font: 700 14px var(--f-display); letter-spacing: .08em; text-transform: uppercase } .btn.pri { background: var(--green); border-color: var(--green); color: #10140f } .btn[aria-pressed="true"] { background: var(--ink); color: var(--bg) }
+.btn:focus-visible, select:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px }
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 12px; align-items: start } @media (max-width: 900px) { .layout { grid-template-columns: minmax(0, 1fr) } }
+.plays { display: grid; gap: 4px; max-height: 60vh; overflow-y: auto }
+.plays button { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 8px; align-items: center; text-align: left; width: 100%; font: 500 14px var(--f-body); color: var(--ink); background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 8px; cursor: pointer }
+.plays button[aria-current="true"] { border-color: var(--green); background: #26301f }
+.plays b { font: 800 15px var(--f-display) } .plays span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.chip { font: 700 11px var(--f-body); letter-spacing: .06em; text-transform: uppercase; border-radius: 5px; padding: 2px 6px; background: #2d3438; color: var(--muted) } .chip.done { background: #2e4a1c; color: #b9f08a } .chip.working { background: #4a3c12; color: var(--gold) } .chip.error { background: #4a1c1c; color: #ffb4b4 }
+.vbox { position: relative; background: #000; border-radius: 8px; overflow: hidden } .vbox video { display: block; width: 100%; height: auto } .vbox canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none }
+.tag { position: absolute; left: 8px; top: 8px; font: 700 13px/1.3 var(--f-body); background: rgba(20,24,26,.85); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; pointer-events: none } .tag b { color: var(--gold) }
+.info { font: 600 15px var(--f-body); margin: 0 0 8px } .info small { display: block; color: var(--muted); font-weight: 500 }
+.read { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 6px; margin-top: 8px } .read div { background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px } .read b { display: block; font: 800 22px/1 var(--f-display) } .read small { color: var(--muted) }
+.msg { padding: 18px; text-align: center; color: var(--muted) } a { color: var(--green) }
+</style>
+
+<div class="wrap">
+  <div class="top"><div><h1>Play <span>Tracking</span></h1><p class="note" style="margin:2px 0 0">Automatic player trails from your game film. Beta.</p></div>
+    <div class="row"><select id="game" aria-label="Game"></select><a class="btn" href="app.html" style="text-decoration:none;display:inline-flex;align-items:center">Back to the app</a></div></div>
+  <div class="panel msg" id="msg">Loading…</div>
+  <div class="layout" id="main" hidden>
+    <section class="panel">
+      <p class="info" id="info"></p>
+      <div class="vbox" id="vbox"><video id="vid" playsinline muted preload="auto"></video><canvas id="cv"></canvas><div class="tag" id="tag" hidden></div></div>
+      <div class="row" style="margin-top:8px">
+        <button class="btn pri" id="playBtn" type="button">Play</button><button class="btn" id="backBtn" type="button">↺ Snap</button>
+        <select id="speed" aria-label="Speed"><option value="1">1×</option><option value="0.5" selected>½×</option><option value="0.25">¼×</option></select>
+        <button class="btn" id="tOff" type="button" aria-pressed="true">Offense</button><button class="btn" id="tDef" type="button" aria-pressed="true">Defense</button><button class="btn" id="tAll" type="button" aria-pressed="false">Linemen &amp; LBs</button>
+      </div>
+      <div id="read"></div>
+      <p class="note">Trails are automatic estimates. Players can swap in piles and when they cross; receivers and DBs track best. Solid lines are your offense, dashed are the defense.</p>
+    </section>
+    <section class="panel"><h2>Plays</h2><div class="plays" id="plays"></div><p class="note" id="plNote"></p></section>
+  </div>
+</div>
+
+<script>
+window.SOL_CONFIG = window.SOL_CONFIG || { db: "https://cardinal-booth-default-rtdb.firebaseio.com", apiKey: "AIzaSyDm0t01_w92gL5sm4_1RnVLip7xWkjb9ME" };
+(function () {
+  "use strict";
+  var SOL = window.SOL_CONFIG, $ = function (id) { return document.getElementById(id) };
+  function authGet() { try { return JSON.parse(localStorage.getItem("solutions-auth-v1") || "null") } catch (e) { return null } }
+  function solToken() { var a = authGet(); if (!a || !a.school) return Promise.reject(new Error("NO_SESSION")); if (a.exp > Date.now() + 60000) return Promise.resolve(a.idToken);
+    return fetch("https://securetoken.googleapis.com/v1/token?key=" + SOL.apiKey, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "grant_type=refresh_token&refresh_token=" + encodeURIComponent(a.refreshToken) }).then(function (r) { return r.json() }).then(function (d) { if (d.error) throw new Error("NO_SESSION"); a.idToken = d.id_token; a.refreshToken = d.refresh_token; a.exp = Date.now() + (+d.expires_in - 60) * 1000; try { localStorage.setItem("solutions-auth-v1", JSON.stringify(a)) } catch (e) {} return a.idToken }) }
+  function get(path, shallow) { var a = authGet(); return solToken().then(function (t) { return fetch(SOL.db + "/schools/" + encodeURIComponent(a.school) + "/" + path + ".json?auth=" + encodeURIComponent(t) + (shallow ? "&shallow=true" : "")) }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json() }) }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] }) }
+  function msg(t) { $("msg").innerHTML = t; $("msg").hidden = !t }
+  function ord(n) { return n + (["th", "st", "nd", "rd"][n] || "th") }
+  function parse(x) { if (typeof x === "string") { try { return JSON.parse(x) } catch (e) { return null } } return x }
+
+  var G = { code: null, clips: {}, status: {}, snaps: {}, list: [], cur: null, data: null, poll: null }, SHOW = { o: true, d: true, all: false };
+
+  // ---------- games ----------
+  function loadGames() {
+    if (!authGet() || !authGet().school) { msg("Sign in on the <a href='app.html'>Solutions app</a> first, then come back to this page."); return }
+    msg("Loading your games…");
+    Promise.all([get("games", true), get("tracking", true).catch(function () { return {} })]).then(function (r) {
+      var keys = Object.keys(r[0] || {}), tracked = r[1] || {}, seasons = keys.filter(function (k) { return k.length >= 16 });
+      return Promise.all(seasons.map(function (k) { return get("games/" + encodeURIComponent(k) + "/list").catch(function () { return null }) })).then(function (lists) {
+        var info = {}; lists.forEach(function (l) { Object.keys(l || {}).forEach(function (c) { info[c] = l[c] }) });
+        var codes = keys.filter(function (k) { return k.length < 16 && k !== "practice" && k !== "local" });
+        G.list = codes.map(function (c) { var i = info[c] || {}; return { code: c, opp: i.opp || "Game", date: i.date || "", tracked: !!tracked[c] } })
+          .sort(function (a, b) { return (b.tracked - a.tracked) || String(b.date).localeCompare(String(a.date)) });
+        if (!G.list.length) { msg("No games yet."); return }
+        $("game").innerHTML = G.list.map(function (g) { return "<option value='" + esc(g.code) + "'>" + esc((g.date ? g.date + " · " : "") + "vs " + g.opp) + (g.tracked ? "" : " (no tracking yet)") + "</option>" }).join("");
+        var want = new URLSearchParams(location.search).get("game"), pick = G.list.some(function (g) { return g.code === want }) ? want : G.list[0].code;
+        $("game").value = pick; openGame(pick);
+      });
+    }).catch(function (e) { msg(/NO_SESSION/.test(e.message) ? "Your sign-in ran out. Open the <a href='app.html'>Solutions app</a> to sign in again." : "Couldn't load your games. Check your connection and refresh.") });
+  }
+  $("game").onchange = function () { openGame(this.value) };
+
+  function openGame(code) {
+    G.code = code; G.cur = null; G.data = null; clearInterval(G.poll); msg("Loading plays…"); $("main").hidden = true;
+    var g = "games/" + encodeURIComponent(code);
+    Promise.all([get(g + "/clips"), get("tracking/" + encodeURIComponent(code)).catch(function () { return {} }), get(g + "/snaps").catch(function () { return {} }), get(g + "/defense/snaps").catch(function () { return {} })]).then(function (r) {
+      if (G.code !== code) return;
+      G.clips = r[0] || {}; G.status = r[1] || {}; G.snaps = {};
+      Object.keys(r[2] || {}).forEach(function (k) { var x = parse(r[2][k]); if (x) G.snaps[k] = x });
+      Object.keys(r[3] || {}).forEach(function (k) { var x = parse(r[3][k]); if (x) { x.def = true; G.snaps["D_" + k] = x } });
+      if (!Object.keys(G.clips).length) { msg("No film for this game yet. Clips show up here after the film device records them and they upload."); return }
+      msg(""); $("main").hidden = false; drawPlays();
+      var first = playOrder().filter(function (k) { return (G.status[k] || {}).status === "done" })[0] || playOrder()[0]; openPlay(first);
+      G.poll = setInterval(function () { get("tracking/" + encodeURIComponent(code)).then(function (s) { if (G.code !== code) return; var was = (G.status[G.cur] || {}).status; G.status = s || {}; drawPlays(); if (G.cur && was !== "done" && (G.status[G.cur] || {}).status === "done") openPlay(G.cur) }, function () {}) }, 30000);
+    }).catch(function () { msg("Couldn't load this game. Check your connection and refresh.") });
+  }
+  function playOrder() { return Object.keys(G.clips).sort(function (a, b) { var x = G.snaps[a] || {}, y = G.snaps[b] || {}; return (x.t || G.clips[a].at || 0) - (y.t || G.clips[b].at || 0) }) }
+  function playLabel(k) { var s = G.snaps[k] || {}, p = [];
+    if (s.dn) p.push(ord(+s.dn) + " & " + (s.dist != null ? s.dist : "?"));
+    if (s.def) p.push("Defense"); if (s.call) p.push(s.call);
+    var r = s.res || ""; if (s.gain != null && !/inc|int/i.test(r)) r = (r ? r + " " : "") + (s.gain > 0 ? "+" : "") + s.gain;
+    if (r) p.push(r); return p.join(" · ") || "Play" }
+  function stChip(k) { var s = G.status[k] || {}; return s.status === "done" ? ["done", "Tracked"] : s.status === "working" ? ["working", "Working"] : s.status === "error" ? ["error", "Couldn't track"] : ["", "Waiting"] }
+  function drawPlays() {
+    var L = playOrder(), done = L.filter(function (k) { return (G.status[k] || {}).status === "done" }).length;
+    $("plays").innerHTML = L.map(function (k, i) { var c = stChip(k); return "<button type='button' data-k='" + esc(k) + "'" + (k === G.cur ? " aria-current='true'" : "") + "><b>" + (i + 1) + "</b><span>" + esc(playLabel(k)) + "</span><span class='chip " + c[0] + "'>" + c[1] + "</span></button>" }).join("");
+    $("plays").querySelectorAll("button").forEach(function (b) { b.onclick = function () { openPlay(b.dataset.k) } });
+    $("plNote").textContent = done + " of " + L.length + " clips tracked. New clips are picked up every few minutes; this list refreshes on its own.";
+  }
+
+  // ---------- one play ----------
+  var V = $("vid"), CV = $("cv"), CX = CV.getContext("2d");
+  function openPlay(k) {
+    G.cur = k; G.data = null; drawPlays(); var rec = G.clips[k] || {}, st = G.status[k] || {};
+    $("info").innerHTML = esc(playLabel(k)) + "<small>" + (st.status === "done" ? "" : st.status === "error" ? "Couldn't track this clip: " + esc(st.err || "unknown problem") : st.status === "working" ? "Tracking this clip now…" : "Waiting to be tracked. The job checks for new clips every few minutes.") + "</small>";
+    V.pause(); V.src = rec.url || ""; V.playbackRate = +$("speed").value; $("read").innerHTML = ""; $("tag").hidden = true; paint();
+    if (st.status !== "done") return;
+    get("trackdata/" + encodeURIComponent(G.code) + "/" + encodeURIComponent(k)).then(function (d) {
+      if (G.cur !== k) return; d = parse(d); if (!d || !d.tracks) return;
+      d.Hm = d.Hs.map(function (h) { return h.concat(1) }); G.data = d; showRead(d);
+      var start = d.snap != null ? Math.max(rec.a || 0, d.snap - 1.5) : (rec.a || 0); seek(start); paint();
+    }, function () { $("info").querySelector("small").textContent = "Couldn't load the tracking. Refresh to try again." });
+  }
+  function seek(t) { var go = function () { try { V.currentTime = t } catch (e) {} }; if (V.readyState >= 1) go(); else V.addEventListener("loadedmetadata", go, { once: true }) }
+  function showRead(d) {
+    var p = d.pre || {}, cell = function (b, s) { return "<div><b>" + b + "</b><small>" + s + "</small></div>" }, h = "";
+    h += cell(d.snap != null ? d.snap.toFixed(1) + "s" : "–", d.snapFrom === "clip" ? "snap (film device)" : d.snapFrom === "motion" ? "snap (from motion)" : "snap not found");
+    if (p.skill != null) h += cell(p.skill, "skill players") + cell(p.qb, "QB") + cell(p.lb, "LBs") + cell(p.db, "DBs");
+    if (p.box != null) h += cell("~" + p.box, "in the box") + cell(p.shell, "safety shell");
+    h += cell(d.tracks.length, "players tracked");
+    $("read").innerHTML = "<div class='read'>" + h + "</div><p class='note'>Pre-snap numbers are estimates from the Roboflow labels on the frame before the snap.</p>";
+  }
+
+  // ---------- drawing ----------
+  var OCOL = ["#6EC926", "#4fc3f7", "#f2c14e", "#ff8a65", "#ba68c8", "#4db6ac", "#f06292", "#aed581", "#ffd54f", "#90caf9", "#ce93d8"];
+  function hAt(d, t) { var T = d.t, n = T.length; if (t <= T[0]) return { H: d.Hm[0], k: 0, f: 0 }; if (t >= T[n - 1]) return { H: d.Hm[n - 1], k: n - 1, f: 0 };
+    var k = 0; while (k < n - 2 && T[k + 1] <= t) k++; var f = (t - T[k]) / Math.max(1e-3, T[k + 1] - T[k]), A = d.Hm[k], B = d.Hm[k + 1];
+    return { H: A.map(function (a, i) { return a + (B[i] - a) * f }), k: k, f: f } }
+  function map(H, x, y) { var w = H[6] * x + H[7] * y + H[8]; return [(H[0] * x + H[1] * y + H[2]) / w, (H[3] * x + H[4] * y + H[5]) / w] }
+  function inv(m) { var a = m[0], b = m[1], c = m[2], d = m[3], e = m[4], f = m[5], g = m[6], h = m[7], i = m[8], A = e * i - f * h, B = -(d * i - f * g), C = d * h - e * g, D = a * A + b * B + c * C;
+    return [A / D, -(b * i - c * h) / D, (b * f - c * e) / D, B / D, (a * i - c * g) / D, -(a * f - c * d) / D, C / D, -(a * h - b * g) / D, (a * e - b * d) / D] }
+  function mul(A, B) { var o = []; for (var r = 0; r < 3; r++) for (var c = 0; c < 3; c++) o.push(A[r * 3] * B[c] + A[r * 3 + 1] * B[3 + c] + A[r * 3 + 2] * B[6 + c]); return o }
+  function visible(tr) { if (tr.side === "o") { if (!SHOW.o) return false; return SHOW.all || tr.cls === "skill" || tr.cls === "qb" } if (tr.side === "d") { if (!SHOW.d) return false; return SHOW.all || tr.cls === "db" } return SHOW.all }
+  function paint() {
+    var r = V.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    if (CV.width !== Math.round(r.width * dpr) || CV.height !== Math.round(r.height * dpr)) { CV.width = Math.round(r.width * dpr); CV.height = Math.round(r.height * dpr) }
+    CX.setTransform(1, 0, 0, 1, 0, 0); CX.clearRect(0, 0, CV.width, CV.height);
+    var d = G.data; if (!d || !r.width) return;
+    var s = (r.width / d.W) * dpr, t = V.currentTime || 0, at = hAt(d, t), H = at.H, lw = Math.max(2, 2.6 * dpr);
+    CX.setTransform(s, 0, 0, s, 0, 0); CX.lineJoin = "round"; CX.lineCap = "round";
+    var oi = 0;
+    d.tracks.forEach(function (tr) {
+      var col = tr.side === "o" ? (tr.cls === "qb" ? "#ffffff" : OCOL[oi++ % OCOL.length]) : "rgba(235,235,235,.85)";
+      if (!visible(tr)) return;
+      var pts = []; for (var i = 0; i < tr.p.length; i++) { var q = tr.p[i]; if (q[0] > at.k + 1) break; if (q[0] === at.k + 1) { var pr = pts.length ? tr.p[i - 1] : null; if (pr && pr[0] === at.k) pts.push([pr[1] + (q[1] - pr[1]) * at.f, pr[2] + (q[2] - pr[2]) * at.f]); break } pts.push([q[1], q[2]]) }
+      if (!pts.length) return; var P = pts.map(function (p) { return map(H, p[0], p[1]) });
+      CX.strokeStyle = col; CX.lineWidth = lw / dpr * (1 / s) * dpr; CX.setLineDash(tr.side === "d" ? [8 / s * dpr, 6 / s * dpr] : []);
+      CX.beginPath(); P.forEach(function (p, i) { if (i) CX.lineTo(p[0], p[1]); else CX.moveTo(p[0], p[1]) }); CX.stroke(); CX.setLineDash([]);
+      var last = tr.p[tr.p.length - 1][0]; if (last >= at.k - 1) { var e = P[P.length - 1]; CX.fillStyle = col; CX.beginPath(); CX.arc(e[0], e[1], 4.5 / s * dpr, 0, 7); CX.fill(); CX.strokeStyle = "#000"; CX.lineWidth = 1.2 / s * dpr; CX.stroke() }
+    });
+    // pre-snap boxes, like the Pythonista reads, until the snap
+    if (d.preDets && d.snap != null && t <= d.snap + 0.05) {
+      var M = mul(H, inv(d.Hm[d.preK])), LC = { center: "#ff9800", qb: "#ffeb3b", skill: "#ffeb3b", lb: "#ef5350", db: "#ef5350" };
+      CX.font = "700 " + (13 / s * dpr) + "px Barlow, sans-serif";
+      d.preDets.forEach(function (b) { var c = LC[b[4]] || "#bbb", m = map(M, b[0], b[1]), w = b[2], h = b[3];
+        CX.strokeStyle = c; CX.lineWidth = 2 / s * dpr; CX.strokeRect(m[0] - w / 2, m[1] - h / 2, w, h); CX.fillStyle = c; CX.fillText(b[4].toUpperCase(), m[0] - w / 2, m[1] - h / 2 - 3 / s * dpr) });
+    }
+    var tg = $("tag"); tg.hidden = false; tg.innerHTML = d.snap == null ? "Tracking" : t < d.snap ? "<b>PRE-SNAP</b>" : "<b>SNAP +" + (t - d.snap).toFixed(2) + " s</b>";
+  }
+  function loop() { paint(); if (!V.paused && !V.ended) requestAnimationFrame(loop) }
+  V.addEventListener("play", function () { $("playBtn").textContent = "Pause"; loop() });
+  V.addEventListener("pause", function () { $("playBtn").textContent = "Play"; paint() });
+  V.addEventListener("seeked", paint); V.addEventListener("loadeddata", paint); window.addEventListener("resize", paint);
+  V.addEventListener("timeupdate", function () { var rec = G.clips[G.cur] || {}; if (rec.b && V.currentTime >= rec.b) V.pause() });
+  $("playBtn").onclick = function () { if (V.paused) { var rec = G.clips[G.cur] || {}; if (rec.b && V.currentTime >= rec.b - 0.05) seek(G.data && G.data.snap != null ? Math.max(rec.a || 0, G.data.snap - 1.5) : rec.a || 0); V.play().catch(function () {}) } else V.pause() };
+  $("backBtn").onclick = function () { var rec = G.clips[G.cur] || {}; seek(G.data && G.data.snap != null ? Math.max(rec.a || 0, G.data.snap - 1.5) : rec.a || 0) };
+  $("speed").onchange = function () { V.playbackRate = +this.value };
+  [["tOff", "o"], ["tDef", "d"], ["tAll", "all"]].forEach(function (x) { $(x[0]).onclick = function () { SHOW[x[1]] = !SHOW[x[1]]; this.setAttribute("aria-pressed", SHOW[x[1]] ? "true" : "false"); paint() } });
+  loadGames();
+})();
+</script>

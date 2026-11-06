@@ -53,10 +53,12 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
       <label class="mode"><input type="radio" name="mode" value="chart"><span><b>Charting practice</b><span class="note">Hear the call, then chart the play, result and spot. You're graded on it.</span></span></label>
     </div>
     <div class="row" style="margin-top:10px;align-items:flex-end"><label class="f">Your team<input type="text" id="usName" value="Our team"></label><label class="f">Opponent<input type="text" id="oppName" value="Opponent"></label><label class="f">Game length<select id="len"><option value="4">Full game</option><option value="2">One half</option></select></label><button class="btn pri" id="startBtn" type="button">Start</button><button class="btn" id="sampleBtn" type="button">Try a sample game</button></div>
-    <details><summary>Make results more real with Hudl film (optional)</summary>
+    <p class="note" id="lockNote" hidden></p>
+    <details id="filmBox"><summary>Make results more real with Hudl film (optional)</summary>
       <div class="grid3"><label class="drop" id="dOurs" for="fOurs"><b>Our offense</b><span id="nOurs"></span><input type="file" id="fOurs" accept=".xlsx,.csv" multiple hidden></label><label class="drop" id="dThem" for="fThem"><b>Their games</b><span id="nThem"></span><input type="file" id="fThem" accept=".xlsx,.csv" multiple hidden></label></div>
       <div class="row" style="margin-top:8px"><button class="btn" id="clrFilm" type="button">Clear film</button><span class="note" id="saveNote" style="margin:0"></span></div>
     </details>
+    <div id="shareBox" hidden style="margin-top:10px"><div class="row"><button class="btn" id="shareBtn" type="button">Create a share link</button><button class="btn" id="stopBtn" type="button" hidden>Stop sharing</button></div><p class="note">Anyone with the link gets a copy of your call sheet, film and alignments, with no sign-in. They can't change yours. Later changes need a new link.</p><input type="text" id="shareUrl" readonly hidden aria-label="Share link" style="width:100%;margin-top:6px"></div>
   </section>
 
   <section class="panel" id="editor" hidden>
@@ -340,7 +342,7 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
     return csExpand(t).map(function (p) { var form = box.kind === "form" ? box.form : ""; return { name: ((form ? form + " " : "") + p.t).replace(/\s+/g, " ").trim(), lab: p.t, d: d, form: titleCase(form), kind: c.k || "scr", run: c.k === "run", scheme: /POWER|COUNTER|DART|TRAP/i.test(p.t) ? "power" : "zone", id: c.r + ":" + c.c + ":" + p.t } }) }
   function allPlays() { var o = []; SHEET.grid.cells.forEach(function (c) { if (c.b != null) o = o.concat(cellPlays(c)) }); return o }
   function useSheet(s) { if (!s || !s.grid || !s.boxes) return false; SHEET = s; $("nSheet").textContent = s.name + " · " + allPlays().length + " plays"; $("dSheet").classList.add("ok"); return true }
-  function saveSheet() { var txt = JSON.stringify(SHEET); store.set("sol-mock-sheet", SHEET); if (!SHEET.sample) cloud("sheet", "PUT", txt).catch(function () {}) }
+  function saveSheet() { claim(); var txt = JSON.stringify(SHEET); store.set("sol-mock-sheet", SHEET); if (!SHEET.sample) cloud("sheet", "PUT", txt).catch(function () {}) }
   $("fSheet").onchange = function () { var f = this.files[0]; this.value = ""; if (!f) return;
     f.arrayBuffer().then(csUnzip).then(function (z) { var g = csGrid(z); if (!g) throw 0; var r = csParse(g); if (!r.boxes.length) throw 0; r.name = f.name; useSheet(r); saveSheet(); toast("Call sheet loaded") }).catch(function () { toast("Couldn't read that sheet. In Google Sheets: File, Download, Microsoft Excel (.xlsx).") }) };
   // made-up sheet so anyone can try it, and for demos
@@ -377,7 +379,7 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
     G = { q: 1, qs: n, clock: QLEN, us: 0, them: 0, ball: 30, dn: 1, dist: 10, hash: "M", snaps: [], drives: [], theirD: [], over: false, kickoff2: false, fourth: false, wait: false, last: null, pr: { calls: 0, callsOk: 0, res: 0, resOk: 0, spots: 0, spotsOk: 0, t: 0, n: 0 } };
     startDrive("Kickoff"); $("log").innerHTML = ""; $("report").hidden = true; $("res").hidden = true; $("game").hidden = false; $("modeTag").textContent = MODE === "chart" ? "Charting practice" : "Calling the game";
     logDiv("Q1 · " + esc(D.us) + " ball at " + spot(G.ball)); DR = {}; camBall = G.ball; call = null; refresh(); if (MODE === "chart") nextDrill() }
-  function startGame() { if (!SHEET) { toast("Upload your call sheet first."); return } D.us = $("usName").value.trim() || "Our team"; D.opp = $("oppName").value.trim() || "Opponent"; MODE = document.querySelector("[name=mode]:checked").value; store.set("sol-mock-names", { us: D.us, opp: D.opp }); $("setup").hidden = true; newGame(); window.scrollTo({ top: 0 }) }
+  function startGame() { if (!SHEET) { toast("Upload your call sheet first."); return } D.us = $("usName").value.trim() || "Our team"; D.opp = $("oppName").value.trim() || "Opponent"; MODE = document.querySelector("[name=mode]:checked").value; if (!SHARED) store.set("sol-mock-names", { us: D.us, opp: D.opp }); if (canEdit() && authGet()) cloud("names", "PUT", { us: D.us, opp: D.opp }).catch(function () {}); $("setup").hidden = true; newGame(); window.scrollTo({ top: 0 }) }
   $("startBtn").onclick = startGame;
 
   function stripSVG(ballAt) { var H = 150, X = function (y) { return 80 + 8.4 * y }, g = G, h = "<rect width='1000' height='150' fill='#266b33'/><rect width='80' height='150' fill='#b3182f'/><rect x='920' width='80' height='150' fill='#2b2e35'/>";
@@ -427,7 +429,7 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
     G.last = c; refresh(); if (MODE === "chart") nextDrill() }
   function logSnap(before, c, o, cls) { var li = document.createElement("li"); li.innerHTML = "<span>" + esc(before) + "</span><span>" + esc(c.name) + "</span><span class='" + cls + "'>" + (o.inc ? "Inc" : o.int ? "INT" : o.fum ? "FUM" : (o.gain > 0 ? "+" : "") + o.gain) + "</span>"; $("log").prepend(li) }
 
-  function saveAlign() { store.set("sol-mock-align", ALIGN); cloud("align", "PUT", JSON.stringify(ALIGN)).catch(function () {}) }
+  function saveAlign() { if (SHARED) return; store.set("sol-mock-align", ALIGN); cloud("align", "PUT", JSON.stringify(ALIGN)).catch(function () {}) }
   function likely() { var s = situ(), POOL = lookPool(SEL && SEL.form).rows, sh = top(POOL.map(function (r) { return r.sh }), 1)[0], fr = top(POOL.map(function (r) { return r.front }), 1)[0]; return { sh: sh ? sh.k : "MFO", front: fr ? fr.k : null, blitz: null, cov: null, likely: true } }
   function tagText() { if (!look) return; $("tag").innerHTML = (look.likely ? "Their likely look: " : "They showed: ") + "<b>" + (SHELLN[look.sh] || "Shell not tagged") + "</b>" + (look.cov ? " · " + esc(look.cov) : "") + (look.front ? " · " + esc(look.front) + " front" : "") + (look.blitz ? " · <b style='color:var(--bad)'>" + esc(look.blitz) + "</b>" : "") + " · ball on " + ({ L: "left hash", R: "right hash", M: "middle" })[G.hash] }
   // ======================= FIELD MODEL =======================
@@ -722,7 +724,7 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
     $("nOurs").textContent = D.ours ? RAW.ours.length + " file(s) · " + D.calls.length + " calls with 4+ plays" : "Optional. Lets results come from your own plays.";
     $("nThem").textContent = D.them ? RAW.them.length + " file(s) · " + D.def.length + " defensive snaps" : "Optional. Adds the pre-snap read and their real drive results.";
     $("dOurs").classList.toggle("ok", !!D.ours); $("dThem").classList.toggle("ok", !!D.them) }
-  function addFiles(kind, files) { Promise.all(Array.prototype.map.call(files, parseFile)).then(function (L) { RAW[kind] = RAW[kind].concat(L); loadData(); saveFiles(); toast("Loaded") }, function () { toast("Couldn't read that file. Export it from Hudl as Excel (.xlsx) or CSV.") }) }
+  function addFiles(kind, files) { claim(); Promise.all(Array.prototype.map.call(files, parseFile)).then(function (L) { RAW[kind] = RAW[kind].concat(L); loadData(); saveFiles(); toast("Loaded") }, function () { toast("Couldn't read that file. Export it from Hudl as Excel (.xlsx) or CSV.") }) }
   $("fOurs").onchange = function () { if (this.files.length) addFiles("ours", this.files); this.value = "" };
   $("fThem").onchange = function () { if (this.files.length) addFiles("them", this.files); this.value = "" };
   $("clrFilm").onclick = function () { RAW.ours = []; RAW.them = []; loadData(); saveFiles() };
@@ -732,13 +734,30 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
   // ======================= START =======================
   size(); document.fonts && document.fonts.ready.then(function () { if (G) draw() });
   cloud("align").then(function (a) { if (typeof a === "string") { try { ALIGN = JSON.parse(a); store.set("sol-mock-align", ALIGN) } catch (e) {} } }, function () {});
+  var SHARED = new URLSearchParams(location.search).get("share"), OWNER = null;
+  function me() { var a = authGet(); return a && a.uid }
+  function canEdit() { return !SHARED && (!OWNER || OWNER === me()) }
+  function claim() { if (!SHARED && !OWNER && me()) { OWNER = me(); cloud("owner", "PUT", OWNER).catch(function () {}); lockUI() } }
+  function lockUI() { var ok = canEdit(); $("dSheet").hidden = !ok; $("filmBox").hidden = !ok; $("shareBox").hidden = !(ok && me()); $("stopBtn").hidden = !store.get("sol-mock-share"); $("lockNote").hidden = ok; $("lockNote").textContent = SHARED ? "Shared with you: " + (SHEET ? SHEET.name : "call sheet") + ". Nothing you do here changes the original." : "Your head account manages this call sheet and film." }
+  $("shareBtn").onclick = function () { if (!SHEET) { toast("Upload your call sheet first."); return } var tok = ""; while (tok.length < 24) tok += Math.random().toString(36).slice(2); tok = tok.slice(0, 24);
+    var body = { by: me(), at: Date.now(), items: JSON.stringify({ sheet: SHEET, ours: RAW.ours, them: RAW.them, align: ALIGN, us: $("usName").value, opp: $("oppName").value }) };
+    solToken().then(function (t) { return fetch(SOL.db + "/share/" + tok + ".json?auth=" + encodeURIComponent(t), { method: "PUT", body: JSON.stringify(body) }) }).then(function (r) { if (!r.ok) throw 0; store.set("sol-mock-share", tok); var u = $("shareUrl"); u.value = location.origin + location.pathname + "?share=" + tok; u.hidden = false; u.select(); if (navigator.clipboard) navigator.clipboard.writeText(u.value).catch(function () {}); toast("Link ready"); lockUI() }).catch(function () { toast("Couldn't make the link. Check your connection and sign-in.") }) };
+  $("stopBtn").onclick = function () { var tok = store.get("sol-mock-share"); solToken().then(function (t) { return fetch(SOL.db + "/share/" + tok + ".json?auth=" + encodeURIComponent(t), { method: "DELETE" }) }).then(function (r) { if (!r.ok) throw 0; store.set("sol-mock-share", null); $("shareUrl").hidden = true; toast("Link turned off"); lockUI() }).catch(function () { toast("Couldn't turn it off. Try again.") }) };
+  if (SHARED) { D.calls = []; D.def = []; D.theirRates = { td: .3, to: .1, fg: .06, plays: 6, n: 0, real: false }; lockUI();
+    fetch(SOL.db + "/share/" + encodeURIComponent(SHARED) + ".json").then(function (r) { return r.ok ? r.json() : null }).then(function (d) { if (!d || !d.items) throw 0; var x = JSON.parse(d.items); useSheet(x.sheet); RAW.ours = x.ours || []; RAW.them = x.them || []; if (x.align) ALIGN = x.align; $("usName").value = x.us || "Our team"; $("oppName").value = x.opp || "Opponent"; loadData(); lockUI() }).catch(function () { $("lockNote").textContent = "This link isn't working. It may have been turned off." });
+  } else {
   var nm = store.get("sol-mock-names"); if (nm) { $("usName").value = nm.us; $("oppName").value = nm.opp }
   useSheet(store.get("sol-mock-sheet")); D.calls = []; D.def = []; D.theirRates = { td: .3, to: .1, fg: .06, plays: 6, n: 0, real: false };
   var local = store.get("sol-mock-files"); usePack(local); loadData();
   cloud("files").then(function (p) { if (p && p.at && (!local || p.at > (local.at || 0)) && usePack(p)) { store.set("sol-mock-files", p); loadData() } }, function () {});
   cloud("sheet").then(function (t) { if (typeof t === "string") { try { var s = JSON.parse(t); if (useSheet(s)) store.set("sol-mock-sheet", s) } catch (e) {} } }, function () {});
 
+  cloud("owner").then(function (o) { OWNER = o || null; lockUI() }, function () {});
+  cloud("names").then(function (n) { if (n) { $("usName").value = n.us; $("oppName").value = n.opp } }, function () {});
+  lockUI();
+  }
 })();
 </script>
 
 <script src="plan.js"></script>
+<script>if (window.SolPlan && !new URLSearchParams(location.search).get("share")) SolPlan.gate("mock");</script>

@@ -597,6 +597,7 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
       case "split": return [[x, y], [bx - s * 1.5, -1.6], [bx - s * 4.5, -.6]];
       case "wrap": return [[x, y], [x, y - 1], [bx + s * 2.2, -1], [bx + s * 2.6, 3]];
       case "zone": return [[x, y], [X(1.1), y + 1], [X(1.6), y + 3]];
+      case "split_lb": return [[x, y], [bx - s * .5, -1.2], [bx - s * 2.2, 2.5]];
       default: return [[x, y], [x, y + 1]];
     } }
   function rbPath(a, p, s, bx) { var x = p.x, y = p.y;

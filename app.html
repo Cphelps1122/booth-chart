@@ -67,7 +67,7 @@ body.onhome .hrow.homebrand { display: flex; flex-wrap: nowrap } body.onhome hea
 .sa { display: flex; align-items: center; gap: 12px }
 .sa-mark { width: 52px; height: 52px; flex: 0 0 auto }
 .sa-word { font-family: "Russo One", var(--f-display); font-weight: 400; font-size: 30px; letter-spacing: .02em; line-height: .95; color: #ffffff }
-.sa-sub { font-family: "Barlow", sans-serif; font-weight: 600; font-size: 12px; letter-spacing: .55em; color: #a5e3ff; margin-top: 5px }
+.sa-sub { font-family: "Barlow", sans-serif; font-weight: 600; font-size: 12px; letter-spacing: .55em; color: #6EC926; margin-top: 5px }
 .teamlogo img { height: 52px; width: auto; display: block }
 header { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bar); color: var(--bar-ink); border-bottom: 3px solid var(--red) }
 .hrow { display: flex; align-items: center; gap: 12px; padding-block: 10px; flex-wrap: wrap }
@@ -87,9 +87,9 @@ nav .navlink { font-family: var(--f-display); font-weight: 700; letter-spacing: 
 .btn.primary, .btn.pri { color: var(--on-school, #fff) }
 .brand .school { color: var(--school-hi, var(--school, #e0302a)) !important } .sb.us .pts { color: var(--school-hi, #ff4d45) !important; text-shadow: none }
 .h-btn.pri { color: var(--on-hi, #0c1117) }
-.home { --hb: #0c1117; --hp: #121a22; --hl: #223040; --hi: #a5e3ff; --hpl: #d9dee5; --hm: #8b98a8; color: #e8edf2; background: var(--hb); border-radius: 16px; overflow: hidden; margin-top: -2px }
+.home { --hb: #0c1117; --hp: #121a22; --hl: #223040; --hi: #6EC926; --hpl: #d9dee5; --hm: #8b98a8; color: #e8edf2; background: var(--hb); border-radius: 16px; overflow: hidden; margin-top: -2px }
 .home .hk { font-size: 11.5px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--hm) }
-.h-hero { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: center; padding: 44px 36px 34px; background: radial-gradient(120% 140% at 100% 0%, rgba(165,227,255,.10), transparent 55%), linear-gradient(180deg, #0f1620, #0c1117); border-bottom: 1px solid var(--hl) }
+.h-hero { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: center; padding: 44px 36px 34px; background: radial-gradient(120% 140% at 100% 0%, rgba(110,201,38,.10), transparent 55%), linear-gradient(180deg, #0f1620, #0c1117); border-bottom: 1px solid var(--hl) }
 .h-eyebrow { font-size: 12.5px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: var(--hi) }
 .h-title { font-family: "Russo One", var(--f-display); font-weight: 400; font-size: clamp(30px, 5vw, 54px); line-height: 1.04; letter-spacing: .005em; margin: 12px 0 0; color: #fff; text-wrap: balance }
 .h-title span { color: var(--hpl) }
@@ -99,7 +99,7 @@ nav .navlink { font-family: var(--f-display); font-weight: 700; letter-spacing: 
 .h-stat { border: 1px solid var(--hl); background: rgba(255,255,255,.02); border-radius: 10px; padding: 8px 14px; min-width: 104px }
 .h-stat b { display: block; font-family: "Russo One", var(--f-display); font-weight: 400; font-size: 24px; color: #fff; font-variant-numeric: tabular-nums }
 .h-stat span { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--hm); font-weight: 700 }
-.h-now { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; justify-content: space-between; margin: 22px 36px 0; padding: 16px 18px; border: 1px solid #2d4a5e; border-radius: 12px; background: linear-gradient(90deg, rgba(165,227,255,.08), rgba(165,227,255,.02)) }
+.h-now { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; justify-content: space-between; margin: 22px 36px 0; padding: 16px 18px; border: 1px solid #2d4a5e; border-radius: 12px; background: linear-gradient(90deg, rgba(110,201,38,.08), rgba(110,201,38,.02)) }
 .h-now-l { display: flex; gap: 14px; align-items: center }
 .h-live-dot { width: 12px; height: 12px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 0 5px rgba(74,222,128,.18); flex: 0 0 auto }
 .home .hbig { font-family: "Russo One", var(--f-display); font-weight: 400; font-size: 24px; color: #fff; letter-spacing: .01em; text-transform: uppercase }
@@ -111,7 +111,7 @@ nav .navlink { font-family: var(--f-display); font-weight: 700; letter-spacing: 
 .h-prod { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: 14px; padding: 22px 36px 0 }
 .h-card { font: inherit; text-align: left; display: flex; flex-direction: column; gap: 8px; padding: 18px; border-radius: 12px; border: 1px solid var(--hl); background: var(--hp); color: #e8edf2; text-decoration: none; cursor: pointer; transition: border-color .15s, transform .15s }
 .h-card:hover { border-color: var(--hi); transform: translateY(-2px) }
-.h-ico { width: 46px; height: 46px; border-radius: 10px; background: rgba(165,227,255,.08); display: flex; align-items: center; justify-content: center; color: var(--hpl) }
+.h-ico { width: 46px; height: 46px; border-radius: 10px; background: rgba(110,201,38,.08); display: flex; align-items: center; justify-content: center; color: var(--hpl) }
 .h-ico svg { width: 30px; height: 30px }
 .h-ct { font-family: "Russo One", var(--f-display); font-weight: 400; font-size: 20px; color: #fff; letter-spacing: .01em }
 .h-card p { margin: 0; color: #a9b5c2; font-size: 14px; line-height: 1.5; flex: 1 }
@@ -134,16 +134,16 @@ nav .navlink { font-family: var(--f-display); font-weight: 700; letter-spacing: 
 .fold > summary { list-style: none; cursor: pointer; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 12px 14px; font-family: var(--f-display); font-weight: 800; font-size: 19px; letter-spacing: .03em; text-transform: uppercase; color: #e8edf2 }
 .fold > summary::-webkit-details-marker { display: none } .fold > summary::before { content: "▸"; color: var(--hi); transition: transform .15s } .fold[open] > summary::before { transform: rotate(90deg) }
 .fold > summary small { font-family: var(--f-body); font-weight: 600; font-size: 13px; letter-spacing: 0; text-transform: none; color: #9aa7b6 }
-.fold.cur { border-color: var(--hi) } .fold.prac > summary { color: #a5e3ff } .fold.unf > summary { color: #9aa7b6 }
+.fold.cur { border-color: var(--hi) } .fold.prac > summary { color: #6EC926 } .fold.unf > summary { color: #9aa7b6 }
 .fbody { padding: 0 14px 14px; display: flex; flex-direction: column; gap: 8px }
 .frow { border: 1px solid var(--hl); border-radius: 10px; padding: 10px 12px; display: flex; gap: 8px 12px; align-items: center; flex-wrap: wrap; background: #0b1117 }
 .frow .ft { flex: 1 1 260px; min-width: 0 } .frow .ft b { font-size: 17px; color: #e8edf2 } .frow .fm { font-size: 13px; color: #9aa7b6; margin-top: 2px }
-.gcode { display: inline-block; font-family: var(--f-display); font-weight: 800; font-size: 18px; letter-spacing: .12em; padding: 2px 10px; border-radius: 7px; background: #a5e3ff; color: #0c1117; margin-left: 6px; vertical-align: middle }
+.gcode { display: inline-block; font-family: var(--f-display); font-weight: 800; font-size: 18px; letter-spacing: .12em; padding: 2px 10px; border-radius: 7px; background: #6EC926; color: #0c1117; margin-left: 6px; vertical-align: middle }
 .frow .h-btn { padding: 8px 14px; font-size: 15px } .frow select { font: inherit; font-size: 14px; padding: 7px; border-radius: 8px; background: #0f161e; color: #e8edf2; border: 1px solid var(--hl) }
 .fnote { font-size: 13.5px; color: #cfd8e2; padding: 8px 10px; border-radius: 8px; background: #1b2633 }
-.pracbar { position: sticky; top: 0; z-index: 9996; display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap; padding: 8px 14px; background: repeating-linear-gradient(135deg, #a5e3ff 0 14px, #8fd6f5 14px 28px); color: #0c1117; font: 800 15px Inter, system-ui, sans-serif; letter-spacing: .04em }
-.pracbar button { font: 800 14px Inter, system-ui, sans-serif; padding: 6px 12px; border-radius: 8px; border: 1px solid #0c1117; background: #0c1117; color: #a5e3ff; cursor: pointer }
-.pill.gamepill { background: #a5e3ff; color: #0c1117 } .pill.gamepill.prac { background: repeating-linear-gradient(135deg, #a5e3ff 0 8px, #8fd6f5 8px 16px) }
+.pracbar { position: sticky; top: 0; z-index: 9996; display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap; padding: 8px 14px; background: repeating-linear-gradient(135deg, #6EC926 0 14px, #8fd6f5 14px 28px); color: #0c1117; font: 800 15px Inter, system-ui, sans-serif; letter-spacing: .04em }
+.pracbar button { font: 800 14px Inter, system-ui, sans-serif; padding: 6px 12px; border-radius: 8px; border: 1px solid #0c1117; background: #0c1117; color: #6EC926; cursor: pointer }
+.pill.gamepill { background: #6EC926; color: #0c1117 } .pill.gamepill.prac { background: repeating-linear-gradient(135deg, #6EC926 0 8px, #8fd6f5 8px 16px) }
 .hcode { grid-column: 1 / -1; display: flex; gap: 8px; flex-wrap: wrap; align-items: center }
 .hcode input { width: 180px; text-transform: uppercase; letter-spacing: .08em }
 .h-foot { display: flex; align-items: center; gap: 10px; justify-content: center; padding: 26px 16px 28px; font-size: 11.5px; letter-spacing: .2em; color: var(--hm); font-weight: 700 }
@@ -346,9 +346,9 @@ tr.curgame td { background: color-mix(in srgb, var(--amber) 30%, transparent) }
 .chip.mot[aria-pressed="true"], .chip.rpot[aria-pressed="true"] { background: #7c3aed; color: #fff }
 .tag.mul { background: #7c3aed; color: #fff }
 .mullrow { display: flex; gap: 8px; align-items: stretch; margin: 0 0 12px } .mullrow .mull { margin: 0; flex: 1 1 auto; min-width: 0 } .mullrow .mull .ms { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
-.frz { flex: 0 0 auto; padding: 6px 14px; border: 0; border-radius: 10px; cursor: pointer; background: #a5e3ff; color: #0c1117; font-family: var(--f-display); font-weight: 800; font-size: 17px; letter-spacing: .06em; text-transform: uppercase; box-shadow: 0 3px 10px rgba(165,227,255,.3) }
+.frz { flex: 0 0 auto; padding: 6px 14px; border: 0; border-radius: 10px; cursor: pointer; background: #6EC926; color: #0c1117; font-family: var(--f-display); font-weight: 800; font-size: 17px; letter-spacing: .06em; text-transform: uppercase; box-shadow: 0 3px 10px rgba(110,201,38,.3) }
 .frz.on { outline: 3px solid #fde047; outline-offset: 2px }
-.tag.frz { background: #a5e3ff; color: #0c1117 } .tag.vic { background: #16a34a; color: #fff } .tag.off { background: #64748b; color: #fff }
+.tag.frz { background: #6EC926; color: #0c1117 } .tag.vic { background: #16a34a; color: #fff } .tag.off { background: #64748b; color: #fff }
 .vicbtn { background: #14532d !important; color: #fff !important; border-color: #16a34a !important }
 .srch { display: flex; gap: 8px; align-items: center; margin-top: 10px } .srch input { flex: 1; min-width: 0 }
 .srch input[type=search] { font: inherit; font-size: 16px; padding: 9px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink) }
@@ -358,24 +358,24 @@ tr.curgame td { background: color-mix(in srgb, var(--amber) 30%, transparent) }
 .hits { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px } .hits:empty { display: none }
 .addrow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; padding: 8px; border: 1px dashed var(--line); border-radius: 8px }
 .addrow select { font: inherit; font-size: 15px; padding: 7px; border-radius: 8px; background: var(--bg); color: var(--ink); border: 1px solid var(--line) }
-.addbtn { font: inherit; font-weight: 700; font-size: 15px; padding: 7px 12px; border-radius: 8px; border: 1px dashed #a5e3ff; background: transparent; color: #a5e3ff; cursor: pointer }
+.addbtn { font: inherit; font-weight: 700; font-size: 15px; padding: 7px 12px; border-radius: 8px; border: 1px dashed #6EC926; background: transparent; color: #6EC926; cursor: pointer }
 .pchk { display: flex; gap: 8px; align-items: center; margin: 10px 0 0; font-size: 15px; font-weight: 600 }
 .pen1 { margin: 6px 0 10px; padding: 8px 10px; border-radius: 8px; background: #1e293b; color: #e2e8f0; font-weight: 600 }
-.lockbar { position: sticky; top: 0; z-index: 9998; padding: 9px 14px; background: #a5e3ff; color: #0c1117; font: 700 15px Inter, system-ui, sans-serif; text-align: center }
+.lockbar { position: sticky; top: 0; z-index: 9998; padding: 9px 14px; background: #6EC926; color: #0c1117; font: 700 15px Inter, system-ui, sans-serif; text-align: center }
 body.inlocked #v-chart .panel, body.inlocked #v-chart .spotpanel, body.inlocked #v-chart .actions, body.inlocked #v-chart .inmode, body.inlocked #v-chart .tries, body.inlocked .edit, body.inlocked .del, body.inlocked .lookcell { pointer-events: none !important; opacity: .55 }
 body.infinal #v-chart .panel, body.infinal #v-chart .spotpanel, body.infinal #v-chart .actions, body.infinal #v-chart .inmode, body.infinal #v-chart .tries, body.infinal .edit, body.infinal .del, body.infinal .lookcell { pointer-events: none !important; opacity: .55 }
-.finalbar { position: sticky; top: 0; z-index: 9997; display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap; padding: 8px 14px; background: #0c1117; color: #e8f6ff; border-bottom: 2px solid #a5e3ff; font: 700 15px Inter, system-ui, sans-serif }
-.finalbar a, .finalbar button { font: 800 14px Inter, system-ui, sans-serif; padding: 6px 12px; border-radius: 8px; border: 1px solid #a5e3ff; background: #a5e3ff; color: #0c1117; text-decoration: none; cursor: pointer }
-.finalbar button { background: transparent; color: #a5e3ff }
-.endbtn { background: #0c1117 !important; color: #a5e3ff !important; border-color: #a5e3ff !important }
+.finalbar { position: sticky; top: 0; z-index: 9997; display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap; padding: 8px 14px; background: #0c1117; color: #e8f6ff; border-bottom: 2px solid #6EC926; font: 700 15px Inter, system-ui, sans-serif }
+.finalbar a, .finalbar button { font: 800 14px Inter, system-ui, sans-serif; padding: 6px 12px; border-radius: 8px; border: 1px solid #6EC926; background: #6EC926; color: #0c1117; text-decoration: none; cursor: pointer }
+.finalbar button { background: transparent; color: #6EC926 }
+.endbtn { background: #0c1117 !important; color: #6EC926 !important; border-color: #6EC926 !important }
 .syncbar { position: fixed; left: 50%; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 9990; max-width: min(760px, 94vw); display: flex; gap: 10px; align-items: center; padding: 10px 16px; border-radius: 12px; font: 800 15px Inter, system-ui, sans-serif; box-shadow: 0 8px 24px rgba(0,0,0,.35) }
 .syncbar.red { background: #b91c1c; color: #fff } .syncbar.amber { background: #f59e0b; color: #1a1205 }
 .syncbar button { font: 800 14px Inter, system-ui, sans-serif; padding: 6px 12px; border-radius: 8px; border: 0; background: #fff; color: #111; cursor: pointer }
 .pill.sentok { background: #14532d; color: #bbf7d0 }
-.tagnag { position: fixed; left: 50%; bottom: calc(70px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 9989; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 10px 14px; border-radius: 12px; background: #0c1117; color: #e8edf2; border: 2px solid #a5e3ff; font: 700 14.5px Inter, system-ui, sans-serif; box-shadow: 0 8px 24px rgba(0,0,0,.35); max-width: 94vw }
-.tagnag button { font: 800 14px Inter, system-ui, sans-serif; padding: 7px 12px; border-radius: 8px; border: 1px solid #a5e3ff; background: #a5e3ff; color: #0c1117; cursor: pointer } .tagnag button.sk { background: transparent; color: #a5e3ff }
+.tagnag { position: fixed; left: 50%; bottom: calc(70px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 9989; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 10px 14px; border-radius: 12px; background: #0c1117; color: #e8edf2; border: 2px solid #6EC926; font: 700 14.5px Inter, system-ui, sans-serif; box-shadow: 0 8px 24px rgba(0,0,0,.35); max-width: 94vw }
+.tagnag button { font: 800 14px Inter, system-ui, sans-serif; padding: 7px 12px; border-radius: 8px; border: 1px solid #6EC926; background: #6EC926; color: #0c1117; cursor: pointer } .tagnag button.sk { background: transparent; color: #6EC926 }
 .gdcheck { margin: 0 36px 0; padding: 16px 18px; border: 1px solid var(--hl); border-radius: 14px; background: #0f161e } .gdcheck h3 { margin: 0 0 10px; font-family: var(--f-display); font-size: 20px; letter-spacing: .04em; text-transform: uppercase; color: #e8edf2 }
-.gdcheck ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 6px 14px } .gdcheck li { display: flex; gap: 10px; align-items: baseline; font-size: 15px; color: #cfd8e2 } .gdcheck li b { font-size: 17px; width: 20px; flex: none } .gdcheck li.ok b { color: #4ade80 } .gdcheck li.no b { color: #f87171 } .gdcheck li.na b { color: #64748b } .gdcheck li a { color: #a5e3ff }
+.gdcheck ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 6px 14px } .gdcheck li { display: flex; gap: 10px; align-items: baseline; font-size: 15px; color: #cfd8e2 } .gdcheck li b { font-size: 17px; width: 20px; flex: none } .gdcheck li.ok b { color: #4ade80 } .gdcheck li.no b { color: #f87171 } .gdcheck li.na b { color: #64748b } .gdcheck li a { color: #6EC926 }
 .bkbar { margin: 14px 36px 0; padding: 10px 14px; border-radius: 10px; background: #1b2633; color: #e8edf2; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 14.5px }
 @media (max-width: 640px) { .gdcheck, .bkbar { margin-left: 18px; margin-right: 18px } }
 #v-report tr.plrow td { cursor: pointer } #v-report tr.plrow:hover td { background: color-mix(in srgb, var(--red) 10%, transparent) } #v-report tr.plrow td:first-child::after { content: " ▶"; color: var(--red); font-size: 11px }
@@ -453,13 +453,13 @@ textarea { min-height: 64px }
 .confirm { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 8px }
 @media (prefers-reduced-motion: no-preference) { .chip, .btn { transition: background-color .12s, transform .08s } .chip:active, .btn:active { transform: scale(.97) } }
 .se-n{color:#93a1b1;font-size:13px;margin:6px 0}.se-t{width:100%;box-sizing:border-box;background:#0c1117;color:#e8edf2;border:1px solid #2a3442;border-radius:8px;padding:8px;font:inherit}
-.se-r{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0}.se-m{color:#a5e3ff;font-size:13px}
-.se-b{background:#1a222d;color:#e8edf2;border:1px solid #2a3442;border-radius:8px;padding:7px 12px;font:600 13px inherit;cursor:pointer}.se-b.pri{background:var(--hi,#a5e3ff);color:#0c1117;border-color:transparent}
+.se-r{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0}.se-m{color:#6EC926;font-size:13px}
+.se-b{background:#1a222d;color:#e8edf2;border:1px solid #2a3442;border-radius:8px;padding:7px 12px;font:600 13px inherit;cursor:pointer}.se-b.pri{background:var(--hi,#6EC926);color:#0c1117;border-color:transparent}
 .se-tb{width:100%;border-collapse:collapse}.se-tb th{text-align:left;color:#93a1b1;font-size:11px;text-transform:uppercase;padding:4px}.se-tb td{padding:3px}
 .se-tb input,.se-tb select{background:#0c1117;color:#e8edf2;border:1px solid #2a3442;border-radius:6px;padding:6px;font:inherit;width:100%;box-sizing:border-box}
 .wkbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:6px 0 4px}.wk-l{font-family:var(--f-display);font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-size:15px}.wk-s{font:inherit;font-size:16px;padding:8px 10px;border-radius:8px;background:#0c1117;color:#e8edf2;border:1px solid #2a3442;max-width:100%}.wk-n{opacity:.75}
 .h-next{display:flex;align-items:center;gap:12px;flex-wrap:wrap;border:1px solid var(--hl,#2a3442);border-radius:12px;padding:12px 14px;margin:10px 0}
-.h-next .hn-t{font-family:var(--f-display);font-size:22px;letter-spacing:.03em;text-transform:uppercase}.h-next .hn-t b{color:var(--hi,#a5e3ff);font-weight:inherit}
+.h-next .hn-t{font-family:var(--f-display);font-size:22px;letter-spacing:.03em;text-transform:uppercase}.h-next .hn-t b{color:var(--hi,#6EC926);font-weight:inherit}
 .filmbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}.filmbar video{width:168px;height:94px;object-fit:cover;border-radius:8px;background:#000}
 .filmdot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#e5372f;margin-right:6px;animation:fdot 1.2s infinite}@keyframes fdot{50%{opacity:.25}}
 .clipbtn{background:#1f6feb;color:#fff;border:0;border-radius:6px;padding:4px 9px;font-weight:700;cursor:pointer;margin-right:4px}
@@ -469,7 +469,7 @@ textarea { min-height: 64px }
 <header>
   <div class="wrap">
     <div class="hrow homebrand" id="homeBrand">
-      <div class="sa"><svg class="sa-mark" viewBox="0 0 96 96" aria-hidden="true"><g fill="#d9dee5"><rect x="16" y="32" width="26" height="9" rx="1"/><rect x="54" y="32" width="26" height="9" rx="1"/><rect x="16" y="56" width="26" height="9" rx="1"/><rect x="54" y="56" width="26" height="9" rx="1"/></g><rect x="45" y="12" width="6" height="72" rx="1" fill="#a5e3ff"/></svg><div><div class="sa-word">SOLUTIONS</div><div class="sa-sub">ANALYTICS</div></div></div>
+      <div class="sa"><svg class="sa-mark" viewBox="0 0 96 96" aria-hidden="true"><g fill="#d9dee5"><rect x="16" y="32" width="26" height="9" rx="1"/><rect x="54" y="32" width="26" height="9" rx="1"/><rect x="16" y="56" width="26" height="9" rx="1"/><rect x="54" y="56" width="26" height="9" rx="1"/></g><rect x="45" y="12" width="6" height="72" rx="1" fill="#6EC926"/></svg><div><div class="sa-word">SOLUTIONS</div><div class="sa-sub">ANALYTICS</div></div></div>
       <div class="teamlogo"><img id="teamLogoImg" alt="" src=""></div>
     </div>
     <div class="hrow gamebar">
@@ -526,7 +526,7 @@ textarea { min-height: 64px }
         <p class="h-lede">Solutions turns the press box into a live analytics room: chart offense and defense in real time, hand your coordinators the answer between series, and build next week's scout from Hudl in minutes.</p>
         <div class="h-stats" id="hStats"></div>
       </div>
-      <div class="h-mark" aria-hidden="true"><svg viewBox="0 0 96 96" aria-hidden="true"><g fill="#d9dee5"><rect x="16" y="32" width="26" height="9" rx="1"/><rect x="54" y="32" width="26" height="9" rx="1"/><rect x="16" y="56" width="26" height="9" rx="1"/><rect x="54" y="56" width="26" height="9" rx="1"/></g><rect x="45" y="12" width="6" height="72" rx="1" fill="#a5e3ff"/></svg></div>
+      <div class="h-mark" aria-hidden="true"><svg viewBox="0 0 96 96" aria-hidden="true"><g fill="#d9dee5"><rect x="16" y="32" width="26" height="9" rx="1"/><rect x="54" y="32" width="26" height="9" rx="1"/><rect x="16" y="56" width="26" height="9" rx="1"/><rect x="54" y="56" width="26" height="9" rx="1"/></g><rect x="45" y="12" width="6" height="72" rx="1" fill="#6EC926"/></svg></div>
     </div>
 
     <div class="h-now" id="homeCur" hidden>
@@ -560,31 +560,31 @@ textarea { min-height: 64px }
     <div class="h-setrow"><button type="button" data-go="settings">⚙ Settings</button><span>School, roster, buttons, lock mode, clips online, sync</span><a class="h-btn" id="homeAdm" href="admin.html" hidden style="margin-left:auto">Admin</a></div>
     <div class="h-prod">
       <button class="h-card" id="homeOff" type="button">
-        <div class="h-ico"><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="4" y="20" width="40" height="8" rx="2" fill="none" stroke="currentColor" stroke-width="2.5"/><circle cx="18" cy="24" r="3.5" fill="#a5e3ff"/><path d="M18 24 H34" stroke="#a5e3ff" stroke-width="2.5" stroke-dasharray="3 3"/></svg></div>
+        <div class="h-ico"><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="4" y="20" width="40" height="8" rx="2" fill="none" stroke="currentColor" stroke-width="2.5"/><circle cx="18" cy="24" r="3.5" fill="#6EC926"/><path d="M18 24 H34" stroke="#6EC926" stroke-width="2.5" stroke-dasharray="3 3"/></svg></div>
         <div class="h-ct">Offense chart</div>
         <p>Tap-the-field spotting, live down and distance, the OC report between every series, win chance and the clock.</p>
         <span class="h-go">Open →</span>
       </button>
       <a class="h-card" id="homeDef" href="defense.html">
-        <div class="h-ico"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 5 L41 11 V24 C41 34 33 41 24 44 C15 41 7 34 7 24 V11 Z" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M16 26 L22 31 L33 19" fill="none" stroke="#a5e3ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="h-ico"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 5 L41 11 V24 C41 34 33 41 24 44 C15 41 7 34 7 24 V11 Z" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M16 26 L22 31 L33 19" fill="none" stroke="#6EC926" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
         <div class="h-ct">Defense chart</div>
         <p>Their personnel, formation and run direction against our calls, with a DC report that tells you what's coming next drive.</p>
         <span class="h-go">Open →</span>
       </a>
       <a class="h-card" id="homePrep" href="reports.html">
-        <div class="h-ico"><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="9" y="6" width="30" height="36" rx="3" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M15 32 V26 M22 32 V20 M29 32 V23" stroke="#a5e3ff" stroke-width="3" stroke-linecap="round"/><path d="M15 13 H33" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></div>
+        <div class="h-ico"><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="9" y="6" width="30" height="36" rx="3" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M15 32 V26 M22 32 V20 M29 32 V23" stroke="#6EC926" stroke-width="3" stroke-linecap="round"/><path d="M15 13 H33" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></div>
         <div class="h-ct">Report Builder</div>
         <p>Drop in Hudl exports and build custom scout and self-scout reports. Send the opponent's tendencies straight to the live chart.</p>
         <span class="h-go">Open →</span>
       </a>
       <a class="h-card" id="homeStats" href="stats.html">
-        <div class="h-ico"><svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="17" cy="15" r="6" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M6 38 C6 29 11 25 17 25 C23 25 28 29 28 38" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M32 38 V28 M37 38 V20 M42 38 V24" stroke="#a5e3ff" stroke-width="3" stroke-linecap="round"/></svg></div>
+        <div class="h-ico"><svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="17" cy="15" r="6" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M6 38 C6 29 11 25 17 25 C23 25 28 29 28 38" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M32 38 V28 M37 38 V20 M42 38 V24" stroke="#6EC926" stroke-width="3" stroke-linecap="round"/></svg></div>
         <div class="h-ct">Stats</div>
         <p>Team and player stats from every game you've charted, game by game and for the season. Saves on its own.</p>
         <span class="h-go">Open →</span>
       </a>
       <a class="h-card" id="homeImpact" href="impact.html">
-        <div class="h-ico"><svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="17" fill="none" stroke="currentColor" stroke-width="2.5"/><circle cx="24" cy="24" r="9" fill="none" stroke="currentColor" stroke-width="2.5"/><circle cx="24" cy="24" r="2.8" fill="#a5e3ff"/><path d="M24 24 L38 10" stroke="#a5e3ff" stroke-width="3" stroke-linecap="round"/></svg></div>
+        <div class="h-ico"><svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="17" fill="none" stroke="currentColor" stroke-width="2.5"/><circle cx="24" cy="24" r="9" fill="none" stroke="currentColor" stroke-width="2.5"/><circle cx="24" cy="24" r="2.8" fill="#6EC926"/><path d="M24 24 L38 10" stroke="#6EC926" stroke-width="3" stroke-linecap="round"/></svg></div>
         <div class="h-ct">Postgame &amp; Impact</div>
         <p>Every game graded against its scout, plus how Next Call, the 4th-down and 2-point charts and the projections did all season.</p>
         <span class="h-go">Open →</span>
@@ -608,7 +608,7 @@ textarea { min-height: 64px }
       <div id="homeList" class="hlist"></div>
       <p class="h-sub" style="margin-top:10px">Each week on your schedule has one real game with one game code. Every device, offense and defense, joins that game. Use Practice to try things out: nothing in it counts.</p>
     </div>
-    <div class="h-foot"><span class="h-foot-mark"><svg viewBox="0 0 96 96" aria-hidden="true"><g fill="#d9dee5"><rect x="16" y="32" width="26" height="9" rx="1"/><rect x="54" y="32" width="26" height="9" rx="1"/><rect x="16" y="56" width="26" height="9" rx="1"/><rect x="54" y="56" width="26" height="9" rx="1"/></g><rect x="45" y="12" width="6" height="72" rx="1" fill="#a5e3ff"/></svg></span>SOLUTIONS ANALYTICS · built in the press box, for coaches</div>
+    <div class="h-foot"><span class="h-foot-mark"><svg viewBox="0 0 96 96" aria-hidden="true"><g fill="#d9dee5"><rect x="16" y="32" width="26" height="9" rx="1"/><rect x="54" y="32" width="26" height="9" rx="1"/><rect x="16" y="56" width="26" height="9" rx="1"/><rect x="54" y="56" width="26" height="9" rx="1"/></g><rect x="45" y="12" width="6" height="72" rx="1" fill="#6EC926"/></svg></span>SOLUTIONS ANALYTICS · built in the press box, for coaches</div>
   </section>
   <div class="banner" id="exampleBanner" hidden>
     <span>Example snaps loaded so you can see the report. Start a real game before kickoff.</span>
@@ -5941,7 +5941,7 @@ textarea { min-height: 64px }
   if (!a || !a.viewAs || !a.home) return;
   var nm = (a.profile && a.profile.name) || a.viewAs;
   var b = document.createElement("div");
-  b.style.cssText = "position:sticky;top:0;z-index:9999;display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:8px 14px;background:#a5e3ff;color:#0c1117;font:600 14px Inter,system-ui,sans-serif";
+  b.style.cssText = "position:sticky;top:0;z-index:9999;display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:8px 14px;background:#6EC926;color:#0c1117;font:600 14px Inter,system-ui,sans-serif";
   b.innerHTML = "<span style='letter-spacing:.08em;font-weight:800'>ADMIN</span><span style='flex:1'>Viewing <b></b> as the owner. Everything you change saves to this school.</span><a href='admin.html' style='color:#0c1117;font-weight:800'>Back to Admin</a>";
   b.querySelector("b").textContent = nm;
   document.body.insertBefore(b, document.body.firstChild);

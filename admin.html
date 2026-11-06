@@ -33,7 +33,7 @@ header { position: relative }
 </head><body><link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <title>Solutions Admin</title>
 <style>
-:root{--bg:#0c1117;--panel:#131a23;--line:#243040;--ink:#e8edf3;--mute:#8b97a6;--ice:#a5e3ff;--plat:#d9dee5;--bad:#ff7b7b;--ok:#7be0a5}
+:root{--bg:#0c1117;--panel:#131a23;--line:#243040;--ink:#e8edf3;--mute:#8b97a6;--ice:#6EC926;--plat:#d9dee5;--bad:#ff7b7b;--ok:#7be0a5}
 *{box-sizing:border-box}body{background:var(--bg);color:var(--ink);font:15px/1.45 Inter,system-ui,sans-serif}
 header{display:flex;align-items:center;gap:14px;padding:14px 18px;border-bottom:1px solid var(--line);flex-wrap:wrap}
 .brand{font-family:"Russo One";letter-spacing:.06em;font-size:18px}.brand b{color:var(--ice);font-weight:400}
@@ -62,8 +62,8 @@ button.d{background:none;color:var(--bad);border:1px solid #5a2a2a;padding:6px 1
 dialog{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:12px;max-width:560px;width:calc(100% - 32px)}
 dialog::backdrop{background:#000a}
 .se-n{color:#93a1b1;font-size:13px;margin:6px 0}.se-t{width:100%;box-sizing:border-box;background:#0c1117;color:#e8edf2;border:1px solid #2a3442;border-radius:8px;padding:8px;font:inherit}
-.se-r{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0}.se-m{color:#a5e3ff;font-size:13px}
-.se-b{background:#1a222d;color:#e8edf2;border:1px solid #2a3442;border-radius:8px;padding:7px 12px;font:600 13px inherit;cursor:pointer}.se-b.pri{background:var(--hi,#a5e3ff);color:#0c1117;border-color:transparent}
+.se-r{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0}.se-m{color:#6EC926;font-size:13px}
+.se-b{background:#1a222d;color:#e8edf2;border:1px solid #2a3442;border-radius:8px;padding:7px 12px;font:600 13px inherit;cursor:pointer}.se-b.pri{background:var(--hi,#6EC926);color:#0c1117;border-color:transparent}
 .se-tb{width:100%;border-collapse:collapse}.se-tb th{text-align:left;color:#93a1b1;font-size:11px;text-transform:uppercase;padding:4px}.se-tb td{padding:3px}
 .se-tb input,.se-tb select{background:#0c1117;color:#e8edf2;border:1px solid #2a3442;border-radius:6px;padding:6px;font:inherit;width:100%;box-sizing:border-box}
 </style>
@@ -90,7 +90,7 @@ dialog::backdrop{background:#000a}
 <section id="t-stad" class="hide">
   <div class="card"><h2>Stadiums from Texas Bob</h2>
     <p class="se-n">Each school's real home stadium, used for the satellite field view on every school's chart. Two ways to add them:</p>
-    <p class="se-n"><b>1. Paste.</b> On an iPad or computer, open <a href="https://texasbob.com/stadium/school_list.php?sort=13" target="_blank" rel="noopener" style="color:#a5e3ff">Texas Bob · Stadiums by City and School</a>, pick a letter, Select All → Copy, and paste here. Or paste a single stadium's page.</p>
+    <p class="se-n"><b>1. Paste.</b> On an iPad or computer, open <a href="https://texasbob.com/stadium/school_list.php?sort=13" target="_blank" rel="noopener" style="color:#6EC926">Texas Bob · Stadiums by City and School</a>, pick a letter, Select All → Copy, and paste here. Or paste a single stadium's page.</p>
     <textarea id="txPaste" class="se-t" rows="6" placeholder="Paste a Texas Bob page here"></textarea>
     <div class="se-r"><button class="se-b pri" id="txRead" type="button">Read paste</button>
     <span class="se-n" style="margin:0"><b>2. Whole state:</b> run the Pythonista script, then</span><button class="se-b" id="txUp" type="button">Upload texasbob_stadiums.json</button><input type="file" id="txFile" accept=".json" hidden></div>

@@ -9,6 +9,11 @@ on:
   schedule:
     - cron: "*/5 * * * *"
   workflow_dispatch:
+  push:                       # pushing tracking changes starts a watch right away
+    branches: [main]
+    paths:
+      - ".github/workflows/track.yml"
+      - "tools/track/**"
 
 concurrency:
   group: play-tracking
@@ -16,11 +21,17 @@ concurrency:
 
 permissions:
   contents: read
+  actions: write              # lets a watch start the next watch before it ends
+
+env:
+  # Each run watches for new clips every minute for up to 5.5 hours, then starts the next run,
+  # until this time (UTC). 08:00 UTC = 2 am Central.
+  TRACK_UNTIL: "2026-11-07T08:00:00Z"
 
 jobs:
   track:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 350
     steps:
       - uses: actions/checkout@v4
         with:
@@ -35,3 +46,15 @@ jobs:
         env:
           ROBOFLOW_API_KEY: ${{ secrets.ROBOFLOW_API_KEY }}
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          TRACK_LOOP_MINUTES: "330"
+      - name: Start the next watch
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          now=$(date -u +%s); stop=$(date -u -d "$TRACK_UNTIL" +%s)
+          if [ $((stop - now)) -gt 300 ]; then
+            gh workflow run track.yml --ref main -R "$GITHUB_REPOSITORY" && echo "Next watch started."
+          else
+            echo "Done watching for tonight."
+          fi

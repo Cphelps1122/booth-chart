@@ -9,6 +9,7 @@ It never writes anywhere the charting app reads or writes.
 This repo is public, so the job's log is public too: it only ever prints
 counts, never game codes, play ids, links or keys.
 """
+import calendar
 import json
 import os
 import sys
@@ -89,11 +90,41 @@ def main():
         sys.exit(1)
     firebase_admin.initialize_app(cred, {"databaseURL": DB_URL})
 
-    deadline = time.time() + float(os.environ.get("TRACK_MINUTES", "22")) * 60
+    detect = roboflow_detect(key.strip())
+    start = time.time()
+    # Watch mode: keep checking for new clips every minute until the watch ends (a run can last up to 6 hours).
+    stop = start + float(os.environ.get("TRACK_LOOP_MINUTES", "0")) * 60
+    until = os.environ.get("TRACK_UNTIL", "")
+    if until:
+        try:
+            stop = min(stop, calendar.timegm(time.strptime(until, "%Y-%m-%dT%H:%M:%SZ")))
+        except ValueError:
+            pass
+    total = bad = passes = 0
+    while True:
+        passes += 1
+        try:
+            d, f, key_bad = one_pass(db, detect, max(stop, time.time() + 22 * 60))
+            total, bad = total + d, bad + f
+            if key_bad and stop <= time.time():
+                sys.exit(1)
+            if key_bad:
+                time.sleep(300)                 # bad key: don't hammer Roboflow, check again in 5 minutes
+        except SystemExit:
+            raise
+        except Exception as e:                  # a network hiccup shouldn't end the watch
+            log("Check failed (%s); trying again in a minute." % type(e).__name__)
+        if time.time() + 60 >= stop:
+            break
+        time.sleep(60)
+    log("Watch over after %d check(s): %d tracked, %d couldn't be tracked." % (passes, total, bad))
+
+
+def one_pass(db, detect, deadline):
     since = time.time() * 1000 - float(os.environ.get("TRACK_DAYS", "3")) * 86400e3
     jobs = find_jobs(db, since)
-    log("%d clip(s) to track" % len(jobs))
-    detect = roboflow_detect(key.strip())
+    if jobs:
+        log("%d clip(s) to track" % len(jobs))
     done = failed = 0
     for i, (at, school, game, play, rec, st) in enumerate(jobs, 1):
         if time.time() > deadline:
@@ -110,11 +141,12 @@ def main():
             status.set({"status": "done", "at": int(time.time() * 1000), "clipAt": at, "tries": tries,
                         "players": len(out["tracks"]), "snap": out["snap"]})
             done += 1
-            log("clip %d of %d: %d players, %d frames, %.0fs" % (i, len(jobs), len(out["tracks"]), out["calls"], out["secs"]))
+            log("clip %d of %d: %d players, %d frames, %.0fs%s" % (i, len(jobs), len(out["tracks"]), out["calls"], out["secs"],
+                                                               "" if out["field"].get("ok") else ", no yards (" + out["field"].get("why", "") + ")"))
         except KeyProblem as e:
             status.set({"status": "error", "at": int(time.time() * 1000), "clipAt": at, "tries": 0, "err": str(e)})
             log(str(e) + " Check ROBOFLOW_API_KEY in GitHub settings, or your Roboflow plan.")
-            sys.exit(1)
+            return done, failed, True
         except Exception as e:
             failed += 1
             msg = str(e)[:200] if isinstance(e, RuntimeError) else type(e).__name__
@@ -125,7 +157,7 @@ def main():
         finally:
             if path and os.path.exists(path):
                 os.remove(path)
-    log("Finished: %d tracked, %d couldn't be tracked." % (done, failed))
+    return done, failed, False
 
 
 if __name__ == "__main__":

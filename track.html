@@ -35,7 +35,8 @@ select { max-width: 100% }
 
 <div class="wrap">
   <div class="top"><div><h1>Play <span>Tracking</span></h1><p class="note" style="margin:2px 0 0">Automatic player trails from your game film. Beta.</p></div>
-    <div class="row"><select id="game" aria-label="Game"></select><a class="btn" href="app.html" style="text-decoration:none;display:inline-flex;align-items:center">Back to the app</a></div></div>
+    <div class="row"><select id="game" aria-label="Game"></select><label class="btn" for="upFile" style="display:inline-flex;align-items:center">Upload test clips</label><input type="file" id="upFile" accept="video/*" multiple hidden><a class="btn" href="app.html" style="text-decoration:none;display:inline-flex;align-items:center">Back to the app</a></div></div>
+  <div class="panel" id="upNote" hidden></div>
   <div class="panel msg" id="msg">Loading…</div>
   <div class="layout" id="main" hidden>
     <section class="panel">
@@ -54,7 +55,7 @@ select { max-width: 100% }
 </div>
 
 <script>
-window.SOL_CONFIG = window.SOL_CONFIG || { db: "https://cardinal-booth-default-rtdb.firebaseio.com", apiKey: "AIzaSyDm0t01_w92gL5sm4_1RnVLip7xWkjb9ME" };
+window.SOL_CONFIG = window.SOL_CONFIG || { db: "https://cardinal-booth-default-rtdb.firebaseio.com", apiKey: "AIzaSyDm0t01_w92gL5sm4_1RnVLip7xWkjb9ME", bucket: "cardinal-booth.firebasestorage.app" };
 (function () {
   "use strict";
   var SOL = window.SOL_CONFIG, $ = function (id) { return document.getElementById(id) };
@@ -78,16 +79,39 @@ window.SOL_CONFIG = window.SOL_CONFIG || { db: "https://cardinal-booth-default-r
       return Promise.all(seasons.map(function (k) { return get("games/" + encodeURIComponent(k) + "/list").catch(function () { return null }) })).then(function (lists) {
         var info = {}; lists.forEach(function (l) { Object.keys(l || {}).forEach(function (c) { info[c] = l[c] }) });
         var codes = keys.filter(function (k) { return k.length < 16 && k !== "practice" && k !== "local" });
-        G.list = codes.map(function (c) { var i = info[c] || {}; return { code: c, opp: i.opp || "Game", date: i.date || "", tracked: !!tracked[c] } })
+        G.list = codes.map(function (c) { var i = info[c] || {}; return { code: c, opp: c === TEST ? "" : i.opp || "Game", date: i.date || "", tracked: !!tracked[c], test: c === TEST } })
           .sort(function (a, b) { return (b.tracked - a.tracked) || String(b.date).localeCompare(String(a.date)) });
         if (!G.list.length) { msg("No games yet."); return }
-        $("game").innerHTML = G.list.map(function (g) { return "<option value='" + esc(g.code) + "'>" + esc((g.date ? g.date + " · " : "") + "vs " + g.opp) + (g.tracked ? "" : " (no tracking yet)") + "</option>" }).join("");
-        var want = new URLSearchParams(location.search).get("game"), pick = G.list.some(function (g) { return g.code === want }) ? want : G.list[0].code;
+        $("game").innerHTML = G.list.map(function (g) { return "<option value='" + esc(g.code) + "'>" + esc(g.test ? "Hudl test clips" : (g.date ? g.date + " · " : "") + "vs " + g.opp) + (g.tracked ? "" : " (no tracking yet)") + "</option>" }).join("");
+        var want = G.want || new URLSearchParams(location.search).get("game"), pick = G.list.some(function (g) { return g.code === want }) ? want : G.list[0].code;
         $("game").value = pick; openGame(pick);
       });
     }).catch(function (e) { msg(/NO_SESSION/.test(e.message) ? "Your sign-in ran out. Open the <a href='app.html'>Solutions app</a> to sign in again." : "Couldn't load your games. Check your connection and refresh.") });
   }
   $("game").onchange = function () { openGame(this.value) };
+
+  // ---------- test clips: Hudl film goes into its own game ("hudltest") that the chart never lists ----------
+  var TEST = "hudltest";
+  $("upFile").onchange = function () {
+    var files = Array.prototype.slice.call(this.files || []); this.value = ""; if (!files.length) return;
+    var a = authGet(); if (!a || !a.school) { msg("Sign in on the <a href='app.html'>Solutions app</a> first."); return }
+    var big = files.filter(function (f) { return f.size > 200e6 }); if (big.length) { up("Clips have to be under 200 MB each. Use single-play clips from Hudl."); return }
+    var done = 0, bad = 0;
+    var next = function (i) {
+      if (i >= files.length) { up(done + " clip" + (done === 1 ? "" : "s") + " uploaded" + (bad ? ", " + bad + " couldn't upload" : "") + ". Tracking starts within a few minutes once the GitHub keys are added; this page updates on its own."); G.want = TEST; loadGames(); return }
+      var f = files[i], key = "h" + Date.now().toString(36) + i, ext = /quicktime|mov/i.test(f.type) ? ".mov" : /webm/i.test(f.type) ? ".webm" : ".mp4", path = "schools/" + a.school + "/clips/" + TEST + "/" + key + ext;
+      up("Uploading " + (i + 1) + " of " + files.length + ": " + esc(f.name) + "…");
+      solToken().then(function (t) {
+        return fetch("https://firebasestorage.googleapis.com/v0/b/" + SOL.bucket + "/o?uploadType=media&name=" + encodeURIComponent(path), { method: "POST", headers: { "Authorization": "Firebase " + t, "Content-Type": f.type || "video/mp4" }, body: f })
+          .then(function (r) { if (!r.ok) throw new Error("upload " + r.status); return r.json() })
+          .then(function (j) { var url = "https://firebasestorage.googleapis.com/v0/b/" + SOL.bucket + "/o/" + encodeURIComponent(j.name) + "?alt=media&token=" + (j.downloadTokens || "").split(",")[0];
+            return fetch(SOL.db + "/schools/" + encodeURIComponent(a.school) + "/games/" + TEST + "/clips/" + key + ".json?auth=" + encodeURIComponent(t), { method: "PUT", body: JSON.stringify({ url: url, at: Date.now(), type: f.type || "video/mp4", size: f.size, name: f.name.slice(0, 80) }) }) })
+          .then(function (r) { if (!r.ok) throw new Error("link " + r.status) });
+      }).then(function () { done++; next(i + 1) }, function () { bad++; next(i + 1) });
+    };
+    next(0);
+  };
+  function up(t) { $("upNote").innerHTML = t; $("upNote").hidden = !t }
 
   function openGame(code) {
     G.code = code; G.cur = null; G.data = null; clearInterval(G.poll); msg("Loading plays…"); $("main").hidden = true;
@@ -97,14 +121,14 @@ window.SOL_CONFIG = window.SOL_CONFIG || { db: "https://cardinal-booth-default-r
       G.clips = r[0] || {}; G.status = r[1] || {}; G.snaps = {};
       Object.keys(r[2] || {}).forEach(function (k) { var x = parse(r[2][k]); if (x) G.snaps[k] = x });
       Object.keys(r[3] || {}).forEach(function (k) { var x = parse(r[3][k]); if (x) { x.def = true; G.snaps["D_" + k] = x } });
-      if (!Object.keys(G.clips).length) { msg("No film for this game yet. Clips show up here after the film device records them and they upload."); return }
+      if (!Object.keys(G.clips).length) { msg(code === TEST ? "No test clips yet. Tap Upload test clips." : "No film for this game yet. Clips show up here after the film device records them and they upload."); return }
       msg(""); $("main").hidden = false; drawPlays();
       var first = playOrder().filter(function (k) { return (G.status[k] || {}).status === "done" })[0] || playOrder()[0]; openPlay(first);
       G.poll = setInterval(function () { get("tracking/" + encodeURIComponent(code)).then(function (s) { if (G.code !== code) return; var was = (G.status[G.cur] || {}).status; G.status = s || {}; drawPlays(); if (G.cur && was !== "done" && (G.status[G.cur] || {}).status === "done") openPlay(G.cur) }, function () {}) }, 30000);
     }).catch(function () { msg("Couldn't load this game. Check your connection and refresh.") });
   }
   function playOrder() { return Object.keys(G.clips).sort(function (a, b) { var x = G.snaps[a] || {}, y = G.snaps[b] || {}; return (x.t || G.clips[a].at || 0) - (y.t || G.clips[b].at || 0) }) }
-  function playLabel(k) { var s = G.snaps[k] || {}, p = [];
+  function playLabel(k) { var s = G.snaps[k] || {}, p = []; if (G.code === TEST) return (G.clips[k] && G.clips[k].name) || "Test clip";
     if (s.dn) p.push(ord(+s.dn) + " & " + (s.dist != null ? s.dist : "?"));
     if (s.def) p.push("Defense"); if (s.call) p.push(s.call);
     var r = s.res || ""; if (s.gain != null && !/inc|int/i.test(r)) r = (r ? r + " " : "") + (s.gain > 0 ? "+" : "") + s.gain;

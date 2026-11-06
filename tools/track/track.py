@@ -24,6 +24,8 @@ import numpy as np
 import requests
 from scipy.optimize import linear_sum_assignment
 
+import field as fieldmod
+
 MODEL = os.environ.get("ROBOFLOW_MODEL", "football-players-zm06l/15")
 PROC_W = 960            # frames are shrunk to this width before anything else
 SAMPLE_FPS = float(os.environ.get("TRACK_FPS", "6"))
@@ -337,6 +339,69 @@ def presnap_read(dets_k):
     return out
 
 
+# ---------------------------------------------------------------- yards
+MPH = 3600 / 1760.0
+
+
+def measure(frames, dets, Hs, times, tracks, k_pre, k_snap):
+    """Field ruler from the yard lines, then depth, speed and position in yards for every trail point."""
+    n = len(frames)
+    order, why, fit = [], None, None
+    for k in [k_pre, max(0, k_pre - 2), 0, min(n - 1, k_pre + 3), n // 2]:
+        if k not in order:
+            order.append(k)
+    for k in order:
+        fit, why = fieldmod.fit(frames[k], dets[k])
+        if fit:
+            F = fit["F"] @ Hs[k]
+            F = F / F[2, 2]
+            break
+    if not fit:
+        return {"ok": False, "why": why}
+    for t in tracks:
+        P = np.float32([[q[1], q[2]] for q in t["p"]]).reshape(-1, 1, 2)
+        t["f"] = cv2.perspectiveTransform(P, F).reshape(-1, 2).tolist()
+
+    def at(t, k):
+        for q, f in zip(t["p"], t["f"]):
+            if q[0] == k:
+                return f
+        return None
+    off = [at(t, k_pre) for t in tracks if t["side"] == "o"]
+    de = [at(t, k_pre) for t in tracks if t["side"] == "d"]
+    off, de = [f for f in off if f], [f for f in de if f]
+    if len(off) < 3 or len(de) < 3:
+        return {"ok": False, "why": "couldn't see both teams before the snap"}
+    sgn = 1.0 if np.mean([f[0] for f in de]) > np.mean([f[0] for f in off]) else -1.0
+    cen = [at(t, k_pre) for t in tracks if t["side"] == "o" and t["cls"].most_common(1)[0][0] in ("center", "c")]
+    cen = [f for f in cen if f]
+    if cen:
+        los = sgn * cen[0][0] + 0.5                 # the ball is just in front of the center's feet
+    else:
+        los = (np.percentile([sgn * f[0] for f in off], 85) + np.percentile([sgn * f[0] for f in de], 15)) / 2
+    k0 = k_snap if k_snap is not None else 0
+    for t in tracks:
+        ks = [q[0] for q in t["p"]]
+        mph = []
+        for i in range(len(ks)):
+            a, b = max(0, i - 2), min(len(ks) - 1, i + 2)
+            dt = times[ks[b]] - times[ks[a]]
+            if b - a < 2 or dt <= 0 or ks[b] - ks[a] > (b - a) + 2:
+                mph.append(None)
+                continue
+            d = math.hypot(t["f"][b][0] - t["f"][a][0], t["f"][b][1] - t["f"][a][1])
+            v = d / dt * MPH
+            mph.append(round(v, 1) if v <= 24 else None)    # faster than any high schooler: a tracking glitch
+        t["mph"] = mph
+        after = [i for i, k in enumerate(ks) if k >= k0]
+        dep = [sgn * t["f"][i][0] - los for i in after]
+        sp = [mph[i] for i in after if mph[i] is not None]
+        t["deep"] = round(max(dep), 1) if dep else None
+        t["top"] = round(max(sp), 1) if sp else None
+    return {"ok": True, "F": [round(float(x), 7) for x in F.flatten()[:8]], "dir": sgn, "los": round(float(los), 2),
+            "lines": fit["lines"], "tick": fit["tick"], "rms": fit["rms"], "hashYards": round(fieldmod.HASH_YARDS, 2)}
+
+
 # ---------------------------------------------------------------- one clip
 def process(path, detect, a=None, b=None, snap=None):
     t0 = time.time()
@@ -357,17 +422,24 @@ def process(path, detect, a=None, b=None, snap=None):
         k_snap = find_snap(tracks, times, unit)
     k_pre = max(0, (k_snap or 1) - 1)
     pre = presnap_read(dets[k_pre]) or {}
+    for t in tracks:
+        t["p"] = smooth(t["p"])
+    fld = measure(frames, dets, Hs, times, tracks, k_pre, k_snap)
     out_tracks = []
     for t in tracks:
         cls = [c for c, _ in t["cls"].most_common() if c in OFF | DEF]
-        out_tracks.append({"id": t["id"], "side": t["side"], "cls": cls[0] if cls else "",
-                           "p": [[q[0], round(q[1], 1), round(q[2], 1)] for q in smooth(t["p"])]})
+        o = {"id": t["id"], "side": t["side"], "cls": cls[0] if cls else "",
+             "p": [[q[0], round(q[1], 1), round(q[2], 1)] for q in t["p"]]}
+        if fld.get("ok"):
+            o["f"] = [[round(f[0], 2), round(f[1], 2)] for f in t["f"]]
+            o["mph"], o["deep"], o["top"] = t["mph"], t["deep"], t["top"]
+        out_tracks.append(o)
     h, w = frames[0].shape[:2]
     return {
         "v": 1, "model": MODEL, "W": w, "H": h, "t": times,
         "Hs": [[round(float(x), 6) for x in H.flatten()[:8]] for H in Hs],
         "snap": times[k_snap] if k_snap is not None else None, "snapK": k_snap, "snapFrom": "clip" if snap not in (None, "") else ("motion" if k_snap is not None else None),
         "preK": k_pre, "preDets": [[round(d["x"], 1), round(d["y"], 1), round(d["w"], 1), round(d["h"], 1), d["c"], round(d["p"], 2)] for d in dets[k_pre]],
-        "pre": pre, "tracks": out_tracks, "unit": round(unit, 1), "camFails": fails,
+        "pre": pre, "tracks": out_tracks, "field": fld, "unit": round(unit, 1), "camFails": fails,
         "calls": len(frames), "secs": round(time.time() - t0, 1), "teamColors": model is not None,
     }

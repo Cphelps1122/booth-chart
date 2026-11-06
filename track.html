@@ -31,6 +31,8 @@ select { max-width: 100% }
 .info { font: 600 15px var(--f-body); margin: 0 0 8px } .info small { display: block; color: var(--muted); font-weight: 500 }
 .read { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 6px; margin-top: 8px } .read div { background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px } .read b { display: block; font: 800 22px/1 var(--f-display) } .read small { color: var(--muted) }
 .sitenav { display: flex; flex-wrap: wrap; gap: 2px 12px; margin-top: 6px; font: 600 13px var(--f-body) } .sitenav a { color: var(--muted); text-decoration: none } .sitenav a.cur { color: var(--ink) }
+.nums .tbl { overflow-x: auto } .nums table { border-collapse: collapse; width: 100%; font-size: 14px } .nums th, .nums td { padding: 5px 8px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap } .nums th { font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted) }
+.sw { display: inline-block; width: 12px; height: 12px; border-radius: 50%; vertical-align: -1px; margin-right: 6px; border: 1px solid #000 } .sum { font: 600 15px/1.5 var(--f-body); margin: 12px 0 6px }
 .msg { padding: 18px; text-align: center; color: var(--muted) } a { color: var(--green) }
 </style>
 
@@ -44,11 +46,11 @@ select { max-width: 100% }
       <p class="info" id="info"></p>
       <div class="vbox" id="vbox"><video id="vid" playsinline muted preload="auto"></video><canvas id="cv"></canvas><div class="tag" id="tag" hidden></div></div>
       <div class="row" style="margin-top:8px">
-        <button class="btn pri" id="playBtn" type="button">Play</button><button class="btn" id="backBtn" type="button">↺ Snap</button>
+        <button class="btn pri" id="playBtn" type="button">Play</button><button class="btn" id="backBtn" type="button">↺ Snap</button><button class="btn" id="relBtn" type="button">Mark release</button>
         <select id="speed" aria-label="Speed"><option value="1">1×</option><option value="0.5" selected>½×</option><option value="0.25">¼×</option></select>
         <button class="btn" id="tOff" type="button" aria-pressed="true">Offense</button><button class="btn" id="tDef" type="button" aria-pressed="true">Defense</button><button class="btn" id="tAll" type="button" aria-pressed="false">Linemen &amp; LBs</button>
       </div>
-      <div id="read"></div>
+      <div id="read"></div><div class="nums" id="nums"></div>
       <p class="note">Trails are automatic estimates. Players can swap in piles and when they cross; receivers and DBs track best. Solid lines are your offense, dashed are the defense.</p>
     </section>
     <section class="panel"><h2>Plays</h2><div class="plays" id="plays"></div><p class="note" id="plNote"></p></section>
@@ -63,13 +65,14 @@ window.SOL_CONFIG = window.SOL_CONFIG || { db: "https://cardinal-booth-default-r
   function authGet() { try { return JSON.parse(localStorage.getItem("solutions-auth-v1") || "null") } catch (e) { return null } }
   function solToken() { var a = authGet(); if (!a || !a.school) return Promise.reject(new Error("NO_SESSION")); if (a.exp > Date.now() + 60000) return Promise.resolve(a.idToken);
     return fetch("https://securetoken.googleapis.com/v1/token?key=" + SOL.apiKey, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "grant_type=refresh_token&refresh_token=" + encodeURIComponent(a.refreshToken) }).then(function (r) { return r.json() }).then(function (d) { if (d.error) throw new Error("NO_SESSION"); a.idToken = d.id_token; a.refreshToken = d.refresh_token; a.exp = Date.now() + (+d.expires_in - 60) * 1000; try { localStorage.setItem("solutions-auth-v1", JSON.stringify(a)) } catch (e) {} return a.idToken }) }
+  function put(path, val) { var a = authGet(); return solToken().then(function (t) { return fetch(SOL.db + "/schools/" + encodeURIComponent(a.school) + "/" + path + ".json?auth=" + encodeURIComponent(t), { method: "PUT", body: JSON.stringify(val) }) }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status) }) }
   function get(path, shallow) { var a = authGet(); return solToken().then(function (t) { return fetch(SOL.db + "/schools/" + encodeURIComponent(a.school) + "/" + path + ".json?auth=" + encodeURIComponent(t) + (shallow ? "&shallow=true" : "")) }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json() }) }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] }) }
   function msg(t) { $("msg").innerHTML = t; $("msg").hidden = !t }
   function ord(n) { return n + (["th", "st", "nd", "rd"][n] || "th") }
   function parse(x) { if (typeof x === "string") { try { return JSON.parse(x) } catch (e) { return null } } return x }
 
-  var G = { code: null, clips: {}, status: {}, snaps: {}, list: [], cur: null, data: null, poll: null }, SHOW = { o: true, d: true, all: false };
+  var G = { code: null, clips: {}, status: {}, snaps: {}, marks: {}, list: [], cur: null, data: null, poll: null }, SHOW = { o: true, d: true, all: false };
 
   // ---------- games ----------
   function loadGames() {
@@ -117,9 +120,9 @@ window.SOL_CONFIG = window.SOL_CONFIG || { db: "https://cardinal-booth-default-r
   function openGame(code) {
     G.code = code; G.cur = null; G.data = null; clearInterval(G.poll); msg("Loading plays…"); $("main").hidden = true;
     var g = "games/" + encodeURIComponent(code);
-    Promise.all([get(g + "/clips"), get("tracking/" + encodeURIComponent(code)).catch(function () { return {} }), get(g + "/snaps").catch(function () { return {} }), get(g + "/defense/snaps").catch(function () { return {} })]).then(function (r) {
+    Promise.all([get(g + "/clips"), get("tracking/" + encodeURIComponent(code)).catch(function () { return {} }), get(g + "/snaps").catch(function () { return {} }), get(g + "/defense/snaps").catch(function () { return {} }), get("trackmarks/" + encodeURIComponent(code)).catch(function () { return {} })]).then(function (r) {
       if (G.code !== code) return;
-      G.clips = r[0] || {}; G.status = r[1] || {}; G.snaps = {};
+      G.clips = r[0] || {}; G.status = r[1] || {}; G.snaps = {}; G.marks = r[4] || {};
       Object.keys(r[2] || {}).forEach(function (k) { var x = parse(r[2][k]); if (x) G.snaps[k] = x });
       Object.keys(r[3] || {}).forEach(function (k) { var x = parse(r[3][k]); if (x) { x.def = true; G.snaps["D_" + k] = x } });
       if (!Object.keys(G.clips).length) { msg(code === TEST ? "No test clips yet. Tap Upload test clips." : "No film for this game yet. Clips show up here after the film device records them and they upload."); return }
@@ -147,11 +150,13 @@ window.SOL_CONFIG = window.SOL_CONFIG || { db: "https://cardinal-booth-default-r
   function openPlay(k) {
     G.cur = k; G.data = null; drawPlays(); var rec = G.clips[k] || {}, st = G.status[k] || {};
     $("info").innerHTML = esc(playLabel(k)) + "<small>" + (st.status === "done" ? "" : st.status === "error" ? "Couldn't track this clip: " + esc(st.err || "unknown problem") : st.status === "working" ? "Tracking this clip now…" : "Waiting to be tracked. The job checks for new clips every few minutes.") + "</small>";
-    V.pause(); V.src = rec.url || ""; V.playbackRate = +$("speed").value; $("read").innerHTML = ""; $("tag").hidden = true; paint();
+    V.pause(); V.src = rec.url || ""; V.playbackRate = +$("speed").value; $("read").innerHTML = ""; $("nums").innerHTML = ""; relLabel(); $("tag").hidden = true; paint();
     if (st.status !== "done") return;
     get("trackdata/" + encodeURIComponent(G.code) + "/" + encodeURIComponent(k)).then(function (d) {
       if (G.cur !== k) return; d = parse(d); if (!d || !d.tracks) return;
-      d.Hm = d.Hs.map(function (h) { return h.concat(1) }); G.data = d; showRead(d);
+      d.Hm = d.Hs.map(function (h) { return h.concat(1) }); var oi = 0;
+      d.tracks.forEach(function (tr) { tr.ci = tr.side === "o" && tr.cls !== "qb" ? oi++ % OCOL.length : -1; tr.col = tr.side === "o" ? (tr.cls === "qb" ? "#ffffff" : OCOL[tr.ci]) : "rgba(235,235,235,.85)"; tr.kix = {}; tr.p.forEach(function (q, i) { tr.kix[q[0]] = i }) });
+      d.fok = !!(d.field && d.field.ok && d.tracks.some(function (tr) { return tr.f })); G.data = d; showRead(d); showNums(d); relLabel();
       var start = d.snap != null ? Math.max(rec.a || 0, d.snap - 1.5) : (rec.a || 0); seek(start); paint();
     }, function () { $("info").querySelector("small").textContent = "Couldn't load the tracking. Refresh to try again." });
   }
@@ -164,6 +169,41 @@ window.SOL_CONFIG = window.SOL_CONFIG || { db: "https://cardinal-booth-default-r
     h += cell(d.tracks.length, "players tracked");
     $("read").innerHTML = "<div class='read'>" + h + "</div><p class='note'>Pre-snap numbers are estimates from the Roboflow labels on the frame before the snap.</p>";
   }
+
+  // ---------- yards: depth, speed, separation (from the job's field ruler) ----------
+  var CNAME = ["Green", "Light blue", "Gold", "Orange", "Purple", "Teal", "Pink", "Lime", "Yellow", "Sky blue", "Lavender"];
+  function refAt(tr, at) { var i = tr.kix[at.k]; if (i == null) return null; var q = tr.p[i], j = tr.kix[at.k + 1]; if (j == null || !at.f) return [q[1], q[2]]; var w = tr.p[j]; return [q[1] + (w[1] - q[1]) * at.f, q[2] + (w[2] - q[2]) * at.f] }
+  function fldAt(tr, at) { if (!tr.f) return null; var i = tr.kix[at.k]; if (i == null) return null; var q = tr.f[i], j = tr.kix[at.k + 1]; if (j == null || !at.f) return q; var w = tr.f[j]; return [q[0] + (w[0] - q[0]) * at.f, q[1] + (w[1] - q[1]) * at.f] }
+  function mphAt(tr, at) { if (!tr.mph) return null; var i = tr.kix[at.k]; return i == null ? null : tr.mph[i] }
+  function depthOf(d, f) { return d.field.dir * f[0] - d.field.los }
+  function nearestD(d, f, at) { var best = null; d.tracks.forEach(function (o) { if (o.side !== "d") return; var g = fldAt(o, at); if (!g) return; var x = Math.hypot(g[0] - f[0], g[1] - f[1]); if (!best || x < best.x) best = { x: x, tr: o } }); return best }
+  function relOf() { var m = G.marks[G.cur]; return m && m.rel != null ? +m.rel : null }
+  function sw(tr) { return "<span class='sw' style='background:" + tr.col + "'></span>" }
+  function showNums(d) {
+    var box = $("nums"); if (!d) { box.innerHTML = ""; return }
+    if (!d.fok) { box.innerHTML = "<p class='note'>No yards or speeds on this clip: " + esc((d.field && d.field.why) || "the yard lines weren't found") + ". Wide film from up high, with the hash marks in view, works best.</p>"; return }
+    var rel = relOf(), atR = rel != null ? hAt(d, rel) : null, R = d.tracks.filter(function (tr) { return tr.side === "o" && tr.cls === "skill" && tr.deep != null });
+    R.forEach(function (tr) { tr.sepR = null; if (atR) { var f = fldAt(tr, atR); if (f) { var nb = nearestD(d, f, atR); if (nb) tr.sepR = nb.x } } });
+    R.sort(function (a, b) { return b.deep - a.deep });
+    var top = function (L, k) { return L.filter(function (x) { return x[k] != null }).sort(function (a, b) { return b[k] - a[k] })[0] };
+    var deep = R[0], fast = top(R, "top"), open = top(R.filter(function (x) { return x.deep > 1 }), "sepR"), dfast = top(d.tracks.filter(function (x) { return x.side === "d" }), "top"), s = [];
+    if (rel != null && d.snap != null) s.push("QB release <b>" + (rel - d.snap).toFixed(2) + " s</b>");
+    if (deep) s.push("Deepest " + sw(deep) + "<b>" + Math.round(deep.deep) + " yd</b>");
+    if (fast) s.push("Fastest " + sw(fast) + "<b>" + fast.top.toFixed(1) + " mph</b>");
+    if (open) s.push("Most open at the throw " + sw(open) + "<b>" + open.sepR.toFixed(1) + " yd</b>");
+    if (dfast) s.push("Fastest defender <b>" + dfast.top.toFixed(1) + " mph</b>");
+    var h = "<p class='sum'>" + s.join(" · ") + "</p><div class='tbl'><table><tr><th>Player</th><th>Deepest</th><th>Top speed</th><th>Separation at release</th></tr>" +
+      R.map(function (tr) { return "<tr><td>" + sw(tr) + esc(CNAME[tr.ci] || "Skill") + "</td><td>" + Math.round(tr.deep) + " yd</td><td>" + (tr.top != null ? tr.top.toFixed(1) + " mph" : "–") + "</td><td>" + (tr.sepR != null ? tr.sepR.toFixed(1) + " yd" : rel == null ? "Mark the release" : "–") + "</td></tr>" }).join("") + "</table></div>" +
+      "<p class='note'>Yards come from the yard lines and hash marks (college hash spacing, " + d.field.hashYards + " yd apart). Estimates: about a yard on distances and 2 mph on speeds. Separation is to the nearest defender.</p>";
+    box.innerHTML = h;
+  }
+  function relLabel() { var rel = relOf(), d = G.data; $("relBtn").textContent = rel != null && d && d.snap != null ? "Release " + (rel - d.snap).toFixed(2) + " s ✓" : "Mark release"; $("relBtn").disabled = !d }
+  $("relBtn").onclick = function () {
+    var d = G.data, k = G.cur, code = G.code; if (!d || !k) return; V.pause(); var t = Math.round((V.currentTime || 0) * 100) / 100;
+    if (d.snap != null && t <= d.snap) { $("info").querySelector("small").textContent = "Pause on the frame the ball leaves his hand (after the snap), then tap Mark release."; return }
+    G.marks[k] = { rel: t, at: Date.now() }; relLabel(); showNums(d); paint();
+    put("trackmarks/" + encodeURIComponent(code) + "/" + encodeURIComponent(k), G.marks[k]).catch(function () { $("info").querySelector("small").textContent = "Release marked on this device, but it didn't save online. Check your connection." });
+  };
 
   // ---------- drawing ----------
   var OCOL = ["#6EC926", "#4fc3f7", "#f2c14e", "#ff8a65", "#ba68c8", "#4db6ac", "#f06292", "#aed581", "#ffd54f", "#90caf9", "#ce93d8"];
@@ -182,16 +222,26 @@ window.SOL_CONFIG = window.SOL_CONFIG || { db: "https://cardinal-booth-default-r
     var d = G.data; if (!d || !r.width) return;
     var s = (r.width / d.W) * dpr, t = V.currentTime || 0, at = hAt(d, t), H = at.H, lw = Math.max(2, 2.6 * dpr);
     CX.setTransform(s, 0, 0, s, 0, 0); CX.lineJoin = "round"; CX.lineCap = "round";
-    var oi = 0;
+    var heads = [];
     d.tracks.forEach(function (tr) {
-      var col = tr.side === "o" ? (tr.cls === "qb" ? "#ffffff" : OCOL[oi++ % OCOL.length]) : "rgba(235,235,235,.85)";
+      var col = tr.col;
       if (!visible(tr)) return;
       var pts = []; for (var i = 0; i < tr.p.length; i++) { var q = tr.p[i]; if (q[0] > at.k + 1) break; if (q[0] === at.k + 1) { var pr = pts.length ? tr.p[i - 1] : null; if (pr && pr[0] === at.k) pts.push([pr[1] + (q[1] - pr[1]) * at.f, pr[2] + (q[2] - pr[2]) * at.f]); break } pts.push([q[1], q[2]]) }
       if (!pts.length) return; var P = pts.map(function (p) { return map(H, p[0], p[1]) });
       CX.strokeStyle = col; CX.lineWidth = lw / dpr * (1 / s) * dpr; CX.setLineDash(tr.side === "d" ? [8 / s * dpr, 6 / s * dpr] : []);
       CX.beginPath(); P.forEach(function (p, i) { if (i) CX.lineTo(p[0], p[1]); else CX.moveTo(p[0], p[1]) }); CX.stroke(); CX.setLineDash([]);
-      var last = tr.p[tr.p.length - 1][0]; if (last >= at.k - 1) { var e = P[P.length - 1]; CX.fillStyle = col; CX.beginPath(); CX.arc(e[0], e[1], 4.5 / s * dpr, 0, 7); CX.fill(); CX.strokeStyle = "#000"; CX.lineWidth = 1.2 / s * dpr; CX.stroke() }
+      var last = tr.p[tr.p.length - 1][0]; if (last >= at.k - 1 && tr.kix[at.k] != null) heads.push({ tr: tr, e: P[P.length - 1] }); if (last >= at.k - 1) { var e = P[P.length - 1]; CX.fillStyle = col; CX.beginPath(); CX.arc(e[0], e[1], 4.5 / s * dpr, 0, 7); CX.fill(); CX.strokeStyle = "#000"; CX.lineWidth = 1.2 / s * dpr; CX.stroke() }
     });
+    // after the snap: depth and speed by each receiver, and a line to the nearest defender with the gap in yards
+    if (d.fok && d.snap != null && t >= d.snap) {
+      var fs = 13 / s * dpr; CX.font = "700 " + fs + "px Barlow, sans-serif"; CX.lineWidth = 3.5 / s * dpr; CX.strokeStyle = "rgba(0,0,0,.8)";
+      heads.forEach(function (h) { var tr = h.tr; if (tr.side !== "o" || tr.cls !== "skill") return; var f = fldAt(tr, at); if (!f) return; var dep = depthOf(d, f), sp0 = mphAt(tr, at);
+        if (dep < 3 && !(sp0 > 8)) return;   // players still bunched at the line: no label, keeps the picture readable
+        if (dep > 3) { var nb = nearestD(d, f, at); if (nb && nb.x < 15) { var g = refAt(nb.tr, at); if (g) { var m = map(H, g[0], g[1]); CX.save(); CX.strokeStyle = "#f2c14e"; CX.lineWidth = 1.6 / s * dpr; CX.setLineDash([4 / s * dpr, 3 / s * dpr]); CX.beginPath(); CX.moveTo(h.e[0], h.e[1]); CX.lineTo(m[0], m[1]); CX.stroke(); CX.restore();
+          var mx = (h.e[0] + m[0]) / 2, my = (h.e[1] + m[1]) / 2, lab = nb.x.toFixed(1); CX.strokeText(lab, mx + 3 / s * dpr, my); CX.fillStyle = "#f2c14e"; CX.fillText(lab, mx + 3 / s * dpr, my) } } }
+        var sp = mphAt(tr, at), txt = Math.round(dep) + " yd" + (sp != null ? " · " + Math.round(sp) + " mph" : ""), x = h.e[0] + 7 / s * dpr, y = h.e[1] - 7 / s * dpr;
+        CX.strokeText(txt, x, y); CX.fillStyle = tr.col; CX.fillText(txt, x, y) });
+    }
     // pre-snap boxes, like the Pythonista reads, until the snap
     if (d.preDets && d.snap != null && t <= d.snap + 0.05) {
       var M = mul(H, inv(d.Hm[d.preK])), LC = { center: "#ff9800", qb: "#ffeb3b", skill: "#ffeb3b", lb: "#ef5350", db: "#ef5350" };
@@ -199,7 +249,7 @@ window.SOL_CONFIG = window.SOL_CONFIG || { db: "https://cardinal-booth-default-r
       d.preDets.forEach(function (b) { var c = LC[b[4]] || "#bbb", m = map(M, b[0], b[1]), w = b[2], h = b[3];
         CX.strokeStyle = c; CX.lineWidth = 2 / s * dpr; CX.strokeRect(m[0] - w / 2, m[1] - h / 2, w, h); CX.fillStyle = c; CX.fillText(b[4].toUpperCase(), m[0] - w / 2, m[1] - h / 2 - 3 / s * dpr) });
     }
-    var tg = $("tag"); tg.hidden = false; tg.innerHTML = d.snap == null ? "Tracking" : t < d.snap ? "<b>PRE-SNAP</b>" : "<b>SNAP +" + (t - d.snap).toFixed(2) + " s</b>";
+    var tg = $("tag"); tg.hidden = false; var rel = relOf(); tg.innerHTML = d.snap == null ? "Tracking" : t < d.snap ? "<b>PRE-SNAP</b>" : "<b>SNAP +" + (t - d.snap).toFixed(2) + " s</b>" + (rel != null && t >= rel ? " · QB release " + (rel - d.snap).toFixed(2) + " s" : "");
   }
   function loop() { paint(); if (!V.paused && !V.ended) requestAnimationFrame(loop) }
   V.addEventListener("play", function () { $("playBtn").textContent = "Pause"; loop() });

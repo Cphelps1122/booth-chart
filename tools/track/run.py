@@ -78,8 +78,8 @@ def find_jobs(db, since_ms):
 def main():
     sa, key = os.environ.get("FIREBASE_SERVICE_ACCOUNT", ""), os.environ.get("ROBOFLOW_API_KEY", "")
     if not sa.strip() or not key.strip():
-        log("Missing secrets. In GitHub: Settings > Secrets and variables > Actions, add ROBOFLOW_API_KEY and FIREBASE_SERVICE_ACCOUNT.")
-        sys.exit(1)
+        log("Not set up yet: add ROBOFLOW_API_KEY and FIREBASE_SERVICE_ACCOUNT in GitHub (Settings > Secrets and variables > Actions).")
+        return
     import firebase_admin
     from firebase_admin import credentials, db
     try:

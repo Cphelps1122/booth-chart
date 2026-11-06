@@ -1,4 +1,4 @@
-# Play tracking: every few minutes, tracks any new game clips filmed in Solutions.
+# Play tracking: every few minutes, tracks any new game clips filmed in Solutions. 
 # Runs on GitHub's computers. It doesn't touch the charting app or the website files.
 # Needs two secrets (Settings > Secrets and variables > Actions):
 #   ROBOFLOW_API_KEY          your Roboflow private API key

@@ -340,7 +340,7 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
   var SHEET = null; // { boxes, grid, name }
   function sitKeys() { var k = [], g = G; if (g.dn === 3) k.push(g.dist <= 3 ? "3S" : g.dist <= 6 ? "3M" : g.dist <= 10 ? "3L7" : "3L11"); if (g.dn === 2 && g.dist >= 7) k.push("2L"); if (g.dn === 4) k.push("4TH"); if (g.ball >= 95) k.push("TZ"); if (g.ball >= 90 && g.ball < 95) k.push("SZ"); if (g.ball >= 80 && g.ball < 90) k.push("RZ"); if (g.ball <= 10) k.push("CO"); return k }
   function cellPlays(c) { var box = SHEET.grid.boxes ? null : SHEET.boxes[c.b]; if (!box) return []; var t = String(c.v).toUpperCase(), d = null, m = t.match(/^(\d+(?:\s*-\s*\d+)?\+?)\s*:\s*(.*)$/); if (m) { d = m[1].replace(/\s/g, ""); t = m[2] } if (!t) return [];
-    return csExpand(t).map(function (p) { var form = box.kind === "form" ? box.form : ""; return { name: ((form ? form + " " : "") + p.t).replace(/\s+/g, " ").trim(), lab: p.t, d: d, form: titleCase(form), kind: c.k || "scr", run: c.k === "run", scheme: /POWER|COUNTER|DART|TRAP/i.test(p.t) ? "power" : "zone", id: c.r + ":" + c.c + ":" + p.t } }) }
+    return csExpand(t).map(function (p) { var form = formFor(box.kind === "form" ? box.form : "", p.t); return { name: ((form ? form + " " : "") + p.t).replace(/\s+/g, " ").trim(), lab: p.t, d: d, form: titleCase(form), kind: c.k || "scr", run: c.k === "run", scheme: /POWER|COUNTER|DART|TRAP/i.test(p.t) ? "power" : "zone", id: c.r + ":" + c.c + ":" + p.t } }) }
   function allPlays() { var o = []; SHEET.grid.cells.forEach(function (c) { if (c.b != null) o = o.concat(cellPlays(c)) }); return o }
   function useSheet(s) { if (!s || !s.grid || !s.boxes) return false; SHEET = s; $("nSheet").textContent = s.name + " · " + allPlays().length + " plays"; $("dSheet").classList.add("ok"); return true }
   function saveSheet() { claim(); var txt = JSON.stringify(SHEET); store.set("sol-mock-sheet", SHEET); if (!SHEET.sample) cloud("sheet", "PUT", txt).catch(function () {}) }
@@ -432,7 +432,7 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
 
   function saveAlign() { if (SHARED) return; store.set("sol-mock-align", ALIGN); cloud("align", "PUT", JSON.stringify(ALIGN)).catch(function () {}) }
   function likely() { var s = situ(), POOL = lookPool(SEL && SEL.form).rows, sh = top(POOL.map(function (r) { return r.sh }), 1)[0], fr = top(POOL.map(function (r) { return r.front }), 1)[0]; return { sh: sh ? sh.k : "MFO", front: fr ? fr.k : null, blitz: null, cov: null, likely: true } }
-  function tagText() { if (!look) return; var bkSrc = call && bookPaths(call); $("tag").innerHTML = (look.likely ? "Their likely look: " : "They showed: ") + "<b>" + (SHELLN[look.sh] || "Shell not tagged") + "</b>" + (look.cov ? " · " + esc(look.cov) : "") + (look.front ? " · " + esc(look.front) + " front" : "") + (look.blitz ? " · <b style='color:var(--bad)'>" + esc(look.blitz) + "</b>" : "") + " · ball on " + ({ L: "left hash", R: "right hash", M: "middle" })[G.hash] + (bkSrc ? "<br>Drawn from your playbook: <b>" + esc(bkSrc.src) + "</b>" : "") }
+  function tagText() { if (!look) return; var bkSrc = call && bookPaths(call); $("tag").innerHTML = (look.likely ? "Their likely look: " : "They showed: ") + "<b>" + (SHELLN[look.sh] || "Shell not tagged") + "</b>" + (look.cov ? " · " + esc(look.cov) : "") + (look.front ? " · " + esc(look.front) + " front" : "") + (look.blitz ? " · <b style='color:var(--bad)'>" + esc(look.blitz) + "</b>" : "") + " · ball on " + ({ L: "left hash", R: "right hash", M: "middle" })[G.hash] + (bkSrc ? "<br>Drawn from your playbook: <b>" + esc(bkSrc.src) + "</b>" + (bkSrc.run ? " · " + esc(call.form || "") + ", running " + (bkSrc.side > 0 ? "right" : "left") + (teOf(P.o, bxOf()) ? ((teOf(P.o, bxOf()).x >= bxOf() ? 1 : -1) === bkSrc.side ? " (to the TE)" : " (away from the TE)") : "") : "") : "") }
   // ======================= FIELD MODEL =======================
   var HASH = 8.9;
   var ALIGN = store.get("sol-mock-align") || { def: {}, off: {} };
@@ -477,6 +477,15 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
   };
   var BOOK_ALIAS = { "BUNCH": "BASH" };
   function bookOf(form) { var up = String(form || "").toUpperCase().trim(), keys = Object.keys(BOOK).sort(function (a, b) { return b.length - a.length }); up = BOOK_ALIAS[up] || up; for (var i = 0; i < keys.length; i++) { var k = keys[i]; if (up === k || up.indexOf(k + " ") === 0) return BOOK[k] } return null }
+  // the formation a call lines up in: its box (or the formation named in the call), with a (DIP)/(TRIG) tag moving the TE
+  function formFor(boxForm, text) {
+    var up = String(text || "").toUpperCase(), keys = Object.keys(BOOK).sort(function (a, b) { return b.length - a.length }), base = String(boxForm || "").toUpperCase().trim();
+    if (!base || !bookOf(base)) { var lead = up.replace(/^\s*\d+\s*\*\s*\d+\s*/, ""); for (var i = 0; i < keys.length; i++) if (lead.indexOf(keys[i] + " ") === 0) { base = keys[i]; break } }
+    var tag = (up.match(/\b(DIP|TRIG)\b/) || [])[1];
+    if (tag && !base) base = "SLOT";            // DIP and TRIG are slot looks
+    if (base && tag) { var root = base.replace(/\s+(DIP|TRIG)$/, ""); if (BOOK[root + " " + tag]) base = root + " " + tag }
+    return base || boxForm || "";
+  }
   function bookY(py) { return py <= 441 ? -1.1 : py <= 470 ? -2.4 : -3.3 }
   // place a formation from the sheet: detached receivers keep their field landmarks, close-in players stay tied to the ball; strength goes to the field
   function bookPlace(B, bx) {
@@ -543,7 +552,9 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
   var P = { o: [], d: [], ball: null, trail: [], tackle: null, tgt: 10, showPlan: false };
   function poses() {
     var bx = bxOf(); if (!call) return;
-    var BK = !ALIGN.off[call.form] && bookOf(call.form); P.o = BK ? bookPlace(BK, bx) : placeOff(offStd(call.form), bx); var s = strengthOf(P.o, bx), ft = ftypeOf(P.o, bx);
+    var BK = !ALIGN.off[call.form] && bookOf(call.form); P.o = BK ? bookPlace(BK, bx) : placeOff(offStd(call.form), bx);
+    var bkRun = call.run && pbFind(call), bnd = bndOf(call);
+    if (bkRun && bkRun.run && bnd && bx !== 0) { var bside = bx < 0 ? -1 : 1; if (runSide(call, bkRun.run) !== bside) P.o.forEach(function (p, i) { if (i > 5) p.x = Math.max(-22.5, Math.min(22.5, 2 * bx - p.x)) }) } var s = strengthOf(P.o, bx), ft = ftypeOf(P.o, bx);
     P.d = placeDef(defStd(look && look.front, look ? look.sh : "MFO", ft, look && look.cov), s, bx); P.s = s;
     var RC = P.o.slice(6, 10); RC.filter(function (p) { return p.y < -4 }).forEach(function (p) { p.lab = "B"; p.num = "B" }); RC.filter(function (p) { return p.y >= -4 }).sort(function (a, b) { return a.x - b.x || b.y - a.y }).forEach(function (p, i) { p.lab = String(i + 1); p.num = p.lab }); P.o[10].lab = "0"; P.o[10].num = "0";
     if (!ALIGN.def[defKey(look && look.front, look ? look.sh : "MFO", ft)] && !ALIGN.def[defKey(null, look ? look.sh : "MFO", ft)]) keyOn(P.o, P.d, s, bx, ft, look ? look.sh : "MFO");
@@ -572,8 +583,10 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
   $("fBook").onchange = function () { var f = this.files[0]; this.value = ""; if (!f) return;
     f.text().then(function (s) { var b = JSON.parse(s); if (!usePlaybook(b)) throw 0; claim(); store.set("sol-mock-playbook", b); if (canEdit() && authGet()) cloud("playbook", "PUT", s).catch(function () {}); toast("Playbook loaded"); if (G) { poses(); refresh() } }).catch(function () { toast("That isn't a playbook file. Use the .json file made from your pass and run books.") }) };
   // a run drawn going right; s flips it. Paths in yards: x across, y downfield from the line.
+  function bndOf(c) { return /\(\s*(BND|BOUNDARY)\s*\)/i.test(c && (c.lab || c.name) || "") }
   function runSide(c, bk) { var o = P.o, bx = bxOf(), te = teOf(o, bx), s = strengthOf(o, bx);
-    if (bk && te) { var ts = te.x >= bx ? 1 : -1; if (bk.toward === "te") return ts; if (bk.toward === "away") return -ts }
+    if (bk && te && (bk.toward === "te" || bk.toward === "away")) { var ts = te.x >= bx ? 1 : -1; return bk.toward === "te" ? ts : -ts }
+    if (bndOf(c) && bx !== 0) return bx < 0 ? -1 : 1;     // (BND): run it to the boundary
     return bk && bk.toward === "weak" ? -s : s }
   function teOf(o, bx) { var c = o.slice(6, 10).filter(function (r) { return Math.abs(r.x - bx) < 7 && r.y > -2.6 }).sort(function (a, b) { return Math.abs(a.x - bx) - Math.abs(b.x - bx) }); return c[0] || null }
   function olPath(a, p, s, bx) { var x = p.x, y = p.y, X = function (d) { return x + s * d }, hole = bx + s * 2.4, edge = bx + s * 5.6;

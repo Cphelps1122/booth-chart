@@ -5475,7 +5475,7 @@ textarea { min-height: 64px }
   }
   function renderSetup() {
     $("lRoster").value = rosterText();
-    $("sOpp").value = S.opp; $("sPre").value = S.pre; $("sStart").value = S.start; $("sMode").value = S.dmode === "full" ? "full" : "fast";
+    $("sOpp").value = S.opp; $("sPre").value = S.pre || ""; $("sStart").value = S.start; $("sMode").value = S.dmode === "full" ? "full" : "fast";
     ["form", "run", "pass", "rpo", "motion", "front", "cov", "blitz"].forEach(function (k) { $("l" + k[0].toUpperCase() + k.slice(1)).value = list(k) });
   }
   function renderAll() { refreshSheet(); renderHead(); renderClock(); renderWP(); renderScore(); renderChips(); renderReport(); renderLog(); renderDrives(); renderLive(); finalApply(); practiceApply() }

@@ -393,6 +393,8 @@ body.infinal #v-chart .panel, body.infinal #v-chart .spotpanel, body.infinal #v-
 .h-door .hd-t { font-family: var(--f-display); font-weight: 800; font-size: 22px; letter-spacing: .04em; text-transform: uppercase } .h-door .hd-s { color: #9aa7b6; font-size: 13px; margin: 0 0 10px }
 .h-door.now { border-color: #6EC926; border-top-color: #6EC926; box-shadow: 0 0 0 2px #6EC926 inset } .h-door .hd-now { display: inline-block; margin-left: 8px; padding: 2px 8px; border-radius: 999px; background: #6EC926; color: #11161a; font-size: 12px; vertical-align: middle; letter-spacing: .04em }
 .h-door:not(.now) { opacity: .82 }
+.h-doors { align-items: start } .h-door .hd-t { cursor: pointer; user-select: none; display: flex; align-items: center; gap: 0 } .h-door .hd-t::after { content: "▾"; margin-left: auto; font-size: 20px; color: #9aa7b6; transition: transform .2s } .h-door.open .hd-t::after { transform: rotate(180deg) }
+.h-door:not(.open) .hd-l { display: none } .h-door:not(.open) .hd-s { margin-bottom: 0 }
 .h-door .hd-l { display: flex; flex-direction: column; gap: 6px }
 .h-door .hd-l a, .h-door .hd-l button { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; font: 700 16px Inter, system-ui, sans-serif; padding: 10px 12px; border-radius: 10px; border: 1px solid #26354a; background: #0f141b; color: #e8edf2; cursor: pointer; text-decoration: none }
 .h-door .hd-l a:hover, .h-door .hd-l button:hover { border-color: var(--red) } .h-door .hd-l small { font-weight: 500; color: #9aa7b6; font-size: 12.5px }
@@ -1852,7 +1854,7 @@ textarea { min-height: 64px }
     var live = S && S.snaps && S.snaps.length && !S.final && !S.example, today = L.some(function (x) { return x.date === t });
     var past = L.filter(function (x) { return x.date < t }).pop(), which = "prep";
     if (today || live) which = "game"; else if (past && ds(t, past.date) <= 2) which = "after";
-    document.querySelectorAll(".h-door[data-door]").forEach(function (d) { var on = d.dataset.door === which; d.classList.toggle("now", on);
+    document.querySelectorAll(".h-door[data-door]").forEach(function (d) { var on = d.dataset.door === which; d.classList.toggle("now", on); if (!d.dataset.set) { d.dataset.set = 1; d.querySelector(".hd-t").addEventListener("click", function () { d.classList.toggle("open"); document.querySelectorAll(".h-door[data-door]").forEach(function (x) { x.dataset.user = 1 }) }) } if (!d.dataset.user) d.classList.toggle("open", on);
       var h = d.querySelector(".hd-t"), b = h.querySelector(".hd-now"); if (on && !b) { b = document.createElement("span"); b.className = "hd-now"; b.textContent = "TODAY"; h.appendChild(b) } else if (!on && b) b.remove() });
   }
   function renderHome(note) {

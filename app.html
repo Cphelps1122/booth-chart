@@ -391,6 +391,8 @@ body.infinal #v-chart .panel, body.infinal #v-chart .spotpanel, body.infinal #v-
 .h-doors { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 16px 0 } @media (max-width: 760px) { .h-doors { grid-template-columns: 1fr } }
 .h-door { background: #141b24; border: 1px solid #26354a; border-top: 4px solid var(--red); border-radius: 0 0 12px 12px; padding: 14px; color: #e8edf2 }
 .h-door .hd-t { font-family: var(--f-display); font-weight: 800; font-size: 22px; letter-spacing: .04em; text-transform: uppercase } .h-door .hd-s { color: #9aa7b6; font-size: 13px; margin: 0 0 10px }
+.h-door.now { border-color: #6EC926; border-top-color: #6EC926; box-shadow: 0 0 0 2px #6EC926 inset } .h-door .hd-now { display: inline-block; margin-left: 8px; padding: 2px 8px; border-radius: 999px; background: #6EC926; color: #11161a; font-size: 12px; vertical-align: middle; letter-spacing: .04em }
+.h-door:not(.now) { opacity: .82 }
 .h-door .hd-l { display: flex; flex-direction: column; gap: 6px }
 .h-door .hd-l a, .h-door .hd-l button { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; font: 700 16px Inter, system-ui, sans-serif; padding: 10px 12px; border-radius: 10px; border: 1px solid #26354a; background: #0f141b; color: #e8edf2; cursor: pointer; text-decoration: none }
 .h-door .hd-l a:hover, .h-door .hd-l button:hover { border-color: var(--red) } .h-door .hd-l small { font-weight: 500; color: #9aa7b6; font-size: 12.5px }
@@ -519,7 +521,7 @@ textarea { min-height: 64px }
 
 <main class="wrap">
   <section id="v-home" hidden class="home">
-    <div class="h-hero">
+    <div class="h-hero" hidden>
       <div class="h-hero-in">
         <div class="h-eyebrow"><span id="hSchool">Melissa Football</span> · Game-day analytics</div>
         <h1 class="h-title">Every snap charted.<br><span>Every tendency answered.</span></h1>
@@ -537,20 +539,20 @@ textarea { min-height: 64px }
     </div>
 
     <div class="h-doors">
-      <div class="h-door"><div class="hd-t">This week</div><p class="hd-s">Mon–Thu prep</p><div class="hd-l">
+      <div class="h-door" data-door="prep"><div class="hd-t">Get ready</div><p class="hd-s">Sunday to Thursday: scout, call sheet, game plan</p><div class="hd-l">
         <button type="button" data-go="week">Set up the game <small>code, opponent, game plan</small></button>
         <a href="reports.html">Scout &amp; reports <small>Hudl exports, game-day sheet</small></a>
         <a href="scout.html">Scout reports (PDF) <small>self scout, opponent scout, game card</small></a>
         <a href="reports.html">Pregame Sim <small>run the matchup</small></a>
         <button type="button" data-go="practice">Practice game <small>try things, nothing counts</small></button>
       </div></div>
-      <div class="h-door"><div class="hd-t">Game night</div><p class="hd-s">Pick what this device is doing</p><div class="hd-l">
+      <div class="h-door" data-door="game"><div class="hd-t">Game night</div><p class="hd-s">Friday: pick what this device is doing</p><div class="hd-l">
         <button type="button" class="pri" data-role="chart">Chart offense <small>one or more charters</small></button>
         <a href="defense.html" data-role="defense">Chart defense <small>their plays vs our calls</small></a>
         <button type="button" data-role="film">Film <small>camera on the field</small></button>
         <button type="button" data-role="view">View only <small>OC, coaches, anyone watching</small></button>
       </div></div>
-      <div class="h-door"><div class="hd-t">After the game</div><p class="hd-s">Sat–Sun review</p><div class="hd-l">
+      <div class="h-door" data-door="after"><div class="hd-t">After the game</div><p class="hd-s">Saturday: grades, stats, film</p><div class="hd-l">
         <a href="impact.html">Postgame &amp; Impact <small>graded vs the scout</small></a>
         <button type="button" data-go="reels">Film &amp; reels <small>playlists, notes, share</small></button>
         <a href="stats.html">Season stats <small>team and players</small></a>
@@ -558,7 +560,7 @@ textarea { min-height: 64px }
       </div></div>
     </div>
     <div class="h-setrow"><button type="button" data-go="settings">⚙ Settings</button><span>School, roster, buttons, lock mode, clips online, sync</span><a class="h-btn" id="homeAdm" href="admin.html" hidden style="margin-left:auto">Admin</a></div>
-    <div class="h-prod">
+    <div class="h-prod" hidden>
       <button class="h-card" id="homeOff" type="button">
         <div class="h-ico"><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="4" y="20" width="40" height="8" rx="2" fill="none" stroke="currentColor" stroke-width="2.5"/><circle cx="18" cy="24" r="3.5" fill="#6EC926"/><path d="M18 24 H34" stroke="#6EC926" stroke-width="2.5" stroke-dasharray="3 3"/></svg></div>
         <div class="h-ct">Offense chart</div>
@@ -1843,10 +1845,20 @@ textarea { min-height: 64px }
   function realOf(L, date) { var ks = weekKeys(L, date), r = ks.filter(function (k) { return L[k].real })[0]; return r || (ks.length === 1 ? ks[0] : null) }
   function listPatch(k, o) { return fetch(homeListUrl(k), { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(o) }).then(function (r) { if (!r.ok) throw 0 }) }
   var FOLD_OPEN = {};
+  // highlight the Home door that fits today: game day (or a game going on this device) → Game night,
+  // the two days after a game → After the game, otherwise → Get ready
+  function homeDoor() {
+    var t = wkToday(), L = WK.list || [], ds = function (a, b) { return Math.round((new Date(a + "T12:00") - new Date(b + "T12:00")) / 864e5) };
+    var live = S && S.snaps && S.snaps.length && !S.final && !S.example, today = L.some(function (x) { return x.date === t });
+    var past = L.filter(function (x) { return x.date < t }).pop(), which = "prep";
+    if (today || live) which = "game"; else if (past && ds(t, past.date) <= 2) which = "after";
+    document.querySelectorAll(".h-door[data-door]").forEach(function (d) { var on = d.dataset.door === which; d.classList.toggle("now", on);
+      var h = d.querySelector(".hd-t"), b = h.querySelector(".hd-now"); if (on && !b) { b = document.createElement("span"); b.className = "hd-now"; b.textContent = "TODAY"; h.appendChild(b) } else if (!on && b) b.remove() });
+  }
   function renderHome(note) {
     var L = HOME.list || {}, box = $("homeList"), weeks = WK.list || [], mine = SY.cfg && !S.example ? SY.cfg.code : null, adm = typeof LOCK !== "undefined" && LOCK.admin;
     var nGames = Object.keys(L).filter(function (k) { return !(L[k] || {}).unfiled }).length;
-    $("homeState").textContent = note || (nGames + (nGames === 1 ? " game" : " games"));
+    $("homeState").textContent = note || (nGames + (nGames === 1 ? " game" : " games")); homeDoor();
     if ($("wkBar")) $("wkBar").hidden = true; if ($("hsBox")) $("hsBox").hidden = true;
     var row = function (k, g, opts) {
       opts = opts || {}; var st = gameStatus(g, k), isMine = k === mine, upd = g.updated ? new Date(g.updated) : null;

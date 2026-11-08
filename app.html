@@ -394,6 +394,7 @@ body.infinal #v-chart .panel, body.infinal #v-chart .spotpanel, body.infinal #v-
 .h-door.now { border-color: #6EC926; border-top-color: #6EC926; box-shadow: 0 0 0 2px #6EC926 inset } .h-door .hd-now { display: inline-block; margin-left: 8px; padding: 2px 8px; border-radius: 999px; background: #6EC926; color: #11161a; font-size: 12px; vertical-align: middle; letter-spacing: .04em }
 .h-door:not(.now) { opacity: .82 }
 .h-doors { align-items: start } .h-door .hd-t { cursor: pointer; user-select: none; display: flex; align-items: center; gap: 0 } .h-door .hd-t::after { content: "▾"; margin-left: auto; font-size: 20px; color: #9aa7b6; transition: transform .2s } .h-door.open .hd-t::after { transform: rotate(180deg) }
+.h-games:not(.open) > :not(.h-gh) { display: none } .h-games .hg-car { display: inline-block; font-size: 18px; color: #9aa7b6; transition: transform .2s } .h-games.open .hg-car { transform: rotate(180deg) }
 .h-door:not(.open) .hd-l { display: none } .h-door:not(.open) .hd-s { margin-bottom: 0 }
 .h-door .hd-l { display: flex; flex-direction: column; gap: 6px }
 .h-door .hd-l a, .h-door .hd-l button { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; font: 700 16px Inter, system-ui, sans-serif; padding: 10px 12px; border-radius: 10px; border: 1px solid #26354a; background: #0f141b; color: #e8edf2; cursor: pointer; text-decoration: none }
@@ -597,8 +598,8 @@ textarea { min-height: 64px }
 
     <div id="bkBar" class="bkbar" hidden></div>
     <div class="gdcheck" id="gdCheck" hidden><h3 id="gdTitle">Game-day checklist</h3><ul id="gdList"></ul></div>
-    <div class="h-games">
-      <div class="h-gh"><div><div class="hk">Season</div><div class="h-gt">Games <span id="homeState"></span></div></div><button class="h-btn" id="hsToggle">+ Add a game to the schedule</button></div>
+    <div class="h-games" id="hGames">
+      <div class="h-gh"><div><div class="hk">Season</div><div class="h-gt" id="hGamesT" style="cursor:pointer;user-select:none">Games <span id="homeState"></span> <span class="hg-car">▾</span></div></div><button class="h-btn" id="hsToggle" onclick="document.getElementById('hGames').classList.add('open')">+ Add a game to the schedule</button></div>
       <div class="wkbar" id="wkBar"></div>
       <div class="h-next" id="homeNext" hidden><div style="flex:1;min-width:200px"><div class="hk">Next game</div><div class="hn-t" id="hnTxt"></div><div class="h-sub" id="hnSub"></div></div><button class="h-btn pri" id="hnGo">Set up this game</button><button class="h-btn" id="hnEd">Season schedule</button></div>
       <div id="homeNoSched" class="h-sub" hidden style="margin:8px 0">Add your season schedule and the next opponent fills in automatically. <button class="h-btn" id="hnImp" style="margin-left:8px">Import schedule</button></div>
@@ -1849,6 +1850,7 @@ textarea { min-height: 64px }
   var FOLD_OPEN = {};
   // highlight the Home door that fits today: game day (or a game going on this device) → Game night,
   // the two days after a game → After the game, otherwise → Get ready
+  if ($("hGamesT")) $("hGamesT").addEventListener("click", function () { $("hGames").classList.toggle("open") });
   function homeDoor() {
     var t = wkToday(), L = WK.list || [], ds = function (a, b) { return Math.round((new Date(a + "T12:00") - new Date(b + "T12:00")) / 864e5) };
     var live = S && S.snaps && S.snaps.length && !S.final && !S.example, today = L.some(function (x) { return x.date === t });

@@ -25,6 +25,7 @@ import requests
 from scipy.optimize import linear_sum_assignment
 
 import field as fieldmod
+import presnap as presnapmod
 
 MODEL = os.environ.get("ROBOFLOW_MODEL", "football-players-zm06l/15")
 PROC_W = 960            # frames are shrunk to this width before anything else
@@ -79,8 +80,8 @@ def read_samples(path, a=None, b=None):
 
 
 # ---------------------------------------------------------------- detection
-def roboflow_detect(key):
-    url = "https://serverless.roboflow.com/" + MODEL
+def roboflow_detect(key, model=None, confidence=25):
+    url = "https://serverless.roboflow.com/" + (model or MODEL)
     sess = requests.Session()
 
     def detect(img, t=None):
@@ -89,7 +90,7 @@ def roboflow_detect(key):
         err = "no answer"
         for attempt in range(4):
             try:
-                r = sess.post(url, params={"api_key": key, "confidence": 25, "overlap": 40}, data=body,
+                r = sess.post(url, params={"api_key": key, "confidence": confidence, "overlap": 40}, data=body,
                               headers={"Content-Type": "application/x-www-form-urlencoded"}, timeout=60)
             except requests.RequestException as e:      # never echo the request (it holds the key)
                 err = type(e).__name__
@@ -268,11 +269,46 @@ def link(frames, times, dets, Hs, model):
                            "cls": Counter([q["c"]]), "sides": Counter([q["side"]])})
             nid += 1
     n = len(dets)
+    tracks = stitch(tracks, unit)
     keep = [t for t in tracks if len(t["p"]) >= max(4, int(n * 0.2))]
     for t in keep:
         s = t["sides"].most_common(1)[0][0]
         t["side"] = s if s != "x" else ("o" if sum(t["cls"][c] for c in OFF) >= sum(t["cls"][c] for c in DEF) else "d")
     return keep, unit
+
+
+def stitch(tracks, unit, max_gap=12):
+    """Joins a trail that ended to one that started soon after nearby: the same player, lost for a moment."""
+    pairs = []
+    for i, a in enumerate(tracks):
+        for j, b in enumerate(tracks):
+            gap = b["p"][0][0] - a["last"]
+            if i == j or gap <= 0 or gap > max_gap:
+                continue
+            sa, sb = a["sides"].most_common(1)[0][0], b["sides"].most_common(1)[0][0]
+            if sa != sb and "x" not in (sa, sb):
+                continue
+            dist = math.hypot(b["p"][0][1] - a["p"][-1][1] - a["vx"] * gap, b["p"][0][2] - a["p"][-1][2] - a["vy"] * gap) / unit
+            if dist <= 1.0 + 0.3 * gap:
+                pairs.append((dist / gap, i, j))
+    head, tail, into = set(), set(), {}
+    for _, i, j in sorted(pairs):
+        root = j
+        while root in into:
+            root = into[root]
+        if i in tail or j in head or root == i:      # root check: never join a trail onto itself
+            continue
+        tail.add(i)
+        head.add(j)
+        into[i] = j
+    gone = set()
+    for i in sorted(into, key=lambda x: tracks[x]["p"][0][0]):
+        a, b = tracks[i], tracks[into[i]]
+        b["p"] = a["p"] + b["p"]
+        b["cls"] += a["cls"]
+        b["sides"] += a["sides"]
+        gone.add(i)
+    return [t for i, t in enumerate(tracks) if i not in gone]
 
 
 def smooth(p):
@@ -403,7 +439,7 @@ def measure(frames, dets, Hs, times, tracks, k_pre, k_snap):
 
 
 # ---------------------------------------------------------------- one clip
-def process(path, detect, a=None, b=None, snap=None):
+def process(path, detect, a=None, b=None, snap=None, presnap_detect=None):
     t0 = time.time()
     frames, times = read_samples(path, a, b)
     dets = detect_all(frames, times, detect)
@@ -422,9 +458,24 @@ def process(path, detect, a=None, b=None, snap=None):
         k_snap = find_snap(tracks, times, unit)
     k_pre = max(0, (k_snap or 1) - 1)
     pre = presnap_read(dets[k_pre]) or {}
+    info = None
+    if presnap_detect is not None:
+        try:
+            info = presnapmod.read(presnap_detect(frames[k_pre], times[k_pre]))
+        except KeyProblem:
+            raise
+        except Exception:                           # the extra read is a bonus: never lose the clip over it
+            info = None
+    tracks = presnapmod.apply(tracks, info, Hs[k_pre], k_pre, unit)
+    if info:
+        pre.update({x: info[x] for x in ("view", "splits", "personnel", "box", "deep", "shell", "fixed")})
     for t in tracks:
         t["p"] = smooth(t["p"])
     fld = measure(frames, dets, Hs, times, tracks, k_pre, k_snap)
+    if fld.get("ok"):
+        k0 = k_snap if k_snap is not None else k_pre
+        presnapmod.cover(tracks, k0)
+        presnapmod.routes(tracks, k0, fld["dir"], fld["los"])
     out_tracks = []
     for t in tracks:
         cls = [c for c, _ in t["cls"].most_common() if c in OFF | DEF]
@@ -433,6 +484,9 @@ def process(path, detect, a=None, b=None, snap=None):
         if fld.get("ok"):
             o["f"] = [[round(f[0], 2), round(f[1], 2)] for f in t["f"]]
             o["mph"], o["deep"], o["top"] = t["mph"], t["deep"], t["top"]
+        for x in ("role", "route", "cover", "sepSnap"):
+            if x in t:
+                o[x] = t[x]
         out_tracks.append(o)
     h, w = frames[0].shape[:2]
     return {

@@ -21,6 +21,7 @@ import requests
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from track import KeyProblem, process, roboflow_detect  # noqa: E402
+from presnap import MODEL as PRESNAP_MODEL  # noqa: E402
 
 DB_URL = os.environ.get("FIREBASE_DB_URL", "https://cardinal-booth-default-rtdb.firebaseio.com")
 SKIP_GAMES = {"practice", "local"}
@@ -91,6 +92,7 @@ def main():
     firebase_admin.initialize_app(cred, {"databaseURL": DB_URL})
 
     detect = roboflow_detect(key.strip())
+    presnap_detect = roboflow_detect(key.strip(), model=PRESNAP_MODEL, confidence=15)
     start = time.time()
     # Watch mode: keep checking for new clips every minute until the watch ends (a run can last up to 6 hours).
     stop = start + float(os.environ.get("TRACK_LOOP_MINUTES", "0")) * 60
@@ -136,7 +138,7 @@ def one_pass(db, detect, deadline):
         path = None
         try:
             path = download(rec["url"], rec.get("type"))
-            out = process(path, detect, a=rec.get("a"), b=rec.get("b"), snap=rec.get("snap"))
+            out = process(path, detect, a=rec.get("a"), b=rec.get("b"), snap=rec.get("snap"), presnap_detect=presnap_detect)
             db.reference("schools/%s/trackdata/%s/%s" % (school, game, play)).set(json.dumps(out, separators=(",", ":")))
             status.set({"status": "done", "at": int(time.time() * 1000), "clipAt": at, "tries": tries,
                         "players": len(out["tracks"]), "snap": out["snap"]})

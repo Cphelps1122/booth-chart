@@ -133,7 +133,7 @@ footer .wrap { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; j
 <header class="nav gut">
   <div class="wrap">
     <a class="logo" href="#top" aria-label="Solutions Analytics home"><svg viewBox="0 0 96 96" aria-hidden="true"><g fill="#d9dee5"><rect x="16" y="32" width="26" height="9" rx="1"/><rect x="54" y="32" width="26" height="9" rx="1"/><rect x="16" y="56" width="26" height="9" rx="1"/><rect x="54" y="56" width="26" height="9" rx="1"/></g><rect x="45" y="12" width="6" height="72" rx="1" fill="#6EC926"/></svg><div><b>SOLUTIONS</b><span>ANALYTICS</span></div></a>
-    <nav class="links" aria-label="Sections"><a href="#product">Product</a><a href="#how">How it works</a><a href="#who">Who it's for</a><a href="#demo">Request a demo</a><a href="pricing.html">Plans</a></nav>
+    <nav class="links" aria-label="Sections"><a href="#watch">Video</a><a href="#product">Product</a><a href="#how">How it works</a><a href="#who">Who it's for</a><a href="#demo">Request a demo</a><a href="pricing.html">Plans</a></nav>
     <div class="acts"><button class="btn" id="loginBtn">Log in</button><a class="btn pri" id="dashBtn" href="app.html" hidden>Open dashboard</a></div>
   </div>
 </header>
@@ -145,7 +145,7 @@ footer .wrap { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; j
         <div class="eyebrow">Game-day analytics for high school football</div>
         <h1>Every snap charted.<br><span>Every tendency answered.</span></h1>
         <p class="lede">Solutions turns the press box into a live analytics room. Chart offense and defense in real time, hand your coordinators the answer between every series, and build next week's scout from Hudl in minutes.</p>
-        <div class="acts"><a class="btn pri" href="#demo">Request a demo</a><a class="btn" href="#product">See what it does</a></div>
+        <div class="acts"><a class="btn pri" href="#demo">Request a demo</a><a class="btn" href="#watch">▶ Watch the 2-min video</a></div>
         <div class="proof"><div><b>~3 sec</b>to chart a snap at tempo</div><div><b>Live</b>on every staff device</div><div><b>Hudl</b>exports in, reports out</div></div>
       </div>
       <div class="mock" aria-label="Example of the live OC report">
@@ -158,6 +158,14 @@ footer .wrap { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; j
           <div class="li"><b>3</b><div><span class="k">Next series</span>3rd &amp; medium: hot route or screen ready. Our tell: 2nd &amp; long we're 6/7 run.</div></div>
         </div>
       </div>
+    </div>
+  </section>
+
+  <section class="s gut" id="watch">
+    <div class="wrap">
+      <div class="sh"><div class="eyebrow">See it in action</div><h2>Two minutes on Friday night.</h2><p>Watch a staff chart a game live, get the answer between series, and build next week's scout. The teams in the video are made up.</p></div>
+      <video class="demoVid" controls preload="none" playsinline poster="media/solutions_demo.jpg" style="width:100%;max-width:1000px;display:block;margin:0 auto;border-radius:14px;border:1px solid var(--line);background:#111">
+        <source src="media/solutions_demo.mp4" type="video/mp4">Your browser can't play this video.</video>
     </div>
   </section>
 
@@ -321,13 +329,17 @@ window.SOL_CONFIG = {"db": "https://cardinal-booth-default-rtdb.firebaseio.com",
       $("lgMsg").className = "msg ok"; $("lgMsg").textContent = "Welcome back. Opening your dashboard…"; location.href = "app.html";
     }, function (err) { $("lgGo").disabled = false; $("lgMsg").className = "msg err"; $("lgMsg").textContent = authErr(err && err.message) });
   });
+  // demo request alerts: FormSubmit emails a copy of each request. FS_TO is the private code FormSubmit gives after the first confirm.
+  var FS_TO = "";
+  function demoAlert(d) { if (!FS_TO) return; fetch("https://formsubmit.co/ajax/" + FS_TO, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ _subject: "Solutions demo request: " + d.school, _template: "table", _captcha: "false", Name: d.name, Role: d.role, School: d.school, State: d.state, Email: d.email, Note: d.note || "-" }) }).catch(function () {}) }
   $("demoForm").addEventListener("submit", function (e) {
     e.preventDefault();
     var d = { name: $("dName").value.trim(), role: $("dRole").value, school: $("dSchool").value.trim(), state: $("dState").value.trim(), email: $("dEmail").value.trim(), note: $("dNote").value.trim(), at: Date.now() };
     var m = $("dMsg");
     if (!d.name || !d.school || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.email)) { m.className = "msg err"; m.textContent = "Add your name, school and a valid email."; return }
     m.className = "msg"; m.textContent = "Sending…";
-    fetch(SOL_DB + "/leads.json", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(d) }).then(function (r) { if (!r.ok) throw 0;
+    fetch(SOL_DB + "/leads.json", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(d) }).then(function (r) { if (!r.ok) throw 0; demoAlert(d);
       m.className = "msg ok"; m.textContent = "Thanks, " + d.name.split(" ")[0] + ". We'll be in touch at " + d.email + "."; $("demoForm").reset() }, function () { m.className = "msg err"; m.textContent = "Couldn't send right now. Try again in a minute." });
   });
 })();

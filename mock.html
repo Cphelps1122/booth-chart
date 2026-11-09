@@ -53,7 +53,7 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
       <p class="note" id="pbMissN" style="margin:8px 0 6px"></p><div id="pbMiss" style="display:flex;flex-wrap:wrap;gap:6px"></div>
       <div class="row" style="margin-top:10px"><button class="btn pri" id="pbNew" type="button">+ New play</button></div>
       <div id="pbForm" hidden style="margin-top:10px;border:1px solid var(--line);border-radius:10px;padding:12px;background:var(--panel2)">
-        <div class="row" style="align-items:flex-end"><label class="f">Play name<input type="text" id="pbName" placeholder="SWAT"></label><label class="f">Type<select id="pbType"><option value="run">Run</option><option value="pass">Pass</option></select></label></div>
+        <div class="row" style="align-items:flex-end"><label class="f">Play name<input type="text" id="pbName" placeholder="SWAT"></label><label class="f">Type<select id="pbType"><option value="run">Run</option><option value="pass">Pass</option></select></label><label class="f">Formation<select id="pbForm2"></select></label></div>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:10px">
           <div><div id="pbRun"><div class="row" style="flex-wrap:wrap;gap:8px"><label class="f">Which way it goes<select id="pbTow"></select></label></div>
             <p class="note" style="margin:6px 0">The hole number in the call still picks left or right. Blocks are drawn going to the play side.</p>
@@ -467,7 +467,7 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
 
   function saveAlign() { if (SHARED) return; store.set("sol-mock-align", ALIGN); cloud("align", "PUT", JSON.stringify(ALIGN)).catch(function () {}) }
   function likely() { var s = situ(), POOL = lookPool(SEL && SEL.form).rows, sh = top(POOL.map(function (r) { return r.sh }), 1)[0], fr = top(POOL.map(function (r) { return r.front }), 1)[0]; return { sh: sh ? sh.k : "MFO", front: fr ? fr.k : null, blitz: null, cov: null, likely: true } }
-  function tagText() { if (!look) return; var bkSrc = call && bookPaths(call); $("tag").innerHTML = (look.likely ? "Their likely look: " : "They showed: ") + "<b>" + (SHELLN[look.sh] || "Shell not tagged") + "</b>" + (look.cov ? " · " + esc(look.cov) : "") + (look.front ? " · " + esc(look.front) + " front" : "") + (look.blitz ? " · <b style='color:var(--bad)'>" + esc(look.blitz) + "</b>" : "") + " · ball on " + ({ L: "left hash", R: "right hash", M: "middle" })[G.hash] + (bkSrc ? "<br>Drawn from your playbook: <b>" + esc(bkSrc.src) + "</b>" + (bkSrc.run ? " · " + esc(call.form || "") + ", running " + (bkSrc.side > 0 ? "right" : "left") + (teOf(P.o, bxOf()) ? ((teOf(P.o, bxOf()).x >= bxOf() ? 1 : -1) === bkSrc.side ? " (to the TE)" : " (away from the TE)") : "") : "") : "") }
+  function tagText() { if (!look) return; var bkSrc = call && bookPaths(call); $("tag").innerHTML = (look.likely ? "Their likely look: " : "They showed: ") + "<b>" + (SHELLN[look.sh] || "Shell not tagged") + "</b>" + (look.cov ? " · " + esc(look.cov) : "") + (look.front ? " · " + esc(look.front) + " front" : "") + (look.blitz ? " · <b style='color:var(--bad)'>" + esc(look.blitz) + "</b>" : "") + " · ball on " + ({ L: "left hash", R: "right hash", M: "middle" })[G.hash] + (bkSrc ? "<br>Drawn from your playbook: <b>" + esc(bkSrc.src) + "</b>" + (bkSrc.run ? " · " + esc(((pbFind(call) || {}).run || {}).form ? titleCase(pbFind(call).run.form) : call.form || "") + ", running " + (bkSrc.side > 0 ? "right" : "left") + (teOf(P.o, bxOf()) ? ((teOf(P.o, bxOf()).x >= bxOf() ? 1 : -1) === bkSrc.side ? " (to the TE)" : " (away from the TE)") : "") : "") : "") }
   // ======================= FIELD MODEL =======================
   var HASH = 8.9;
   var ALIGN = store.get("sol-mock-align") || { def: {}, off: {} };
@@ -587,7 +587,8 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
   var P = { o: [], d: [], ball: null, trail: [], tackle: null, tgt: 10, showPlan: false };
   function poses() {
     var bx = bxOf(); if (!call) return;
-    var BK = !ALIGN.off[call.form] && bookOf(call.form); P.o = BK ? bookPlace(BK, bx) : placeOff(offStd(call.form), bx);
+    var pf0 = pbFind(call), fm = pf0 && (pf0.run || pf0.pass).form || call.form;
+    var BK = !ALIGN.off[fm] && bookOf(fm); P.o = BK ? bookPlace(BK, bx) : placeOff(offStd(fm), bx);
     var bkRun = call.run && pbFind(call), bnd = bndOf(call);
     // the TE goes where the run needs him: toward-the-TE runs put him on the play side, away runs on the back side (the formation flips)
     var hd = holeDir(call);
@@ -719,19 +720,28 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
     if (!out.children.length) out.innerHTML = "<p class='note' style='margin:0'>No plays built yet.</p>" }
   function pbOpen(e) { PBE = e; var d = e.data || {}, f = $("pbForm"); f.hidden = false; $("pbName").value = e.name || ""; $("pbType").value = e.run === false ? "pass" : e.run ? "run" : $("pbType").value;
     var ol = d.ol || {}; OLN.forEach(function (n) { $("pbo_" + n[0]).innerHTML = opts(OLA, ol[n[0]] || "zone") });
-    $("pbTow").innerHTML = opts(TOW, d.toward || "te"); $("pbTe").innerHTML = opts(TEA, d.te || "base"); $("pbRb").innerHTML = opts(RBA, d.rb || "zone"); $("pbQb").innerHTML = opts(QBA, d.qb || "hand");
+    var fo = { "": "From the call sheet" }; Object.keys(BOOK).forEach(function (k) { fo[k] = titleCase(k) }); $("pbForm2").innerHTML = opts(fo, d.form || ""); $("pbTow").innerHTML = opts(TOW, d.toward || "te"); $("pbTe").innerHTML = opts(TEA, d.te || "base"); $("pbRb").innerHTML = opts(RBA, d.rb || "zone"); $("pbQb").innerHTML = opts(QBA, d.qb || "hand");
     var rt = d.rt || {}; ["1", "2", "3", "4", "RB"].forEach(function (k) { $("pbr_" + k).innerHTML = opts(ROUTES, rt[k] || (k === "RB" ? "block" : "go")) });
     pbType(); f.scrollIntoView({ block: "nearest" }) }
   function pbType() { var run = $("pbType").value === "run"; $("pbRun").hidden = !run; $("pbPass").hidden = run; pbPrev() }
   function pbRead() { var run = $("pbType").value === "run";
-    if (run) { var ol = {}; OLN.forEach(function (n) { ol[n[0]] = $("pbo_" + n[0]).value }); return { run: { from: "Built in the app", built: 1, toward: $("pbTow").value, ol: ol, te: $("pbTe").value, rb: $("pbRb").value === "draw" ? "split" : $("pbRb").value, rbn: $("pbRb").value, qb: $("pbQb").value } } }
-    var rt = {}; ["1", "2", "3", "4", "RB"].forEach(function (k) { rt[k] = $("pbr_" + k).value }); return { pass: { t: $("pbName").value.trim().toUpperCase(), pg: "built in the app", rt: rt, r: {} } } }
+    if (run) { var ol = {}; OLN.forEach(function (n) { ol[n[0]] = $("pbo_" + n[0]).value }); var fm = $("pbForm2").value || undefined; return { run: { form: fm, from: (PBE && PBE.data && PBE.data.from) || "Built in the app", note: PBE && PBE.data && PBE.data.note, built: 1, toward: $("pbTow").value, ol: ol, te: $("pbTe").value, rb: $("pbRb").value === "draw" ? "split" : $("pbRb").value, rbn: $("pbRb").value, qb: $("pbQb").value } } }
+    var rt = {}; ["1", "2", "3", "4", "RB"].forEach(function (k) { rt[k] = $("pbr_" + k).value }); return { pass: { form: $("pbForm2").value || undefined, t: $("pbName").value.trim().toUpperCase(), pg: "built in the app", rt: rt, r: {} } } }
   // top-down preview, play going right (to the TE)
   function pbPrev() { var c = $("pbCv"); if (!c) return; var g = c.getContext("2d"), w = c.width, h = c.height, u = w / ($("pbType").value === "run" ? 20 : 44), X = function (x) { return w / 2 + x * u }, Y = function (y) { return h * ($("pbType").value === "run" ? .4 : .7) - y * u }, rd = Math.min(u * .8, 11);
     g.fillStyle = "#1d5631"; g.fillRect(0, 0, w, h); g.strokeStyle = "rgba(255,255,255,.35)"; g.beginPath(); g.moveTo(0, Y(0)); g.lineTo(w, Y(0)); g.stroke();
     var d = pbRead(), pl = [], bx = 0, s = 1;
     var ln = function (pts, col, dash) { if (!pts || pts.length < 2) return; g.strokeStyle = col; g.lineWidth = 2; g.setLineDash(dash || []); g.beginPath(); g.moveTo(X(pts[0][0]), Y(pts[0][1])); pts.slice(1).forEach(function (q) { g.lineTo(X(q[0]), Y(q[1])) }); g.stroke(); g.setLineDash([]) };
     var dot = function (p, t) { g.fillStyle = "#c8102e"; g.beginPath(); g.arc(X(p.x), Y(p.y), rd, 0, 7); g.fill(); g.fillStyle = "#fff"; g.font = "bold " + Math.round(rd * 1.1) + "px sans-serif"; g.textAlign = "center"; g.fillText(t, X(p.x), Y(p.y) + rd * .4) };
+    var BKp = $("pbForm2").value && bookOf($("pbForm2").value);
+    if (BKp) { var st = bookStd(BKp).map(function (p, i) { return { x: p.x, y: p.y, i: i } }), rec = st.slice(6, 11), te = d.run ? teOf(st, 0) : null, run = d.run && d.run.run || d.run;
+      if (d.run) { var want = /^(te|strong)$/.test(d.run.toward) ? 1 : -1; if (te && (te.x >= 0 ? 1 : -1) !== want) rec.forEach(function (p) { p.x = -p.x }) }
+      var wr = rec.slice(0, 4).filter(function (p) { return p.y >= -4 }).sort(function (a, b) { return a.x - b.x }); wr.forEach(function (p, k) { p.lab = String(k + 1) }); rec.slice(0, 4).filter(function (p) { return p.y < -4 }).forEach(function (p) { p.lab = "B" }); rec[4].lab = "R";
+      g.save(); u = w / 52; rd = Math.min(u * .8, 11); 
+      if (d.run) { var r2 = d.run, role2 = ["bst", "bsg", "c", "psg", "pst"]; st.slice(0, 5).forEach(function (p, i) { var a = r2.ol[role2[i]]; ln(olPath(a, p, 1, 0), "#fff", /pull/.test(a) ? [5, 4] : []); dot(p, ["T", "G", "C", "G", "T"][i]) });
+        rec.forEach(function (p) { if (p === te) { ln(tePath(r2.te, p, 1, 0), "#fff"); dot(p, "Y") } else if (p.lab === "R") { ln(rbPath(r2.rb, p, 1, 0), "#f2c14e"); dot(p, "R") } else dot(p, p.lab) }) }
+      else { st.slice(0, 5).forEach(function (p, i) { dot(p, ["T", "G", "C", "G", "T"][i]) }); rec.forEach(function (p) { var k = p.lab === "R" ? "RB" : p.lab; ln(pbRoute(d.pass.rt[k], p, 0), k === "RB" ? "#f2c14e" : "#fff"); dot(p, p.lab) }) }
+      dot(st[5], "Q"); g.restore(); return }
     if (d.run) { var r = d.run, role = ["bst", "bsg", "c", "psg", "pst"], ols = [-4, -2, 0, 2, 4].map(function (x) { return { x: x, y: -.6 } }), te = { x: 6.2, y: -.9 }, rb = { x: 0, y: -6 }, qb = { x: 0, y: -1.8 };
       if (r.toward === "away" || r.toward === "weak") { te.x = -6.2 }
       ols.forEach(function (p, i) { var a = r.ol[role[i]]; ln(olPath(a, p, s, bx), "#fff", /pull/.test(a) ? [5, 4] : []); dot(p, ["T", "G", "C", "G", "T"][i]) });

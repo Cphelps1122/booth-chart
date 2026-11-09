@@ -215,12 +215,19 @@ window.SOL_CONFIG = window.SOL_CONFIG || { db: "https://cardinal-booth-default-r
     return [A / D, -(b * i - c * h) / D, (b * f - c * e) / D, B / D, (a * i - c * g) / D, -(a * f - c * d) / D, C / D, -(a * h - b * g) / D, (a * e - b * d) / D] }
   function mul(A, B) { var o = []; for (var r = 0; r < 3; r++) for (var c = 0; c < 3; c++) o.push(A[r * 3] * B[c] + A[r * 3 + 1] * B[3 + c] + A[r * 3 + 2] * B[6 + c]); return o }
   function visible(tr) { if (tr.side === "o") { if (!SHOW.o) return false; return SHOW.all || tr.cls === "skill" || tr.cls === "qb" } if (tr.side === "d") { if (!SHOW.d) return false; return SHOW.all || tr.cls === "db" } return SHOW.all }
+  // Trails follow the frame on screen, not the clock: iPads can keep showing the old frame for a moment after a jump.
+  var VF = { wait: false, t: null, on: !!V.requestVideoFrameCallback };
+  function shownTime() { var c = V.currentTime || 0; return VF.on && !V.paused && VF.t != null && Math.abs(VF.t - c) < 0.5 ? VF.t : c }
+  function onFrame(now, m) { VF.t = m.mediaTime; if (VF.wait && Math.abs(m.mediaTime - V.currentTime) < 0.25) { VF.wait = false; paint() } V.requestVideoFrameCallback(onFrame) }
+  if (VF.on) { V.requestVideoFrameCallback(onFrame); V.addEventListener("seeking", function () { VF.wait = true; VF.t = null }) }
+  V.addEventListener("seeked", function () { setTimeout(function () { if (VF.wait && V.paused) { VF.wait = false; paint() } }, 500) });
   function paint() {
     var r = V.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
     if (CV.width !== Math.round(r.width * dpr) || CV.height !== Math.round(r.height * dpr)) { CV.width = Math.round(r.width * dpr); CV.height = Math.round(r.height * dpr) }
     CX.setTransform(1, 0, 0, 1, 0, 0); CX.clearRect(0, 0, CV.width, CV.height);
     var d = G.data; if (!d || !r.width) return;
-    var s = (r.width / d.W) * dpr, t = V.currentTime || 0, at = hAt(d, t), H = at.H, lw = Math.max(2, 2.6 * dpr);
+    if (V.seeking || VF.wait) { $("tag").hidden = true; return }   // the picture hasn't caught up yet: drawing now would land on the wrong frame
+    var s = (r.width / d.W) * dpr, t = shownTime(), at = hAt(d, t), H = at.H, lw = Math.max(2, 2.6 * dpr);
     CX.setTransform(s, 0, 0, s, 0, 0); CX.lineJoin = "round"; CX.lineCap = "round";
     var heads = [];
     d.tracks.forEach(function (tr) {

@@ -623,7 +623,7 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
   // a run drawn going right; s flips it. Paths in yards: x across, y downfield from the line.
   function bndOf(c) { return /\(\s*(BND|BOUNDARY)\s*\)/i.test(c && (c.lab || c.name) || "") }
   // a hole number in front of a run sets its side: even = left, odd = right ("2 POWER" left, "3 POWER" right)
-  function holeDir(c) { var m = String(c && (c.lab || c.name) || "").match(/(?:^|\s)(\d)\s+(?=[A-Z])/i); return m ? (+m[1] % 2 === 0 ? -1 : 1) : 0 }
+  function holeDir(c) { var m = String(c && (c.lab || c.name) || "").match(/(?:^|\s)(\d)\s+(?=[A-Z])/i); return m ? (+m[1] % 2 === 0 ? 1 : -1) : 0 }
   function runSide(c, bk) { var hd = holeDir(c); if (hd) return hd; var o = P.o, bx = bxOf(), te = teOf(o, bx), s = strengthOf(o, bx);
     if (bk && te && (bk.toward === "te" || bk.toward === "away")) { var ts = te.x >= bx ? 1 : -1; return bk.toward === "te" ? ts : -ts }
     if (bndOf(c) && bx !== 0) return bx < 0 ? -1 : 1;     // (BND): run it to the boundary

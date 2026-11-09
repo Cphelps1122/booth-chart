@@ -264,6 +264,7 @@ details.more > .rail { margin-top: 8px }
     <details class="gdet" id="wkDet" style="margin:0 0 14px"><summary>Weeks in the report: <span id="wkSum">this week only</span></summary><div class="note" style="margin:8px 0 4px">Add other weeks' Hudl files to this report. They're read from their own folders and never copied into this one.</div><div class="chips" id="wkChips"></div></details>
     <div class="steps">
       <div class="step" id="st1"><div class="n">1</div><div class="tx"><b id="st1b">Add this week's Hudl files</b><span id="st1s">Pick what you're scouting, then drop the files. About a minute.</span></div><button class="big pri" id="st1go" type="button">Start</button></div>
+      <div id="fileRows" style="margin:-4px 0 6px"></div>
       <div class="step" id="st2"><div class="n">2</div><div class="tx"><b>Check the report</b><span id="st2s">Ready after step 1.</span></div><button class="big" id="st2go" type="button">Open report</button></div>
       <div class="step" id="st3"><div class="n">3</div><div class="tx"><b>Send to Friday's chart</b><span id="st3s">Every staff iPad charting the game gets this scout automatically.</span></div><button class="big" id="st3go" type="button">Send to chart</button></div>
       <div class="step" id="st5" hidden><div class="n">📋</div><div class="tx"><b>Our game chart</b><span id="st5s">What we charted live in this game.</span></div><a class="big" id="st5open" href="app.html">Open OC report</a><button class="big" id="st5send" type="button">Send to self scout</button></div>
@@ -1188,6 +1189,7 @@ details.more > .rail { margin-top: 8px }
     $("st1").className = "step " + (has ? "done" : "now"); $("st1").querySelector(".n").textContent = has ? "✓" : "1";
     $("st1b").textContent = has ? "Hudl files added" : "Add " + (who === "S" ? "our" : opp + "'s") + " Hudl files";
     $("st1s").textContent = has ? gamesText() : "Pick what you're scouting, then drop the files. About a minute.";
+    fileRows();
     $("st1go").textContent = has ? "Add more" : "Start"; $("st1go").className = "big" + (has ? "" : " pri");
     $("st2").className = "step " + (has ? (WSENT ? "done" : "now") : ""); $("st2").querySelector(".n").textContent = has && WSENT ? "✓" : "2"; $("st2go").disabled = false; $("st2go").textContent = has ? "Open report" : "Browse templates"; $("st2go").className = "big" + (has && !WSENT ? " pri" : "");
     $("st2s").textContent = has ? (CUR ? (CUR.team ? CUR.team + " " : "") + CUR.title + ". Tick sections on or off." : "") : "Look at and set up every template now with sample data. Your real numbers fill in after step 1.";
@@ -2253,14 +2255,22 @@ details.more > .rail { margin-top: 8px }
     wkGet("/selfscout/report/files").then(function (F) { F = (F || []).filter(function (f) { return f && f.name !== name }); F.push(file); return wkPut("/selfscout/report/files", F) }).then(function () { toast("Sent to the self scout folder: " + R.length + " plays vs " + e.opp); $("st5send").disabled = false }, function () { toast("Couldn't send it. Check the connection."); $("st5send").disabled = false });
   });
   // ---------- weeks picker: pull other weeks' files into this report (read only) ----------
-  var WKSEL = store.get("wksel", {}) || {};
+  var WKSEL = {}; // other weeks are only pulled in when picked, and never remembered: every folder opens with just its own files
+  // each saved file in this folder: what's in it, and a button to take it out (for files that don't belong here)
+  function fileRows() {
+    var box = $("fileRows"); if (!box) return; if (!RAW.length || SAMPLE) { box.innerHTML = ""; return }
+    box.innerHTML = "<div class='note' style='margin:0 0 6px;font-size:14px;font-weight:700'>Files in this folder</div>" + RAW.map(function (f, i) {
+      var gs = GAMES.filter(function (g) { return g.file === f.name }), n = ROWS.filter(function (x) { return x.g && x.g.file === f.name }).length;
+      return "<div style='display:flex;gap:10px;align-items:center;padding:8px 12px;border:1px solid var(--line,#d5d9df);border-radius:10px;margin:0 0 6px;background:var(--card,#fff)'><span style='flex:1;min-width:0'><b>" + esc(f.name) + "</b>" + (f.from ? " <small>(from another week, read only)</small>" : "") + "<br><small>" + n + " plays · " + gs.length + " game" + (gs.length === 1 ? "" : "s") + ": " + esc(gs.map(function (g) { return "vs " + (g.label || "?") }).join(", ")) + "</small></span>" + (f.from ? "" : "<button type='button' class='big' data-rmf='" + i + "' style='padding:6px 12px;font-size:14px'>Remove</button>") + "</div>" }).join("");
+    box.querySelectorAll("[data-rmf]").forEach(function (b) { b.addEventListener("click", function () { var f = RAW[+b.dataset.rmf]; if (!confirm("Take " + f.name + " out of this folder?")) return; RAW.splice(+b.dataset.rmf, 1); GAMESON = {}; build(); wkSaveFiles(); renderAll(); toast("Removed " + f.name) }) });
+  }
   function wkPick() {
     var det = $("wkDet"), host = $("wkChips"); if (!det) return; det.hidden = FOLDER === "self" || !(WK.list || []).length; if (det.hidden) return;
     var cur = WK.cur ? WK.cur.date : "", L = WK.list || [], on = L.filter(function (w) { return w.date === cur || WKSEL[w.date] });
     host.innerHTML = "<button type='button' class='chip' data-all='1' aria-pressed='" + (on.length === L.length) + "'>All weeks</button>" + L.map(function (w, i) { var me = w.date === cur; return "<button type='button' class='chip' data-d='" + w.date + "' aria-pressed='" + (me || !!WKSEL[w.date]) + "'" + (me ? " disabled" : "") + ">Wk " + (i + 1) + " · " + esc(w.opp) + (me ? " (this folder)" : "") + "</button>" }).join("");
     $("wkSum").textContent = on.length <= 1 ? "this week only" : on.length === L.length ? "all " + L.length + " weeks" : on.length + " weeks";
-    host.querySelectorAll("[data-d]").forEach(function (b) { b.addEventListener("click", function () { WKSEL[b.dataset.d] = !WKSEL[b.dataset.d]; store.set("wksel", WKSEL); wkOpen(WK.cur) }) });
-    host.querySelector("[data-all]").addEventListener("click", function () { var all = on.length === L.length; L.forEach(function (w) { WKSEL[w.date] = !all }); store.set("wksel", WKSEL); wkOpen(WK.cur) });
+    host.querySelectorAll("[data-d]").forEach(function (b) { b.addEventListener("click", function () { WKSEL[b.dataset.d] = !WKSEL[b.dataset.d]; wkOpen(WK.cur) }) });
+    host.querySelector("[data-all]").addEventListener("click", function () { var all = on.length === L.length; L.forEach(function (w) { WKSEL[w.date] = !all }); wkOpen(WK.cur) });
   }
   function wkExtras(e) {
     wkPick(); if (FOLDER === "self" || !e || !e.date) return;
@@ -2272,7 +2282,7 @@ details.more > .rail { margin-top: 8px }
     });
   }
   var FOLDER = "wk"; try { FOLDER = store.get("folder", "wk") === "self" ? "self" : "wk" } catch (e) {}
-  WK.subs.push(function (e) { FOLDER = "wk"; store.set("folder", "wk"); wkBar($("wkBar"), "Week"); go("home"); wkOpen(e) });
+  WK.subs.push(function (e) { WKSEL = {}; FOLDER = "wk"; store.set("folder", "wk"); wkBar($("wkBar"), "Week"); go("home"); wkOpen(e) });
   if (ONLINE) wkLoad().then(function (e) { wkBar($("wkBar"), "Week"); wkOpen(e) }); else $("wkBar").hidden = true;
 })();
 </script>

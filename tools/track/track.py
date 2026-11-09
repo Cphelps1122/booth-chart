@@ -432,14 +432,12 @@ def measure(frames, dets, Hs, times, tracks, k_pre, k_snap):
         t["f"] = [[f[0] - cx[q[0]], f[1] - cy[q[0]]] for q, f in zip(t["p"], t["f"])]
 
     def at(t, k):
-        for q, f in zip(t["p"], t["f"]):
-            if q[0] == k:
-                return f
-        return None
+        best = min(zip(t["p"], t["f"]), key=lambda x: abs(x[0][0] - k))
+        return best[1] if abs(best[0][0] - k) <= 3 else None
     off = [at(t, k_pre) for t in tracks if t["side"] == "o"]
     de = [at(t, k_pre) for t in tracks if t["side"] == "d"]
     off, de = [f for f in off if f], [f for f in de if f]
-    if len(off) < 3 or len(de) < 3:
+    if len(off) < 2 or len(de) < 3:
         return {"ok": False, "why": "couldn't see both teams before the snap"}
     sgn = 1.0 if np.mean([f[0] for f in de]) > np.mean([f[0] for f in off]) else -1.0
     cen = [at(t, k_pre) for t in tracks if t["side"] == "o" and t["cls"].most_common(1)[0][0] in ("center", "c")]
@@ -504,8 +502,8 @@ def process(path, detect, a=None, b=None, snap=None, presnap_detect=None):
     tracks = presnapmod.apply(tracks, info, Hs[k_pre], k_pre, unit)
     if info:
         pre.update({x: info[x] for x in ("view", "splits", "personnel", "box", "deep", "shell", "fixed")})
-    if info and sum(1 for t in tracks if t.get("role")) >= 8:     # good read: trails that began in the pre-snap only
-        tracks = [t for t in tracks if t.get("role")]
+    if info and sum(1 for t in tracks if t.get("role")) >= 6:     # good read: role-less trails starting after the snap are pieces
+        tracks = [t for t in tracks if t.get("role") or t["p"][0][0] <= k_pre + 1]
     for t in tracks:
         t["p"] = smooth(t["p"])
     fld = measure(frames, dets, Hs, times, tracks, k_pre, k_snap)

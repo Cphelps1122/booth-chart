@@ -53,7 +53,8 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
       <label class="mode"><input type="radio" name="mode" value="call" checked><span><b>Call the game</b><span class="note">Tap a play, snap it, and the result comes back on its own.</span></span></label>
       <label class="mode"><input type="radio" name="mode" value="chart"><span><b>Charting practice</b><span class="note">Hear the call, then chart the play, result and spot. You're graded on it.</span></span></label>
     </div>
-    <div id="schedPick" hidden style="margin-top:12px"><div class="note" style="margin:0 0 6px;font-weight:700">Pick the opponent from your schedule</div><div id="schedBtns" style="display:flex;gap:8px;overflow-x:auto;padding-bottom:6px"></div><p class="note" id="schedNote" style="margin:4px 0 0"></p></div>
+    <div id="schedPick" hidden style="margin-top:12px"><div class="note" style="margin:0 0 6px;font-weight:700">Pick the opponent from your schedule</div><div id="schedBtns" style="display:flex;gap:8px;overflow-x:auto;padding-bottom:6px"></div><p class="note" id="schedNote" style="margin:4px 0 0"></p>
+      <details id="mgBox" style="margin-top:10px"><summary style="cursor:pointer;font-weight:700">Mock games played vs this opponent <span id="mgCount"></span></summary><div id="mgList"></div></details></div>
     <div class="row" style="margin-top:10px;align-items:flex-end"><label class="f">Your team<input type="text" id="usName" value="Our team"></label><label class="f">Opponent<input type="text" id="oppName" value="Opponent"></label><label class="f">Game length<select id="len"><option value="4">Full game</option><option value="2">One half</option></select></label><button class="btn pri" id="startBtn" type="button">Start</button><button class="btn" id="sampleBtn" type="button">Try a sample game</button></div>
     <p class="note" id="lockNote" hidden></p>
     <details id="filmBox"><summary>Make results more real with Hudl film (optional)</summary>
@@ -416,7 +417,7 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
   $("snapBtn").onclick = function () { if (!SEL) return; var c = SEL; SEL = null; snap(c, false) };
   $("unsel").onclick = function () { SEL = null; refresh() };
   function snap(c, tempo) { if (anim || G.over || G.wait) return; clearTimeout(P.holdT); P.hold = false; camBall = G.ball; call = c; var o = rollResult(c); poses(); tagText(); $("res").hidden = true; anim = true; G.last = null; refresh(); play(c, o, function (endX) { anim = null; apply(c, o, tempo, endX) }) }
-  function apply(c, o, tempo, endX) { var before = spot(G.ball) + " · " + ord(G.dn) + "&" + G.dist, sit = situ(), txt, cls, S = { b: sit.b, call: c.name, run: c.run, gain: o.inc || o.int ? 0 : o.gain, ok: false, tempo: !!tempo, film: !!o.film, sh: look.sh }; G.snaps.push(S);
+  function apply(c, o, tempo, endX) { var before = spot(G.ball) + " · " + ord(G.dn) + "&" + G.dist, sit = situ(), txt, cls, S = { b: sit.b, call: c.name, run: c.run, gain: o.inc || o.int ? 0 : o.gain, ok: false, tempo: !!tempo, film: !!o.film, sh: look.sh, cov: look.cov || null, front: look.front || null, blitz: look.blitz || null, dn: G.dn, dist: G.dist, ball: G.ball, q: G.q, inc: !!o.inc, int: !!o.int }; G.snaps.push(S);
     G.clock -= o.inc ? 8 : (tempo ? 16 : c.run ? 36 : 30); G.drive.plays++;
     if (o.int || o.fum) { txt = o.int ? "Intercepted" : "Fumble · lost"; G.ball += o.int ? Math.max(0, o.gain) : o.gain; G.drive.yds += o.int ? 0 : o.gain; logSnap(before, c, o, "r"); endDrive(o.int ? "Interception" : "Fumble"); show(txt, "bad"); return afterOurs(100 - G.ball) }
     if (!o.inc) { G.ball += o.gain; G.drive.yds += o.gain; G.hash = endX < -6 ? "L" : endX > 6 ? "R" : "M" }
@@ -818,6 +819,7 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
       "<div class='kpis'>" + kpi(n, "plays") + kpi(n ? (yds / n).toFixed(1) : "–", "yards per play") + kpi(n ? Math.round(100 * ok / n) + "%" : "–", "successful plays") + kpi(n ? Math.round(100 * runs / n) + "/" + (100 - Math.round(100 * runs / n)) : "–", "run / pass %") + kpi(S.filter(function (s) { return s.tempo }).length, "run it again snaps") + "</div>" +
       "<div class='sub'>Drives</div><div class='tbl'><table><tr><th>#</th><th>Start</th><th>Plays</th><th>Yds</th><th>Result</th></tr>" + G.drives.map(function (d, i) { return "<tr><td>" + (i + 1) + "</td><td>" + spot(d.start) + "</td><td>" + d.plays + "</td><td>" + d.yds + "</td><td>" + esc(d.res) + "</td></tr>" }).join("") + "</table></div>" + tab("By down & distance", group(function (s) { return s.b }), "Situation") + tab("By call", group(function (s) { return s.call }), "Call") +
       "<p class='note'>" + film + " of " + n + " results came from your film. The rest are estimates from typical high school averages, not your team. " + esc(D.opp) + " never adjusts.</p><div class='row' style='margin-top:10px'><button class='btn pri' type='button' id='again'>Play again</button></div>";
+    mgSave();
     var r = $("report"); r.innerHTML = h; r.hidden = false; r.scrollIntoView({ behavior: "smooth" }); $("again").onclick = function () { newGame(); window.scrollTo({ top: 0, behavior: "smooth" }) } }
 
   function loadData() { D.ours = RAW.ours.length ? SK.load(RAW.ours, {}) : null; D.them = RAW.them.length ? SK.load(RAW.them, {}) : null; build();
@@ -863,7 +865,50 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
     $("schedBtns").innerHTML = SCHED.map(function (e, i) { var on = SCHEDON === e.date; return "<button type='button' class='btn" + (on ? " pri" : "") + "' data-sd='" + e.date + "' style='flex:none;text-align:left'>📁 Wk " + (i + 1) + " · " + esc(e.opp) + "<br><small style='font-weight:500'>" + e.date.slice(5).replace("-", "/") + (e.date < today ? " · played" : "") + "</small></button>" }).join("");
     $("schedBtns").querySelectorAll("[data-sd]").forEach(function (b) { b.onclick = function () { schedUse(b.dataset.sd) } });
   }
-  function schedUse(date) {
+  // ---------- every mock game is saved to its opponent's folder, then graded against the real game ----------
+  var MGID = null;
+  function mgSave() {
+    if (SHARED || !authGet() || !G || !G.snaps.length || G.saved) return; G.saved = 1; MGID = MGID || Date.now().toString(36);
+    var rec = { at: Date.now(), opp: D.opp, date: SCHEDON || null, mode: MODE, us: G.us, them: G.them, qs: G.qs, snaps: JSON.stringify(G.snaps), pr: MODE === "chart" ? G.pr : null };
+    cloud("games/" + Date.now().toString(36), "PUT", rec).then(function () { toast("Saved to the " + (D.opp || "opponent") + " mock folder"); if (SCHEDON) mgLoad(SCHEDON) }, function () {});
+  }
+  function mgStats(S, real) {
+    var n = S.length; if (!n) return null; var ok = function (s) { if (real) { if (s.td) return true; var d = s.dn || 1, need = d <= 1 ? .4 : d === 2 ? .5 : 1; return s.dist != null && s.gain != null && s.gain >= Math.ceil(need * s.dist) } return !!s.ok };
+    var isRun = function (s) { return real ? (s.pt === "Run" || (!s.pt && /Rush|Run|Scramble/.test(s.res || ""))) : !!s.run };
+    var R = S.filter(isRun), P = S.filter(function (s) { return !isRun(s) }), y = function (A) { return A.length ? A.reduce(function (t, s) { return t + (+s.gain || 0) }, 0) / A.length : null };
+    var third = S.filter(function (s) { return s.dn === 3 }), conv = third.filter(function (s) { return s.gain != null && s.dist != null && s.gain >= s.dist });
+    var hi2 = S.filter(function (s) { var x = String(s.sh || s.shell || "").toUpperCase(); return /MFO|2|TWO|QUARTERS|COV ?[246]/.test(x) }).length, shN = S.filter(function (s) { return s.sh || s.shell }).length;
+    return { n: n, ypp: y(S), succ: 100 * S.filter(ok).length / n, run: 100 * R.length / n, rypp: y(R), pypp: y(P), expl: 100 * S.filter(function (s) { return (+s.gain || 0) >= (isRun(s) ? 10 : 15) }).length / n, third: third.length ? 100 * conv.length / third.length : null, hi2: shN ? 100 * hi2 / shN : null,
+      calls: (function () { var m = {}; S.forEach(function (s) { var k = String(s.call || "").toUpperCase().trim(); if (!k) return; var g = m[k] = m[k] || []; g.push(s) }); return m })(), ok: ok };
+  }
+  function mgReal(date) {
+    return schoolGet("/season").then(function (sk) { if (typeof sk !== "string" || !sk) return null; return schoolGet("/games/" + encodeURIComponent(sk) + "/list").then(function (L) { L = L || {}; var ks = Object.keys(L).filter(function (c) { return L[c] && L[c].date === date && L[c].plays && !L[c].unfiled }); ks.sort(function (a, b) { return (L[b].real ? 1 : 0) - (L[a].real ? 1 : 0) }); if (!ks[0]) return null;
+      return schoolGet("/games/" + encodeURIComponent(ks[0]) + "/snaps").then(function (d) { return Object.keys(d || {}).map(function (k) { var x = d[k]; if (typeof x === "string") { try { x = JSON.parse(x) } catch (e) { return null } } return x }).filter(function (x) { return x && x.kind !== "try" && x.res !== "Penalty" }) }) }) });
+  }
+  function mgLoad(date) {
+    var e = SCHED.filter(function (x) { return x.date === date })[0]; if (!e) return; $("mgList").innerHTML = "<p class='note'>Loading…</p>";
+    Promise.all([cloud("games"), mgReal(date)]).then(function (R) {
+      var all = R[0] || {}, mine = Object.keys(all).map(function (k) { var g = all[k]; g.id = k; return g }).filter(function (g) { return g && (g.date === date || (!g.date && String(g.opp || "").toLowerCase() === e.opp.toLowerCase())) }).sort(function (a, b) { return b.at - a.at });
+      $("mgCount").textContent = "(" + mine.length + ")";
+      var snaps = []; mine.forEach(function (g) { try { snaps = snaps.concat(JSON.parse(g.snaps || "[]")) } catch (x) {} });
+      var M = mgStats(snaps, false), Rl = R[1] && R[1].length ? mgStats(R[1], true) : null, f1 = function (v, u) { return v == null ? "–" : (u === "%" ? Math.round(v) + "%" : v.toFixed(1)) };
+      var h = mine.length ? "<div class='tbl'><table><tr><th>Played</th><th>Type</th><th>Score</th><th>Plays</th></tr>" + mine.map(function (g) { var S2 = []; try { S2 = JSON.parse(g.snaps) } catch (x) {} return "<tr><td>" + new Date(g.at).toLocaleDateString() + " " + new Date(g.at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) + "</td><td>" + (g.mode === "chart" ? "Charting practice" : "Called game") + "</td><td>" + g.us + "–" + g.them + "</td><td>" + S2.length + "</td></tr>" }).join("") + "</table></div>" : "<p class='note'>No mock games vs " + esc(e.opp) + " yet. Every game you finish here saves to this folder.</p>";
+      if (M) {
+        var rows = [["Yards per play", "ypp"], ["Successful plays", "succ", "%"], ["Run %", "run", "%"], ["Run yards per play", "rypp"], ["Pass yards per play", "pypp"], ["Explosive plays", "expl", "%"], ["3rd down conversions", "third", "%"], ["Their 2-high looks", "hi2", "%"]];
+        var diffs = [];
+        h += "<div class='sub' style='margin-top:12px'>Mock vs the real game" + (Rl ? "" : " (no real game charted for this week yet)") + "</div><div class='tbl'><table><tr><th></th><th>Mock (" + M.n + " plays)</th><th>Real game" + (Rl ? " (" + Rl.n + " plays)" : "") + "</th><th>Off by</th></tr>" + rows.map(function (x) { var a = M[x[1]], b = Rl ? Rl[x[1]] : null, d = a != null && b != null ? a - b : null; if (d != null) diffs.push(Math.abs(d) / (x[2] === "%" ? 100 : Math.max(3, Math.abs(b)))); return "<tr><td>" + x[0] + "</td><td>" + f1(a, x[2]) + "</td><td>" + f1(b, x[2]) + "</td><td>" + (d == null ? "–" : (d > 0 ? "+" : "") + (x[2] === "%" ? Math.round(d) + " pts" : d.toFixed(1))) + "</td></tr>" }).join("") + "</table></div>";
+        if (Rl) {
+          var err = diffs.length ? diffs.reduce(function (t, v) { return t + v }, 0) / diffs.length : 1, score = Math.max(0, Math.round(100 - err * 250)), grade = score >= 90 ? "A" : score >= 80 ? "B" : score >= 70 ? "C" : score >= 60 ? "D" : "F";
+          var both = Object.keys(M.calls).filter(function (k) { return Rl.calls[k] }).map(function (k) { var a = M.calls[k], b = Rl.calls[k], ya = a.reduce(function (t, s) { return t + (+s.gain || 0) }, 0) / a.length, yb = b.reduce(function (t, s) { return t + (+s.gain || 0) }, 0) / b.length; return { k: k, a: a.length, b: b.length, ya: ya, yb: yb } }).sort(function (x, y) { return y.b - x.b });
+          var few = M.n < 30; h = "<div class='kpis' style='margin:10px 0'><div class='kpi'><b>" + (few ? "–" : grade) + "</b><small>" + (few ? "grade after 30+ mock plays (" + M.n + " so far)" : "mock realism grade · " + score + "/100") + "</small></div><div class='kpi'><b>" + mine.length + "</b><small>mock games</small></div><div class='kpi'><b>" + Rl.n + "</b><small>real plays charted</small></div></div>" + h;
+          if (both.length) h += "<div class='sub' style='margin-top:12px'>Same calls: mock vs real</div><div class='tbl'><table><tr><th>Call</th><th>Mock plays</th><th>Mock yds</th><th>Real plays</th><th>Real yds</th><th>Off by</th></tr>" + both.slice(0, 15).map(function (c) { var d = c.ya - c.yb; return "<tr><td>" + esc(c.k) + "</td><td>" + c.a + "</td><td>" + c.ya.toFixed(1) + "</td><td>" + c.b + "</td><td>" + c.yb.toFixed(1) + "</td><td>" + (d > 0 ? "+" : "") + d.toFixed(1) + "</td></tr>" }).join("") + "</table></div>";
+          h += "<p class='note'>The grade compares the mock to what really happened that night: yards, success, run/pass, explosives, 3rd downs and the looks they showed. The closer they match, the more you can trust the mock for this kind of opponent.</p>";
+        }
+      }
+      $("mgList").innerHTML = h;
+    }, function () { $("mgList").innerHTML = "<p class='note'>Couldn't load. Check the connection.</p>" });
+  }
+  function schedUse(date) { setTimeout(function () { mgLoad(date) }, 50);
     var e = SCHED.filter(function (x) { return x.date === date })[0]; if (!e) return; SCHEDON = date; claim(); $("oppName").value = e.opp; schedDraw(); $("schedNote").textContent = "Loading " + e.opp + "…";
     Promise.all([schoolGet("/mock/weeks/" + date), schoolGet("/mock/self")]).then(function (R) {
       var them = [], ours = []; try { them = R[0] && R[0].files ? JSON.parse(R[0].files) : [] } catch (x) {} try { ours = R[1] && R[1].files ? JSON.parse(R[1].files) : [] } catch (x) {}

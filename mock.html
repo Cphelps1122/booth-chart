@@ -58,7 +58,7 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
           <div><div id="pbRun"><div class="row" style="flex-wrap:wrap;gap:8px"><label class="f">Which way it goes<select id="pbTow"></select></label></div>
             <p class="note" style="margin:6px 0">The hole number in the call still picks left or right. Blocks are drawn going to the play side.</p>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><label class="f">Backside tackle<select id="pbo_bst"></select></label><label class="f">Backside guard<select id="pbo_bsg"></select></label><label class="f">Center<select id="pbo_c"></select></label><label class="f">Playside guard<select id="pbo_psg"></select></label><label class="f">Playside tackle<select id="pbo_pst"></select></label><label class="f">TE<select id="pbTe"></select></label><label class="f">RB<select id="pbRb"></select></label><label class="f">QB<select id="pbQb"></select></label></div></div>
-            <div id="pbPass" hidden><p class="note" style="margin:0 0 6px">Routes break toward or away from the ball on their own, so one play works from either side.</p><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><label class="f">#1 (outside left)<select id="pbr_1"></select></label><label class="f">#2 (slot left)<select id="pbr_2"></select></label><label class="f">#3 (slot / TE right)<select id="pbr_3"></select></label><label class="f">#4 (outside right)<select id="pbr_4"></select></label><label class="f">RB<select id="pbr_RB"></select></label></div></div></div>
+            <div id="pbPass" hidden><p class="note" style="margin:0 0 6px">Routes break toward or away from the ball on their own, so one play works from either side.</p><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><label class="f" id="pbl_1"><span>#1 (outside left)</span><select id="pbr_1"></select></label><label class="f" id="pbl_2"><span>#2 (slot left)</span><select id="pbr_2"></select></label><label class="f" id="pbl_3"><span>#3 (slot / TE right)</span><select id="pbr_3"></select></label><label class="f" id="pbl_4"><span>#4 (outside right)</span><select id="pbr_4"></select></label><label class="f" id="pbl_B" hidden><span>Second back</span><select id="pbr_B"></select></label><label class="f" id="pbl_RB"><span>RB</span><select id="pbr_RB"></select></label></div></div></div>
           <canvas id="pbCv" width="520" height="300" style="width:100%;border-radius:8px" aria-label="Play preview"></canvas></div>
         <div class="row" style="margin-top:10px"><button class="btn pri" id="pbSaveBtn" type="button">Save to playbook</button><button class="btn" id="pbCancel" type="button">Cancel</button></div></div>
       <div style="margin-top:12px"><div class="note" style="margin:0 0 4px;font-weight:700">Plays you've built</div><div id="pbMine"></div></div>
@@ -622,8 +622,8 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
   $("fBook").onchange = function () { var f = this.files[0]; this.value = ""; if (!f) return;
     f.text().then(function (s) { var b = JSON.parse(s); if (!b || !b.pass || !b.runs) throw 0; var add = 0;
       // add to the playbook already loaded, never replace it: plays it already has stay as they are
-      if (PB) { Object.keys(b.runs).forEach(function (k) { if (!PB.runs[k]) { PB.runs[k] = b.runs[k]; add++ } }); var have = {}; PB.pass.forEach(function (q) { have[q.t] = 1 }); b.pass.forEach(function (q) { if (!have[q.t]) { PB.pass.push(q); add++ } }); PB.alias = PB.alias || {}; Object.keys(b.alias || {}).forEach(function (k) { if (!PB.alias[k]) PB.alias[k] = b.alias[k] }); b = PB } else add = -1;
-      usePlaybook(b); claim(); store.set("sol-mock-playbook", b); if (canEdit() && authGet()) cloud("playbook", "PUT", JSON.stringify(b)).catch(function () {}); toast(add < 0 ? "Playbook loaded" : add ? "Added " + add + " plays to your playbook" : "Nothing new: your playbook already has all of these"); if (G) { poses(); refresh() } }).catch(function () { toast("That isn't a playbook file. Use the .json file made from your pass and run books.") }) };
+      if (PB) add = pbMerge(PB, b); else { PB = b; add = -1 }
+      claim(); pbPush(); toast(add < 0 ? "Playbook loaded" : add ? "Added " + add + " plays to your playbook" : "Nothing new: your playbook already has all of these"); if (G) { poses(); refresh() } }).catch(function () { toast("That isn't a playbook file. Use the .json file made from your pass and run books.") }) };
   // a run drawn going right; s flips it. Paths in yards: x across, y downfield from the line.
   function bndOf(c) { return /\(\s*(BND|BOUNDARY)\s*\)/i.test(c && (c.lab || c.name) || "") }
   // a hole number in front of a run sets its side: even = left, odd = right ("2 POWER" left, "3 POWER" right)
@@ -708,35 +708,49 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
   function pbKey(n) { return pbTok(n).join(" ") }
   function pbHas(c) { return !!pbFind(c) }
   function pbBuilt() { if (!PB) return []; var o = []; Object.keys(PB.runs).forEach(function (k) { if (PB.runs[k].built) o.push({ k: k, run: PB.runs[k] }) }); PB.pass.forEach(function (p, i) { if (p.rt) o.push({ k: pbKey(p.t), pass: p, i: i }) }); return o }
-  function pbSave() { claim(); usePlaybook(PB); store.set("sol-mock-playbook", PB); if (canEdit() && authGet()) cloud("playbook", "PUT", JSON.stringify(PB)).catch(function () {}); pbList(); if (G) { poses(); refresh() } }
+  // one live playbook per school. Everything merges in; nothing is ever replaced. Deleted plays are remembered so they don't come back.
+  function pbMerge(into, from) { var n = 0; if (!from || !from.runs || !from.pass) return 0; into.del = into.del || {}; Object.keys(from.del || {}).forEach(function (k) { into.del[k] = 1 });
+    Object.keys(from.runs).forEach(function (k) { if (!into.runs[k] && !into.del["r:" + k]) { into.runs[k] = from.runs[k]; n++ } });
+    var have = {}; into.pass.forEach(function (q) { have[q.t] = 1 }); from.pass.forEach(function (q) { if (!have[q.t] && !into.del["p:" + q.t]) { into.pass.push(q); have[q.t] = 1; n++ } });
+    into.alias = into.alias || {}; Object.keys(from.alias || {}).forEach(function (k) { if (!into.alias[k]) into.alias[k] = from.alias[k] }); return n }
+  function pbLocal() { usePlaybook(PB); store.set("sol-mock-playbook", PB); pbList(); if (G) { poses(); refresh() } }
+  // pull the live copy, merge ours into it, keep a backup of what was there, then save
+  function pbPush() { pbLocal(); if (!(canEdit() && authGet())) return Promise.resolve();
+    return cloud("playbook").then(function (t) { var c = null; try { c = typeof t === "string" ? JSON.parse(t) : null } catch (e) {}
+      if (c) { pbMerge(PB, c); cloud("playbook_prev", "PUT", t).catch(function () {}) } pbLocal(); return cloud("playbook", "PUT", JSON.stringify(PB)) }).catch(function () {}) }
+  function pbSave() { claim(); pbPush() }
   function pbList() { var box = $("pbMiss"), out = $("pbMine"); if (!box) return;
     var seen = {}, miss = SHEET ? allPlays().filter(function (c) { var k = pbKey(c.lab || c.name); if (!k || seen[k] || /PERSONNEL|DOWN|ZONE \(|^NOTES$/.test(k) && !c.run) return false; seen[k] = 1; return !pbHas(c) }) : [];
     $("pbMissN").textContent = SHEET ? miss.length ? miss.length + " calls on your sheet aren't in your playbook yet" : "Every call on your sheet is in your playbook" : "Load your call sheet to see which calls are missing";
     box.innerHTML = ""; miss.forEach(function (c) { var b = document.createElement("button"); b.type = "button"; b.className = "btn"; b.textContent = "+ " + pbKey(c.lab || c.name); b.onclick = function () { pbOpen({ name: pbKey(c.lab || c.name), run: c.run }) }; box.appendChild(b) });
     out.innerHTML = ""; pbBuilt().forEach(function (e) { var r = document.createElement("div"); r.className = "row"; r.style.margin = "4px 0"; r.innerHTML = "<b style='min-width:140px'>" + e.k + "</b><span class='note' style='margin:0'>" + (e.run ? "Run · " + TOW[e.run.toward] : "Pass") + "</span>";
       var ed = document.createElement("button"); ed.type = "button"; ed.className = "btn"; ed.textContent = "Edit"; ed.onclick = function () { pbOpen(e.run ? { name: e.k, run: true, data: e.run } : { name: e.k, run: false, data: e.pass }) };
-      var del = document.createElement("button"); del.type = "button"; del.className = "btn"; del.textContent = "Delete"; del.onclick = function () { if (e.run) delete PB.runs[e.k]; else PB.pass.splice(PB.pass.indexOf(e.pass), 1); pbSave(); toast("Deleted " + e.k) };
+      var del = document.createElement("button"); del.type = "button"; del.className = "btn"; del.textContent = "Delete"; del.onclick = function () { PB.del = PB.del || {}; if (e.run) { delete PB.runs[e.k]; PB.del["r:" + e.k] = 1 } else { PB.pass.splice(PB.pass.indexOf(e.pass), 1); PB.del["p:" + e.pass.t] = 1 } pbSave(); toast("Deleted " + e.k) };
       r.appendChild(ed); r.appendChild(del); out.appendChild(r) });
     if (!out.children.length) out.innerHTML = "<p class='note' style='margin:0'>No plays built yet.</p>" }
   function pbOpen(e) { PBE = e; var d = e.data || {}, f = $("pbForm"); f.hidden = false; $("pbName").value = e.name || ""; $("pbType").value = e.run === false ? "pass" : e.run ? "run" : $("pbType").value;
     var ol = d.ol || {}; OLN.forEach(function (n) { $("pbo_" + n[0]).innerHTML = opts(OLA, ol[n[0]] || "zone") });
     var fo = { "": "From the call sheet" }; Object.keys(BOOK).forEach(function (k) { fo[k] = titleCase(k) }); $("pbForm2").innerHTML = opts(fo, d.form || ""); $("pbTow").innerHTML = opts(TOW, d.toward || "te"); $("pbTe").innerHTML = opts(TEA, d.te || "base"); $("pbRb").innerHTML = opts(RBA, d.rb || "zone"); $("pbQb").innerHTML = opts(QBA, d.qb || "hand");
-    var rt = d.rt || {}; ["1", "2", "3", "4", "RB"].forEach(function (k) { $("pbr_" + k).innerHTML = opts(ROUTES, rt[k] || (k === "RB" ? "block" : "go")) });
+    var rt = d.rt || {}; ["1", "2", "3", "4", "B", "RB"].forEach(function (k) { $("pbr_" + k).innerHTML = opts(ROUTES, rt[k] || (k === "RB" || k === "B" ? "block" : "go")) });
     pbType(); f.scrollIntoView({ block: "nearest" }) }
+  // the route list follows the players in the formation: one dropdown per receiver and back, named by where he lines up
+  function pbLabels(rec) { var on = {}; rec.forEach(function (p) { var k = p.lab === "R" ? "RB" : p.lab; on[k] = p }); ["1", "2", "3", "4", "B", "RB"].forEach(function (k) { var el = $("pbl_" + k), p = on[k]; el.hidden = !p; if (!p) return;
+      var where = k === "RB" ? "RB" : k === "B" ? "Second back" : "#" + k + " (" + (Math.abs(p.x) < 7.5 ? (p.y < -1.6 ? "wing " : "TE ") : Math.abs(p.x) < 14 ? "slot " : "outside ") + (p.x < 0 ? "left" : "right") + ")"; el.firstChild.textContent = where }) }
+  function pbLabelsStd() { ["1", "2", "3", "4", "RB"].forEach(function (k, i) { $("pbl_" + k).hidden = false; $("pbl_" + k).firstChild.textContent = ["#1 (outside left)", "#2 (slot left)", "#3 (slot / TE right)", "#4 (outside right)", "RB"][i] }); $("pbl_B").hidden = true }
   function pbType() { var run = $("pbType").value === "run"; $("pbRun").hidden = !run; $("pbPass").hidden = run; pbPrev() }
   function pbRead() { var run = $("pbType").value === "run";
     if (run) { var ol = {}; OLN.forEach(function (n) { ol[n[0]] = $("pbo_" + n[0]).value }); var fm = $("pbForm2").value || undefined; return { run: { form: fm, from: (PBE && PBE.data && PBE.data.from) || "Built in the app", note: PBE && PBE.data && PBE.data.note, built: 1, toward: $("pbTow").value, ol: ol, te: $("pbTe").value, rb: $("pbRb").value === "draw" ? "split" : $("pbRb").value, rbn: $("pbRb").value, qb: $("pbQb").value } } }
-    var rt = {}; ["1", "2", "3", "4", "RB"].forEach(function (k) { rt[k] = $("pbr_" + k).value }); return { pass: { form: $("pbForm2").value || undefined, t: $("pbName").value.trim().toUpperCase(), pg: "built in the app", rt: rt, r: {} } } }
+    var rt = {}; ["1", "2", "3", "4", "B", "RB"].forEach(function (k) { rt[k] = $("pbr_" + k).value }); return { pass: { form: $("pbForm2").value || undefined, t: $("pbName").value.trim().toUpperCase(), pg: "built in the app", rt: rt, r: {} } } }
   // top-down preview, play going right (to the TE)
   function pbPrev() { var c = $("pbCv"); if (!c) return; var g = c.getContext("2d"), w = c.width, h = c.height, u = w / ($("pbType").value === "run" ? 20 : 44), X = function (x) { return w / 2 + x * u }, Y = function (y) { return h * ($("pbType").value === "run" ? .4 : .7) - y * u }, rd = Math.min(u * .8, 11);
     g.fillStyle = "#1d5631"; g.fillRect(0, 0, w, h); g.strokeStyle = "rgba(255,255,255,.35)"; g.beginPath(); g.moveTo(0, Y(0)); g.lineTo(w, Y(0)); g.stroke();
     var d = pbRead(), pl = [], bx = 0, s = 1;
     var ln = function (pts, col, dash) { if (!pts || pts.length < 2) return; g.strokeStyle = col; g.lineWidth = 2; g.setLineDash(dash || []); g.beginPath(); g.moveTo(X(pts[0][0]), Y(pts[0][1])); pts.slice(1).forEach(function (q) { g.lineTo(X(q[0]), Y(q[1])) }); g.stroke(); g.setLineDash([]) };
     var dot = function (p, t) { g.fillStyle = "#c8102e"; g.beginPath(); g.arc(X(p.x), Y(p.y), rd, 0, 7); g.fill(); g.fillStyle = "#fff"; g.font = "bold " + Math.round(rd * 1.1) + "px sans-serif"; g.textAlign = "center"; g.fillText(t, X(p.x), Y(p.y) + rd * .4) };
-    var BKp = $("pbForm2").value && bookOf($("pbForm2").value);
-    if (BKp) { var st = bookStd(BKp).map(function (p, i) { return { x: p.x, y: p.y, i: i } }), rec = st.slice(6, 11), te = d.run ? teOf(st, 0) : null, run = d.run && d.run.run || d.run;
+    var BKp = $("pbForm2").value && bookOf($("pbForm2").value); if (!BKp) pbLabelsStd();
+    if (BKp) { var st = bookStd(BKp).map(function (p, i) { return { x: Math.max(-22.5, Math.min(22.5, p.x)), y: p.y, i: i } }), rec = st.slice(6, 11), te = d.run ? teOf(st, 0) : null, run = d.run && d.run.run || d.run;
       if (d.run) { var want = /^(te|strong)$/.test(d.run.toward) ? 1 : -1; if (te && (te.x >= 0 ? 1 : -1) !== want) rec.forEach(function (p) { p.x = -p.x }) }
-      var wr = rec.slice(0, 4).filter(function (p) { return p.y >= -4 }).sort(function (a, b) { return a.x - b.x }); wr.forEach(function (p, k) { p.lab = String(k + 1) }); rec.slice(0, 4).filter(function (p) { return p.y < -4 }).forEach(function (p) { p.lab = "B" }); rec[4].lab = "R";
+      var wr = rec.slice(0, 4).filter(function (p) { return p.y >= -4 }).sort(function (a, b) { return a.x - b.x }); wr.forEach(function (p, k) { p.lab = String(k + 1) }); rec.slice(0, 4).filter(function (p) { return p.y < -4 }).forEach(function (p) { p.lab = "B" }); rec[4].lab = "R"; if (!d.run) pbLabels(rec);
       g.save(); u = w / 52; rd = Math.min(u * .8, 11); 
       if (d.run) { var r2 = d.run, role2 = ["bst", "bsg", "c", "psg", "pst"]; st.slice(0, 5).forEach(function (p, i) { var a = r2.ol[role2[i]]; ln(olPath(a, p, 1, 0), "#fff", /pull/.test(a) ? [5, 4] : []); dot(p, ["T", "G", "C", "G", "T"][i]) });
         rec.forEach(function (p) { if (p === te) { ln(tePath(r2.te, p, 1, 0), "#fff"); dot(p, "Y") } else if (p.lab === "R") { ln(rbPath(r2.rb, p, 1, 0), "#f2c14e"); dot(p, "R") } else dot(p, p.lab) }) }
@@ -754,8 +768,8 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
   $("pbCancel").onclick = function () { $("pbForm").hidden = true; PBE = null };
   $("pbSaveBtn").onclick = function () { var nm = $("pbName").value.trim().toUpperCase(), k = pbKey(nm); if (!k) { toast("Give the play a name, like SWAT."); return }
     if (!PB) PB = { v: 1, name: "Playbook", made: Date.now(), runs: {}, pass: [], alias: {} };
-    var d = pbRead(), old = PBE && PBE.data; if (old) { if (PB.runs[PBE.name] === old) delete PB.runs[PBE.name]; var oi = PB.pass.indexOf(old); if (oi >= 0) PB.pass.splice(oi, 1) }
-    if (d.run) { if (PB.runs[k] && !PB.runs[k].built && !confirmReplace()) return; PB.runs[k] = d.run } else { d.pass.t = nm; PB.pass.push(d.pass) }
+    var d = pbRead(), old = PBE && PBE.data; if (old) { PB.del = PB.del || {}; if (PB.runs[PBE.name] === old) { delete PB.runs[PBE.name]; PB.del["r:" + PBE.name] = 1 } if (old.t) PB.del["p:" + old.t] = 1; var oi = PB.pass.indexOf(old); if (oi >= 0) PB.pass.splice(oi, 1) }
+    PB.del = PB.del || {}; if (d.run) { if (PB.runs[k] && !PB.runs[k].built && !confirmReplace()) return; PB.runs[k] = d.run; delete PB.del["r:" + k] } else { d.pass.t = nm; PB.pass.push(d.pass); delete PB.del["p:" + nm] }
     pbSave(); $("pbForm").hidden = true; PBE = null; toast(k + " saved to your playbook") };
   function confirmReplace() { toast("That run is already in your uploaded playbook. Pick another name."); return false }
   $("pbBox").addEventListener("toggle", function () { if ($("pbBox").open) pbList() });
@@ -972,7 +986,8 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
   var local = store.get("sol-mock-files"); usePack(local); loadData();
   cloud("files").then(function (p) { if (p && p.at && (!local || p.at > (local.at || 0)) && usePack(p)) { store.set("sol-mock-files", p); loadData() } }, function () {});
   usePlaybook(store.get("sol-mock-playbook"));
-  cloud("playbook").then(function (t) { if (typeof t === "string") { try { var b = JSON.parse(t); if (usePlaybook(b)) store.set("sol-mock-playbook", b) } catch (e) {} } }, function () {});
+  cloud("playbook").then(function (t) { if (typeof t !== "string") return; var b = null; try { b = JSON.parse(t) } catch (e) {} if (!b || !b.runs || !b.pass) return;
+    if (!PB) { PB = b; pbLocal(); return } var mine = pbMerge(b, PB); PB = b; pbLocal(); if (mine && canEdit() && authGet()) cloud("playbook", "PUT", JSON.stringify(PB)).catch(function () {}) }, function () {});
   cloud("sheet").then(function (t) { if (typeof t === "string") { try { var s = JSON.parse(t); if (useSheet(s)) store.set("sol-mock-sheet", s) } catch (e) {} } }, function () {});
 
   // ---------- schedule folders: pick this week's opponent and use the data Reports sent ----------

@@ -49,6 +49,20 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
     <h2>Run a game your way <small>Practice calling a game, or practice charting one</small></h2>
     <label class="drop big" id="dSheet" for="fSheet"><b>Upload your call sheet</b><span id="nSheet">Your sheet, laid out like it is on game day. Google Sheets: File, Download, Microsoft Excel (.xlsx).</span><input type="file" id="fSheet" accept=".xlsx" hidden></label>
     <label class="drop" id="dBook" for="fBook" style="margin-top:10px"><b>Upload your playbook (optional)</b><span id="nBook">Your routes and blocking, so every play runs the way you drew it. Use the playbook file made from your pass and run books.</span><input type="file" id="fBook" accept=".json,application/json" hidden></label>
+    <details id="pbBox" style="margin-top:10px"><summary style="cursor:pointer;font-weight:700">Playbook builder: add plays your playbook doesn't have</summary>
+      <p class="note" id="pbMissN" style="margin:8px 0 6px"></p><div id="pbMiss" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+      <div class="row" style="margin-top:10px"><button class="btn pri" id="pbNew" type="button">+ New play</button></div>
+      <div id="pbForm" hidden style="margin-top:10px;border:1px solid var(--line);border-radius:10px;padding:12px;background:var(--panel2)">
+        <div class="row" style="align-items:flex-end"><label class="f">Play name<input type="text" id="pbName" placeholder="SWAT"></label><label class="f">Type<select id="pbType"><option value="run">Run</option><option value="pass">Pass</option></select></label></div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:10px">
+          <div><div id="pbRun"><div class="row" style="flex-wrap:wrap;gap:8px"><label class="f">Which way it goes<select id="pbTow"></select></label></div>
+            <p class="note" style="margin:6px 0">The hole number in the call still picks left or right. Blocks are drawn going to the play side.</p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><label class="f">Backside tackle<select id="pbo_bst"></select></label><label class="f">Backside guard<select id="pbo_bsg"></select></label><label class="f">Center<select id="pbo_c"></select></label><label class="f">Playside guard<select id="pbo_psg"></select></label><label class="f">Playside tackle<select id="pbo_pst"></select></label><label class="f">TE<select id="pbTe"></select></label><label class="f">RB<select id="pbRb"></select></label><label class="f">QB<select id="pbQb"></select></label></div></div>
+            <div id="pbPass" hidden><p class="note" style="margin:0 0 6px">Routes break toward or away from the ball on their own, so one play works from either side.</p><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><label class="f">#1 (outside left)<select id="pbr_1"></select></label><label class="f">#2 (slot left)<select id="pbr_2"></select></label><label class="f">#3 (slot / TE right)<select id="pbr_3"></select></label><label class="f">#4 (outside right)<select id="pbr_4"></select></label><label class="f">RB<select id="pbr_RB"></select></label></div></div></div>
+          <canvas id="pbCv" width="520" height="300" style="width:100%;border-radius:8px" aria-label="Play preview"></canvas></div>
+        <div class="row" style="margin-top:10px"><button class="btn pri" id="pbSaveBtn" type="button">Save to playbook</button><button class="btn" id="pbCancel" type="button">Cancel</button></div></div>
+      <div style="margin-top:12px"><div class="note" style="margin:0 0 4px;font-weight:700">Plays you've built</div><div id="pbMine"></div></div>
+    </details>
     <div class="grid3" style="margin-top:10px">
       <label class="mode"><input type="radio" name="mode" value="call" checked><span><b>Call the game</b><span class="note">Tap a play, snap it, and the result comes back on its own.</span></span></label>
       <label class="mode"><input type="radio" name="mode" value="chart"><span><b>Charting practice</b><span class="note">Hear the call, then chart the play, result and spot. You're graded on it.</span></span></label>
@@ -590,15 +604,15 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
 
   // ======================= YOUR PLAYBOOK: real routes and blocking (uploaded once, saved to the school) =======================
   var PB = null, PBK = [];
-  var PB_STRIP = /^(GOLD|SLOT|TRIG|DIP|BND|FIB|GAS|LTY|RTY|QUADS|RED|TEXAS|BOSTON|SIDELINE|BUNCH|Q|LT|RT|LH|RH|FLIP)$/;
-  function pbTok(name) { var s = String(name || "").toUpperCase().replace(/\([^)]*\)/g, " ").replace(/\b\d+\s*\*\s*\d+\b(?=\s*[A-Z])/g, " ").replace(/(\d+)\s*\*\s*(\d+)/g, "$1X$2").replace(/[^A-Z0-9# ]+/g, " ");
+  var PB_STRIP = /^(GOLD|SLOT|TRIG|DIP|BND|FIB|GAS|LTY|RTY|QUADS|RED|TEXAS|BOSTON|SIDELINE|BUNCH|Q|LT|RT|LH|RH|FLIP|TX|OV|BITE|H|HVY|FLD|TAT|STK|CALF)$/;
+  function pbTok(name) { var s = String(name || "").toUpperCase().replace(/=.*$/, " ").replace(/\([^)]*\)/g, " ").replace(/\b\d+\s*\*\s*\d+\b(?=\s*[A-Z])/g, " ").replace(/(\d+)\s*\*\s*(\d+)/g, "$1X$2").replace(/[^A-Z0-9# ]+/g, " ");
     return s.split(/\s+/).filter(function (w) { return w && !PB_STRIP.test(w) && !/^\d+$/.test(w) }).map(function (w) { return PB && PB.alias && PB.alias[w] || w }) }
-  function usePlaybook(b) { if (!b || !b.pass || !b.runs) return false; PB = b; PBK = b.pass.map(function (p) { return pbTok(p.t) });
+  function usePlaybook(b) { if (!b || !b.pass || !b.runs) return false; PB = b; b.alias = b.alias || {}; PBK = b.pass.map(function (p) { return pbTok(p.t) });
     $("nBook").textContent = (b.name || "Playbook") + " · " + b.pass.length + " pass plays, " + Object.keys(b.runs).length + " runs"; $("dBook").classList.add("ok"); return true }
   function pbFind(c) {
     if (!PB || !c) return null; var t = pbTok(c.lab || c.name);
     if (!t.length) return null;
-    if (c.run && PB.runs[t.join(" ")]) return { run: PB.runs[t.join(" ")] };
+    if (PB.runs[t.join(" ")] && (c.run || PB.runs[t.join(" ")].built)) return { run: PB.runs[t.join(" ")] };
     var best = null, bx = 1e9;
     PBK.forEach(function (k, i) { var used = {}, ok = t.every(function (w) { for (var j = 0; j < k.length; j++) if (!used[j] && k[j].indexOf(w) === 0) { used[j] = 1; return true } return false });
       if (!ok) return; var extra = k.length - Object.keys(used).length; if (extra < bx) { bx = extra; best = PB.pass[i] } });
@@ -617,6 +631,7 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
   function teOf(o, bx) { var c = o.slice(6, 10).filter(function (r) { return Math.abs(r.x - bx) < 7 && r.y > -2.6 }).sort(function (a, b) { return Math.abs(a.x - bx) - Math.abs(b.x - bx) }); return c[0] || null }
   function olPath(a, p, s, bx) { var x = p.x, y = p.y, X = function (d) { return x + s * d }, hole = bx + s * 2.4, edge = bx + s * 5.6;
     switch (a) {
+      case "base": return [[x, y], [X(.3), y + 1.4]];
       case "zone": return [[x, y], [X(1.1), y + 1], [X(1.6), y + 3.2]];
       case "reach": return [[x, y], [X(1.6), y + .5], [X(2.2), y + 2.2]];
       case "down": return [[x, y], [X(-1.2), y + 1.1], [X(-1.5), y + 2]];
@@ -649,7 +664,7 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
     } }
   // where each player goes on this call: book routes and blocks when the call is in your playbook, null when it isn't
   function bookPaths(c) {
-    var bk = pbFind(c); if (!bk) return null; var o = P.o, bx = bxOf(), out = { src: bk.run ? bk.run.from : "Pass book p." + bk.pass.pg, paths: [], pull: {} };
+    var bk = pbFind(c); if (!bk) return null; var o = P.o, bx = bxOf(), out = { src: bk.run ? bk.run.from : bk.pass.rt ? "Built in the app" : "Pass book p." + bk.pass.pg, paths: [], pull: {} };
     if (bk.run) {
       var r = bk.run, s = runSide(c, r), te = teOf(o, bx), role = s > 0 ? ["bst", "bsg", "c", "psg", "pst"] : ["pst", "psg", "c", "bsg", "bst"];
       o.forEach(function (p, i) {
@@ -660,10 +675,77 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
       });
       out.side = s; out.run = true;
     } else {
-      o.forEach(function (p, i) { if (i < 6) return; var R = bk.pass.r[p.lab]; out.paths[i] = R ? R.map(function (q) { return [p.x + q[0], p.y + q[1]] }) : (i === 10 ? [[p.x, p.y], [p.x, p.y + .4]] : [[p.x, p.y], [p.x, p.y + 1]]); if (!R) out.pull[i] = 2 });
+      o.forEach(function (p, i) { if (i < 6) return; var R = bk.pass.rt ? pbRoute(bk.pass.rt[i === 10 ? "RB" : p.lab], p, bx) : bk.pass.r[p.lab]; out.paths[i] = R ? R.map(function (q) { return [p.x + q[0], p.y + q[1]] }) : (i === 10 ? [[p.x, p.y], [p.x, p.y + .4]] : [[p.x, p.y], [p.x, p.y + 1]]); if (!R) out.pull[i] = 2 });
     }
     return out;
   }
+
+  // routes for plays made in the playbook builder, broken toward or away from the ball
+  var ROUTES = { go: "Go", post: "Post", corner: "Corner", out: "Out", dig: "In / dig", curl: "Curl", hitch: "Hitch", slant: "Slant", seam: "Seam", drag: "Drag", flat: "Flat", wheel: "Wheel", swing: "Swing", block: "Block" };
+  function pbRoute(r, p, bx) { if (!r) return null; var n = p.x <= bx ? 1 : -1, x = p.x, y = p.y, q = function (a) { return a.map(function (d) { return [x + d[0] * n, y + d[1]] }) };
+    switch (r) {
+      case "go": return q([[0, 0], [0, 18]]); case "seam": return q([[0, 0], [.6, 6], [.8, 18]]);
+      case "post": return q([[0, 0], [0, 10], [5, 18]]); case "corner": return q([[0, 0], [0, 10], [-5, 16]]);
+      case "out": return q([[0, 0], [0, 10], [-5, 10]]); case "dig": return q([[0, 0], [0, 10], [7, 10]]);
+      case "curl": return q([[0, 0], [0, 10], [.8, 8.5]]); case "hitch": return q([[0, 0], [0, 5], [0, 4]]);
+      case "slant": return q([[0, 0], [0, 2], [6, 7]]); case "drag": return q([[0, 0], [0, 2], [12, 3]]);
+      case "flat": return q([[0, 0], [-1, 1], [-6, 2]]); case "wheel": return q([[0, 0], [-4, 2], [-6, 6], [-6, 18]]);
+      case "swing": return q([[0, 0], [-3, -.5], [-7, 1]]);
+      default: return null } }
+  // ======================= PLAYBOOK BUILDER =======================
+  var OLA = { base: "Base", down: "Down", deuce: "Double (deuce)", zone: "Zone", reach: "Reach", cutoff: "Cutoff", back: "Back", hinge: "Hinge", pull_kick: "Pull & kick", pull_wrap: "Pull & wrap" },
+    TEA = { base: "Block / base", kick: "Kick out", wrap: "Wrap", arc: "Arc", cut: "Cut off", split: "Split (across)", split_lb: "Split to LB", zone: "Zone" },
+    RBA = { power: "Power", counter: "Counter", zone: "Zone", outside: "Outside", split: "Split / cut back", draw: "Draw" },
+    QBA = { hand: "Hand off", keep: "Keep / read", option: "Option" },
+    TOW = { te: "Toward the TE", away: "Away from the TE", strong: "Strong side", weak: "Weak side" },
+    OLN = [["bst", "Backside tackle"], ["bsg", "Backside guard"], ["c", "Center"], ["psg", "Playside guard"], ["pst", "Playside tackle"]],
+    PBE = null; // what the form is editing
+  function opts(o, v) { return Object.keys(o).map(function (k) { return '<option value="' + k + '"' + (k === v ? " selected" : "") + ">" + o[k] + "</option>" }).join("") }
+  function pbKey(n) { return pbTok(n).join(" ") }
+  function pbHas(c) { return !!pbFind(c) }
+  function pbBuilt() { if (!PB) return []; var o = []; Object.keys(PB.runs).forEach(function (k) { if (PB.runs[k].built) o.push({ k: k, run: PB.runs[k] }) }); PB.pass.forEach(function (p, i) { if (p.rt) o.push({ k: pbKey(p.t), pass: p, i: i }) }); return o }
+  function pbSave() { claim(); usePlaybook(PB); store.set("sol-mock-playbook", PB); if (canEdit() && authGet()) cloud("playbook", "PUT", JSON.stringify(PB)).catch(function () {}); pbList(); if (G) { poses(); refresh() } }
+  function pbList() { var box = $("pbMiss"), out = $("pbMine"); if (!box) return;
+    var seen = {}, miss = SHEET ? allPlays().filter(function (c) { var k = pbKey(c.lab || c.name); if (!k || seen[k] || /PERSONNEL|DOWN|ZONE \(|^NOTES$/.test(k) && !c.run) return false; seen[k] = 1; return !pbHas(c) }) : [];
+    $("pbMissN").textContent = SHEET ? miss.length ? miss.length + " calls on your sheet aren't in your playbook yet" : "Every call on your sheet is in your playbook" : "Load your call sheet to see which calls are missing";
+    box.innerHTML = ""; miss.forEach(function (c) { var b = document.createElement("button"); b.type = "button"; b.className = "btn"; b.textContent = "+ " + pbKey(c.lab || c.name); b.onclick = function () { pbOpen({ name: pbKey(c.lab || c.name), run: c.run }) }; box.appendChild(b) });
+    out.innerHTML = ""; pbBuilt().forEach(function (e) { var r = document.createElement("div"); r.className = "row"; r.style.margin = "4px 0"; r.innerHTML = "<b style='min-width:140px'>" + e.k + "</b><span class='note' style='margin:0'>" + (e.run ? "Run · " + TOW[e.run.toward] : "Pass") + "</span>";
+      var ed = document.createElement("button"); ed.type = "button"; ed.className = "btn"; ed.textContent = "Edit"; ed.onclick = function () { pbOpen(e.run ? { name: e.k, run: true, data: e.run } : { name: e.k, run: false, data: e.pass }) };
+      var del = document.createElement("button"); del.type = "button"; del.className = "btn"; del.textContent = "Delete"; del.onclick = function () { if (e.run) delete PB.runs[e.k]; else PB.pass.splice(PB.pass.indexOf(e.pass), 1); pbSave(); toast("Deleted " + e.k) };
+      r.appendChild(ed); r.appendChild(del); out.appendChild(r) });
+    if (!out.children.length) out.innerHTML = "<p class='note' style='margin:0'>No plays built yet.</p>" }
+  function pbOpen(e) { PBE = e; var d = e.data || {}, f = $("pbForm"); f.hidden = false; $("pbName").value = e.name || ""; $("pbType").value = e.run === false ? "pass" : e.run ? "run" : $("pbType").value;
+    var ol = d.ol || {}; OLN.forEach(function (n) { $("pbo_" + n[0]).innerHTML = opts(OLA, ol[n[0]] || "zone") });
+    $("pbTow").innerHTML = opts(TOW, d.toward || "te"); $("pbTe").innerHTML = opts(TEA, d.te || "base"); $("pbRb").innerHTML = opts(RBA, d.rb || "zone"); $("pbQb").innerHTML = opts(QBA, d.qb || "hand");
+    var rt = d.rt || {}; ["1", "2", "3", "4", "RB"].forEach(function (k) { $("pbr_" + k).innerHTML = opts(ROUTES, rt[k] || (k === "RB" ? "block" : "go")) });
+    pbType(); f.scrollIntoView({ block: "nearest" }) }
+  function pbType() { var run = $("pbType").value === "run"; $("pbRun").hidden = !run; $("pbPass").hidden = run; pbPrev() }
+  function pbRead() { var run = $("pbType").value === "run";
+    if (run) { var ol = {}; OLN.forEach(function (n) { ol[n[0]] = $("pbo_" + n[0]).value }); return { run: { from: "Built in the app", built: 1, toward: $("pbTow").value, ol: ol, te: $("pbTe").value, rb: $("pbRb").value === "draw" ? "split" : $("pbRb").value, rbn: $("pbRb").value, qb: $("pbQb").value } } }
+    var rt = {}; ["1", "2", "3", "4", "RB"].forEach(function (k) { rt[k] = $("pbr_" + k).value }); return { pass: { t: $("pbName").value.trim().toUpperCase(), pg: "built in the app", rt: rt, r: {} } } }
+  // top-down preview, play going right (to the TE)
+  function pbPrev() { var c = $("pbCv"); if (!c) return; var g = c.getContext("2d"), w = c.width, h = c.height, u = w / ($("pbType").value === "run" ? 20 : 44), X = function (x) { return w / 2 + x * u }, Y = function (y) { return h * ($("pbType").value === "run" ? .4 : .7) - y * u }, rd = Math.min(u * .8, 11);
+    g.fillStyle = "#1d5631"; g.fillRect(0, 0, w, h); g.strokeStyle = "rgba(255,255,255,.35)"; g.beginPath(); g.moveTo(0, Y(0)); g.lineTo(w, Y(0)); g.stroke();
+    var d = pbRead(), pl = [], bx = 0, s = 1;
+    var ln = function (pts, col, dash) { if (!pts || pts.length < 2) return; g.strokeStyle = col; g.lineWidth = 2; g.setLineDash(dash || []); g.beginPath(); g.moveTo(X(pts[0][0]), Y(pts[0][1])); pts.slice(1).forEach(function (q) { g.lineTo(X(q[0]), Y(q[1])) }); g.stroke(); g.setLineDash([]) };
+    var dot = function (p, t) { g.fillStyle = "#c8102e"; g.beginPath(); g.arc(X(p.x), Y(p.y), rd, 0, 7); g.fill(); g.fillStyle = "#fff"; g.font = "bold " + Math.round(rd * 1.1) + "px sans-serif"; g.textAlign = "center"; g.fillText(t, X(p.x), Y(p.y) + rd * .4) };
+    if (d.run) { var r = d.run, role = ["bst", "bsg", "c", "psg", "pst"], ols = [-4, -2, 0, 2, 4].map(function (x) { return { x: x, y: -.6 } }), te = { x: 6.2, y: -.9 }, rb = { x: 0, y: -6 }, qb = { x: 0, y: -1.8 };
+      if (r.toward === "away" || r.toward === "weak") { te.x = -6.2 }
+      ols.forEach(function (p, i) { var a = r.ol[role[i]]; ln(olPath(a, p, s, bx), "#fff", /pull/.test(a) ? [5, 4] : []); dot(p, ["T", "G", "C", "G", "T"][i]) });
+      ln(tePath(r.te, te, s, bx), "#fff"); dot(te, "Y"); ln(rbPath(r.rb, rb, s, bx), "#f2c14e"); dot(rb, "R"); dot(qb, "Q") }
+    else { var spots = { "1": { x: -18, y: -.9 }, "2": { x: -11, y: -.9 }, "3": { x: 11, y: -.9 }, "4": { x: 18, y: -.9 }, RB: { x: -1.5, y: -5.5 } };
+      [-4, -2, 0, 2, 4].forEach(function (x, i) { dot({ x: x, y: -.6 }, ["T", "G", "C", "G", "T"][i]) }); dot({ x: 0, y: -4 }, "Q");
+      Object.keys(spots).forEach(function (k) { var p = spots[k], rr = d.pass.rt[k]; ln(pbRoute(rr, p, bx), k === "RB" ? "#f2c14e" : "#fff"); dot(p, k === "RB" ? "R" : k) }) } }
+  $("pbType").onchange = pbType; $("pbForm").addEventListener("change", pbPrev);
+  $("pbNew").onclick = function () { pbOpen({ name: "" }) };
+  $("pbCancel").onclick = function () { $("pbForm").hidden = true; PBE = null };
+  $("pbSaveBtn").onclick = function () { var nm = $("pbName").value.trim().toUpperCase(), k = pbKey(nm); if (!k) { toast("Give the play a name, like SWAT."); return }
+    if (!PB) PB = { v: 1, name: "Playbook", made: Date.now(), runs: {}, pass: [], alias: {} };
+    var d = pbRead(), old = PBE && PBE.data; if (old) { if (PB.runs[PBE.name] === old) delete PB.runs[PBE.name]; var oi = PB.pass.indexOf(old); if (oi >= 0) PB.pass.splice(oi, 1) }
+    if (d.run) { if (PB.runs[k] && !PB.runs[k].built && !confirmReplace()) return; PB.runs[k] = d.run } else { d.pass.t = nm; PB.pass.push(d.pass) }
+    pbSave(); $("pbForm").hidden = true; PBE = null; toast(k + " saved to your playbook") };
+  function confirmReplace() { toast("That run is already in your uploaded playbook. Pick another name."); return false }
+  $("pbBox").addEventListener("toggle", function () { if ($("pbBox").open) pbList() });
 
   // ======================= DRAWING: high end-zone camera =======================
   var cv = $("fld"), cx = cv.getContext("2d"), W, H, CAMY = -21, F, HOR, CAMH, CAMX = 0, NARROW = false, camBall = 30;
@@ -864,7 +946,7 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
   function me() { var a = authGet(); return a && a.uid }
   function canEdit() { return !SHARED && (!OWNER || OWNER === me()) }
   function claim() { if (!SHARED && !OWNER && me()) { OWNER = me(); cloud("owner", "PUT", OWNER).catch(function () {}); lockUI() } }
-  function lockUI() { var ok = canEdit(); $("dSheet").hidden = !ok; $("dBook").hidden = !ok; $("filmBox").hidden = !ok; $("shareBox").hidden = !(ok && me()); $("stopBtn").hidden = !store.get("sol-mock-share"); $("lockNote").hidden = ok; $("lockNote").textContent = SHARED ? "Shared with you: " + (SHEET ? SHEET.name : "call sheet") + ". Nothing you do here changes the original." : "Your head account manages this call sheet and film." }
+  function lockUI() { var ok = canEdit(); $("dSheet").hidden = !ok; $("dBook").hidden = !ok; $("pbBox").hidden = !ok; $("filmBox").hidden = !ok; $("shareBox").hidden = !(ok && me()); $("stopBtn").hidden = !store.get("sol-mock-share"); $("lockNote").hidden = ok; $("lockNote").textContent = SHARED ? "Shared with you: " + (SHEET ? SHEET.name : "call sheet") + ". Nothing you do here changes the original." : "Your head account manages this call sheet and film." }
   $("shareBtn").onclick = function () { if (!SHEET) { toast("Upload your call sheet first."); return } var tok = ""; while (tok.length < 24) tok += Math.random().toString(36).slice(2); tok = tok.slice(0, 24);
     var body = { by: me(), at: Date.now(), items: JSON.stringify({ book: PB, sheet: SHEET, ours: RAW.ours, them: RAW.them, align: ALIGN, us: $("usName").value, opp: $("oppName").value }) };
     solToken().then(function (t) { return fetch(SOL.db + "/share/" + tok + ".json?auth=" + encodeURIComponent(t), { method: "PUT", body: JSON.stringify(body) }) }).then(function (r) { if (!r.ok) throw 0; store.set("sol-mock-share", tok); var u = $("shareUrl"); u.value = location.origin + location.pathname + "?share=" + tok; u.hidden = false; u.select(); if (navigator.clipboard) navigator.clipboard.writeText(u.value).catch(function () {}); toast("Link ready"); lockUI() }).catch(function () { toast("Couldn't make the link. Check your connection and sign-in.") }) };

@@ -377,6 +377,13 @@ body.infinal #v-chart .panel, body.infinal #v-chart .spotpanel, body.infinal #v-
 .gdcheck { margin: 0 36px 0; padding: 16px 18px; border: 1px solid var(--hl); border-radius: 14px; background: #0f161e } .gdcheck h3 { margin: 0 0 10px; font-family: var(--f-display); font-size: 20px; letter-spacing: .04em; text-transform: uppercase; color: #e8edf2 }
 .gdcheck ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 6px 14px } .gdcheck li { display: flex; gap: 10px; align-items: baseline; font-size: 15px; color: #cfd8e2 } .gdcheck li b { font-size: 17px; width: 20px; flex: none } .gdcheck li.ok b { color: #4ade80 } .gdcheck li.no b { color: #f87171 } .gdcheck li.na b { color: #64748b } .gdcheck li a { color: #6EC926 }
 .bkbar { margin: 14px 36px 0; padding: 10px 14px; border-radius: 10px; background: #1b2633; color: #e8edf2; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 14.5px }
+.gdcheck .wzbar { height: 8px; border-radius: 99px; background: #233040; overflow: hidden; margin: 2px 0 14px } .gdcheck .wzbar i { display: block; height: 100%; background: #6EC926; border-radius: 99px; transition: width .3s }
+.gdcheck .wzn { color: #9aa7b6; font-size: 14px; font-weight: 600; margin-left: 8px; letter-spacing: 0; text-transform: none; font-family: var(--f-body, inherit) }
+.gdcheck ol.wz { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px } .wz li { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; border: 1px solid #233040; background: #121b25 }
+.wz li .wzc { flex: 0 0 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; border: 2px solid #3a4652; color: #9aa7b6 } .wz li.ok .wzc { background: #6EC926; border-color: #6EC926; color: #11161a }
+.wz li .wzt { flex: 1; min-width: 0 } .wz li .wzt b { display: block; color: #e8edf2; font-size: 16px } .wz li .wzt span { font-size: 14px; color: #9aa7b6 } .wz li.ok .wzt b { color: #9aa7b6 }
+.wz li.cur { border-color: #6EC926; background: #15241a } .wz li.cur .wzc { border-color: #6EC926; color: #6EC926 } .wz li .wzgo { flex: none; font: inherit; font-weight: 800; padding: 9px 14px; border-radius: 10px; border: 1px solid #3a4652; background: transparent; color: #e8edf2; cursor: pointer } .wz li.cur .wzgo { background: #6EC926; border-color: #6EC926; color: #11161a }
+.wz li.opt .wzc { border-style: dashed } .gdcheck .wz li { align-items: center } .gdcheck .wz li .wzt b { width: auto; flex: none; font-size: 16px }
 @media (max-width: 640px) { .gdcheck, .bkbar { margin-left: 18px; margin-right: 18px } }
 #v-report tr.plrow td { cursor: pointer } #v-report tr.plrow:hover td { background: color-mix(in srgb, var(--red) 10%, transparent) } #v-report tr.plrow td:first-child::after { content: " ▶"; color: var(--red); font-size: 11px }
 .reels { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 0 0 10px; padding: 8px 10px; border-radius: 10px; background: var(--chip) } .reels b { font-family: var(--f-display); letter-spacing: .06em; text-transform: uppercase; font-size: 14px } .reels .btn { font-size: 14px; padding: 6px 10px }
@@ -3093,26 +3100,43 @@ textarea { min-height: 64px }
     b.querySelectorAll("[data-tn]").forEach(function (x) { x.addEventListener("click", function () { b.hidden = true; if (x.dataset.tn !== "skip") openCell(idx, x.dataset.tn) }) });
   }
   // ---------- game-day checklist (Home) ----------
+  // ---------- setup wizard: this week's game, one step at a time ----------
+  function wzGo(k, w) {
+    var at = function (tab, sel) { $(tab).click(); setTimeout(function () { var e = typeof sel === "string" ? document.querySelector(sel) : sel; if (e && e.scrollIntoView) e.scrollIntoView({ block: "center" }); if (e && e.focus) e.focus() }, 80) };
+    if (k === "sched") { var g = $("hGames"); if (g) g.classList.add("open"); var t = $("hsToggle"); if (t) t.click(); setTimeout(function () { if (g && g.scrollIntoView) g.scrollIntoView({ block: "start" }) }, 60) }
+    else if (k === "game") at("t-week", "#newGame");
+    else if (k === "join") $("t-home").click();
+    else if (k === "roster") at("t-setup", "#lRoster");
+    else if (k === "sheet") at("t-week", "#cePanel");
+    else if (k === "scout" || k === "sim") location.href = "reports.html";
+    else if (k === "code") { var c = (w && w.gc) || ""; if (c && navigator.clipboard) navigator.clipboard.writeText(c).then(function () { toast("Game code " + c + " copied. Send it to your staff.") }, function () { toast("Game code: " + c) }); else toast(c ? "Game code: " + c : "Set up the game first") }
+  }
   function gdCheck() {
     var box = $("gdCheck"); if (!box) return;
     var w = WK.cur || (WK.list ? wkNext(WK.list) : null); if (!ONLINE || !w) { box.hidden = true; return }
-    var L = HOME.list || {}, rk = realOf(L, w.date), g = rk ? L[rk] : null, mine = SY.cfg && rk && SY.cfg.code === rk;
-    var items = [], add = function (ok, txt, extra) { items.push("<li class='" + (ok === true ? "ok" : ok === false ? "no" : "na") + "'><b>" + (ok === true ? "✓" : ok === false ? "✗" : "…") + "</b><span>" + txt + (extra ? " " + extra : "") + "</span></li>") };
-    add(!!g, g ? "Week's game is set up" + (g.gc ? " · code <b>" + esc(g.gc) + "</b>" : "") : "Set up this week's game (folder below)");
-    add(!!mine, mine ? "This device is in the game" : "This device isn't in the week's game yet");
-    add(roster().length >= 5, roster().length + " players on the roster (Setup)");
-    add(!!(S.sheetGrid || (S.sheet && S.sheet.length)), S.sheetGrid ? "Call sheet uploaded" : "Call sheet: upload this week's (Setup → Call sheet)");
-    var draw = function (ex) { $("gdTitle").textContent = "Game-day checklist · " + wkLab(w.date) + " · " + (w.ha === "A" ? "at " : "vs ") + w.opp; $("gdList").innerHTML = items.concat(ex || []).join(""); box.hidden = false };
-    draw([]);
-    var X = [];
-    Promise.all([wkGet("/weeks/" + w.date + "/scout"), wkGet("/weeks/" + w.date + "/sim"), wkGet("/weeks/" + w.date + "/pred"), rk ? fetch(solSchoolBase() + "/games/" + encodeURIComponent(rk) + "/presence.json" + solAuthQ()).then(function (r) { return r.ok ? r.json() : null }, function () { return null }) : Promise.resolve(null)]).then(function (R) {
-      var push = function (ok, txt) { X.push("<li class='" + (ok ? "ok" : "no") + "'><b>" + (ok ? "✓" : "✗") + "</b><span>" + txt + "</span></li>") };
-      push(!!(R[0] && R[0].sits), R[0] && R[0].sits ? "Scout sent to the chart (" + esc(R[0].name || "scout") + ")" : "Scout: send it from <a href='reports.html'>Reports</a>");
-      push(!!(R[1] && R[1].tend), R[1] && R[1].tend ? "Pregame Sim run · projects " + R[1].tend.pts.mid + " points" : "Pregame Sim: run it on <a href='reports.html'>Reports</a>");
-      push(!!(R[2] && R[2].us != null), R[2] && R[2].us != null ? "Matchup projection " + R[2].us + "–" + R[2].them : "Matchup Predictor: add scores on <a href='reports.html'>Reports</a>");
-      if (rk) { var P = R[3] || {}, now = Date.now(), live = Object.keys(P).map(function (k) { return P[k] }).filter(function (x) { return x && now - (x.at || 0) < 120000 }), o = live.filter(function (x) { return x.role === "offense" }).length, d = live.length - o;
-        push(live.length >= 2, live.length ? live.length + " device" + (live.length === 1 ? "" : "s") + " in the game now (" + o + " offense, " + d + " defense)" : "No devices in the game right now") }
-      draw(X);
+    var L = HOME.list || {}, rk = realOf(L, w.date), g = rk ? L[rk] : null, mine = SY.cfg && rk && SY.cfg.code === rk, t = wkToday();
+    var over = w.date < t && !(WK.list || []).some(function (x) { return x.date >= t });
+    var steps = over ? [{ k: "sched", ok: false, t: "Add your next game", d: "The " + w.opp + " game is done. Add next week's game and setup starts over for it." }] : [
+      { k: "game", ok: !!g, t: "Set up the game", d: g ? "Ready" + (g.gc ? " · game code " + esc(g.gc) : "") : "Opponent and game code for " + w.opp },
+      { k: "roster", ok: roster().length >= 5, t: "Add your roster", d: roster().length >= 5 ? roster().length + " players" : "Paste a list: number, position, name" },
+      { k: "sheet", ok: !!(S.sheetGrid || (S.sheet && S.sheet.length)), t: "Upload the call sheet", d: S.sheetGrid ? "Uploaded" : "Straight from Google Sheets or Excel" },
+      { k: "scout", ok: null, t: "Scout the opponent", d: "Drop in their Hudl export on Reports", opt: 1 },
+      { k: "sim", ok: null, t: "Score prediction", d: "Pregame Sim and matchup scores on Reports", opt: 1 },
+      { k: "join", ok: !!mine, t: "Put this device in the game", d: mine ? "Done" : "Tap Continue charting at the top of Home" },
+      { k: "code", ok: !!(g && g.gc), t: "Share the game code with your staff", d: g && g.gc ? "Code " + esc(g.gc) + " · tap to copy" : "Every device joins with it" } ];
+    var draw = function () {
+      var need = steps.filter(function (x) { return !x.opt }), done = steps.filter(function (x) { return x.ok }).length, cur = steps.filter(function (x) { return x.ok !== true })[0];
+      $("gdTitle").innerHTML = (over ? "Season setup" : "Get ready · " + (w.ha === "A" ? "at " : "vs ") + esc(w.opp)) + "<span class='wzn'>" + (over ? "" : done + " of " + steps.length + " done") + "</span>";
+      $("gdList").outerHTML = "<div id='gdList'><div class='wzbar'><i style='width:" + Math.round(100 * done / steps.length) + "%'></i></div><ol class='wz'>" + steps.map(function (x, i) {
+        var c = (x.ok ? "ok" : "") + (x === cur ? " cur" : "") + (x.opt ? " opt" : "");
+        return "<li class='" + c + "'><span class='wzc'>" + (x.ok ? "✓" : i + 1) + "</span><span class='wzt'><b>" + x.t + (x.opt && !x.ok ? " <small style='font-weight:600;color:#9aa7b6'>optional</small>" : "") + "</b><span>" + x.d + "</span></span>" + (x.ok && x.k !== "code" ? "" : "<button type='button' class='wzgo' data-wz='" + x.k + "'>" + (x.k === "code" ? "Copy code" : x.ok ? "Open" : "Do it") + "</button>") + "</li>" }).join("") + "</ol></div>";
+      document.querySelectorAll("#gdList [data-wz]").forEach(function (b) { b.addEventListener("click", function () { wzGo(b.dataset.wz, g) }) });
+      box.hidden = false };
+    draw(); if (over) return;
+    Promise.all([wkGet("/weeks/" + w.date + "/scout"), wkGet("/weeks/" + w.date + "/sim"), wkGet("/weeks/" + w.date + "/pred")]).then(function (R) {
+      steps[3].ok = !!(R[0] && R[0].sits); if (steps[3].ok) steps[3].d = "Sent to the chart (" + esc(R[0].name || "scout") + ")";
+      steps[4].ok = !!((R[1] && R[1].tend) || (R[2] && R[2].us != null)); if (steps[4].ok) steps[4].d = R[2] && R[2].us != null ? "Projected " + R[2].us + "–" + R[2].them : "Projects " + R[1].tend.pts.mid + " points";
+      draw();
     });
   }
   // ---------- season backup (admin) ----------

@@ -409,9 +409,7 @@ body.inapp .h-hero, body.inapp .h-prod { display: none }
 /* nav per role */
 nav [data-tab="games"], nav #t-drives, nav .navlink[href] { display: none }
 body.role-film nav #t-log, body.role-film nav #t-report, body.role-film nav #t-week { display: none }
-body.role-view nav #t-week, body.role-view nav #t-setup { display: none }
-body.role-chart nav #t-home, body.role-chart nav #t-log, body.role-chart nav #t-report, body.role-chart nav #t-week, body.role-chart nav #t-setup { display: none }
-body.role-hc nav #t-log { display: none } body.role-chart #v-chart #ncBox, body.role-chart #filmBar { display: none !important } body.role-hc #v-chart #ncBox, body.role-hc #v-chart .ncwrap { display: none !important }
+body.role-view:not(.role-oc):not(.role-hc) nav #t-week, body.role-view:not(.role-oc):not(.role-hc) nav #t-setup { display: none }
 /* view only: watch the game, no charting */
 body.role-view #v-chart .spotpanel, body.role-view #v-chart .inmode, body.role-view #v-chart #gsPanel, body.role-view #v-chart .grid2, body.role-view #v-chart #chartActs, body.role-view #v-chart .trypanel, body.role-view #filmBar { display: none !important }
 body.role-view #v-chart .panel:has(#cRes), body.role-view #v-chart .panel:has(#chartActs) { display: none !important }
@@ -1123,15 +1121,15 @@ textarea { min-height: 64px }
 <div class="modal" id="roleModal" hidden role="dialog" aria-modal="true" aria-labelledby="roleTitle">
   <div class="mbox">
     <h3 id="roleTitle" style="margin:0">What's your job tonight?</h3>
-    <p class="note" style="margin:4px 0 0">This device will only show what that job needs. Change it any time from the button at the top. It asks again next game night.</p>
+    <p class="note" style="margin:4px 0 0">Every tab stays. Your job just sets where this device starts. Change it any time from the button at the top.</p>
     <div class="rolegrid">
-      <button type="button" data-pick="chart"><b>Offense charter</b><span>Just the chart. Log every snap. Students and managers start here.</span></button>
-      <button type="button" data-pick="defense"><b>Defense charter</b><span>Just the defense chart for this game.</span></button>
-      <button type="button" data-pick="oc"><b>Offensive coordinator</b><span>Next Call, OC report and plays, live. Nothing to tap.</span></button>
-      <button type="button" data-pick="hc"><b>Head coach</b><span>Score, win chance, 4th-down help and the halftime report.</span></button>
+      <button type="button" data-pick="chart"><b>Offense charter</b><span>Opens right to the chart. Log every snap.</span></button>
+      <button type="button" data-pick="defense"><b>Defense charter</b><span>Opens the defense chart for this game.</span></button>
+      <button type="button" data-pick="oc"><b>Offensive coordinator</b><span>Opens on Live with Next Call on top. Watch only.</span></button>
+      <button type="button" data-pick="hc"><b>Head coach</b><span>Opens on Live: score, win chance, 4th down, halftime. Watch only.</span></button>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;font-size:14px"><button type="button" class="btn" data-pick="film">Film camera</button><button type="button" class="btn" data-pick="all">All tools (coach / admin)</button></div>
-    <div class="actions" style="margin-top:12px"><button class="btn" id="roleClose" type="button">Close</button></div>
+    <div class="actions" style="margin-top:12px"><button class="btn" id="roleClose" type="button">Skip, show everything</button></div>
   </div>
 </div>
 <div class="modal" id="plModal" hidden role="dialog" aria-modal="true" aria-labelledby="plTitle">
@@ -5754,8 +5752,8 @@ textarea { min-height: 64px }
   function roleSet(r) {
     try { localStorage.setItem(ROLE_KEY, JSON.stringify({ r: r, d: wkToday() })) } catch (e) {}
     if (r === "defense") { location.href = "defense.html"; return }
-    roleApply(); $("roleModal").hidden = true; $("t-chart").click();
-    if (r === "all") $("t-home").click();
+    roleApply(); $("roleModal").hidden = true; if (r === "all") return; $("t-chart").click();
+    if (r === "chart") setTimeout(function () { var e = $("fullInPanel"); if (e && e.scrollIntoView) e.scrollIntoView({ block: "start" }) }, 60); else window.scrollTo(0, 0);
     toast(r === "oc" || r === "hc" || r === "view" ? "Watching live: this device can't change plays" : r === "film" ? "Filming: tap Film this game to start" : r === "all" ? "All tools" : "Offense charter");
   }
   function roleOpen() { roleApply(); $("roleModal").hidden = false }
@@ -5763,7 +5761,7 @@ textarea { min-height: 64px }
   var roleAsked = false;
   function roleAsk() { if (roleAsked || roleRaw()) return; var t = wkToday(); if ((WK.list || []).some(function (x) { return x.date === t })) { roleAsked = true; roleOpen() } }
   setTimeout(roleAsk, 2500);
-  $("roleChip").addEventListener("click", roleOpen); $("roleClose").addEventListener("click", function () { $("roleModal").hidden = true });
+  $("roleChip").addEventListener("click", roleOpen); $("roleClose").addEventListener("click", function () { roleSet("all") });
   document.querySelectorAll("#roleModal [data-pick]").forEach(function (b) { b.addEventListener("click", function () { roleSet(b.dataset.pick) }) });
   document.querySelectorAll("[data-role-open]").forEach(function (b) { b.addEventListener("click", roleOpen) });
   document.querySelectorAll(".h-door [data-role]").forEach(function (b) { if (b.tagName === "BUTTON") b.addEventListener("click", function () { roleSet(b.dataset.role) }) });

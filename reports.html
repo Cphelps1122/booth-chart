@@ -252,6 +252,7 @@ details.more > .rail { margin-top: 8px }
   <div class="fldbar" id="fldBar" style="grid-column:1/-1"></div>
   <section class="view" id="vHome">
     <div class="wkhead"><div class="k" id="hmWhen">This week</div><h1 id="hmTitle">This week's reports</h1></div>
+    <details class="gdet" id="wkDet" style="margin:0 0 14px"><summary>Weeks in the report: <span id="wkSum">this week only</span></summary><div class="note" style="margin:8px 0 4px">Add other weeks' Hudl files to this report. They're read from their own folders and never copied into this one.</div><div class="chips" id="wkChips"></div></details>
     <div class="steps">
       <div class="step" id="st1"><div class="n">1</div><div class="tx"><b id="st1b">Add this week's Hudl files</b><span id="st1s">Pick what you're scouting, then drop the files. About a minute.</span></div><button class="big pri" id="st1go" type="button">Start</button></div>
       <div class="step" id="st2"><div class="n">2</div><div class="tx"><b>Check the report</b><span id="st2s">Ready after step 1.</span></div><button class="big" id="st2go" type="button">Open report</button></div>
@@ -2073,7 +2074,8 @@ details.more > .rail { margin-top: 8px }
   function wkSaveLists() { if (!WK.cur || FOLDER === "self") return; var L = hudlLists(); wkPut("/weeks/" + WK.cur.date + "/hudlLists/" + SIDE, L).catch(function () {}) }
   function wkSaveFiles() { wkSaveLists();
     if (!WK.cur && FOLDER !== "self") return;
-    var v = RAW.length ? RAW.map(function (f) { return { name: f.name, data: JSON.stringify({ h: f.header, r: f.rows }) } }) : null;
+    var OWN = RAW.filter(function (f) { return !f.from });
+    var v = OWN.length ? OWN.map(function (f) { return { name: f.name, data: JSON.stringify({ h: f.header, r: f.rows }) } }) : null;
     wkPut(wkPath("/files"), v).then(function () { $("wkMsg").textContent = RAW.length ? "Saved to " + (FOLDER === "self" ? "the self scout folder" : wkNice(WK.cur)) + "." : "" }, function () { toast("Couldn't save to this week. Check the connection.") });
   }
   function wkSaveState() {
@@ -2095,7 +2097,7 @@ details.more > .rail { margin-top: 8px }
       else if (S2 && S2.cur && S2.cur.secs) { CUR = S2.cur; SIDE = S2.side || CUR.side || SIDE } else { var keep = CUR && !CUR.mine && CUR.id !== "self" ? PRESETS.filter(function (p) { return p.id === CUR.id })[0] : null; useTemplate(keep || PRESETS.filter(function (p) { return p.id === "oppD" })[0]); CUR.team = CUR.id === "self" ? CUR.team : opp }
       build(); if (S2 && S2.on) Object.keys(S2.on).forEach(function (k) { GAMESON[k] = S2.on[k] });
       WKS.lastState = JSON.stringify({ cur: CUR, side: SIDE, on: GAMESON }); WKS.loading = false;
-      store.set("cur", CUR); renderAll(); if (RAW.length) wkSaveLists();
+      store.set("cur", CUR); renderAll(); if (RAW.length) wkSaveLists(); wkExtras(e);
       fldChrome(e);
       $("wkMsg").textContent = !e ? "" : self ? (RAW.length ? "Self scout: " + RAW.length + " saved file" + (RAW.length === 1 ? "" : "s") + ", " + ROWS.length + " plays." : "Self scout: nothing here yet. Add our Hudl exports, or send a charted game from its week.") : RAW.length ? wkNice(e) + ": " + RAW.length + " saved file" + (RAW.length === 1 ? "" : "s") + ", " + ROWS.length + " plays." : wkNice(e) + ": nothing uploaded yet. Add this week's Hudl exports.";
     };
@@ -2153,6 +2155,25 @@ details.more > .rail { margin-top: 8px }
     $("st5send").disabled = true;
     wkGet("/selfscout/report/files").then(function (F) { F = (F || []).filter(function (f) { return f && f.name !== name }); F.push(file); return wkPut("/selfscout/report/files", F) }).then(function () { toast("Sent to the self scout folder: " + R.length + " plays vs " + e.opp); $("st5send").disabled = false }, function () { toast("Couldn't send it. Check the connection."); $("st5send").disabled = false });
   });
+  // ---------- weeks picker: pull other weeks' files into this report (read only) ----------
+  var WKSEL = store.get("wksel", {}) || {};
+  function wkPick() {
+    var det = $("wkDet"), host = $("wkChips"); if (!det) return; det.hidden = FOLDER === "self" || !(WK.list || []).length; if (det.hidden) return;
+    var cur = WK.cur ? WK.cur.date : "", L = WK.list || [], on = L.filter(function (w) { return w.date === cur || WKSEL[w.date] });
+    host.innerHTML = "<button type='button' class='chip' data-all='1' aria-pressed='" + (on.length === L.length) + "'>All weeks</button>" + L.map(function (w, i) { var me = w.date === cur; return "<button type='button' class='chip' data-d='" + w.date + "' aria-pressed='" + (me || !!WKSEL[w.date]) + "'" + (me ? " disabled" : "") + ">Wk " + (i + 1) + " · " + esc(w.opp) + (me ? " (this folder)" : "") + "</button>" }).join("");
+    $("wkSum").textContent = on.length <= 1 ? "this week only" : on.length === L.length ? "all " + L.length + " weeks" : on.length + " weeks";
+    host.querySelectorAll("[data-d]").forEach(function (b) { b.addEventListener("click", function () { WKSEL[b.dataset.d] = !WKSEL[b.dataset.d]; store.set("wksel", WKSEL); wkOpen(WK.cur) }) });
+    host.querySelector("[data-all]").addEventListener("click", function () { var all = on.length === L.length; L.forEach(function (w) { WKSEL[w.date] = !all }); store.set("wksel", WKSEL); wkOpen(WK.cur) });
+  }
+  function wkExtras(e) {
+    wkPick(); if (FOLDER === "self" || !e || !e.date) return;
+    var ds = (WK.list || []).filter(function (w) { return w.date !== e.date && WKSEL[w.date] }); if (!ds.length) return;
+    Promise.all(ds.map(function (w) { return wkGet("/weeks/" + w.date + "/report/files").then(function (F) { return (F || []).map(function (f) { var d = {}; try { d = JSON.parse(f.data) } catch (x) {} return { name: f.name + " (" + w.opp + ")", header: d.h || [], rows: d.r || [], from: w.date } }) }, function () { return [] }) })).then(function (A) {
+      if (WK.cur !== e || FOLDER === "self") return; var add = []; A.forEach(function (x) { add = add.concat(x) }); if (!add.length) return;
+      RAW = RAW.filter(function (f) { return !f.from }).concat(add); WKS.loading = true; build(); WKS.loading = false; renderAll();
+      $("wkMsg").textContent = "This report: " + (ds.length + 1) + " weeks, " + ROWS.length + " plays.";
+    });
+  }
   var FOLDER = "wk"; try { FOLDER = store.get("folder", "wk") === "self" ? "self" : "wk" } catch (e) {}
   WK.subs.push(function (e) { FOLDER = "wk"; store.set("folder", "wk"); wkBar($("wkBar"), "Week"); go("home"); wkOpen(e) });
   if (ONLINE) wkLoad().then(function (e) { wkBar($("wkBar"), "Week"); wkOpen(e) }); else $("wkBar").hidden = true;

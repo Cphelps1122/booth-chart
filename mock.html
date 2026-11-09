@@ -53,6 +53,7 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
       <label class="mode"><input type="radio" name="mode" value="call" checked><span><b>Call the game</b><span class="note">Tap a play, snap it, and the result comes back on its own.</span></span></label>
       <label class="mode"><input type="radio" name="mode" value="chart"><span><b>Charting practice</b><span class="note">Hear the call, then chart the play, result and spot. You're graded on it.</span></span></label>
     </div>
+    <div id="schedPick" hidden style="margin-top:12px"><div class="note" style="margin:0 0 6px;font-weight:700">Pick the opponent from your schedule</div><div id="schedBtns" style="display:flex;gap:8px;overflow-x:auto;padding-bottom:6px"></div><p class="note" id="schedNote" style="margin:4px 0 0"></p></div>
     <div class="row" style="margin-top:10px;align-items:flex-end"><label class="f">Your team<input type="text" id="usName" value="Our team"></label><label class="f">Opponent<input type="text" id="oppName" value="Opponent"></label><label class="f">Game length<select id="len"><option value="4">Full game</option><option value="2">One half</option></select></label><button class="btn pri" id="startBtn" type="button">Start</button><button class="btn" id="sampleBtn" type="button">Try a sample game</button></div>
     <p class="note" id="lockNote" hidden></p>
     <details id="filmBox"><summary>Make results more real with Hudl film (optional)</summary>
@@ -853,6 +854,24 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
   cloud("playbook").then(function (t) { if (typeof t === "string") { try { var b = JSON.parse(t); if (usePlaybook(b)) store.set("sol-mock-playbook", b) } catch (e) {} } }, function () {});
   cloud("sheet").then(function (t) { if (typeof t === "string") { try { var s = JSON.parse(t); if (useSheet(s)) store.set("sol-mock-sheet", s) } catch (e) {} } }, function () {});
 
+  // ---------- schedule folders: pick this week's opponent and use the data Reports sent ----------
+  function schoolGet(p) { var a = authGet(); return solToken().then(function (t) { return fetch(SOL.db + "/schools/" + encodeURIComponent(a.school) + p + ".json?auth=" + encodeURIComponent(t)) }).then(function (r) { return r.ok ? r.json() : null }) }
+  var SCHED = [], SCHEDON = null;
+  function schedDraw() {
+    var box = $("schedPick"); if (!SCHED.length || SHARED) { box.hidden = true; return } box.hidden = false;
+    var t = new Date(), today = t.getFullYear() + "-" + ("0" + (t.getMonth() + 1)).slice(-2) + "-" + ("0" + t.getDate()).slice(-2);
+    $("schedBtns").innerHTML = SCHED.map(function (e, i) { var on = SCHEDON === e.date; return "<button type='button' class='btn" + (on ? " pri" : "") + "' data-sd='" + e.date + "' style='flex:none;text-align:left'>📁 Wk " + (i + 1) + " · " + esc(e.opp) + "<br><small style='font-weight:500'>" + e.date.slice(5).replace("-", "/") + (e.date < today ? " · played" : "") + "</small></button>" }).join("");
+    $("schedBtns").querySelectorAll("[data-sd]").forEach(function (b) { b.onclick = function () { schedUse(b.dataset.sd) } });
+  }
+  function schedUse(date) {
+    var e = SCHED.filter(function (x) { return x.date === date })[0]; if (!e) return; SCHEDON = date; claim(); $("oppName").value = e.opp; schedDraw(); $("schedNote").textContent = "Loading " + e.opp + "…";
+    Promise.all([schoolGet("/mock/weeks/" + date), schoolGet("/mock/self")]).then(function (R) {
+      var them = [], ours = []; try { them = R[0] && R[0].files ? JSON.parse(R[0].files) : [] } catch (x) {} try { ours = R[1] && R[1].files ? JSON.parse(R[1].files) : [] } catch (x) {}
+      RAW.them = them; if (ours.length) RAW.ours = ours; loadData(); saveFiles();
+      $("schedNote").textContent = (them.length ? e.opp + ": " + (R[0].plays || "") + " plays from Reports. " : "No " + e.opp + " data yet. Open their folder on Reports and tap Send to mock game. ") + (ours.length ? "Our side: self scout from Reports." : "");
+    }, function () { $("schedNote").textContent = "Couldn't load. Check the connection." });
+  }
+  if (authGet() && !SHARED) schoolGet("/schedule").then(function (l) { SCHED = (Array.isArray(l) ? l : Object.keys(l || {}).map(function (k) { return l[k] })).filter(function (x) { return x && x.date && x.opp }).sort(function (a, b) { return a.date < b.date ? -1 : 1 }); schedDraw() }, function () {});
   cloud("owner").then(function (o) { OWNER = o || null; lockUI() }, function () {});
   cloud("names").then(function (n) { if (n) { $("usName").value = n.us; $("oppName").value = n.opp } }, function () {});
   lockUI();

@@ -268,6 +268,7 @@ details.more > .rail { margin-top: 8px }
       <div class="step" id="st2"><div class="n">2</div><div class="tx"><b>Check the report</b><span id="st2s">Ready after step 1.</span></div><button class="big" id="st2go" type="button">Open report</button></div>
       <div class="step" id="st3"><div class="n">3</div><div class="tx"><b>Send to Friday's chart</b><span id="st3s">Every staff iPad charting the game gets this scout automatically.</span></div><button class="big" id="st3go" type="button">Send to chart</button></div>
       <div class="step" id="st5" hidden><div class="n">📋</div><div class="tx"><b>Our game chart</b><span id="st5s">What we charted live in this game.</span></div><a class="big" id="st5open" href="app.html">Open OC report</a><button class="big" id="st5send" type="button">Send to self scout</button></div>
+      <div class="step" id="st6"><div class="n">🎮</div><div class="tx"><b>Send to the mock game</b><span id="st6s">The mock game uses these files for this opponent's tendencies.</span></div><button class="big" id="st6go" type="button">Send to mock game</button></div>
       <div class="step" id="st4"><div class="n">4</div><div class="tx"><b>Print for the staff</b><span>PDF for the meeting room, or Excel for the numbers.</span></div><button class="big" id="st4pdf" type="button">PDF</button><button class="big" id="st4xls" type="button">Excel</button></div>
     </div>
     <p class="note" style="margin-top:14px;font-size:14px">Everything you add saves to this folder on its own. Tap another folder up top to see what you saved there.</p>
@@ -1189,7 +1190,7 @@ details.more > .rail { margin-top: 8px }
     $("st1").className = "step " + (has ? "done" : "now"); $("st1").querySelector(".n").textContent = has ? "✓" : "1";
     $("st1b").textContent = has ? "Hudl files added" : "Add " + (who === "S" ? "our" : opp + "'s") + " Hudl files";
     $("st1s").textContent = has ? gamesText() : "Pick what you're scouting, then drop the files. About a minute.";
-    fileRows();
+    fileRows(); if ($("st6")) { $("st6").className = "step " + (has ? "" : "off"); $("st6go").disabled = !has; $("st6s").textContent = FOLDER === "self" ? "Our games become our side of the mock game." : "The mock game uses these files for " + (WK.cur ? WK.cur.opp : "this opponent") + "'s tendencies. Pick them from the schedule there." }
     $("st1go").textContent = has ? "Add more" : "Start"; $("st1go").className = "big" + (has ? "" : " pri");
     $("st2").className = "step " + (has ? (WSENT ? "done" : "now") : ""); $("st2").querySelector(".n").textContent = has && WSENT ? "✓" : "2"; $("st2go").disabled = false; $("st2go").textContent = has ? "Open report" : "Browse templates"; $("st2go").className = "big" + (has && !WSENT ? " pri" : "");
     $("st2s").textContent = has ? (CUR ? (CUR.team ? CUR.team + " " : "") + CUR.title + ". Tick sections on or off." : "") : "Look at and set up every template now with sample data. Your real numbers fill in after step 1.";
@@ -2255,6 +2256,12 @@ details.more > .rail { margin-top: 8px }
     wkGet("/selfscout/report/files").then(function (F) { F = (F || []).filter(function (f) { return f && f.name !== name }); F.push(file); return wkPut("/selfscout/report/files", F) }).then(function () { toast("Sent to the self scout folder: " + R.length + " plays vs " + e.opp); $("st5send").disabled = false }, function () { toast("Couldn't send it. Check the connection."); $("st5send").disabled = false });
   });
   // ---------- weeks picker: pull other weeks' files into this report (read only) ----------
+  $("st6go").addEventListener("click", function () {
+    var F = RAW.filter(function (f) { return !f.from }).map(function (f) { return { name: f.name, header: f.header, rows: f.rows } }); if (!F.length) return;
+    var self = FOLDER === "self", path = self ? "/mock/self" : "/mock/weeks/" + (WK.cur && WK.cur.date), v = { files: JSON.stringify(F), opp: self ? "" : WK.cur.opp, at: Date.now(), plays: ROWS.length };
+    $("st6go").disabled = true;
+    wkPut(path, v).then(function () { toast(self ? "Our games sent to the mock game" : WK.cur.opp + " sent to the mock game: " + ROWS.length + " plays"); $("st6go").disabled = false; $("st6").className = "step done"; $("st6").querySelector(".n").textContent = "✓" }, function () { toast("Couldn't send. Check the connection."); $("st6go").disabled = false });
+  });
   var WKSEL = {}; // other weeks are only pulled in when picked, and never remembered: every folder opens with just its own files
   // each saved file in this folder: what's in it, and a button to take it out (for files that don't belong here)
   function fileRows() {

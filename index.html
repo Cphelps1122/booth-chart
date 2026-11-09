@@ -330,7 +330,7 @@ window.SOL_CONFIG = {"db": "https://cardinal-booth-default-rtdb.firebaseio.com",
     }, function (err) { $("lgGo").disabled = false; $("lgMsg").className = "msg err"; $("lgMsg").textContent = authErr(err && err.message) });
   });
   // demo request alerts: FormSubmit emails a copy of each request. FS_TO is the private code FormSubmit gives after the first confirm.
-  var FS_TO = "";
+  var FS_TO = "rice.chris.p4991@gmail.com";
   function demoAlert(d) { if (!FS_TO) return; fetch("https://formsubmit.co/ajax/" + FS_TO, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify({ _subject: "Solutions demo request: " + d.school, _template: "table", _captcha: "false", Name: d.name, Role: d.role, School: d.school, State: d.state, Email: d.email, Note: d.note || "-" }) }).catch(function () {}) }
   $("demoForm").addEventListener("submit", function (e) {

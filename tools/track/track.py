@@ -379,6 +379,37 @@ def presnap_read(dets_k):
 MPH = 3600 / 1760.0
 
 
+def drift_fix(frames, dets, Hs, F, k0, every=8):
+    """Re-reads the paint through the play and returns how far off the camera-follow has drifted, frame by frame.
+    Paint only numbers yard lines from the first one it sees, so any 5-yard difference isn't drift."""
+    n = len(frames)
+    step = max(1, n // every)
+
+    def walk(ks):
+        px, py, got = 0.0, 0.0, []
+        for k in ks:
+            if len(dets[k]) < 4:
+                continue
+            res, _ = fieldmod.fit(frames[k], dets[k])
+            if not res:
+                continue
+            P = np.float32([[d["x"], d["y"] + d["h"] / 2] for d in dets[k]]).reshape(-1, 1, 2)
+            main = cv2.perspectiveTransform(P, F @ np.linalg.inv(Hs[k])).reshape(-1, 2)
+            paint = cv2.perspectiveTransform(P, res["F"]).reshape(-1, 2)
+            dx, dy = main[:, 0] - paint[:, 0], main[:, 1] - paint[:, 1]
+            mx, my = float(np.median(dx)), float(np.median(dy))
+            cx = mx - 5.0 * round((mx - px) / 5.0)
+            if abs(my - py) > 2.5 or abs(cx - px) > 2.5 or max(np.std(dx), np.std(dy)) > 1.5:
+                continue                                # this frame's paint read doesn't agree: ignore it
+            px, py = cx, my
+            got.append((k, cx, my))
+        return got
+    pts = walk(range(k0 + step, n, step)) + walk(range(k0 - step, -1, -step)) + [(k0, 0.0, 0.0)]
+    pts.sort()
+    ks = [p[0] for p in pts]
+    return np.interp(range(n), ks, [p[1] for p in pts]), np.interp(range(n), ks, [p[2] for p in pts]), len(pts) - 1
+
+
 def measure(frames, dets, Hs, times, tracks, k_pre, k_snap):
     """Field ruler from the yard lines, then depth, speed and position in yards for every trail point."""
     n = len(frames)
@@ -397,6 +428,9 @@ def measure(frames, dets, Hs, times, tracks, k_pre, k_snap):
     for t in tracks:
         P = np.float32([[q[1], q[2]] for q in t["p"]]).reshape(-1, 1, 2)
         t["f"] = cv2.perspectiveTransform(P, F).reshape(-1, 2).tolist()
+    cx, cy, checks = drift_fix(frames, dets, Hs, F, k)
+    for t in tracks:
+        t["f"] = [[f[0] - cx[q[0]], f[1] - cy[q[0]]] for q, f in zip(t["p"], t["f"])]
 
     def at(t, k):
         for q, f in zip(t["p"], t["f"]):
@@ -435,7 +469,7 @@ def measure(frames, dets, Hs, times, tracks, k_pre, k_snap):
         t["deep"] = round(max(dep), 1) if dep else None
         t["top"] = round(max(sp), 1) if sp else None
     return {"ok": True, "F": [round(float(x), 7) for x in F.flatten()[:8]], "dir": sgn, "los": round(float(los), 2),
-            "lines": fit["lines"], "tick": fit["tick"], "rms": fit["rms"], "hashYards": round(fieldmod.HASH_YARDS, 2)}
+            "drift": round(float(max(np.max(np.abs(cx)), np.max(np.abs(cy)))), 2), "driftChecks": checks, "lines": fit["lines"], "tick": fit["tick"], "rms": fit["rms"], "hashYards": round(fieldmod.HASH_YARDS, 2)}
 
 
 # ---------------------------------------------------------------- one clip

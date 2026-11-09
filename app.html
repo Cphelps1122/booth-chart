@@ -564,9 +564,11 @@ textarea { min-height: 64px }
         <button type="button" data-role="film">Film camera <small>camera on the field</small></button>
       </div></div>
       <div class="h-door" data-door="after"><div class="hd-t">After the game</div><p class="hd-s">Saturday: grades, stats, film</p><div class="hd-l">
-        <a href="impact.html">Postgame &amp; Impact <small>graded vs the scout</small></a>
+        <a href="impact.html">How did we do? <small>score vs the prediction, every call graded</small></a>
+        <button type="button" data-go="report">What worked? <small>OC report: best plays by situation</small></button>
+        <a href="defense.html#dc">What did they do? <small>DC report: their plays vs our calls</small></a>
+        <a href="stats.html">Season so far <small>team and player stats</small></a>
         <button type="button" data-go="reels">Film &amp; reels <small>playlists, notes, share</small></button>
-        <a href="stats.html">Season stats <small>team and players</small></a>
         <button type="button" data-go="export">Exports &amp; backup <small>Hudl CSV, PDF</small></button>
       </div></div>
     </div>
@@ -5797,7 +5799,7 @@ textarea { min-height: 64px }
   document.querySelectorAll(".h-doors [data-go], .h-setrow [data-go]").forEach(function (b) {
     b.addEventListener("click", function () {
       var g = b.dataset.go;
-      if (g === "week") $("t-week").click(); else if (g === "settings") $("t-setup").click();
+      if (g === "report") $("t-report").click(); else if (g === "week") $("t-week").click(); else if (g === "settings") $("t-setup").click();
       else if (g === "practice") { if (typeof openPractice === "function") openPractice() }
       else if (g === "reels") { $("t-report").click(); setTimeout(function () { var rb = $("reelBar"); if (rb && rb.scrollIntoView) rb.scrollIntoView({ block: "start" }) }, 50) }
       else if (g === "export") { $("t-setup").click(); setTimeout(function () { var ex = document.querySelector('#v-setup [data-sec="export"]'); if (ex && ex.scrollIntoView) ex.scrollIntoView({ block: "start" }) }, 50) }

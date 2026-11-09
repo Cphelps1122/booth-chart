@@ -15,7 +15,7 @@ import numpy as np
 from scipy.optimize import linear_sum_assignment
 
 MODEL = "football-presnap-tracker/6"
-CONF, QB_CONF = 0.40, 0.15
+CONF, QB_CONF, OL_CONF = 0.40, 0.15, 0.25     # linemen overlap, so the model is less sure of them
 CB_DEPTH, BOX_DEPTH, DEEP_DEPTH = 1.0, 5.5, 10.0     # yards
 RECEIVERS = ("WR", "Slot", "TE", "RB")
 COVER_MAX_YD = 15.0
@@ -26,7 +26,8 @@ def _mean(v):
 
 
 def keep(preds):
-    return [p for p in preds or [] if p.get("confidence", 0) >= (QB_CONF if p.get("class") == "qb" else CONF)]
+    floor = {"qb": QB_CONF, "oline": OL_CONF}
+    return [p for p in preds or [] if p.get("confidence", 0) >= floor.get(p.get("class"), CONF)]
 
 
 def _yardify(preds, ol, to_field):
@@ -82,7 +83,42 @@ def _iou(a, b):
     return ix * iy / u if u else 0
 
 
-def fix_classes(preds, to_field=None):
+def _jersey(img, p):
+    h, w = img.shape[:2]
+    x0, x1 = int(max(0, p["x"] - p["width"] * 0.25)), int(min(w, p["x"] + p["width"] * 0.25))
+    y0, y1 = int(max(0, p["y"] - p["height"] * 0.35)), int(min(h, p["y"] - p["height"] * 0.02))
+    if x1 - x0 < 2 or y1 - y0 < 2:
+        return None
+    return np.median(cv2.cvtColor(img[y0:y1, x0:x1], cv2.COLOR_BGR2LAB).reshape(-1, 3), axis=0)
+
+
+def fix_by_jersey(preds, img):
+    """The O-line's jersey color is the offense's. Anyone in the other color is defense, whatever the model called him."""
+    people = [p for p in preds if p["class"] in ("skill", "defense", "qb")]
+    ol = [c for c in (_jersey(img, p) for p in preds if p["class"] == "oline") if c is not None]
+    cols = [(p, _jersey(img, p)) for p in people]
+    cols = [(p, c) for p, c in cols if c is not None]
+    if len(ol) < 2 or len(cols) < 6:
+        return 0
+    data = np.float32([c for _, c in cols])
+    crit = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.5)
+    _, lab, cen = cv2.kmeans(data, 2, None, crit, 5, cv2.KMEANS_PP_CENTERS)
+    if np.linalg.norm(cen[0] - cen[1]) < 18:        # the two teams look alike on this film: leave the labels alone
+        return 0
+    off = int(np.argmin(np.linalg.norm(cen - np.median(ol, axis=0), axis=1)))
+    fixed = 0
+    for (p, _), g in zip(cols, lab.flatten()):
+        want = "skill" if g == off else "defense"
+        if p["class"] == "qb" and want == "defense":
+            p["class"] = "defense"
+            fixed += 1
+        elif p["class"] in ("skill", "defense") and p["class"] != want:
+            p["class"] = want
+            fixed += 1
+    return fixed
+
+
+def fix_classes(preds, to_field=None, img=None):
     """Correct the model's common mix-ups. Returns (predictions, number relabeled)."""
     preds = [dict(p) for p in preds]
     drop = set()
@@ -94,11 +130,15 @@ def fix_classes(preds, to_field=None):
             if (pair == {"skill", "defense"} and _iou(a, b) > 0.5) or (pair <= {"qb", "skill"} and _iou(a, b) > 0.6):
                 drop.add(i if a.get("confidence", 0) < b.get("confidence", 0) else j)
     preds = [p for k, p in enumerate(preds) if k not in drop]
+    if to_field is not None and preds:          # coaches and people on the sideline aren't in the formation
+        feet = np.float32([[p["x"], p["y"] + p["height"] / 2] for p in preds])
+        preds = [p for p, f in zip(preds, to_field(feet)) if -21.5 <= f[1] <= 34.8]
+    by_color = fix_by_jersey(preds, img) if img is not None else 0
     g = geometry(preds, to_field)
     if g is None:
-        return preds, 0
+        return preds, by_color
     d = lambda p: depth_of(p, g)
-    fixed = 0
+    fixed = by_color
     for p in preds:
         if p["class"] == "skill" and d(p) > CB_DEPTH:
             p["class"] = "defense"
@@ -132,9 +172,9 @@ def fix_classes(preds, to_field=None):
     return preds, fixed
 
 
-def read(preds, to_field=None):
+def read(preds, to_field=None, img=None):
     """Formation info plus a role on every player. None if the frame can't be read."""
-    preds, fixed = fix_classes(keep(preds), to_field)
+    preds, fixed = fix_classes(keep(preds), to_field, img)
     g = geometry(preds, to_field)
     if g is None:
         return None
@@ -198,10 +238,8 @@ def apply(tracks, info, H_k, k, unit):
 
 
 def _at(t, k):
-    for q, f in zip(t["p"], t["f"]):
-        if q[0] == k:
-            return f
-    return None
+    best = min(zip(t["p"], t["f"]), key=lambda x: abs(x[0][0] - k))
+    return best[1] if abs(best[0][0] - k) <= 3 else None
 
 
 def cover(tracks, k):
@@ -237,7 +275,7 @@ def route_name(path):
 
 def routes(tracks, k, sgn, los):
     """Names each receiver's route from his field trail. The route is only a label, not a measurement."""
-    ol = [_at(t, k) for t in tracks if t.get("role") == "OL" and "f" in t]
+    ol = [_at(t, k) for t in tracks if t.get("role") in ("OL", "QB") and "f" in t]   # the middle of the formation
     ol = [f for f in ol if f]
     if not ol:
         return

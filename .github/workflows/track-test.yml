@@ -30,5 +30,4 @@ jobs:
         env:
           ROBOFLOW_API_KEY: ${{ secrets.ROBOFLOW_API_KEY }}
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          TEST_RUN: "4"
-          TEST_DEBUG: "1"
+          TEST_RUN: "5"

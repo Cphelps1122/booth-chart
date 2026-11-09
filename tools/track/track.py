@@ -492,9 +492,14 @@ def process(path, detect, a=None, b=None, snap=None, presnap_detect=None):
     info = None
     if presnap_detect is not None:
         try:
-            res, _ = fieldmod.fit(frames[k_pre], dets[k_pre])
-            to_field = (lambda p: cv2.perspectiveTransform(p.reshape(-1, 1, 2), res["F"]).reshape(-1, 2)) if res else None
-            info = presnapmod.read(presnap_detect(frames[k_pre], times[k_pre]), to_field)
+            to_field = None
+            for j in sorted(range(n), key=lambda x: abs(x - k_pre)):      # the nearest frame the paint can be read on
+                res, _ = fieldmod.fit(frames[j], dets[j])
+                if res:
+                    A = res["F"] @ Hs[j] @ np.linalg.inv(Hs[k_pre])
+                    to_field = lambda p, A=A: cv2.perspectiveTransform(p.reshape(-1, 1, 2), A).reshape(-1, 2)
+                    break
+            info = presnapmod.read(presnap_detect(frames[k_pre], times[k_pre]), to_field, frames[k_pre])
         except KeyProblem:
             raise
         except Exception:                           # the extra read is a bonus: never lose the clip over it

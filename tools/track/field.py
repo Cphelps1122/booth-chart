@@ -48,7 +48,7 @@ def yard_lines(wm, players=()):
     cand = []
     for x1, y1, x2, y2 in segs.reshape(-1, 4):
         ang = math.degrees(math.atan2(abs(y2 - y1), abs(x2 - x1) + 1e-6))
-        if ang < 35:          # sidelines, hash rows and numbers are flat: yard lines are steep
+        if ang < 24:          # sidelines, hash rows and numbers are flat: yard lines are steeper, even on diagonal film
             continue
         xm = _line_x_at((x1, y1, x2, y2), ym)
         if xm is None:

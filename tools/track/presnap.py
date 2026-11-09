@@ -16,7 +16,7 @@ from scipy.optimize import linear_sum_assignment
 
 MODEL = "football-presnap-tracker/6"
 CONF, QB_CONF = 0.40, 0.15
-CB_DEPTH, BOX_DEPTH, DEEP_DEPTH = 0.5, 3.0, 6.0
+CB_DEPTH, BOX_DEPTH, DEEP_DEPTH = 1.0, 5.5, 10.0     # yards
 RECEIVERS = ("WR", "Slot", "TE", "RB")
 COVER_MAX_YD = 15.0
 
@@ -29,30 +29,48 @@ def keep(preds):
     return [p for p in preds or [] if p.get("confidence", 0) >= (QB_CONF if p.get("class") == "qb" else CONF)]
 
 
-def geometry(preds):
+def _yardify(preds, ol, to_field):
+    """Sets _a (along the field) and _b (across it) in yards on every player. Works with the field on a diagonal."""
+    feet = np.float32([[p["x"], p["y"] + p["height"] / 2] for p in preds]).reshape(-1, 2)
+    if to_field is not None:
+        out = to_field(feet)
+    else:                       # no paint read: use the line itself as the ruler (tackle to tackle is about 8 yards)
+        pts = np.array([[p["x"], p["y"] + p["height"] / 2] for p in ol], dtype=float)
+        qbs = [p for p in preds if p["class"] == "qb"]
+        if len(ol) < 4 or not qbs:
+            return False
+        c = pts.mean(axis=0)
+        u = np.linalg.svd(pts - c)[2][0]
+        span = float(np.ptp((pts - c) @ u))
+        q = min(qbs, key=lambda p: -p.get("confidence", 0))
+        v = np.array([q["x"], q["y"] + q["height"] / 2]) - c
+        m = np.array([v, u * span / 8.0 * 5.0]).T       # QB assumed about 5 yards deep
+        if span < 8 or abs(np.linalg.det(m)) < 1:
+            return False
+        out = (np.linalg.inv(m) @ (feet - c).T).T * 5.0
+    for p, f in zip(preds, out):
+        p["_a"], p["_b"] = float(f[0]), float(f[1])
+    return True
+
+
+def geometry(preds, to_field=None):
     ol = [p for p in preds if p["class"] == "oline"]
     de = [p for p in preds if p["class"] == "defense"]
-    if len(ol) < 3 or not de:
+    if len(ol) < 3 or not de or not _yardify(preds, ol, to_field):
         return None
-    w, h = _mean([p["width"] for p in ol]), _mean([p["height"] for p in ol])
-    sx = abs(_mean([p["x"] for p in de]) - _mean([p["x"] for p in ol])) / w
-    sy = abs(_mean([p["y"] for p in de]) - _mean([p["y"] for p in ol])) / h
-    if sy >= sx:
-        g = dict(depth="y", lat="x", d_size=h, l_size=w, l_dim="width", view="end zone")
-    else:
-        g = dict(depth="x", lat="y", d_size=w, l_size=h, l_dim="height", view="sideline")
-    g["los"] = _mean([p[g["depth"]] for p in ol])
-    g["toward_d"] = 1 if _mean([p[g["depth"]] for p in de]) > g["los"] else -1
-    g["center"] = statistics.median([p[g["lat"]] for p in ol])
-    g["ol_lo"] = min(p[g["lat"]] - p[g["l_dim"]] / 2 for p in ol)
-    g["ol_hi"] = max(p[g["lat"]] + p[g["l_dim"]] / 2 for p in ol)
-    g["box_lo"], g["box_hi"] = g["ol_lo"] - g["l_size"], g["ol_hi"] + g["l_size"]
+    g = {"los": _mean([p["_a"] for p in ol])}
+    g["toward_d"] = 1 if _mean([p["_a"] for p in de]) > g["los"] else -1
+    g["center"] = statistics.median([p["_b"] for p in ol])
+    g["ol_lo"] = min(p["_b"] for p in ol) - 0.5
+    g["ol_hi"] = max(p["_b"] for p in ol) + 0.5
+    g["box_lo"], g["box_hi"] = g["ol_lo"] - 2.0, g["ol_hi"] + 2.0
+    g["view"] = "field yards" if to_field is not None else "line ruler"
     return g
 
 
 def depth_of(p, g):
-    """Depth from the line in lineman-sizes (+ = defense side)."""
-    return (p[g["depth"]] - g["los"]) * g["toward_d"] / g["d_size"]
+    """Yards from the line (+ = defense side)."""
+    return (p["_a"] - g["los"]) * g["toward_d"]
 
 
 def _iou(a, b):
@@ -64,7 +82,7 @@ def _iou(a, b):
     return ix * iy / u if u else 0
 
 
-def fix_classes(preds):
+def fix_classes(preds, to_field=None):
     """Correct the model's common mix-ups. Returns (predictions, number relabeled)."""
     preds = [dict(p) for p in preds]
     drop = set()
@@ -76,7 +94,7 @@ def fix_classes(preds):
             if (pair == {"skill", "defense"} and _iou(a, b) > 0.5) or (pair <= {"qb", "skill"} and _iou(a, b) > 0.6):
                 drop.add(i if a.get("confidence", 0) < b.get("confidence", 0) else j)
     preds = [p for k, p in enumerate(preds) if k not in drop]
-    g = geometry(preds)
+    g = geometry(preds, to_field)
     if g is None:
         return preds, 0
     d = lambda p: depth_of(p, g)
@@ -85,7 +103,7 @@ def fix_classes(preds):
         if p["class"] == "skill" and d(p) > CB_DEPTH:
             p["class"] = "defense"
             fixed += 1
-    lat, center = g["lat"], g["center"]
+    lat, center = "_b", g["center"]
     qbs = [p for p in preds if p["class"] == "qb"]
     if len(qbs) > 1:
         best = min(qbs, key=lambda p: abs(p[lat] - center))
@@ -94,19 +112,19 @@ def fix_classes(preds):
                 p["class"] = "skill"
                 fixed += 1
     elif not qbs:
-        back = [p for p in preds if p["class"] == "skill" and d(p) < -0.3
-                and g["ol_lo"] - g["l_size"] <= p[lat] <= g["ol_hi"] + g["l_size"]]
+        back = [p for p in preds if p["class"] == "skill" and d(p) < -0.5
+                and g["ol_lo"] - 1.5 <= p[lat] <= g["ol_hi"] + 1.5]
         if back:
-            min(back, key=lambda p: (abs(p[lat] - center) > 0.6 * g["l_size"], -d(p), abs(p[lat] - center)))["class"] = "qb"
+            min(back, key=lambda p: (abs(p[lat] - center) > 1.5, -d(p), abs(p[lat] - center)))["class"] = "qb"
             fixed += 1
     sk = sorted([p for p in preds if p["class"] == "skill"], key=d, reverse=True)
     for p in sk[:max(0, len(sk) - 5)]:
-        if d(p) > -0.5:
+        if d(p) > -1.0:
             p["class"] = "defense"
             fixed += 1
     n = sum(1 for p in preds if p["class"] == "skill")
     for p in sorted([p for p in preds if p["class"] == "defense"], key=d):
-        if n >= 5 or d(p) > -1.0:
+        if n >= 5 or d(p) > -2.0:
             break
         p["class"] = "skill"
         n += 1
@@ -114,13 +132,13 @@ def fix_classes(preds):
     return preds, fixed
 
 
-def read(preds):
+def read(preds, to_field=None):
     """Formation info plus a role on every player. None if the frame can't be read."""
-    preds, fixed = fix_classes(keep(preds))
-    g = geometry(preds)
+    preds, fixed = fix_classes(keep(preds), to_field)
+    g = geometry(preds, to_field)
     if g is None:
         return None
-    lat, center = g["lat"], g["center"]
+    lat, center = "_b", g["center"]
     names = {"oline": "OL", "qb": "QB", "defense": "DEF", "ref": "REF"}
     left, right = [], []
     backs = inline = 0
@@ -129,7 +147,7 @@ def read(preds):
             p["role"] = names.get(p["class"], "")
             continue
         inside, d = g["box_lo"] <= p[lat] <= g["box_hi"], depth_of(p, g)
-        if inside and d < -1.0:
+        if inside and d < -1.5:
             p["role"], backs = "RB", backs + 1
         elif inside:
             p["role"], inline = "TE", inline + 1
@@ -161,7 +179,7 @@ def apply(tracks, info, H_k, k, unit):
     near, idx = [], []
     for i, t in enumerate(tracks):
         q = min(t["p"], key=lambda a: abs(a[0] - k))
-        if abs(q[0] - k) <= 2:
+        if abs(q[0] - k) <= 3:
             near.append(q)
             idx.append(i)
     if not near or not pts:

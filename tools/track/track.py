@@ -239,14 +239,15 @@ def link(frames, times, dets, Hs, model):
         for i, t in enumerate(live):
             gap = k - t["last"]
             px, py = t["p"][-1][1] + t["vx"] * gap, t["p"][-1][2] + t["vy"] * gap
-            gate = 1.3 + 0.6 * gap
+            gate = 0.8 + 0.4 * gap              # a sprinter covers about 1/2 a body height per kept frame
             for j, q in enumerate(pts):
                 dist = math.hypot(q["rx"] - px, q["ry"] - py) / unit
                 if dist > gate:
                     continue
                 ts = t["sides"].most_common(1)[0][0]
-                pen = 0 if (q["side"] == ts or "x" in (q["side"], ts)) else 2.5
-                cost[i, j] = dist + pen
+                if q["side"] != ts and "x" not in (q["side"], ts) and sum(t["sides"].values()) >= 3:
+                    continue                                # jersey says other team: never the same player
+                cost[i, j] = dist
         used = set()
         if live and pts:
             r, c = linear_sum_assignment(cost)
@@ -289,7 +290,7 @@ def stitch(tracks, unit, max_gap=12):
             if sa != sb and "x" not in (sa, sb):
                 continue
             dist = math.hypot(b["p"][0][1] - a["p"][-1][1] - a["vx"] * gap, b["p"][0][2] - a["p"][-1][2] - a["vy"] * gap) / unit
-            if dist <= 1.0 + 0.3 * gap:
+            if dist <= 0.6 + 0.25 * gap:
                 pairs.append((dist / gap, i, j))
     head, tail, into = set(), set(), {}
     for _, i, j in sorted(pairs):
@@ -325,20 +326,18 @@ def smooth(p):
 def find_snap(tracks, times, unit):
     """First moment most of the offense starts moving at once."""
     n = len(times)
+
+    def frac(kk):
+        moving = tot = 0
+        for t in tracks:
+            a = {q[0]: q for q in t["p"]}
+            if kk in a and kk - 1 in a:
+                tot += 1
+                step = math.hypot(a[kk][1] - a[kk - 1][1], a[kk][2] - a[kk - 1][2]) / unit
+                moving += step / max(1e-3, times[kk] - times[kk - 1]) > 0.8      # about 1.5+ yards a second
+        return moving / tot if tot >= 5 else 0
     for k in range(1, n - 1):
-        def frac(kk):
-            moving = tot = 0
-            for t in tracks:
-                if t["side"] != "o":
-                    continue
-                a = {q[0]: q for q in t["p"]}
-                if kk in a and kk - 1 in a:
-                    tot += 1
-                    step = math.hypot(a[kk][1] - a[kk - 1][1], a[kk][2] - a[kk - 1][2]) / unit
-                    dt = max(1e-3, times[kk] - times[kk - 1])
-                    moving += step / dt > 0.8        # about 1.5+ yards a second
-            return moving / tot if tot >= 4 else 0
-        if frac(k) >= 0.45 and frac(k + 1) >= 0.45:
+        if frac(k) >= 0.4 and frac(k + 1) >= 0.4:   # both teams move at the snap, so count everyone
             return k
     return None
 
@@ -495,7 +494,9 @@ def process(path, detect, a=None, b=None, snap=None, presnap_detect=None):
     info = None
     if presnap_detect is not None:
         try:
-            info = presnapmod.read(presnap_detect(frames[k_pre], times[k_pre]))
+            res, _ = fieldmod.fit(frames[k_pre], dets[k_pre])
+            to_field = (lambda p: cv2.perspectiveTransform(p.reshape(-1, 1, 2), res["F"]).reshape(-1, 2)) if res else None
+            info = presnapmod.read(presnap_detect(frames[k_pre], times[k_pre]), to_field)
         except KeyProblem:
             raise
         except Exception:                           # the extra read is a bonus: never lose the clip over it
@@ -503,11 +504,14 @@ def process(path, detect, a=None, b=None, snap=None, presnap_detect=None):
     tracks = presnapmod.apply(tracks, info, Hs[k_pre], k_pre, unit)
     if info:
         pre.update({x: info[x] for x in ("view", "splits", "personnel", "box", "deep", "shell", "fixed")})
+    if info and sum(1 for t in tracks if t.get("role")) >= 8:     # good read: trails that began in the pre-snap only
+        tracks = [t for t in tracks if t.get("role")]
     for t in tracks:
         t["p"] = smooth(t["p"])
     fld = measure(frames, dets, Hs, times, tracks, k_pre, k_snap)
     if fld.get("ok"):
         k0 = k_snap if k_snap is not None else k_pre
+        tracks = [t for t in tracks if -21.5 <= float(np.median([f[1] for f in t["f"]])) <= 34.8]     # on the field only
         presnapmod.cover(tracks, k0)
         presnapmod.routes(tracks, k0, fld["dir"], fld["los"])
     out_tracks = []

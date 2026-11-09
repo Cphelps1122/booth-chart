@@ -575,7 +575,10 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
     var bx = bxOf(); if (!call) return;
     var BK = !ALIGN.off[call.form] && bookOf(call.form); P.o = BK ? bookPlace(BK, bx) : placeOff(offStd(call.form), bx);
     var bkRun = call.run && pbFind(call), bnd = bndOf(call);
-    if (bkRun && bkRun.run && bnd && bx !== 0) { var bside = bx < 0 ? -1 : 1; if (runSide(call, bkRun.run) !== bside) P.o.forEach(function (p, i) { if (i > 5) p.x = Math.max(-22.5, Math.min(22.5, 2 * bx - p.x)) }) } var s = strengthOf(P.o, bx), ft = ftypeOf(P.o, bx);
+    // the TE goes where the run needs him: toward-the-TE runs put him on the play side, away runs on the back side (the formation flips)
+    var hd = holeDir(call);
+    if (bkRun && bkRun.run && hd && (bkRun.run.toward === "te" || bkRun.run.toward === "away")) { var te0 = teOf(P.o, bx), want = bkRun.run.toward === "te" ? hd : -hd; if (te0 && (te0.x >= bx ? 1 : -1) !== want) P.o.forEach(function (p, i) { if (i > 5) p.x = Math.max(-22.5, Math.min(22.5, 2 * bx - p.x)) }) }
+    else if (bkRun && bkRun.run && bnd && bx !== 0) { var bside = bx < 0 ? -1 : 1; if (runSide(call, bkRun.run) !== bside) P.o.forEach(function (p, i) { if (i > 5) p.x = Math.max(-22.5, Math.min(22.5, 2 * bx - p.x)) }) } var s = strengthOf(P.o, bx), ft = ftypeOf(P.o, bx);
     P.d = placeDef(defStd(look && look.front, look ? look.sh : "MFO", ft, look && look.cov), s, bx); P.s = s;
     var RC = P.o.slice(6, 10); RC.filter(function (p) { return p.y < -4 }).forEach(function (p) { p.lab = "B"; p.num = "B" }); RC.filter(function (p) { return p.y >= -4 }).sort(function (a, b) { return a.x - b.x || b.y - a.y }).forEach(function (p, i) { p.lab = String(i + 1); p.num = p.lab }); P.o[10].lab = "0"; P.o[10].num = "0";
     if (!ALIGN.def[defKey(look && look.front, look ? look.sh : "MFO", ft)] && !ALIGN.def[defKey(null, look ? look.sh : "MFO", ft)]) keyOn(P.o, P.d, s, bx, ft, look ? look.sh : "MFO");
@@ -587,7 +590,7 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
 
   // ======================= YOUR PLAYBOOK: real routes and blocking (uploaded once, saved to the school) =======================
   var PB = null, PBK = [];
-  var PB_STRIP = /^(GOLD|SLOT|TRIG|DIP|BND|FIB|GAS|LTY|RTY|QUADS|RED|TEXAS|BOSTON|SIDELINE|BUNCH|Q|LT|RT|LH|RH)$/;
+  var PB_STRIP = /^(GOLD|SLOT|TRIG|DIP|BND|FIB|GAS|LTY|RTY|QUADS|RED|TEXAS|BOSTON|SIDELINE|BUNCH|Q|LT|RT|LH|RH|FLIP)$/;
   function pbTok(name) { var s = String(name || "").toUpperCase().replace(/\([^)]*\)/g, " ").replace(/\b\d+\s*\*\s*\d+\b(?=\s*[A-Z])/g, " ").replace(/(\d+)\s*\*\s*(\d+)/g, "$1X$2").replace(/[^A-Z0-9# ]+/g, " ");
     return s.split(/\s+/).filter(function (w) { return w && !PB_STRIP.test(w) && !/^\d+$/.test(w) }).map(function (w) { return PB && PB.alias && PB.alias[w] || w }) }
   function usePlaybook(b) { if (!b || !b.pass || !b.runs) return false; PB = b; PBK = b.pass.map(function (p) { return pbTok(p.t) });
@@ -605,7 +608,9 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
     f.text().then(function (s) { var b = JSON.parse(s); if (!usePlaybook(b)) throw 0; claim(); store.set("sol-mock-playbook", b); if (canEdit() && authGet()) cloud("playbook", "PUT", s).catch(function () {}); toast("Playbook loaded"); if (G) { poses(); refresh() } }).catch(function () { toast("That isn't a playbook file. Use the .json file made from your pass and run books.") }) };
   // a run drawn going right; s flips it. Paths in yards: x across, y downfield from the line.
   function bndOf(c) { return /\(\s*(BND|BOUNDARY)\s*\)/i.test(c && (c.lab || c.name) || "") }
-  function runSide(c, bk) { var o = P.o, bx = bxOf(), te = teOf(o, bx), s = strengthOf(o, bx);
+  // a hole number in front of a run sets its side: even = left, odd = right ("2 POWER" left, "3 POWER" right)
+  function holeDir(c) { var m = String(c && (c.lab || c.name) || "").match(/(?:^|\s)(\d)\s+(?=[A-Z])/i); return m ? (+m[1] % 2 === 0 ? -1 : 1) : 0 }
+  function runSide(c, bk) { var hd = holeDir(c); if (hd) return hd; var o = P.o, bx = bxOf(), te = teOf(o, bx), s = strengthOf(o, bx);
     if (bk && te && (bk.toward === "te" || bk.toward === "away")) { var ts = te.x >= bx ? 1 : -1; return bk.toward === "te" ? ts : -ts }
     if (bndOf(c) && bx !== 0) return bx < 0 ? -1 : 1;     // (BND): run it to the boundary
     return bk && bk.toward === "weak" ? -s : s }

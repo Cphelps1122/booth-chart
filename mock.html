@@ -604,7 +604,7 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
 
   // ======================= YOUR PLAYBOOK: real routes and blocking (uploaded once, saved to the school) =======================
   var PB = null, PBK = [];
-  var PB_STRIP = /^(GOLD|SLOT|TRIG|DIP|BND|FIB|GAS|LTY|RTY|QUADS|RED|TEXAS|BOSTON|SIDELINE|BUNCH|Q|LT|RT|LH|RH|FLIP|TX|OV|BITE|H|HVY|FLD|TAT|STK|CALF)$/;
+  var PB_STRIP = /^(GOLD|SLOT|TRIG|DIP|BND|FIB|GAS|LTY|RTY|QUADS|RED|TEXAS|BOSTON|SIDELINE|BUNCH|Q|LT|RT|LH|RH|TX|BONE|LT|OV|BITE|H|HVY|FLD|TAT|STK|CALF)$/;
   function pbTok(name) { var s = String(name || "").toUpperCase().replace(/=.*$/, " ").replace(/\([^)]*\)/g, " ").replace(/\b\d+\s*\*\s*\d+\b(?=\s*[A-Z])/g, " ").replace(/(\d+)\s*\*\s*(\d+)/g, "$1X$2").replace(/[^A-Z0-9# ]+/g, " ");
     return s.split(/\s+/).filter(function (w) { return w && !PB_STRIP.test(w) && !/^\d+$/.test(w) }).map(function (w) { return PB && PB.alias && PB.alias[w] || w }) }
   function usePlaybook(b) { if (!b || !b.pass || !b.runs) return false; PB = b; b.alias = b.alias || {}; PBK = b.pass.map(function (p) { return pbTok(p.t) });

@@ -410,6 +410,8 @@ body.inapp .h-hero, body.inapp .h-prod { display: none }
 nav [data-tab="games"], nav #t-drives, nav .navlink[href] { display: none }
 body.role-film nav #t-log, body.role-film nav #t-report, body.role-film nav #t-week { display: none }
 body.role-view nav #t-week, body.role-view nav #t-setup { display: none }
+body.role-chart nav #t-home, body.role-chart nav #t-log, body.role-chart nav #t-report, body.role-chart nav #t-week, body.role-chart nav #t-setup { display: none }
+body.role-hc nav #t-log { display: none } body.role-chart #v-chart #ncBox, body.role-chart #filmBar { display: none !important } body.role-hc #v-chart #ncBox, body.role-hc #v-chart .ncwrap { display: none !important }
 /* view only: watch the game, no charting */
 body.role-view #v-chart .spotpanel, body.role-view #v-chart .inmode, body.role-view #v-chart #gsPanel, body.role-view #v-chart .grid2, body.role-view #v-chart #chartActs, body.role-view #v-chart .trypanel, body.role-view #filmBar { display: none !important }
 body.role-view #v-chart .panel:has(#cRes), body.role-view #v-chart .panel:has(#chartActs) { display: none !important }
@@ -550,10 +552,11 @@ textarea { min-height: 64px }
         <button type="button" data-go="practice">Practice game <small>try things, nothing counts</small></button>
       </div></div>
       <div class="h-door" data-door="game"><div class="hd-t">Game night</div><p class="hd-s">Friday: pick what this device is doing</p><div class="hd-l">
-        <button type="button" class="pri" data-role="chart">Chart offense <small>one or more charters</small></button>
-        <a href="defense.html" data-role="defense">Chart defense <small>their plays vs our calls</small></a>
-        <button type="button" data-role="film">Film <small>camera on the field</small></button>
-        <button type="button" data-role="view">View only <small>OC, coaches, anyone watching</small></button>
+        <button type="button" class="pri" data-role="chart">Offense charter <small>just the chart</small></button>
+        <a href="defense.html" data-role="defense">Defense charter <small>their plays vs our calls</small></a>
+        <button type="button" data-role="oc">Offensive coordinator <small>Next Call, OC report, live</small></button>
+        <button type="button" data-role="hc">Head coach <small>score, win chance, 4th down, halftime</small></button>
+        <button type="button" data-role="film">Film camera <small>camera on the field</small></button>
       </div></div>
       <div class="h-door" data-door="after"><div class="hd-t">After the game</div><p class="hd-s">Saturday: grades, stats, film</p><div class="hd-l">
         <a href="impact.html">Postgame &amp; Impact <small>graded vs the scout</small></a>
@@ -1119,14 +1122,15 @@ textarea { min-height: 64px }
 </div>
 <div class="modal" id="roleModal" hidden role="dialog" aria-modal="true" aria-labelledby="roleTitle">
   <div class="mbox">
-    <h3 id="roleTitle" style="margin:0">What is this device doing tonight?</h3>
-    <p class="note" style="margin:4px 0 0">You can change it any time from the button at the top. Several devices can pick the same role.</p>
+    <h3 id="roleTitle" style="margin:0">What's your job tonight?</h3>
+    <p class="note" style="margin:4px 0 0">This device will only show what that job needs. Change it any time from the button at the top. It asks again next game night.</p>
     <div class="rolegrid">
-      <button type="button" data-pick="chart"><b>Chart offense</b><span>Log every snap. More than one charter can chart the same game.</span></button>
-      <button type="button" data-pick="defense"><b>Chart defense</b><span>Opens the defense chart for this game.</span></button>
-      <button type="button" data-pick="film"><b>Film</b><span>Camera only. Clips cut when a charter logs a play.</span></button>
-      <button type="button" data-pick="view"><b>View only</b><span>Next Call, OC report, plays and film. Can't change plays.</span></button>
+      <button type="button" data-pick="chart"><b>Offense charter</b><span>Just the chart. Log every snap. Students and managers start here.</span></button>
+      <button type="button" data-pick="defense"><b>Defense charter</b><span>Just the defense chart for this game.</span></button>
+      <button type="button" data-pick="oc"><b>Offensive coordinator</b><span>Next Call, OC report and plays, live. Nothing to tap.</span></button>
+      <button type="button" data-pick="hc"><b>Head coach</b><span>Score, win chance, 4th-down help and the halftime report.</span></button>
     </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;font-size:14px"><button type="button" class="btn" data-pick="film">Film camera</button><button type="button" class="btn" data-pick="all">All tools (coach / admin)</button></div>
     <div class="actions" style="margin-top:12px"><button class="btn" id="roleClose" type="button">Close</button></div>
   </div>
 </div>
@@ -1862,7 +1866,7 @@ textarea { min-height: 64px }
   function renderHome(note) {
     var L = HOME.list || {}, box = $("homeList"), weeks = WK.list || [], mine = SY.cfg && !S.example ? SY.cfg.code : null, adm = typeof LOCK !== "undefined" && LOCK.admin;
     var nGames = Object.keys(L).filter(function (k) { return !(L[k] || {}).unfiled }).length;
-    $("homeState").textContent = note || (nGames + (nGames === 1 ? " game" : " games")); homeDoor();
+    $("homeState").textContent = note || (nGames + (nGames === 1 ? " game" : " games")); homeDoor(); if (typeof roleAsk === "function") roleAsk();
     if ($("wkBar")) $("wkBar").hidden = true; if ($("hsBox")) $("hsBox").hidden = true;
     var row = function (k, g, opts) {
       opts = opts || {}; var st = gameStatus(g, k), isMine = k === mine, upd = g.updated ? new Date(g.updated) : null;
@@ -5735,21 +5739,30 @@ textarea { min-height: 64px }
   $("homeSend").addEventListener("click", sendOnline); $("syncSend").addEventListener("click", sendOnline);
   $("homeOff").addEventListener("click", function () { document.getElementById("t-chart").click() });
   // ---------- roles: each device picks its job for the night ----------
-  var ROLE_KEY = "solutions-role" + NS, ROLES = { chart: ["Charting", "Chart"], film: ["Filming", "Film"], view: ["View only", "Live"] };
-  function roleGet() { try { return localStorage.getItem(ROLE_KEY) || "" } catch (e) { return "" } }
+  // the job is asked again each game night: it is saved with today's date and forgotten the next day
+  var ROLE_KEY = "solutions-role" + NS, ROLES = { chart: ["Offense charter", "Chart"], film: ["Filming", "Film"], view: ["View only", "Live"], oc: ["OC", "Live"], hc: ["Head coach", "Live"], all: ["All tools", "Chart"] };
+  function roleRaw() { try { var v = JSON.parse(localStorage.getItem(ROLE_KEY) || "null"); return v && v.d === wkToday() ? v.r : "" } catch (e) { return "" } }
+  function roleGet() { var r = roleRaw(); return r === "all" ? "" : r }
   function roleApply() {
-    var r = roleGet(); ["chart", "film", "view"].forEach(function (k) { document.body.classList.toggle("role-" + k, r === k) });
+    var r = roleGet(), raw = roleRaw(); ["chart", "film", "oc", "hc"].forEach(function (k) { document.body.classList.toggle("role-" + k, r === k) });
+    document.body.classList.toggle("role-view", r === "view" || r === "oc" || r === "hc");
+    $("roleChip").textContent = (ROLES[raw] ? ROLES[raw][0] : "Pick your job") + " ▾";
     $("roleChip").textContent = (ROLES[r] ? ROLES[r][0] : "Pick a role") + " ▾";
     $("t-chart").textContent = ROLES[r] ? ROLES[r][1] : "Chart";
     document.querySelectorAll("#roleModal [data-pick]").forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.pick === r) });
   }
   function roleSet(r) {
+    try { localStorage.setItem(ROLE_KEY, JSON.stringify({ r: r, d: wkToday() })) } catch (e) {}
     if (r === "defense") { location.href = "defense.html"; return }
-    try { localStorage.setItem(ROLE_KEY, r) } catch (e) {}
     roleApply(); $("roleModal").hidden = true; $("t-chart").click();
-    toast(r === "view" ? "View only: this device can't change plays" : r === "film" ? "Filming: tap Film this game to start" : "Charting");
+    if (r === "all") $("t-home").click();
+    toast(r === "oc" || r === "hc" || r === "view" ? "Watching live: this device can't change plays" : r === "film" ? "Filming: tap Film this game to start" : r === "all" ? "All tools" : "Offense charter");
   }
   function roleOpen() { roleApply(); $("roleModal").hidden = false }
+  // on a game day, a device that hasn't picked tonight's job gets asked once when the app opens
+  var roleAsked = false;
+  function roleAsk() { if (roleAsked || roleRaw()) return; var t = wkToday(); if ((WK.list || []).some(function (x) { return x.date === t })) { roleAsked = true; roleOpen() } }
+  setTimeout(roleAsk, 2500);
   $("roleChip").addEventListener("click", roleOpen); $("roleClose").addEventListener("click", function () { $("roleModal").hidden = true });
   document.querySelectorAll("#roleModal [data-pick]").forEach(function (b) { b.addEventListener("click", function () { roleSet(b.dataset.pick) }) });
   document.querySelectorAll("[data-role-open]").forEach(function (b) { b.addEventListener("click", roleOpen) });

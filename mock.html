@@ -577,7 +577,7 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
     var bkRun = call.run && pbFind(call), bnd = bndOf(call);
     // the TE goes where the run needs him: toward-the-TE runs put him on the play side, away runs on the back side (the formation flips)
     var hd = holeDir(call);
-    if (bkRun && bkRun.run && hd && (bkRun.run.toward === "te" || bkRun.run.toward === "away")) { var te0 = teOf(P.o, bx), want = bkRun.run.toward === "te" ? hd : -hd; if (te0 && (te0.x >= bx ? 1 : -1) !== want) P.o.forEach(function (p, i) { if (i > 5) p.x = Math.max(-22.5, Math.min(22.5, 2 * bx - p.x)) }) }
+    if (bkRun && bkRun.run && hd && (/^(te|away|strong|weak)$/.test(bkRun.run.toward))) { var te0 = teOf(P.o, bx), want = /^(te|strong)$/.test(bkRun.run.toward) ? hd : -hd; if (te0 && (te0.x >= bx ? 1 : -1) !== want) P.o.forEach(function (p, i) { if (i > 5) p.x = Math.max(-22.5, Math.min(22.5, 2 * bx - p.x)) }) }
     else if (bkRun && bkRun.run && bnd && bx !== 0) { var bside = bx < 0 ? -1 : 1; if (runSide(call, bkRun.run) !== bside) P.o.forEach(function (p, i) { if (i > 5) p.x = Math.max(-22.5, Math.min(22.5, 2 * bx - p.x)) }) } var s = strengthOf(P.o, bx), ft = ftypeOf(P.o, bx);
     P.d = placeDef(defStd(look && look.front, look ? look.sh : "MFO", ft, look && look.cov), s, bx); P.s = s;
     var RC = P.o.slice(6, 10); RC.filter(function (p) { return p.y < -4 }).forEach(function (p) { p.lab = "B"; p.num = "B" }); RC.filter(function (p) { return p.y >= -4 }).sort(function (a, b) { return a.x - b.x || b.y - a.y }).forEach(function (p, i) { p.lab = String(i + 1); p.num = p.lab }); P.o[10].lab = "0"; P.o[10].num = "0";

@@ -7,20 +7,58 @@ so the live tracking job never picks it up. Change TEST_RUN to track the clips a
 
 This repo is public, so the log only ever prints counts.
 """
+import base64
+import io
 import json
 import os
 import sys
 import time
+import zipfile
 from collections import Counter
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from presnap import MODEL as PRESNAP_MODEL  # noqa: E402
 from run import DB_URL, download, log  # noqa: E402
-from track import KeyProblem, process, roboflow_detect  # noqa: E402
+from track import KeyProblem, process, read_samples, roboflow_detect  # noqa: E402
 
 SOURCE, DEST = "hudltest", "autotest"
 MAX_CLIPS = 4
 TEST_RUN = os.environ.get("TEST_RUN", "1")
+
+
+def cached(detect, store, prefix, fresh):
+    """Uses detections saved from an earlier run, so re-tests don't spend Roboflow credits."""
+    def go(img, t=None):
+        k = prefix + ("%.3f" % t).replace(".", "_")
+        if k not in store:
+            store[k] = detect(img, t)
+            fresh.append(k)
+        return store[k]
+    return go
+
+
+def send_debug(path, rec, store, out, i):
+    """Prints the clip's frames and detections to the log, encrypted with debug_key.pem.
+    The log is public, so nothing readable goes in it. Only the holder of the private key can open this."""
+    import cv2
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import padding
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+    frames, times = read_samples(path, rec.get("a"), rec.get("b"))
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as z:
+        z.writestr("detections.json", json.dumps({"store": store, "times": times, "a": rec.get("a"), "b": rec.get("b"), "snap": rec.get("snap")}))
+        z.writestr("out.json", json.dumps(out))
+        for k, f in enumerate(frames):
+            z.writestr("f%03d.jpg" % k, cv2.imencode(".jpg", f, [cv2.IMWRITE_JPEG_QUALITY, 60])[1].tobytes())
+    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "debug_key.pem"), "rb") as fh:
+        pub = serialization.load_pem_public_key(fh.read())
+    key, nonce = os.urandom(32), os.urandom(12)
+    wrapped = pub.encrypt(key, padding.OAEP(mgf=padding.MGF1(hashes.SHA256()), algorithm=hashes.SHA256(), label=None))
+    blob = base64.b64encode(wrapped + nonce + AESGCM(key).encrypt(nonce, buf.getvalue(), None)).decode("ascii")
+    size = 20000
+    for n in range(0, len(blob), size):
+        print("DBG %d %d %s" % (i, n // size, blob[n:n + size]), flush=True)
 
 
 def main():
@@ -52,9 +90,17 @@ def main():
             log("clip %d: already done in this test run" % i)
             continue
         path = None
+        cache = db.reference(root + "trackcache/%s/%s" % (DEST, play))
+        store, fresh = cache.get() or {}, []
         try:
             path = download(rec["url"], rec.get("type"))
-            out = process(path, detect, a=rec.get("a"), b=rec.get("b"), snap=rec.get("snap"), presnap_detect=pre)
+            out = process(path, cached(detect, store, "t", fresh), a=rec.get("a"), b=rec.get("b"), snap=rec.get("snap"),
+                          presnap_detect=cached(pre, store, "p", fresh))
+            if fresh:
+                cache.set(store)
+            log("clip %d: %d new Roboflow calls, %d reused, %d camera misses" % (i, len(fresh), len(store) - len(fresh), out["camFails"]))
+            if os.environ.get("TEST_DEBUG"):
+                send_debug(path, rec, store, out, i)
             db.reference(root + "trackdata/%s/%s" % (DEST, play)).set(json.dumps(out, separators=(",", ":")))
             status.set({"status": "done", "at": int(time.time() * 1000), "clipAt": at, "tries": 1, "testRun": TEST_RUN,
                         "players": len(out["tracks"]), "snap": out["snap"]})

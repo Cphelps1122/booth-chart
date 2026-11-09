@@ -3127,9 +3127,14 @@ textarea { min-height: 64px }
     var draw = function () {
       var need = steps.filter(function (x) { return !x.opt }), done = steps.filter(function (x) { return x.ok }).length, cur = steps.filter(function (x) { return x.ok !== true })[0];
       $("gdTitle").innerHTML = (over ? "Season setup" : "Get ready · " + (w.ha === "A" ? "at " : "vs ") + esc(w.opp)) + "<span class='wzn'>" + (over ? "" : done + " of " + steps.length + " done") + "</span>";
-      $("gdList").outerHTML = "<div id='gdList'><div class='wzbar'><i style='width:" + Math.round(100 * done / steps.length) + "%'></i></div><ol class='wz'>" + steps.map(function (x, i) {
+      var off = false; try { off = localStorage.getItem("solutions-wizard-off") === "1" } catch (e) {}
+      var tog = "<button type='button' class='wzgo' id='wzTog' style='margin-left:auto;font:inherit;font-size:14px;font-weight:700;padding:6px 12px;border-radius:10px;border:1px solid #3a4652;background:transparent;color:#e8edf2;cursor:pointer;letter-spacing:0;text-transform:none'>" + (off ? "Show setup steps" : "Hide steps on this device") + "</button>";
+      $("gdTitle").style.display = "flex"; $("gdTitle").style.alignItems = "center"; $("gdTitle").insertAdjacentHTML("beforeend", tog);
+      if (off) { $("gdList").outerHTML = "<div id='gdList'><div class='wzbar' style='margin-bottom:0'><i style='width:" + Math.round(100 * done / steps.length) + "%'></i></div>" + (cur ? "<p style='margin:10px 0 0;color:#9aa7b6;font-size:14px'>Next: <b style='color:#e8edf2'>" + cur.t + "</b></p>" : "") + "</div>" }
+      else $("gdList").outerHTML = "<div id='gdList'><div class='wzbar'><i style='width:" + Math.round(100 * done / steps.length) + "%'></i></div><ol class='wz'>" + steps.map(function (x, i) {
         var c = (x.ok ? "ok" : "") + (x === cur ? " cur" : "") + (x.opt ? " opt" : "");
         return "<li class='" + c + "'><span class='wzc'>" + (x.ok ? "✓" : i + 1) + "</span><span class='wzt'><b>" + x.t + (x.opt && !x.ok ? " <small style='font-weight:600;color:#9aa7b6'>optional</small>" : "") + "</b><span>" + x.d + "</span></span>" + (x.ok && x.k !== "code" ? "" : "<button type='button' class='wzgo' data-wz='" + x.k + "'>" + (x.k === "code" ? "Copy code" : x.ok ? "Open" : "Do it") + "</button>") + "</li>" }).join("") + "</ol></div>";
+      $("wzTog").addEventListener("click", function () { try { localStorage.setItem("solutions-wizard-off", off ? "0" : "1") } catch (e) {} draw() });
       document.querySelectorAll("#gdList [data-wz]").forEach(function (b) { b.addEventListener("click", function () { wzGo(b.dataset.wz, g) }) });
       box.hidden = false };
     draw(); if (over) return;

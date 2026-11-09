@@ -48,7 +48,7 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
   <section class="panel" id="setup">
     <h2>Run a game your way <small>Practice calling a game, or practice charting one</small></h2>
     <label class="drop big" id="dSheet" for="fSheet"><b>Upload your call sheet</b><span id="nSheet">Your sheet, laid out like it is on game day. Google Sheets: File, Download, Microsoft Excel (.xlsx).</span><input type="file" id="fSheet" accept=".xlsx" hidden></label>
-    <label class="drop" id="dBook" for="fBook" style="margin-top:10px"><b>Upload your playbook (optional)</b><span id="nBook">Your routes and blocking, so every play runs the way you drew it. Use the playbook file made from your pass and run books.</span><input type="file" id="fBook" accept=".json,application/json" hidden></label>
+    <label class="drop" id="dBook" for="fBook" style="margin-top:10px"><b>Upload your playbook (optional)</b><span id="nBook">Your routes and blocking, so every play runs the way you drew it. Use the playbook file made from your pass and run books. Uploading more adds to it; plays you already have stay the same.</span><input type="file" id="fBook" accept=".json,application/json" hidden></label>
     <details id="pbBox" style="margin-top:10px"><summary style="cursor:pointer;font-weight:700">Playbook builder: add plays your playbook doesn't have</summary>
       <p class="note" id="pbMissN" style="margin:8px 0 6px"></p><div id="pbMiss" style="display:flex;flex-wrap:wrap;gap:6px"></div>
       <div class="row" style="margin-top:10px"><button class="btn pri" id="pbNew" type="button">+ New play</button></div>
@@ -619,7 +619,10 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
     return best ? { pass: best } : null;
   }
   $("fBook").onchange = function () { var f = this.files[0]; this.value = ""; if (!f) return;
-    f.text().then(function (s) { var b = JSON.parse(s); if (!usePlaybook(b)) throw 0; claim(); store.set("sol-mock-playbook", b); if (canEdit() && authGet()) cloud("playbook", "PUT", s).catch(function () {}); toast("Playbook loaded"); if (G) { poses(); refresh() } }).catch(function () { toast("That isn't a playbook file. Use the .json file made from your pass and run books.") }) };
+    f.text().then(function (s) { var b = JSON.parse(s); if (!b || !b.pass || !b.runs) throw 0; var add = 0;
+      // add to the playbook already loaded, never replace it: plays it already has stay as they are
+      if (PB) { Object.keys(b.runs).forEach(function (k) { if (!PB.runs[k]) { PB.runs[k] = b.runs[k]; add++ } }); var have = {}; PB.pass.forEach(function (q) { have[q.t] = 1 }); b.pass.forEach(function (q) { if (!have[q.t]) { PB.pass.push(q); add++ } }); PB.alias = PB.alias || {}; Object.keys(b.alias || {}).forEach(function (k) { if (!PB.alias[k]) PB.alias[k] = b.alias[k] }); b = PB } else add = -1;
+      usePlaybook(b); claim(); store.set("sol-mock-playbook", b); if (canEdit() && authGet()) cloud("playbook", "PUT", JSON.stringify(b)).catch(function () {}); toast(add < 0 ? "Playbook loaded" : add ? "Added " + add + " plays to your playbook" : "Nothing new: your playbook already has all of these"); if (G) { poses(); refresh() } }).catch(function () { toast("That isn't a playbook file. Use the .json file made from your pass and run books.") }) };
   // a run drawn going right; s flips it. Paths in yards: x across, y downfield from the line.
   function bndOf(c) { return /\(\s*(BND|BOUNDARY)\s*\)/i.test(c && (c.lab || c.name) || "") }
   // a hole number in front of a run sets its side: even = left, odd = right ("2 POWER" left, "3 POWER" right)

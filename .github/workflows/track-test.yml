@@ -4,6 +4,7 @@ name: Tracking test
 on:
   push:
     branches: [track-auto]
+    paths-ignore: [tools/track/field_probe.py, .github/workflows/field-probe.yml]
 
 concurrency:
   group: tracking-test

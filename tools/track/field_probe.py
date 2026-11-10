@@ -41,15 +41,15 @@ def main():
         fr, _ = read_samples(path, rec.get("a"), rec.get("b"))
         clips.append(fr)
         os.remove(path)
-    models = []
+    models, codes = [], []
     for c in CANDIDATES:
         for v in range(1, 7):
-            code, js = call(key, "%s/%d" % (c, v), clips[0][len(clips[0]) // 3])
+            slug = c.split("/")[-1]
+            code, js = call(key, "%s/%d" % (slug, v), clips[0][len(clips[0]) // 3])
+            codes.append(code)
             if code == 200:
-                models.append("%s/%d" % (c, v))
-            if code == 200 or (code not in (404, 400) and v > 1):
-                continue
-        log("%s: %s" % (c, [m for m in models if m.startswith(c)] or "no model answered"))
+                models.append("%s/%d" % (slug, v))
+        log("%s: %s %s" % (c, [m for m in models if m.startswith(c.split("/")[-1])] or "no model answered", codes[-6:]))
     res = {}
     for m in models:
         for i, fr in enumerate(clips, 1):

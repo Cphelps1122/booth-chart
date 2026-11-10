@@ -1,0 +1,24 @@
+# track-auto only: sends Hudl test-clip frames to Roboflow for ball labeling. Runs when ball_project.txt changes.
+name: Ball frames to Roboflow
+on:
+  push:
+    branches: [track-auto]
+    paths: [tools/track/ball_project.txt]
+permissions:
+  contents: read
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: tools/track
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r tools/track/requirements.txt
+      - run: python tools/track/ball_frames.py
+        env:
+          ROBOFLOW_API_KEY: ${{ secrets.ROBOFLOW_API_KEY }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}

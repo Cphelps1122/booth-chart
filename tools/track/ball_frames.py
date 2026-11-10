@@ -1,8 +1,7 @@
 """
-Sends frames from the Hudl test clips into a Roboflow project for labeling the football.
+Sends frames from the Hudl test clips into a Roboflow project for labeling the ball and every player.
 
-Takes frames from just before the snap to about 3.5 s after, where the ball is in
-the QB's hands and in the air. Uses no model calls. The project name is in
+Takes frames from about 1 s before the snap through the play, 0.4 s apart. Uses no model calls. The project name is in
 ball_project.txt; this test job runs when that file changes.
 """
 import base64, json, os, sys
@@ -11,7 +10,7 @@ import cv2, requests  # noqa: E402
 from run import DB_URL, download, log  # noqa: E402
 from test_run import SOURCE  # noqa: E402
 
-PER_CLIP, STEP = 24, 0.15     # frames per clip, seconds apart
+PER_CLIP, STEP = 15, 0.4      # frames per clip, seconds apart: the whole play without near-copies
 
 
 def main():
@@ -35,7 +34,7 @@ def main():
             cap = cv2.VideoCapture(path)
             end = (cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0) / (cap.get(cv2.CAP_PROP_FPS) or 30)
             a = float(rec.get("a") or 0)
-            start = max(a, float(rec["snap"]) - 0.3) if rec.get("snap") is not None else a + 0.5
+            start = max(a, float(rec["snap"]) - 1.0) if rec.get("snap") is not None else a + 0.3
             t = start
             for j in range(PER_CLIP):
                 if t > min(end, float(rec.get("b") or end)):
@@ -47,7 +46,7 @@ def main():
                     continue
                 buf = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 92])[1]
                 r = requests.post("https://api.roboflow.com/dataset/%s/upload" % project,
-                                  params={"api_key": key, "name": "clip%02d_%02d.jpg" % (i, j), "split": "train", "batch": "hudl-ball-1"},
+                                  params={"api_key": key, "name": "clip%02d_%02d.jpg" % (i, j), "split": "train", "batch": "hudl-full-field-1"},
                                   data=base64.b64encode(buf.tobytes()), headers={"Content-Type": "application/x-www-form-urlencoded"}, timeout=60)
                 if r.status_code == 200:
                     sent += 1

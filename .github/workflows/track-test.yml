@@ -4,7 +4,7 @@ name: Tracking test
 on:
   push:
     branches: [track-auto]
-    paths-ignore: [tools/track/field_probe.py, .github/workflows/field-probe.yml, tools/track/ball_frames.py, tools/track/ball_project.txt, .github/workflows/ball-frames.yml]
+    paths-ignore: [tools/track/field_probe.py, tools/track/ffr_probe.py, .github/workflows/field-probe.yml, tools/track/ball_frames.py, tools/track/ball_project.txt, .github/workflows/ball-frames.yml]
 
 concurrency:
   group: tracking-test

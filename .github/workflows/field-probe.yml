@@ -3,7 +3,7 @@ name: Field model probe
 on:
   push:
     branches: [track-auto]
-    paths: [tools/track/field_probe.py, .github/workflows/field-probe.yml]
+    paths: [tools/track/field_probe.py, tools/track/ffr_probe.py, .github/workflows/field-probe.yml]
 permissions:
   contents: read
 jobs:
@@ -18,7 +18,7 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install -r tools/track/requirements.txt
-      - run: python tools/track/field_probe.py
+      - run: python tools/track/ffr_probe.py
         env:
           ROBOFLOW_API_KEY: ${{ secrets.ROBOFLOW_API_KEY }}
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}

@@ -27,11 +27,13 @@ from scipy.optimize import linear_sum_assignment
 import field as fieldmod
 import presnap as presnapmod
 
-MODEL = os.environ.get("ROBOFLOW_MODEL", "football-players-zm06l/15")
+MODEL = os.environ.get("ROBOFLOW_MODEL", "softballtracker-sy17i/full-field-read-1-rfdetr-small-t1")     # Full Field Read
+NOT_PLAYERS = {"ref", "football", "ball"}
+ROLE_OF = {"ol": "OL", "oline": "OL", "center": "OL", "c": "OL", "qb": "QB", "rb": "RB", "wr": "WR", "te": "TE", "dl": "DEF", "lb": "DEF", "db": "DEF"}
 PROC_W = 960            # frames are shrunk to this width before anything else
 SAMPLE_FPS = float(os.environ.get("TRACK_FPS", "6"))
 MAX_SAMPLES = int(os.environ.get("TRACK_MAX_FRAMES", "90"))   # caps Roboflow calls per clip
-OFF = {"center", "qb", "skill", "c", "oline", "rb", "wr", "te"}
+OFF = {"center", "qb", "skill", "c", "oline", "ol", "rb", "wr", "te"}
 DEF = {"lb", "db", "defense", "s", "cb", "dl"}
 
 
@@ -115,6 +117,8 @@ def detect_all(frames, times, detect, workers=6):
     for preds in out:
         dets = []
         for p in preds or []:
+            if str(p.get("class", "")).lower() in NOT_PLAYERS:     # officials and the ball aren't player trails
+                continue
             try:
                 dets.append({"x": float(p["x"]), "y": float(p["y"]), "w": float(p["width"]), "h": float(p["height"]),
                              "c": str(p.get("class", "")).lower(), "p": float(p.get("confidence", 0))})
@@ -476,8 +480,12 @@ def measure(frames, dets, Hs, times, tracks, k_pre, k_snap):
     sgn = 1.0 if np.mean([f[0] for f in de]) > np.mean([f[0] for f in off]) else -1.0
     cen = [at(t, k_pre) for t in tracks if t["side"] == "o" and t["cls"].most_common(1)[0][0] in ("center", "c")]
     cen = [f for f in cen if f]
+    ol = [at(t, k_pre) for t in tracks if t["side"] == "o" and t["cls"].most_common(1)[0][0] in ("ol", "oline")]
+    ol = [f for f in ol if f]
     if cen:
         los = sgn * cen[0][0] + 0.5                 # the ball is just in front of the center's feet
+    elif len(ol) >= 3:
+        los = float(np.median([sgn * f[0] for f in ol])) + 0.5     # linemen stand just behind the ball
     else:
         los = (np.percentile([sgn * f[0] for f in off], 85) + np.percentile([sgn * f[0] for f in de], 15)) / 2
     k0 = k_snap if k_snap is not None else 0
@@ -540,6 +548,11 @@ def process(path, detect, a=None, b=None, snap=None, presnap_detect=None, hash_d
         except Exception:                           # the extra read is a bonus: never lose the clip over it
             info = None
     tracks = presnapmod.apply(tracks, info, Hs[k_pre], k_pre, unit)
+    for t in tracks:                                # the model's own position label wherever the pre-snap read gave none
+        if not t.get("role"):
+            c = t["cls"].most_common(1)[0][0]
+            if c in ROLE_OF and t["cls"][c] >= 0.6 * sum(t["cls"].values()):
+                t["role"], t["side"] = ROLE_OF[c], "d" if ROLE_OF[c] == "DEF" else "o"
     if info:
         pre.update({x: info[x] for x in ("view", "splits", "personnel", "box", "deep", "shell", "fixed")})
     if info and sum(1 for t in tracks if t.get("role")) >= 6:     # good read: role-less trails starting after the snap are pieces

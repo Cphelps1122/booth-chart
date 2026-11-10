@@ -96,7 +96,7 @@ def main():
         store, fresh = cache.get() or {}, []
         try:
             path = download(rec["url"], rec.get("type"))
-            out = process(path, cached(detect, store, "t", fresh), a=rec.get("a"), b=rec.get("b"), snap=rec.get("snap"),
+            out = process(path, cached(detect, store, "f", fresh), a=rec.get("a"), b=rec.get("b"), snap=rec.get("snap"),
                           presnap_detect=cached(pre, store, "p", fresh), hash_detect=cached(hsh, store, "h", fresh))
             if fresh:
                 cache.set(store)

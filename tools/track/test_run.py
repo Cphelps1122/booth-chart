@@ -18,6 +18,7 @@ from collections import Counter
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from presnap import MODEL as PRESNAP_MODEL  # noqa: E402
+from track import HASH_MODEL  # noqa: E402
 from run import DB_URL, download, log  # noqa: E402
 from track import KeyProblem, process, read_samples, roboflow_detect  # noqa: E402
 
@@ -82,6 +83,7 @@ def main():
     log("%d clip(s) to track" % len(jobs))
     detect = roboflow_detect(key.strip())
     pre = roboflow_detect(key.strip(), model=PRESNAP_MODEL, confidence=15)
+    hsh = roboflow_detect(key.strip(), model=HASH_MODEL, confidence=30)
     root = "schools/%s/" % school
     for i, (at, _, play, rec) in enumerate(jobs, 1):
         status = db.reference(root + "tracking/%s/%s" % (DEST, play))
@@ -95,7 +97,7 @@ def main():
         try:
             path = download(rec["url"], rec.get("type"))
             out = process(path, cached(detect, store, "t", fresh), a=rec.get("a"), b=rec.get("b"), snap=rec.get("snap"),
-                          presnap_detect=cached(pre, store, "p", fresh))
+                          presnap_detect=cached(pre, store, "p", fresh), hash_detect=cached(hsh, store, "h", fresh))
             if fresh:
                 cache.set(store)
             log("clip %d: %d new Roboflow calls, %d reused, %d camera misses" % (i, len(fresh), len(store) - len(fresh), out["camFails"]))
@@ -109,6 +111,7 @@ def main():
             log("clip %d: %d players, roles %s, %d relabeled, yards %s, drift %s over %s checks" % (
                 i, len(out["tracks"]), dict(Counter(t.get("role", "none") for t in out["tracks"])), out["pre"].get("fixed", -1),
                 "ok" if f.get("ok") else "no", f.get("drift"), f.get("driftChecks")))
+            log("clip %d: %s hash-model fits; los %s" % (i, f.get("hashFits"), f.get("los")))
         except KeyProblem as e:
             sys.exit(str(e))
         except Exception as e:

@@ -548,15 +548,16 @@ def process(path, detect, a=None, b=None, snap=None, presnap_detect=None, hash_d
         except Exception:                           # the extra read is a bonus: never lose the clip over it
             info = None
     tracks = presnapmod.apply(tracks, info, Hs[k_pre], k_pre, unit)
-    for t in tracks:                                # the model's own position label wherever the pre-snap read gave none
-        if not t.get("role"):
-            c = t["cls"].most_common(1)[0][0]
-            if c in ROLE_OF and t["cls"][c] >= 0.6 * sum(t["cls"].values()):
-                t["role"], t["side"] = ROLE_OF[c], "d" if ROLE_OF[c] == "DEF" else "o"
+    for t in tracks:                # Full Field Read was trained on positions: its label wins; the pre-snap read only splits WR/Slot
+        c = t["cls"].most_common(1)[0][0]
+        if c in ROLE_OF and t["cls"][c] >= 0.5 * sum(t["cls"].values()):
+            r = ROLE_OF[c]
+            t["role"] = "Slot" if r == "WR" and t.get("role") == "Slot" else r
+            t["side"] = "d" if r == "DEF" else "o"
     if info:
         pre.update({x: info[x] for x in ("view", "splits", "personnel", "box", "deep", "shell", "fixed")})
     if info and sum(1 for t in tracks if t.get("role")) >= 6:     # good read: role-less trails starting after the snap are pieces
-        tracks = [t for t in tracks if t.get("role") or t["p"][0][0] <= k_pre + 1]
+        tracks = [t for t in tracks if t["p"][0][0] <= k_pre + 1]
     for t in tracks:
         t["p"] = smooth(t["p"])
     fld = measure(frames, dets, Hs, times, tracks, k_pre, k_snap)

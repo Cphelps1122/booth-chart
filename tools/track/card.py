@@ -40,7 +40,8 @@ def make(frames, out, quality=70):
     stack = []
     for k in picks:
         Hk = np.array(out["Hs"][k] + [1.0], dtype=float).reshape(3, 3)
-        M = A @ F @ np.linalg.inv(Hk)
+        dx, dy = (f.get("dx") or [0] * len(frames))[k], (f.get("dy") or [0] * len(frames))[k]
+        M = A @ np.array([[1, 0, -dx], [0, 1, -dy], [0, 0, 1.0]]) @ F @ np.linalg.inv(Hk)      # with the drift correction, so frames line up
         img = cv2.warpPerspective(frames[k], M, (W, H), flags=cv2.INTER_LINEAR).astype(np.float32)
         seen = cv2.warpPerspective(np.ones(frames[k].shape[:2], np.uint8), M, (W, H), flags=cv2.INTER_NEAREST)
         img[seen == 0] = np.nan
@@ -50,7 +51,10 @@ def make(frames, out, quality=70):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             bg = np.nanmedian(np.stack(stack), axis=0)
+    hole = np.isnan(bg).any(axis=2)
     bg = np.nan_to_num(bg, nan=22.0).clip(0, 255).astype(np.uint8)
+    bg = cv2.addWeighted(bg, 1.6, cv2.GaussianBlur(bg, (0, 0), 2.0), -0.6, 0)       # crisper paint
+    bg[hole] = 22
     ok, buf = cv2.imencode(".jpg", bg, [cv2.IMWRITE_JPEG_QUALITY, quality])
     return {"bg": base64.b64encode(buf.tobytes()).decode("ascii"), "w": W, "h": H, "s": SCALE, "y0": Y0, "y1": Y1,
             "top": top, "dir": d, "los": los}

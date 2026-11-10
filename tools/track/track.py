@@ -124,8 +124,19 @@ def detect_all(frames, times, detect, workers=6):
                              "c": str(p.get("class", "")).lower(), "p": float(p.get("confidence", 0))})
             except (KeyError, TypeError, ValueError):
                 pass
-        clean.append(dets)
+        dets.sort(key=lambda d: -d["p"])           # the model can box one player twice under two positions: keep the surer box
+        kept = []
+        for d in dets:
+            if all(_overlap(d, e) < 0.7 for e in kept):         # nearly the same box; a receiver and his press corner stay two players
+                kept.append(d)
+        clean.append(kept)
     return clean
+
+
+def _overlap(a, b):
+    ix = max(0.0, min(a["x"] + a["w"] / 2, b["x"] + b["w"] / 2) - max(a["x"] - a["w"] / 2, b["x"] - b["w"] / 2))
+    iy = max(0.0, min(a["y"] + a["h"] / 2, b["y"] + b["h"] / 2) - max(a["y"] - a["h"] / 2, b["y"] - b["h"] / 2))
+    return ix * iy / max(1e-6, a["w"] * a["h"] + b["w"] * b["h"] - ix * iy)
 
 
 # ---------------------------------------------------------------- camera motion
@@ -489,6 +500,17 @@ def measure(frames, dets, Hs, times, tracks, k_pre, k_snap):
     else:
         los = (np.percentile([sgn * f[0] for f in off], 85) + np.percentile([sgn * f[0] for f in de], 15)) / 2
     k0 = k_snap if k_snap is not None else 0
+    for t in tracks:                                # a jump no player could make means the trail hopped to someone else: cut it there
+        ks, f = [q[0] for q in t["p"]], t["f"]
+        i0 = min(range(len(ks)), key=lambda i: abs(ks[i] - (k_snap if k_snap is not None else k_pre)))
+
+        def bad(i, j):
+            dt = abs(times[ks[j]] - times[ks[i]])
+            return dt > 0 and math.hypot(f[j][0] - f[i][0], f[j][1] - f[i][1]) / dt > 12.5      # yards a second, about 25 mph
+        hi = next((i + 1 for i in range(i0, len(ks) - 2) if bad(i, i + 2)), len(ks))
+        lo = next((i for i in range(i0, 1, -1) if bad(i, i - 2)), 0)
+        if lo > 0 or hi < len(ks):
+            t["p"], t["f"], t["cut"] = t["p"][lo:hi], t["f"][lo:hi], True
     for t in tracks:
         ks = [q[0] for q in t["p"]]
         mph = []
@@ -508,6 +530,7 @@ def measure(frames, dets, Hs, times, tracks, k_pre, k_snap):
         t["deep"] = round(max(dep), 1) if dep else None
         t["top"] = round(max(sp), 1) if sp else None
     return {"ok": True, "F": [round(float(x), 7) for x in F.flatten()[:8]], "dir": sgn, "los": round(float(los), 2),
+            "dx": [round(float(x), 2) for x in cx], "dy": [round(float(x), 2) for x in cy],
             "hashFits": HASH["used"], "drift": round(float(max(np.max(np.abs(cx)), np.max(np.abs(cy)))), 2), "driftChecks": checks, "lines": fit["lines"], "tick": fit["tick"], "rms": fit["rms"], "hashYards": round(fieldmod.HASH_YARDS, 2)}
 
 
@@ -552,6 +575,14 @@ def process(path, detect, a=None, b=None, snap=None, presnap_detect=None, hash_d
         c = t["cls"].most_common(1)[0][0]
         if c in ROLE_OF and t["cls"][c] >= 0.5 * sum(t["cls"].values()):
             r = ROLE_OF[c]
+            js, n = t["sides"].most_common(1)[0]
+            if js != "x" and n >= 0.7 * sum(t["sides"].values()) and js != ("d" if r == "DEF" else "o"):
+                # his jersey says the other team: trust the jersey. A "DB" in the offense's color is the receiver he lines up on.
+                r = "DEF" if js == "d" else ("WR" if c == "db" else t.get("role") if t.get("role") in ("WR", "Slot", "TE", "RB") else None)
+                t["side"] = js
+                if r is None:
+                    t.pop("role", None)
+                    continue
             t["role"] = "Slot" if r == "WR" and t.get("role") == "Slot" else r
             t["side"] = "d" if r == "DEF" else "o"
     if info:
@@ -564,6 +595,8 @@ def process(path, detect, a=None, b=None, snap=None, presnap_detect=None, hash_d
     if fld.get("ok"):
         k0 = k_snap if k_snap is not None else k_pre
         tracks = [t for t in tracks if -21.5 <= float(np.median([f[1] for f in t["f"]])) <= 34.8]     # on the field only
+        tracks = presnapmod.tidy(tracks, k0)
+        pre.update(presnapmod.formation(tracks, k0, fld["dir"], fld["los"]))
         presnapmod.cover(tracks, k0)
         presnapmod.routes(tracks, k0, fld["dir"], fld["los"])
     out_tracks = []

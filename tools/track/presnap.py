@@ -242,6 +242,54 @@ def _at(t, k):
     return best[1] if abs(best[0][0] - k) <= 3 else None
 
 
+LIMITS = (("OL",), 5), (("QB",), 1), (("WR", "Slot", "TE", "RB"), 5), (("DEF",), 11)
+
+
+def tidy(tracks, k):
+    """Removes doubles of the same player and anyone past what a team can have on the field."""
+    gone = set()
+    for i, a in enumerate(tracks):
+        for j in range(i + 1, len(tracks)):
+            b = tracks[j]
+            if a.get("side") != b.get("side") or i in gone or j in gone:
+                continue
+            fa = {q[0]: f for q, f in zip(a["p"], a["f"])}
+            d = [math.hypot(fa[q[0]][0] - f[0], fa[q[0]][1] - f[1]) for q, f in zip(b["p"], b["f"]) if q[0] in fa]
+            if len(d) >= 4 and statistics.median(d) < 1.0:
+                gone.add(i if (bool(a.get("role")), len(a["p"])) < (bool(b.get("role")), len(b["p"])) else j)
+    tracks = [t for i, t in enumerate(tracks) if i not in gone]
+    out = []
+    for roles, most in LIMITS:
+        grp = [t for t in tracks if t.get("role") in roles]
+        grp.sort(key=lambda t: (_at(t, k) is None, -len(t["p"])))       # on screen at the snap first, then the longest trails
+        out += grp[:most]
+    return out + [t for t in tracks if not t.get("role")]
+
+
+def formation(tracks, k, sgn, los):
+    """Snap read from the tracked positions, in field yards. Also names the outside receiver WR and inside ones Slot."""
+    at = lambda roles: [(t, _at(t, k)) for t in tracks if t.get("role") in roles and _at(t, k)]
+    ol = at(("OL",)) or at(("QB",))
+    if not ol:
+        return {}
+    ys = [f[1] for _, f in ol]
+    cy, lo, hi = statistics.median(ys), min(ys) - 2.5, max(ys) + 2.5
+    sides = {-1: [], 1: []}
+    for t, f in at(("WR", "Slot")):
+        sides[-1 if f[1] < cy else 1].append((abs(f[1] - cy), t))
+    for grp in sides.values():
+        for n, (_, t) in enumerate(sorted(grp, key=lambda x: -x[0])):
+            t["role"] = "WR" if n == 0 else "Slot"
+    te = at(("TE",))
+    a = len(sides[-1]) + sum(1 for _, f in te if f[1] < cy)
+    b = len(sides[1]) + sum(1 for _, f in te if f[1] >= cy)
+    de = [(sgn * f[0] - los, f[1]) for _, f in at(("DEF",))]
+    box = sum(1 for d, y in de if lo <= y <= hi and -0.5 <= d <= BOX_DEPTH)
+    deep = sum(1 for d, y in de if d > DEEP_DEPTH)
+    return {"view": "tracked positions", "splits": "%dx%d" % (max(a, b), min(a, b)), "personnel": "%d%d" % (len(at(("RB",))), len(te)),
+            "box": box, "deep": deep, "shell": "0-high" if deep == 0 else "1-high" if deep == 1 else "2-high"}
+
+
 def cover(tracks, k):
     """Pairs each receiver with the defender closest to him at the snap. Sets cover and sepSnap (yards)."""
     rec = [(t, _at(t, k)) for t in tracks if t.get("role") in RECEIVERS and "f" in t]

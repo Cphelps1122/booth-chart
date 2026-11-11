@@ -10,7 +10,7 @@ from run import DB_URL, download, log  # noqa: E402
 from track import read_samples  # noqa: E402
 from test_run import SOURCE  # noqa: E402
 
-IDS = ["softballtracker-sy17i/full-field-read-1-rfdetr-small-t2"]
+IDS = ["softballtracker-sy17i/full-field-read-2-rfdetr-small-t1", "softballtracker-sy17i/full-field-read-2-rfdetr-small-t2", "full-field-read/2"]
 
 
 def main():

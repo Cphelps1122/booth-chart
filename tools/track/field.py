@@ -48,7 +48,7 @@ def yard_lines(wm, players=()):
     cand = []
     for x1, y1, x2, y2 in segs.reshape(-1, 4):
         ang = math.degrees(math.atan2(abs(y2 - y1), abs(x2 - x1) + 1e-6))
-        if ang < 35:          # sidelines, hash rows and numbers are flat: yard lines are steep
+        if ang < 24:          # sidelines, hash rows and numbers are flat: yard lines are steeper, even on diagonal film
             continue
         xm = _line_x_at((x1, y1, x2, y2), ym)
         if xm is None:
@@ -233,3 +233,92 @@ def fit(img, players=()):
             tick.append(float(np.median(d)))
     return {"F": F, "lines": len(lines), "rows": [r["n"] for r in rows], "rms": round(rms, 2),
             "tick": round(float(np.median(tick)), 2) if tick else None, "xs": [float(x) for x, _ in xs], "idx": idx}, None
+
+
+def _paint(gray, G, idx):
+    """How much brighter the picture is along the predicted yard lines than just beside them."""
+    h, w = gray.shape
+    tot, n = 0.0, 0
+    for i in idx:
+        ends = cv2.perspectiveTransform(np.float32([[[5.0 * i, 0.0]], [[5.0 * i, HASH_YARDS]]]), G).reshape(-1, 2)
+        d = ends[1] - ends[0]
+        L = float(np.hypot(*d))
+        if L < 20:
+            continue
+        nrm = np.array([-d[1], d[0]]) / L
+        t = np.linspace(0.12, 0.88, 24)[:, None]
+        on = ends[0] + t * d
+
+        def val(p):
+            x, y = np.clip(p[:, 0], 0, w - 1).astype(int), np.clip(p[:, 1], 0, h - 1).astype(int)
+            return gray[y, x].astype(float)
+        tot += float(np.median(val(on) - (val(on + 5 * nrm) + val(on - 5 * nrm)) / 2))
+        n += 1
+    return tot / n if n else 0.0
+
+
+def fit_hash(points, width, height, gray=None):
+    """Field ruler from yard-line/hash-row crossings alone, for film where the paint is too faint to read.
+
+    points: image (x, y) of the crossings. Returns image -> field (same axes as fit(): yard lines every
+    5 along X counted from the leftmost one seen, far hash row Y=0, near row Y=HASH_YARDS), or None.
+    Which crossing on one row pairs with which on the other is settled by asking that the result
+    be something a real camera could see: yard lines square to the hash rows, yards the same both ways.
+    """
+    pts = np.float32(points)
+    if len(pts) < 8:
+        return None
+    c = pts.mean(axis=0)
+    u = np.linalg.svd(pts - c)[2][0]                     # along the rows
+    if u[0] < 0:
+        u = -u
+    nrm = np.float32([-u[1], u[0]])
+    off = (pts - c) @ nrm
+    crit = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.1)
+    _, lab, cen = cv2.kmeans(np.float32(off).reshape(-1, 1), 2, None, crit, 5, cv2.KMEANS_PP_CENTERS)
+    lab = lab.flatten()
+    rows = [pts[lab == j] for j in (0, 1)]
+    if min(len(r) for r in rows) < 3 or abs(float(cen[0][0] - cen[1][0])) < 3 * max(np.std(off[lab == 0]), np.std(off[lab == 1]), 1.0):
+        return None
+    rows.sort(key=lambda r: r[:, 1].mean())              # far row first (higher in the picture)
+
+    def index(r):
+        r = r[np.argsort(r @ u)]
+        gaps = np.hypot(*np.diff(r, axis=0).T)
+        idx = [0]
+        for j, g in enumerate(gaps):
+            near = [gaps[k] for k in (j - 1, j + 1) if 0 <= k < len(gaps)]
+            step = int(round(g / np.mean(near))) if near and g / np.mean(near) > 1.6 else 1     # a missed crossing leaves a double gap
+            idx.append(idx[-1] + max(1, min(3, step)))
+        return r, np.array(idx)
+    (ra, ia), (rb, ib) = index(rows[0]), index(rows[1])
+    img = np.vstack([ra, rb])
+    cands = []
+    for m in range(-int(ib[-1]) - 1, int(ia[-1]) + 2):
+        fld = np.float32(np.vstack([np.stack([5.0 * ia, np.zeros(len(ia))], 1), np.stack([5.0 * (ib + m), np.full(len(ib), HASH_YARDS)], 1)]))
+        M, _ = cv2.findHomography(img, fld, 0)
+        if M is None or abs(np.linalg.det(M)) < 1e-12:
+            continue
+        err = float(np.hypot(*(cv2.perspectiveTransform(img.reshape(-1, 1, 2), M).reshape(-1, 2) - fld).T).mean())
+        G0 = np.linalg.inv(M)
+        G = np.array([[1, 0, -width / 2], [0, 1, -height / 2], [0, 0, 1.0]]) @ G0
+        g1, g2 = G[:, 0], G[:, 1]
+        score = 1e9
+        for f in np.geomspace(0.4 * width, 12 * width, 60):
+            w = np.array([1 / f ** 2, 1 / f ** 2, 1.0])
+            n1, n2 = math.sqrt(g1 @ (w * g1)), math.sqrt(g2 @ (w * g2))
+            score = min(score, abs(g1 @ (w * g2)) / (n1 * n2) + abs(math.log(n1 / n2)))
+        if err < 1.0:
+            cands.append((score, M, _paint(gray, G0, ia) if gray is not None else 0.0))
+    if not cands:
+        return None
+    best = min(cands, key=lambda x: x[0])
+    if gray is not None:                        # the pairing whose yard lines actually lie on painted lines wins when it's clear
+        seen = sorted(cands, key=lambda x: -x[2])
+        if seen[0][2] > 2.0 and (len(seen) == 1 or seen[0][2] > 1.4 * max(seen[1][2], 0.5)) and seen[0][0] < 0.8:
+            best = seen[0]
+    if best[0] > (0.8 if gray is not None and best[2] > 2.0 else 0.35):
+        return None
+    M = best[1]
+    x0 = float(cv2.perspectiveTransform(img.reshape(-1, 1, 2), M).reshape(-1, 2)[:, 0].min())
+    return np.array([[1, 0, -5.0 * round(x0 / 5.0)], [0, 1, 0], [0, 0, 1.0]]) @ M

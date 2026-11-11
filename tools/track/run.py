@@ -20,7 +20,7 @@ import traceback
 import requests
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from track import KeyProblem, process, roboflow_detect  # noqa: E402
+from track import HASH_MODEL, KeyProblem, process, roboflow_detect  # noqa: E402
 
 DB_URL = os.environ.get("FIREBASE_DB_URL", "https://cardinal-booth-default-rtdb.firebaseio.com")
 SKIP_GAMES = {"practice", "local"}
@@ -91,6 +91,7 @@ def main():
     firebase_admin.initialize_app(cred, {"databaseURL": DB_URL})
 
     detect = roboflow_detect(key.strip())
+    hash_detect = roboflow_detect(key.strip(), model=HASH_MODEL, confidence=30)      # yard-line/hash crossings, for the field ruler
     start = time.time()
     # Watch mode: keep checking for new clips every minute until the watch ends (a run can last up to 6 hours).
     stop = start + float(os.environ.get("TRACK_LOOP_MINUTES", "0")) * 60
@@ -104,7 +105,7 @@ def main():
     while True:
         passes += 1
         try:
-            d, f, key_bad = one_pass(db, detect, max(stop, time.time() + 22 * 60))
+            d, f, key_bad = one_pass(db, detect, max(stop, time.time() + 22 * 60), hash_detect)
             total, bad = total + d, bad + f
             if key_bad and stop <= time.time():
                 sys.exit(1)
@@ -120,7 +121,7 @@ def main():
     log("Watch over after %d check(s): %d tracked, %d couldn't be tracked." % (passes, total, bad))
 
 
-def one_pass(db, detect, deadline):
+def one_pass(db, detect, deadline, hash_detect=None):
     since = time.time() * 1000 - float(os.environ.get("TRACK_DAYS", "3")) * 86400e3
     jobs = find_jobs(db, since)
     if jobs:
@@ -136,7 +137,7 @@ def one_pass(db, detect, deadline):
         path = None
         try:
             path = download(rec["url"], rec.get("type"))
-            out = process(path, detect, a=rec.get("a"), b=rec.get("b"), snap=rec.get("snap"))
+            out = process(path, detect, a=rec.get("a"), b=rec.get("b"), snap=rec.get("snap"), hash_detect=hash_detect)
             db.reference("schools/%s/trackdata/%s/%s" % (school, game, play)).set(json.dumps(out, separators=(",", ":")))
             status.set({"status": "done", "at": int(time.time() * 1000), "clipAt": at, "tries": tries,
                         "players": len(out["tracks"]), "snap": out["snap"]})

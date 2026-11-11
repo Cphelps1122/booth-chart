@@ -51,12 +51,14 @@ select { max-width: 100% }
         <button class="btn" id="tOff" type="button" aria-pressed="true">Offense</button><button class="btn" id="tDef" type="button" aria-pressed="true">Defense</button><button class="btn" id="tAll" type="button" aria-pressed="false">Linemen &amp; LBs</button>
       </div>
       <div id="read"></div><div class="nums" id="nums"></div>
+      <div id="cardBox" hidden><p class="sum">Play card</p><canvas id="cardCv" style="width:100%;height:auto;border-radius:8px"></canvas><div class="row" style="margin-top:8px"><button class="btn" id="cardSave" type="button">Save card image</button></div></div>
       <p class="note">Trails are automatic estimates. Players can swap in piles and when they cross; receivers and DBs track best. Solid lines are your offense, dashed are the defense.</p>
     </section>
     <section class="panel"><h2>Plays</h2><div class="plays" id="plays"></div><p class="note" id="plNote"></p></section>
   </div>
 </div>
 
+<script src="card.js"></script>
 <script>
 window.SOL_CONFIG = window.SOL_CONFIG || { db: "https://cardinal-booth-default-rtdb.firebaseio.com", apiKey: "AIzaSyDm0t01_w92gL5sm4_1RnVLip7xWkjb9ME", bucket: "cardinal-booth.firebasestorage.app" };
 (function () {
@@ -71,6 +73,13 @@ window.SOL_CONFIG = window.SOL_CONFIG || { db: "https://cardinal-booth-default-r
   function msg(t) { $("msg").innerHTML = t; $("msg").hidden = !t }
   function ord(n) { return n + (["th", "st", "nd", "rd"][n] || "th") }
   function parse(x) { if (typeof x === "string") { try { return JSON.parse(x) } catch (e) { return null } } return x }
+
+  // New tracking (v2) names each player from where he lines up; older tracking only had the model's label.
+  var SKILL = { WR: 1, Slot: 1, TE: 1, RB: 1 };
+  function isSkill(tr) { return tr.role ? !!SKILL[tr.role] : tr.cls === "skill" }
+  function isQB(tr) { return tr.role ? tr.role === "QB" : tr.cls === "qb" }
+  function isDB(tr) { return tr.role ? tr.role === "DEF" && (!tr.dpos || tr.dpos === "DB") : tr.cls === "db" }
+  function pname(tr) { return tr.role ? tr.role + (tr.route ? " (" + tr.route + ")" : "") : null }
 
   var G = { code: null, clips: {}, status: {}, snaps: {}, marks: {}, list: [], cur: null, data: null, poll: null }, SHOW = { o: true, d: true, all: false };
 
@@ -150,13 +159,13 @@ window.SOL_CONFIG = window.SOL_CONFIG || { db: "https://cardinal-booth-default-r
   function openPlay(k) {
     G.cur = k; G.data = null; drawPlays(); var rec = G.clips[k] || {}, st = G.status[k] || {};
     $("info").innerHTML = esc(playLabel(k)) + "<small>" + (st.status === "done" ? "" : st.status === "error" ? "Couldn't track this clip: " + esc(st.err || "unknown problem") : st.status === "working" ? "Tracking this clip now…" : "Waiting to be tracked. The job checks for new clips every few minutes.") + "</small>";
-    V.pause(); V.src = rec.url || ""; V.playbackRate = +$("speed").value; $("read").innerHTML = ""; $("nums").innerHTML = ""; relLabel(); $("tag").hidden = true; paint();
+    V.pause(); V.src = rec.url || ""; V.playbackRate = +$("speed").value; $("read").innerHTML = ""; $("nums").innerHTML = ""; $("cardBox").hidden = true; relLabel(); $("tag").hidden = true; paint();
     if (st.status !== "done") return;
     get("trackdata/" + encodeURIComponent(G.code) + "/" + encodeURIComponent(k)).then(function (d) {
       if (G.cur !== k) return; d = parse(d); if (!d || !d.tracks) return;
       d.Hm = d.Hs.map(function (h) { return h.concat(1) }); var oi = 0;
-      d.tracks.forEach(function (tr) { tr.ci = tr.side === "o" && tr.cls !== "qb" ? oi++ % OCOL.length : -1; tr.col = tr.side === "o" ? (tr.cls === "qb" ? "#ffffff" : OCOL[tr.ci]) : "rgba(235,235,235,.85)"; tr.kix = {}; tr.p.forEach(function (q, i) { tr.kix[q[0]] = i }) });
-      d.fok = !!(d.field && d.field.ok && d.tracks.some(function (tr) { return tr.f })); G.data = d; showRead(d); showNums(d); relLabel();
+      d.tracks.forEach(function (tr) { tr.ci = tr.side === "o" && !isQB(tr) ? oi++ % OCOL.length : -1; tr.col = tr.side === "o" ? (isQB(tr) ? "#ffffff" : OCOL[tr.ci]) : "rgba(235,235,235,.85)"; tr.kix = {}; tr.p.forEach(function (q, i) { tr.kix[q[0]] = i }) });
+      d.fok = !!(d.field && d.field.ok && d.tracks.some(function (tr) { return tr.f })); G.data = d; showRead(d); showNums(d); showCard(d, k); relLabel();
       var start = d.snap != null ? Math.max(rec.a || 0, d.snap - 1.5) : (rec.a || 0); seek(start); paint();
     }, function () { $("info").querySelector("small").textContent = "Couldn't load the tracking. Refresh to try again." });
   }
@@ -164,10 +173,11 @@ window.SOL_CONFIG = window.SOL_CONFIG || { db: "https://cardinal-booth-default-r
   function showRead(d) {
     var p = d.pre || {}, cell = function (b, s) { return "<div><b>" + b + "</b><small>" + s + "</small></div>" }, h = "";
     h += cell(d.snap != null ? d.snap.toFixed(1) + "s" : "–", d.snapFrom === "clip" ? "snap (film device)" : d.snapFrom === "motion" ? "snap (from motion)" : "snap not found");
-    if (p.skill != null) h += cell(p.skill, "skill players") + cell(p.qb, "QB") + cell(p.lb, "LBs") + cell(p.db, "DBs");
-    if (p.box != null) h += cell("~" + p.box, "in the box") + cell(p.shell, "safety shell");
+    if (p.splits) h += cell(esc(p.splits), "formation");
+    else if (p.skill != null) h += cell(p.skill, "skill players") + cell(p.qb, "QB") + cell(p.lb, "LBs") + cell(p.db, "DBs");
+    if (p.box != null) h += cell("~" + p.box, "in the box") + cell(esc(p.shell), "safety shell");
     h += cell(d.tracks.length, "players tracked");
-    $("read").innerHTML = "<div class='read'>" + h + "</div><p class='note'>Pre-snap numbers are estimates from the Roboflow labels on the frame before the snap.</p>";
+    $("read").innerHTML = "<div class='read'>" + h + "</div><p class='note'>" + (p.splits ? "Formation, box and shell are estimates from where players line up before the snap." : "Pre-snap numbers are estimates from the Roboflow labels on the frame before the snap.") + "</p>";
   }
 
   // ---------- yards: depth, speed, separation (from the job's field ruler) ----------
@@ -182,7 +192,7 @@ window.SOL_CONFIG = window.SOL_CONFIG || { db: "https://cardinal-booth-default-r
   function showNums(d) {
     var box = $("nums"); if (!d) { box.innerHTML = ""; return }
     if (!d.fok) { box.innerHTML = "<p class='note'>No yards or speeds on this clip: " + esc((d.field && d.field.why) || "the yard lines weren't found") + ". Wide film from up high, with the hash marks in view, works best.</p>"; return }
-    var rel = relOf(), atR = rel != null ? hAt(d, rel) : null, R = d.tracks.filter(function (tr) { return tr.side === "o" && tr.cls === "skill" && tr.deep != null });
+    var rel = relOf(), atR = rel != null ? hAt(d, rel) : null, R = d.tracks.filter(function (tr) { return tr.side === "o" && isSkill(tr) && tr.deep != null });
     R.forEach(function (tr) { tr.sepR = null; if (atR) { var f = fldAt(tr, atR); if (f) { var nb = nearestD(d, f, atR); if (nb) tr.sepR = nb.x } } });
     R.sort(function (a, b) { return b.deep - a.deep });
     var top = function (L, k) { return L.filter(function (x) { return x[k] != null }).sort(function (a, b) { return b[k] - a[k] })[0] };
@@ -192,11 +202,32 @@ window.SOL_CONFIG = window.SOL_CONFIG || { db: "https://cardinal-booth-default-r
     if (fast) s.push("Fastest " + sw(fast) + "<b>" + fast.top.toFixed(1) + " mph</b>");
     if (open) s.push("Most open at the throw " + sw(open) + "<b>" + open.sepR.toFixed(1) + " yd</b>");
     if (dfast) s.push("Fastest defender <b>" + dfast.top.toFixed(1) + " mph</b>");
-    var h = "<p class='sum'>" + s.join(" · ") + "</p><div class='tbl'><table><tr><th>Player</th><th>Deepest</th><th>Top speed</th><th>Separation at release</th></tr>" +
-      R.map(function (tr) { return "<tr><td>" + sw(tr) + esc(CNAME[tr.ci] || "Skill") + "</td><td>" + Math.round(tr.deep) + " yd</td><td>" + (tr.top != null ? tr.top.toFixed(1) + " mph" : "–") + "</td><td>" + (tr.sepR != null ? tr.sepR.toFixed(1) + " yd" : rel == null ? "Mark the release" : "–") + "</td></tr>" }).join("") + "</table></div>" +
+    var h = "<p class='sum'>" + s.join(" · ") + "</p><div class='tbl'><table><tr><th>Player</th><th>Deepest</th><th>Top speed</th><th>Defender at snap</th><th>Separation at release</th></tr>" +
+      R.map(function (tr) { return "<tr><td>" + sw(tr) + esc(pname(tr) || CNAME[tr.ci] || "Skill") + "</td><td>" + Math.round(tr.deep) + " yd</td><td>" + (tr.top != null ? tr.top.toFixed(1) + " mph" : "–") + "</td><td>" + (tr.sepSnap != null ? tr.sepSnap.toFixed(1) + " yd" : "–") + "</td><td>" + (tr.sepR != null ? tr.sepR.toFixed(1) + " yd" : rel == null ? "Mark the release" : "–") + "</td></tr>" }).join("") + "</table></div>" +
       "<p class='note'>Yards come from the yard lines and hash marks (college hash spacing, " + d.field.hashYards + " yd apart). Estimates: about a yard on distances and 2 mph on speeds. Separation is to the nearest defender.</p>";
-    box.innerHTML = h;
+    box.innerHTML = h + lineNums(d.oline);
   }
+  // O-line numbers from the tracker. Anything it couldn't stand behind is a dash.
+  function lineNums(L) {
+    if (!L) return "";
+    var dash = function (v, u) { return v == null ? "–" : v + (u || "") }, sg = function (v) { return v == null ? "–" : (v > 0 ? "+" : "") + v };
+    var rows = [["Rushers", dash(L.rushers)], ["Box vs blockers", dash(L.box) + " vs " + dash(L.blockers)],
+      ["Time to pressure", L.pressure != null ? L.pressure + " s" : L.watched >= 1.5 ? "none in " + L.watched + " s" : "–"], ["Pressure from", dash(L.gap)],
+      ["Line push at 1 s", "L " + sg(L.push.left) + " · M " + sg(L.push.middle) + " · R " + sg(L.push.right) + " yd"], ["Linemen at 2nd level", dash(L.secondLevel)],
+      ["Pocket pushed back", dash(L.pocketBack, " yd")], ["Each lineman at 1 s", L.line.map(function (x) { return x.pos + " " + sg(x.push) }).join(" · ")]];
+    return "<p class='sum'>O-line <small style='color:var(--muted);font-weight:500'>read as " + esc(L.play || "–") + " from line movement</small></p><div class='tbl'><table>" +
+      rows.map(function (x) { return "<tr><td>" + x[0] + "</td><td><b>" + esc(x[1]) + "</b></td></tr>" }).join("") + "</table></div>" +
+      "<p class='note'>Line numbers are early estimates. The pile at the line is where trails swap most, so check them against the film.</p>";
+  }
+  // The drawn play card (card.js), with a button to save it as a picture.
+  function showCard(d, k) {
+    var box = $("cardBox"); box.hidden = !(d.card && d.fok && window.drawPlayCard); if (box.hidden) return;
+    try { window.drawPlayCard($("cardCv"), d, d.card, playLabel(k)) } catch (e) { box.hidden = true }
+  }
+  $("cardSave").onclick = function () {
+    var cv = $("cardCv"), name = "play-card-" + String(G.cur || "play").replace(/[^a-z0-9]+/gi, "-") + ".jpg";
+    cv.toBlob(function (b) { if (!b) return; var a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(a.href) }, 5000) }, "image/jpeg", 0.9);
+  };
   function relLabel() { var rel = relOf(), d = G.data; $("relBtn").textContent = rel != null && d && d.snap != null ? "Release " + (rel - d.snap).toFixed(2) + " s ✓" : "Mark release"; $("relBtn").disabled = !d }
   $("relBtn").onclick = function () {
     var d = G.data, k = G.cur, code = G.code; if (!d || !k) return; V.pause(); var t = Math.round((V.currentTime || 0) * 100) / 100;
@@ -214,7 +245,7 @@ window.SOL_CONFIG = window.SOL_CONFIG || { db: "https://cardinal-booth-default-r
   function inv(m) { var a = m[0], b = m[1], c = m[2], d = m[3], e = m[4], f = m[5], g = m[6], h = m[7], i = m[8], A = e * i - f * h, B = -(d * i - f * g), C = d * h - e * g, D = a * A + b * B + c * C;
     return [A / D, -(b * i - c * h) / D, (b * f - c * e) / D, B / D, (a * i - c * g) / D, -(a * f - c * d) / D, C / D, -(a * h - b * g) / D, (a * e - b * d) / D] }
   function mul(A, B) { var o = []; for (var r = 0; r < 3; r++) for (var c = 0; c < 3; c++) o.push(A[r * 3] * B[c] + A[r * 3 + 1] * B[3 + c] + A[r * 3 + 2] * B[6 + c]); return o }
-  function visible(tr) { if (tr.side === "o") { if (!SHOW.o) return false; return SHOW.all || tr.cls === "skill" || tr.cls === "qb" } if (tr.side === "d") { if (!SHOW.d) return false; return SHOW.all || tr.cls === "db" } return SHOW.all }
+  function visible(tr) { if (tr.side === "o") { if (!SHOW.o) return false; return SHOW.all || isSkill(tr) || isQB(tr) } if (tr.side === "d") { if (!SHOW.d) return false; return SHOW.all || isDB(tr) } return SHOW.all }
   // Trails follow the frame on screen, not the clock: iPads can keep showing the old frame for a moment after a jump.
   var VF = { wait: false, t: null, on: !!V.requestVideoFrameCallback };
   function shownTime() { var c = V.currentTime || 0; return VF.on && !V.paused && VF.t != null && Math.abs(VF.t - c) < 0.5 ? VF.t : c }
@@ -242,7 +273,7 @@ window.SOL_CONFIG = window.SOL_CONFIG || { db: "https://cardinal-booth-default-r
     // after the snap: depth and speed by each receiver, and a line to the nearest defender with the gap in yards
     if (d.fok && d.snap != null && t >= d.snap) {
       var fs = 13 / s * dpr; CX.font = "700 " + fs + "px Barlow, sans-serif"; CX.lineWidth = 3.5 / s * dpr; CX.strokeStyle = "rgba(0,0,0,.8)";
-      heads.forEach(function (h) { var tr = h.tr; if (tr.side !== "o" || tr.cls !== "skill") return; var f = fldAt(tr, at); if (!f) return; var dep = depthOf(d, f), sp0 = mphAt(tr, at);
+      heads.forEach(function (h) { var tr = h.tr; if (tr.side !== "o" || !isSkill(tr)) return; var f = fldAt(tr, at); if (!f) return; var dep = depthOf(d, f), sp0 = mphAt(tr, at);
         if (dep < 3 && !(sp0 > 8)) return;   // players still bunched at the line: no label, keeps the picture readable
         if (dep > 3) { var nb = nearestD(d, f, at); if (nb && nb.x < 15) { var g = refAt(nb.tr, at); if (g) { var m = map(H, g[0], g[1]); CX.save(); CX.strokeStyle = "#f2c14e"; CX.lineWidth = 1.6 / s * dpr; CX.setLineDash([4 / s * dpr, 3 / s * dpr]); CX.beginPath(); CX.moveTo(h.e[0], h.e[1]); CX.lineTo(m[0], m[1]); CX.stroke(); CX.restore();
           var mx = (h.e[0] + m[0]) / 2, my = (h.e[1] + m[1]) / 2, lab = nb.x.toFixed(1); CX.strokeText(lab, mx + 3 / s * dpr, my); CX.fillStyle = "#f2c14e"; CX.fillText(lab, mx + 3 / s * dpr, my) } } }
@@ -250,7 +281,10 @@ window.SOL_CONFIG = window.SOL_CONFIG || { db: "https://cardinal-booth-default-r
         CX.strokeText(txt, x, y); CX.fillStyle = tr.col; CX.fillText(txt, x, y) });
     }
     // pre-snap boxes, like the Pythonista reads, until the snap
-    if (d.preDets && d.snap != null && t <= d.snap + 0.05) {
+    if (d.v >= 2 && d.snap != null && t <= d.snap + 0.05) {   // new tracking: each player's position by his dot until the snap
+      CX.font = "700 " + (12 / s * dpr) + "px Barlow, sans-serif"; CX.lineWidth = 3 / s * dpr; CX.strokeStyle = "rgba(0,0,0,.8)";
+      heads.forEach(function (h) { var tr = h.tr, lab = tr.role === "DEF" ? tr.dpos : tr.role; if (!lab) return; var x = h.e[0] + 6 / s * dpr, y = h.e[1] - 6 / s * dpr; CX.strokeText(lab, x, y); CX.fillStyle = tr.col; CX.fillText(lab, x, y) });
+    } else if (d.preDets && d.snap != null && t <= d.snap + 0.05) {
       var M = mul(H, inv(d.Hm[d.preK])), LC = { center: "#ff9800", qb: "#ffeb3b", skill: "#ffeb3b", lb: "#ef5350", db: "#ef5350" };
       CX.font = "700 " + (13 / s * dpr) + "px Barlow, sans-serif";
       d.preDets.forEach(function (b) { var c = LC[b[4]] || "#bbb", m = map(M, b[0], b[1]), w = b[2], h = b[3];

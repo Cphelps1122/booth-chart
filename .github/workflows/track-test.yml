@@ -32,4 +32,3 @@ jobs:
           ROBOFLOW_API_KEY: ${{ secrets.ROBOFLOW_API_KEY }}
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           TEST_RUN: "13"
-          TEST_DEBUG: "1"

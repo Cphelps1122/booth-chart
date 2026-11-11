@@ -242,6 +242,42 @@ def _at(t, k):
     return best[1] if abs(best[0][0] - k) <= 3 else None
 
 
+def align_roles(tracks, at, sgn, los):
+    """Positions from where each player lines up, for a model that only says "player". Sets role on every trail it can place."""
+    off = []
+    for t in tracks:
+        f = at(t)
+        if not f:
+            continue
+        if t.get("side") == "d":
+            t["role"] = "DEF"
+        elif t.get("side") == "o":
+            off.append((t, sgn * f[0] - los, f[1]))
+    front = sorted([x for x in off if x[1] >= -3.5], key=lambda x: x[2])      # tackles in a pass stance sit a couple of yards back
+    line = None
+    for n in (5, 4, 3):                             # the tightest five across are the line; settle for fewer if one is hidden
+        if len(front) < n:
+            continue
+        i = min(range(len(front) - n + 1), key=lambda j: front[j + n - 1][2] - front[j][2])
+        if front[i + n - 1][2] - front[i][2] <= 2.2 * (n - 1) + 1.0:
+            line = front[i:i + n]
+            break
+    if not line:
+        return
+    for t, _, _ in line:
+        t["role"] = "OL"
+    ids = {id(t) for t, _, _ in line}
+    cy, lo, hi = statistics.median([y for _, _, y in line]), line[0][2], line[-1][2]
+    back = sorted([x for x in off if id(x[0]) not in ids and x[1] < -1.0 and lo - 3.0 <= x[2] <= hi + 3.0],
+                  key=lambda x: (abs(x[2] - cy) > 1.5, abs(x[2] - cy)))
+    for j, (t, _, _) in enumerate(back):
+        t["role"] = "QB" if j == 0 else "RB"          # the one behind the center takes the snap
+    for t, d, y in off:
+        if id(t) in ids or t.get("role") in ("QB", "RB"):
+            continue
+        t["role"] = "TE" if lo - 2.5 <= y <= hi + 2.5 else "WR"
+
+
 LIMITS = (("OL",), 5), (("QB",), 1), (("WR", "Slot", "TE", "RB"), 5), (("DEF",), 11)
 
 

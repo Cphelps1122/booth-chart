@@ -28,7 +28,7 @@ import field as fieldmod
 import presnap as presnapmod
 import oline as olinemod
 
-MODEL = os.environ.get("ROBOFLOW_MODEL", "softballtracker-sy17i/full-field-read-1-rfdetr-small-t1")     # Full Field Read
+MODEL = os.environ.get("ROBOFLOW_MODEL", "softballtracker-sy17i/full-field-read-2-rfdetr-small-t1")     # Full Field Read v2: player, ref, football
 NOT_PLAYERS = {"ref", "football", "ball"}
 ROLE_OF = {"ol": "OL", "oline": "OL", "center": "OL", "c": "OL", "qb": "QB", "rb": "RB", "wr": "WR", "te": "TE", "dl": "DEF", "lb": "DEF", "db": "DEF"}
 PROC_W = 960            # frames are shrunk to this width before anything else
@@ -208,6 +208,9 @@ def torso_lab(img, d):
     return np.median(lab, axis=0)
 
 
+MODE = {"unsup": False, "player_only": False}
+
+
 def side_model(frames, dets, upto):
     """Jersey colors for each side, learned from what the model labeled offense and defense before the snap."""
     o, d = [], []
@@ -220,6 +223,17 @@ def side_model(frames, dets, upto):
                 o.append(c)
             elif x["c"] in DEF:
                 d.append(c)
+    MODE["unsup"] = False
+    if not o and not d:                   # a model that only says "player": split the two jersey colors ourselves
+        cols = [c for k in range(0, max(1, upto)) for x in dets[k] for c in [torso_lab(frames[k], x)] if c is not None]
+        if len(cols) < 12:
+            return None
+        crit = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 40, 0.5)
+        _, lab, cen = cv2.kmeans(np.float32(cols), 2, None, crit, 6, cv2.KMEANS_PP_CENTERS)
+        if np.linalg.norm(cen[0] - cen[1]) < 12 or min(np.bincount(lab.flatten(), minlength=2)) < 4:
+            return None
+        MODE["unsup"] = True              # which color is the offense gets settled from the alignment, in measure()
+        return cen[0], cen[1]
     if len(o) < 4 or len(d) < 4:
         return None
     mo, md = np.median(o, axis=0), np.median(d, axis=0)
@@ -484,15 +498,28 @@ def measure(frames, dets, Hs, times, tracks, k_pre, k_snap):
     def at(t, k):
         best = min(zip(t["p"], t["f"]), key=lambda x: abs(x[0][0] - k))
         return best[1] if abs(best[0][0] - k) <= 3 else None
-    off = [at(t, k_pre) for t in tracks if t["side"] == "o"]
-    de = [at(t, k_pre) for t in tracks if t["side"] == "d"]
-    off, de = [f for f in off if f], [f for f in de if f]
+    def teams():
+        o = [f for f in (at(t, k_pre) for t in tracks if t["side"] == "o") if f]
+        d = [f for f in (at(t, k_pre) for t in tracks if t["side"] == "d") if f]
+        return o, d
+    off, de = teams()
     if len(off) < 2 or len(de) < 3:
         return {"ok": False, "why": "couldn't see both teams before the snap"}
+    if MODE["unsup"]:           # the offense puts 7 on the line and nobody deep; the defense has deep safeties
+        s = 1.0 if np.median([f[0] for f in de]) > np.median([f[0] for f in off]) else -1.0
+        mid = (np.percentile([s * f[0] for f in off], 85) + np.percentile([s * f[0] for f in de], 15)) / 2
+        score = lambda dist: sum(1 for v in dist if v <= 2.0) - 2 * sum(1 for v in dist if v >= 7.5)
+        if score([s * f[0] - mid for f in de]) > score([mid - s * f[0] for f in off]):
+            for t in tracks:
+                t["side"] = {"o": "d", "d": "o"}.get(t["side"], t["side"])
+            off, de = teams()
     sgn = 1.0 if np.mean([f[0] for f in de]) > np.mean([f[0] for f in off]) else -1.0
+    if MODE["player_only"]:
+        los0 = (np.percentile([sgn * f[0] for f in off], 85) + np.percentile([sgn * f[0] for f in de], 15)) / 2
+        presnapmod.align_roles(tracks, lambda t: at(t, k_pre), sgn, los0)
     cen = [at(t, k_pre) for t in tracks if t["side"] == "o" and t["cls"].most_common(1)[0][0] in ("center", "c")]
     cen = [f for f in cen if f]
-    ol = [at(t, k_pre) for t in tracks if t["side"] == "o" and t["cls"].most_common(1)[0][0] in ("ol", "oline")]
+    ol = [at(t, k_pre) for t in tracks if t["side"] == "o" and (t.get("role") == "OL" if MODE["player_only"] else t["cls"].most_common(1)[0][0] in ("ol", "oline"))]
     ol = [f for f in ol if f]
     if cen:
         los = sgn * cen[0][0] + 0.5                 # the ball is just in front of the center's feet
@@ -586,9 +613,14 @@ def process(path, detect, a=None, b=None, snap=None, presnap_detect=None, hash_d
                     continue
             t["role"] = "Slot" if r == "WR" and t.get("role") == "Slot" else r
             t["side"] = "d" if r == "DEF" else "o"
+    MODE["player_only"] = not any(c in OFF | DEF for d in dets for c in [x["c"] for x in d])
+    if MODE["player_only"]:         # positions come from the alignment in measure(), teams from jersey color
+        for t in tracks:
+            t.pop("role", None)
+            t["side"] = t["sides"].most_common(1)[0][0]
     if info:
         pre.update({x: info[x] for x in ("view", "splits", "personnel", "box", "deep", "shell", "fixed")})
-    if info and sum(1 for t in tracks if t.get("role")) >= 6:     # good read: role-less trails starting after the snap are pieces
+    if (MODE["player_only"] and sum(1 for t in tracks if t["p"][0][0] <= k_pre + 1) >= 12) or info and sum(1 for t in tracks if t.get("role")) >= 6:     # good read: role-less trails starting after the snap are pieces
         tracks = [t for t in tracks if t["p"][0][0] <= k_pre + 1]
     for t in tracks:
         t["p"] = smooth(t["p"])

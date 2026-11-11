@@ -430,12 +430,51 @@ def hash_fit(img, t, seed):
     snap = np.stack([5.0 * np.round(fld[:, 0] / 5.0), rows[np.argmin(np.abs(fld[:, 1:2] - rows), axis=1)]], axis=1)
     ok = np.hypot(*(fld - snap).T) < 2.0
     if ok.sum() < 6 or len(set(snap[ok, 1])) < 2 or len(set(snap[ok, 0])) < 2:
-        return None
+        # the crossings don't sit on the seed's 5-yard grid: the paint reading is off (it can skip every other
+        # line and come out half scale). The crossings are the real grid, so read the field from them alone.
+        M = fieldmod.fit_hash(pts, img.shape[1], img.shape[0], cv2.cvtColor(img, cv2.COLOR_BGR2GRAY))
+        if M is not None:
+            HASH["used"] += 1
+            HASH["overruled"] = HASH.get("overruled", 0) + 1
+        return M
     M, inl = cv2.findHomography(img_p[ok], np.float32(snap[ok]), cv2.RANSAC, 0.75)
     if M is None or inl.sum() < 6:
         return None
     HASH["used"] += 1
     return M
+
+
+def hash_only(frames, times, Hs, tracks, k_pre):
+    """Field ruler from hash crossings on a few frames; the reading most of them agree on wins. Returns (F, frame) or None."""
+    if HASH["detect"] is None:
+        return None
+    n, cands = len(frames), []
+    for k in dict.fromkeys([k_pre, max(0, k_pre - 4), min(n - 1, k_pre + 4), n // 3, (2 * n) // 3]):
+        try:
+            preds = HASH["detect"](frames[k], times[k])
+        except Exception:
+            continue
+        pts = [(p["x"], p["y"]) for p in preds or [] if p.get("confidence", 1) >= 0.3]
+        h, w = frames[k].shape[:2]
+        M = fieldmod.fit_hash(pts, w, h, cv2.cvtColor(frames[k], cv2.COLOR_BGR2GRAY))
+        if M is not None:
+            F = M @ Hs[k]
+            cands.append((F / F[2, 2], k))
+    if not cands:
+        return None
+    P = np.float32([[q[1], q[2]] for t in tracks for q in t["p"][:1]]).reshape(-1, 1, 2)
+    fld = [cv2.perspectiveTransform(P, F).reshape(-1, 2) for F, _ in cands]
+
+    def same(a, b):
+        dx, dy = a[:, 0] - b[:, 0], a[:, 1] - b[:, 1]
+        return np.median(np.abs(dx - 5.0 * np.round(dx / 5.0))) < 1.0 and np.median(np.abs(dy)) < 1.0 \
+            and np.std(dx) < 1.5
+    votes = [sum(same(a, b) for b in fld) for a in fld]
+    best = int(np.argmax(votes))
+    if len(cands) > 1 and votes[best] < 2:          # no two frames agree: don't guess
+        return None
+    HASH["used"] += 1
+    return cands[best]
 
 
 def drift_fix(frames, dets, Hs, F, k0, every=8, times=None):
@@ -486,8 +525,12 @@ def measure(frames, dets, Hs, times, tracks, k_pre, k_snap):
             F = (M if M is not None else fit["F"]) @ Hs[k]
             F = F / F[2, 2]
             break
-    if not fit:
-        return {"ok": False, "why": why}
+    if not fit:                                     # paint too faint to read: build the ruler from the hash model alone
+        got = hash_only(frames, times, Hs, tracks, k_pre)
+        if got is None:
+            return {"ok": False, "why": why}
+        F, k = got
+        fit = {"lines": None, "fromHash": True}
     for t in tracks:
         P = np.float32([[q[1], q[2]] for q in t["p"]]).reshape(-1, 1, 2)
         t["f"] = cv2.perspectiveTransform(P, F).reshape(-1, 2).tolist()
@@ -516,6 +559,12 @@ def measure(frames, dets, Hs, times, tracks, k_pre, k_snap):
     sgn = 1.0 if np.mean([f[0] for f in de]) > np.mean([f[0] for f in off]) else -1.0
     if MODE["player_only"]:
         los0 = (np.percentile([sgn * f[0] for f in off], 85) + np.percentile([sgn * f[0] for f in de], 15)) / 2
+        for t in tracks:                            # before the snap everyone is on his own side of the ball
+            f = at(t, k_pre)
+            if f:
+                d = sgn * f[0] - los0
+                if t["side"] == "x" and abs(d) > 0.5 or abs(d) > 2.5:
+                    t["side"] = "d" if d > 0 else "o"
         presnapmod.align_roles(tracks, lambda t: at(t, k_pre), sgn, los0)
     cen = [at(t, k_pre) for t in tracks if t["side"] == "o" and t["cls"].most_common(1)[0][0] in ("center", "c")]
     cen = [f for f in cen if f]
@@ -559,13 +608,13 @@ def measure(frames, dets, Hs, times, tracks, k_pre, k_snap):
         t["top"] = round(max(sp), 1) if sp else None
     return {"ok": True, "F": [round(float(x), 7) for x in F.flatten()[:8]], "dir": sgn, "los": round(float(los), 2),
             "dx": [round(float(x), 2) for x in cx], "dy": [round(float(x), 2) for x in cy],
-            "hashFits": HASH["used"], "drift": round(float(max(np.max(np.abs(cx)), np.max(np.abs(cy)))), 2), "driftChecks": checks, "lines": fit["lines"], "tick": fit["tick"], "rms": fit["rms"], "hashYards": round(fieldmod.HASH_YARDS, 2)}
+            "hashFits": HASH["used"], "paintOverruled": HASH.get("overruled", 0), "drift": round(float(max(np.max(np.abs(cx)), np.max(np.abs(cy)))), 2), "driftChecks": checks, "lines": fit.get("lines"), "tick": fit.get("tick"), "rms": fit.get("rms"), "fromHash": bool(fit.get("fromHash")), "hashYards": round(fieldmod.HASH_YARDS, 2)}
 
 
 # ---------------------------------------------------------------- one clip
 def process(path, detect, a=None, b=None, snap=None, presnap_detect=None, hash_detect=None):
     t0 = time.time()
-    HASH["detect"], HASH["used"] = hash_detect, 0
+    HASH["detect"], HASH["used"], HASH["overruled"] = hash_detect, 0, 0
     frames, times = read_samples(path, a, b)
     dets = detect_all(frames, times, detect)
     Hs, fails = camera_path(frames, dets)

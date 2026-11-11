@@ -37,7 +37,12 @@ def make(frames, out, quality=70):
                   [-d * SCALE, 0, (top + los) * SCALE], [0, 0, 1]], dtype=float)
     W, H = int((Y1 - Y0) * SCALE), int((top + back) * SCALE)
     picks = list(range(0, len(frames), max(1, len(frames) // 14)))
-    stack = []
+    stack, plain = [], []
+    unit = float(out.get("unit") or 0)
+    feet = {}
+    for t in out["tracks"]:
+        for q in t["p"]:
+            feet.setdefault(q[0], []).append((q[1], q[2]))
     for k in picks:
         Hk = np.array(out["Hs"][k] + [1.0], dtype=float).reshape(3, 3)
         dx, dy = (f.get("dx") or [0] * len(frames))[k], (f.get("dy") or [0] * len(frames))[k]
@@ -45,12 +50,30 @@ def make(frames, out, quality=70):
         img = cv2.warpPerspective(frames[k], M, (W, H), flags=cv2.INTER_LINEAR).astype(np.float32)
         seen = cv2.warpPerspective(np.ones(frames[k].shape[:2], np.uint8), M, (W, H), flags=cv2.INTER_NEAREST)
         img[seen == 0] = np.nan
+        plain.append(img)
+        if unit and feet.get(k):                    # blank the players out of this frame so other frames fill the grass in
+            src = frames[k].copy()
+            pts = cv2.perspectiveTransform(np.float32(feet[k]).reshape(-1, 1, 2), Hk).reshape(-1, 2)
+            hole = np.zeros(src.shape[:2], np.uint8)
+            for x, y in pts:
+                cv2.rectangle(hole, (int(x - 0.4 * unit), int(y - 1.15 * unit)), (int(x + 0.4 * unit), int(y + 0.12 * unit)), 1, -1)
+            gone = cv2.warpPerspective(hole, M, (W, H), flags=cv2.INTER_NEAREST)
+            img = img.copy()
+            img[gone == 1] = np.nan
         stack.append(img)
     with np.errstate(all="ignore"):
         import warnings
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             bg = np.nanmedian(np.stack(stack), axis=0)
+            rest = np.nanmedian(np.stack(plain), axis=0)
+    stuck = np.isnan(bg).any(axis=2) & ~np.isnan(rest).any(axis=2)      # spots a player never left (the line before a long count)
+    bg = np.where(np.isnan(bg), rest, bg)
+    if stuck.any():                                 # paint grass over them from what's around, so they don't smear
+        ok8 = np.nan_to_num(bg, nan=22.0).clip(0, 255).astype(np.uint8)
+        fixed = cv2.inpaint(ok8, cv2.dilate(stuck.astype(np.uint8), np.ones((5, 5), np.uint8)), 4, cv2.INPAINT_TELEA).astype(np.float32)
+        fixed[np.isnan(bg)] = np.nan
+        bg = fixed
     hole = np.isnan(bg).any(axis=2)
     bg = np.nan_to_num(bg, nan=22.0).clip(0, 255).astype(np.uint8)
     bg = cv2.addWeighted(bg, 1.6, cv2.GaussianBlur(bg, (0, 0), 2.0), -0.6, 0)       # crisper paint

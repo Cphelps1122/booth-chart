@@ -23,7 +23,7 @@ from run import DB_URL, download, log  # noqa: E402
 from track import KeyProblem, process, read_samples, roboflow_detect  # noqa: E402
 
 SOURCE, DEST = "hudltest", "autotest"
-MAX_CLIPS = 4
+MAX_CLIPS = 4      # the newest clips in Hudl test clips
 TEST_RUN = os.environ.get("TEST_RUN", "1")
 
 

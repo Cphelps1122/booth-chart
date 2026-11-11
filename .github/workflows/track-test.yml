@@ -4,7 +4,7 @@ name: Tracking test
 on:
   push:
     branches: [track-auto]
-    paths-ignore: [tools/track/field_probe.py, tools/track/ffr_probe.py, .github/workflows/field-probe.yml, tools/track/ball_frames.py, tools/track/ball_project.txt, .github/workflows/ball-frames.yml]
+    paths-ignore: [.github/workflows/track-test.yml, tools/track/field_probe.py, tools/track/ffr_probe.py, .github/workflows/field-probe.yml, tools/track/ball_frames.py, tools/track/ball_project.txt, .github/workflows/ball-frames.yml]
 
 concurrency:
   group: tracking-test
@@ -32,4 +32,3 @@ jobs:
           ROBOFLOW_API_KEY: ${{ secrets.ROBOFLOW_API_KEY }}
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           TEST_RUN: "11"
-          TEST_DEBUG: "1"

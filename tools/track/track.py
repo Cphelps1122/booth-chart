@@ -26,6 +26,7 @@ from scipy.optimize import linear_sum_assignment
 
 import field as fieldmod
 import presnap as presnapmod
+import oline as olinemod
 
 MODEL = os.environ.get("ROBOFLOW_MODEL", "softballtracker-sy17i/full-field-read-1-rfdetr-small-t1")     # Full Field Read
 NOT_PLAYERS = {"ref", "football", "ball"}
@@ -599,6 +600,12 @@ def process(path, detect, a=None, b=None, snap=None, presnap_detect=None, hash_d
         pre.update(presnapmod.formation(tracks, k0, fld["dir"], fld["los"]))
         presnapmod.cover(tracks, k0)
         presnapmod.routes(tracks, k0, fld["dir"], fld["los"])
+        try:
+            line = olinemod.measure(tracks, k0, times, fld["dir"], fld["los"], pre, k_snap is not None)
+        except Exception:                           # line numbers are a bonus: never lose the clip over them
+            line = None
+    if not fld.get("ok"):
+        line = None
     out_tracks = []
     for t in tracks:
         cls = [c for c, _ in t["cls"].most_common() if c in OFF | DEF]
@@ -617,6 +624,6 @@ def process(path, detect, a=None, b=None, snap=None, presnap_detect=None, hash_d
         "Hs": [[round(float(x), 6) for x in H.flatten()[:8]] for H in Hs],
         "snap": times[k_snap] if k_snap is not None else None, "snapK": k_snap, "snapFrom": "clip" if snap not in (None, "") else ("motion" if k_snap is not None else None),
         "preK": k_pre, "preDets": [[round(d["x"], 1), round(d["y"], 1), round(d["w"], 1), round(d["h"], 1), d["c"], round(d["p"], 2)] for d in dets[k_pre]],
-        "pre": pre, "tracks": out_tracks, "field": fld, "unit": round(unit, 1), "camFails": fails,
+        "pre": pre, "oline": line, "tracks": out_tracks, "field": fld, "unit": round(unit, 1), "camFails": fails,
         "calls": len(frames), "secs": round(time.time() - t0, 1), "teamColors": model is not None,
     }

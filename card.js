@@ -1,7 +1,7 @@
 // Draws a play card from tracking output. Anything the tracker isn't sure of shows as a dash.
 window.drawPlayCard = function (canvas, out, card, title) {
   var ROLE = { WR: "#3b86e8", Slot: "#1fa97a", TE: "#e8622c", RB: "#c678dd" }, ORDER = ["WR", "TE", "Slot", "RB"];
-  var S = 2, PAD = 34, TOP = 112, TBL = 620, cw = card.w, ch = card.h, W = PAD * 2 + cw + 44 + TBL, H = Math.max(TOP + ch + 66, 720);
+  var S = 2, PAD = 34, TOP = 112, TBL = 620, cw = card.w, ch = card.h, W = PAD * 2 + cw + 44 + TBL, H = Math.max(TOP + ch + 66, 880);
   canvas.width = W * S; canvas.height = H * S; canvas.style.maxWidth = "100%"; canvas.style.height = "auto";
   var c = canvas.getContext("2d"); c.setTransform(S, 0, 0, S, 0, 0);
   var font = function (w, z) { c.font = w + " " + z + "px system-ui, -apple-system, 'Segoe UI', Arial, sans-serif" };
@@ -42,6 +42,20 @@ window.drawPlayCard = function (canvas, out, card, title) {
     shown.forEach(function (t, i) { text(t.role, cols[i], ty, ROLE[t.role], "700", 17) });
     [["Route", function (t) { return dash(t.route) }], ["Deepest (yd)", function (t) { return dash(t.deep) }], ["Top speed (mph)", function (t) { return dash(t.top) }], ["Defender at snap (yd)", function (t) { return dash(t.sepSnap) }], ["Defender at release (yd)", function () { return "–" }], ["Defender at catch (yd)", function () { return "–" }]].forEach(function (r, j) {
       var yy = ty + 48 + j * 46; text(r[0], tx, yy, "#eeeeee", "600", 17); shown.forEach(function (t, i) { text(r[1](t), cols[i], yy, "#eeeeee", "400", 17) });
+    });
+    var L = out.oline, oy = ty + 48 + 6 * 46 + 26, sg = function (v) { return v == null ? "–" : (v > 0 ? "+" : "") + v };
+    text("O-LINE", tx, oy, "#8d8d8d", "700", 18);
+    text(L ? "read as " + (L.play || "–") + " from line movement" : "line not tracked cleanly on this play", tx + 84, oy, "#b5b5b5", "400", 15);
+    var rows = L ? [
+      ["Rushers", dash(L.rushers), "Box vs blockers", dash(L.box) + " vs " + dash(L.blockers)],
+      ["Time to pressure", L.pressure != null ? L.pressure + " s" : L.watched >= 1.5 ? "none in " + L.watched + " s" : "–", "Pressure from", dash(L.gap)],
+      ["Line push at 1 s (yd)", "L " + sg(L.push.left) + "   M " + sg(L.push.middle) + "   R " + sg(L.push.right), "At 2nd level", dash(L.secondLevel)],
+      ["Pocket pushed back", dash(L.pocketBack, " yd"), "", ""]
+    ] : [];
+    if (L) { text("Each lineman's push at 1 s", tx, oy + 40 + 4 * 38, "#eeeeee", "600", 16); text(L.line.map(function (x) { return x.pos + " " + sg(x.push) }).join("     "), tx + 230, oy + 40 + 4 * 38, "#b5b5b5", "400", 15) }
+    rows.forEach(function (r, i) {
+      var yy = oy + 40 + i * 38; text(r[0], tx, yy, "#eeeeee", "600", 16); text(r[1], tx + 190, yy, "#ffcf4d", "600", 16);
+      text(r[2], tx + 372, yy, "#eeeeee", "600", 16); text(r[3], tx + 372 + 130, yy, "#ffcf4d", "600", 16);
     });
     text("Automatic estimates from film: positions about 1 yd, speeds about 2 mph. Players can swap in piles.", PAD, H - 22, "#8d8d8d", "400", 14);
   };

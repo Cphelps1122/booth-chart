@@ -241,6 +241,8 @@ main { padding-block: 14px 40px }
 #v-chart.simple #csForms .chip, #v-chart.simple #csPlays .chip, #v-chart.simple #cRes .chip, #v-chart.simple #cPlayer .chip, #v-chart.simple #cQB .chip, #v-chart.simple #fastD .chip, #v-chart.simple #fullD .chip, .smcatch .chip { font-size: 19px; padding: 14px 18px }
 #v-chart.simple.sm-catch .spotpanel, #v-chart.simple.sm-catch .grid2, #v-chart.simple.sm-catch #resPanel, #v-chart.simple.sm-catch #smBar, #v-chart.simple.sm-catch #tryPanel { display: none !important }
 .smcatch { margin: 0 0 12px; border: 2px solid var(--chip-on) } .smcatch[hidden] { display: none } .smcatch .smsum { white-space: normal; font-size: 17px; opacity: 1; margin: 6px 0 4px } .smcatch h3 { margin-top: 12px } .smcatch .actions { margin-top: 16px } .smcatch .actions .btn { font-size: 17px; padding: 12px 16px }
+.smlooks { margin-bottom: 14px } .smlooks[hidden], #v-chart:not(.simple) .smlooks { display: none } .smlooks .same { display: block; width: 100%; font: inherit; font-weight: 800; font-size: 20px; padding: 16px; border-radius: 12px; border: 0; background: var(--chip-on); color: var(--chip-on-ink); cursor: pointer; margin-bottom: 10px } .smlooks .same small { display: block; font-weight: 600; font-size: 14px; opacity: .85; margin-top: 3px }
+.smlooks .chips .chip, .smcatch .lk .chip { font-size: 17px; padding: 13px 14px } .smlooks .chip small, .smcatch .lk .chip small { opacity: .6; font-weight: 600; margin-left: 6px }
 .smmiss { font: inherit; font-weight: 800; font-size: 14px; margin-top: 6px; padding: 7px 12px; border-radius: 999px; border: 2px solid var(--chip-on); background: transparent; color: var(--ink); cursor: pointer } .smmiss[hidden] { display: none }
 #v-chart.simple .sm-formh, #v-chart.simple #resPanel > h3:first-child { display: none }
 body.role-view #smBar { display: none !important }
@@ -770,6 +772,7 @@ textarea { min-height: 64px }
         <div class="picked">Formation: <b id="formPicked">—</b> · Motion: <b id="motPicked">—</b> · Call: <b id="callPicked">—</b> · RPO: <b id="rpoPicked">—</b></div>
       </div>
       <div class="panel">
+        <div id="smLooks" class="smlooks" hidden></div>
         <div id="fastD">
           <h3>Shell <small>carries over · change when it changes</small></h3>
           <div class="chips" id="cShell"></div>
@@ -2862,8 +2865,39 @@ textarea { min-height: 64px }
       if (miss.some(function (x) { return x.series < S.cur.series })) { SM.asked = S.cur.series; SM.cat = { n: miss[0].n, v: {} } }
       else if (!miss.length) SM.asked = S.cur.series;
     }
+    smLooksDraw();
     vc.classList.toggle("sm-catch", !!SM.cat); $("smCatch").hidden = !SM.cat;
     if (SM.cat) smCatDraw();
+  }
+  // Looks the defense has shown tonight, most used first, so a whole look is one tap
+  function smLookTxt(l) {
+    var a = S.dmode === "full" ? [l.front, l.cov ? (/^\d$/.test(l.cov) ? "Cov " + l.cov : l.cov) : null] : [l.shell, l.box ? l.box + " in box" : null];
+    return a.filter(Boolean).concat(l.blitz && l.blitz !== "No" ? (S.dmode === "full" ? l.blitz : "pressure") : []).join(" · ");
+  }
+  function smLooks() {
+    var by = {}, out = [], full = S.dmode === "full", last = null;
+    S.snaps.forEach(function (x) {
+      if (x.needD) return; var l = full ? { front: x.front || null, cov: x.cov || null } : { shell: x.shell || null, box: x.box || null };
+      if (!(l.front || l.cov || l.shell || l.box)) return; l.blitz = x.blitz || "No";
+      var k = JSON.stringify(l); if (!by[k]) { by[k] = l; l.n = 0; out.push(l) } by[k].n++; by[k].at = x.n; last = by[k];
+    });
+    out.sort(function (a, b) { return b.n - a.n || b.at - a.at });
+    return { last: last, top: out.slice(0, 4) };
+  }
+  function smLookSet(l) { ["shell", "box", "front", "cov"].forEach(function (k) { if (k in l) pick[k] = l[k] }); pick.blitz = l.blitz || "No" }
+  function smLooksDraw() {
+    var el = $("smLooks"), L = smLooks(); el.innerHTML = ""; el.hidden = !(SM.on && SM.step === 4 && L.last); if (el.hidden) return;
+    var b = document.createElement("button"); b.type = "button"; b.className = "same"; b.id = "smSame"; b.innerHTML = "Same as last play<small></small>"; b.lastChild.textContent = smLookTxt(L.last);
+    b.addEventListener("click", function () { smLookSet(L.last); smStep(5) }); el.appendChild(b);
+    if (L.top.length > 1) {
+      var h = document.createElement("h3"); h.innerHTML = "Looks tonight <small>one tap</small>"; el.appendChild(h);
+      var row = document.createElement("div"); row.className = "chips"; el.appendChild(row);
+      L.top.forEach(function (l) {
+        var c = document.createElement("button"); c.type = "button"; c.className = "chip"; c.textContent = smLookTxt(l);
+        var sm = document.createElement("small"); sm.textContent = "×" + l.n; c.appendChild(sm);
+        c.addEventListener("click", function () { smLookSet(l); smStep(5) }); row.appendChild(c);
+      });
+    }
   }
   function smMissing() { return S.snaps.filter(function (x) { return x.needD }) }
   function smDefNow() {
@@ -2878,6 +2912,15 @@ textarea { min-height: 64px }
     var g = sn.gain == null ? "" : (sn.gain > 0 ? " +" : " ") + sn.gain;
     $("smcPlay").textContent = "Play " + sn.n + " · " + (sn.qtr === 5 ? "OT" : "Q" + sn.qtr) + " · " + ddLabel(sn) + " · " + callText(sn) + " · " + (sn.res || "") + (sn.td ? " TD" : g);
     var body = $("smcBody"); body.innerHTML = "";
+    var L = smLooks().top; if (L.length) {
+      var lh = document.createElement("h3"); lh.innerHTML = "Looks tonight <small>one tap saves it</small>"; body.appendChild(lh);
+      var lr = document.createElement("div"); lr.className = "chips lk"; body.appendChild(lr);
+      L.forEach(function (l) {
+        var c = document.createElement("button"); c.type = "button"; c.className = "chip"; c.textContent = smLookTxt(l);
+        var sm = document.createElement("small"); sm.textContent = "×" + l.n; c.appendChild(sm);
+        c.addEventListener("click", function () { SM.cat.v = { shell: l.shell, box: l.box, front: l.front, cov: l.cov, blitz: l.blitz }; smCatDone(true) }); lr.appendChild(c);
+      });
+    }
     var secs = S.dmode === "full"
       ? [["Their front", "front", list("front")], ["Coverage", "cov", list("cov"), function (v) { return /^\d$/.test(v) ? "Cov " + v : v }], ["Pressure", "blitz", ["No"].concat(list("blitz"))]]
       : [["Shell", "shell", ["1-HIGH", "2-HIGH", "ZERO"]], ["Box", "box", ["5", "6", "7", "8"], function (v) { return v + " in box" }], ["Pressure", "blitz", ["No", "Yes"]]];

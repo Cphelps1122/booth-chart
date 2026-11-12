@@ -3306,6 +3306,7 @@ textarea { min-height: 64px }
     if (g != null) advance(snap);
     if (snap.td) S.tryPending = true;
     pick.call = null; pick.callType = null; pick.res = null; pick.td = false; pick.pl = null; pick.motion = null; pick.rpo = null; pick.mull = false; $("gain").value = 0;
+    pick.blitz = "No";   // pressure is a per-play call: it does not carry over like shell and box
     $("csSearch").value = ""; if ($("gsQ")) $("gsQ").value = "";
     save(); renderAll(); window.scrollTo(0, 0);
     setTimeout(function () { tagNag(snap) }, 50);

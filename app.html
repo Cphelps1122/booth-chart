@@ -2782,7 +2782,7 @@ textarea { min-height: 64px }
     if (SM.step === 1) sum = pendingSnap() ? "Tap the field where the last play ended, or No gain" : "Tap the field if the ball isn't where it shows, then Next";
     else if (SM.step === 2) sum = "Tap the formation";
     else if (SM.step === 3) sum = (pick.form || "") + (pick.form ? " · " : "") + "tap the play";
-    else if (SM.step === 4) { var dn = smDefNow(); sum = dn ? dn + " · tap what changed, then Next" : "Tap what you see · or Skip and fill it in after the series" }
+    else if (SM.step === 4) { var dn = smDefNow(); sum = dn ? dn : "Tap what you see, or Skip for now" }
     else sum = [pick.form, pick.call, pick.motion, pick.rpo].filter(Boolean).join(" · ") + " · tap the result, then the player";
     $("smSum").textContent = sum;
     $("smBack").style.display = SM.step > 1 ? "" : "none";

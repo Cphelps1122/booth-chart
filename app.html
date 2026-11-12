@@ -222,6 +222,24 @@ main { padding-block: 14px 40px }
 .nc-empty { margin: 6px 0 0; color: #9aa7b6; font-size: 13px }
 .nc-mini { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px } .nc-pick { font: inherit; font-weight: 800; font-size: 13px; background: #182230; color: #e8edf2; border: 1px solid #26354a; border-radius: 8px; padding: 5px 9px; cursor: pointer } .nc-pick em { font-style: normal; color: #ffd400 }
 .nc-detail { margin-top: 8px; overflow: auto } .nc-detail table { width: 100%; border-collapse: collapse; font-size: 12.5px } .nc-detail th { text-align: left; color: #9aa7b6; font-size: 11px; padding: 3px 6px } .nc-detail td { padding: 4px 6px; border-top: 1px solid #26354a } .nc-detail .note { color: #9aa7b6 }
+/* Simple mode: the same Chart inputs, shown one question at a time. Per device; records exactly what Full input records. */
+.smbar { display: flex; gap: 12px; align-items: center; background: var(--panel); border: 2px solid var(--line); border-radius: 14px; padding: 10px 12px; margin: 0 0 12px }
+.smbar[hidden] { display: none } .smbar .smmid { flex: 1; min-width: 0; text-align: center }
+.smstep { font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; opacity: .7; white-space: nowrap }
+@media (max-width: 560px) { .smbar { flex-wrap: wrap } .smbar .smmid { order: -1; flex-basis: 100% } .smbar .btn { flex: 1 } .smsum { white-space: normal } }
+#v-chart.simple #fastLog, #v-chart.simple label:has(> #fastLog) { display: none } .smq { font-family: var(--f-display); font-weight: 800; font-size: clamp(20px, 4.5vw, 30px); line-height: 1.15 }
+.smsum { font-size: 14px; font-weight: 700; opacity: .8; min-height: 18px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap } .smbar .btn { font-size: 17px; padding: 12px 16px; white-space: nowrap }
+#v-chart.simple #ncBox, #v-chart.simple #filmBar, #v-chart.simple #qScore, #v-chart.simple #livePanel, #v-chart.simple #gsPanel, #v-chart.simple .grid2 > .panel:not(#fullInPanel), #v-chart.simple .picked { display: none !important }
+#v-chart.simple #fullInPanel { display: block !important } #v-chart.simple .grid2 { display: block }
+#v-chart.simple[data-step="1"] .grid2, #v-chart.simple[data-step="1"] #resPanel, #v-chart.simple[data-step="2"] .spotpanel, #v-chart.simple[data-step="2"] #resPanel,
+#v-chart.simple[data-step="3"] .spotpanel, #v-chart.simple[data-step="3"] #resPanel, #v-chart.simple[data-step="4"] .spotpanel, #v-chart.simple[data-step="4"] .grid2 { display: none !important }
+#v-chart.simple[data-step="2"] #fullInPanel > :not(.mullrow):not(.sm-formh):not(#csForms) { display: none !important }
+#v-chart.simple[data-step="3"] #fullInPanel > .mullrow, #v-chart.simple[data-step="3"] #fullInPanel > .sm-formh, #v-chart.simple[data-step="3"] #csForms { display: none !important }
+#v-chart.simple[data-step="3"]:not(.sm-mot) #cMotion, #v-chart.simple[data-step="3"]:not(.sm-rpo) #cRpoTag { display: none !important }
+#v-chart.simple .sm-moth, #v-chart.simple .sm-rpoh { cursor: pointer; border: 2px solid var(--line); border-radius: 10px; padding: 10px 12px; margin-top: 8px !important }
+#v-chart.simple #csForms .chip, #v-chart.simple #csPlays .chip, #v-chart.simple #cRes .chip, #v-chart.simple #cPlayer .chip, #v-chart.simple #cQB .chip { font-size: 19px; padding: 14px 18px }
+#v-chart.simple .sm-formh, #v-chart.simple #resPanel > h3:first-child { display: none }
+body.role-view #smBar { display: none !important }
 .inmode { display: flex; gap: 6px; align-items: center; margin: 0 0 10px; flex-wrap: wrap } .inmode > span:first-child { font-weight: 800; letter-spacing: .08em; font-size: 13px; text-transform: uppercase; margin-right: 4px }
 .inmode button { font: inherit; font-weight: 800; font-size: 15px; padding: 9px 16px; border-radius: 10px; border: 2px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer } .inmode button[aria-pressed=true] { background: var(--chip-on); color: var(--chip-on-ink); border-color: var(--chip-on) }
 .gshead { display: flex; align-items: center; gap: 8px; flex-wrap: wrap } .gshead h3 { margin: 0; flex: 1 } .gspick { font-weight: 800; font-size: 15px; padding: 6px 10px; background: var(--chip); color: var(--ink); border-radius: 8px } .gshead .btn { font-size: 18px; padding: 4px 12px }
@@ -654,6 +672,11 @@ textarea { min-height: 64px }
       <p class="drvline" id="drvLine"></p>
       <div class="wpstrip" id="wpStrip"><div class="wpsh"><b>Win chance</b><span id="wpsRead">drag across the line to go back through the game</span></div><svg id="wpsSvg" role="img" aria-label="Win chance after every play; drag to scrub"></svg></div>
     </div>
+    <div class="smbar" id="smBar" hidden>
+      <button class="btn" id="smBack" type="button">◀ Back</button>
+      <div class="smmid"><div class="smstep" id="smStepTxt"></div><div class="smq" id="smQ"></div><div class="smsum" id="smSum"></div></div>
+      <button class="btn primary" id="smNext" type="button">Next ▶</button>
+    </div>
     <div class="panel trypanel" id="tryPanel" hidden style="margin-bottom:14px">
       <div id="tryGM" class="gm-try"></div>
       <h3>Try after the TD <small id="tryHint">for a 2-pt try, tap the formation and play below first</small></h3>
@@ -699,7 +722,7 @@ textarea { min-height: 64px }
         </div>
       </details>
     </div>
-    <div class="inmode" role="group" aria-label="Input mode"><span>Input</span><button type="button" id="imFull" aria-pressed="true">Full input</button><button type="button" id="imSheet" aria-pressed="false">Call sheet</button><span class="note" id="imNote"></span></div>
+    <div class="inmode" role="group" aria-label="Input mode"><span>Input</span><button type="button" id="imFull" aria-pressed="true">Full input</button><button type="button" id="imSheet" aria-pressed="false">Call sheet</button><button type="button" id="imSimple" aria-pressed="false" title="One question at a time, for anyone new to charting">Simple</button><span class="note" id="imNote"></span></div>
     <div class="panel" id="gsPanel" hidden>
       <div class="mullrow" style="margin-bottom:10px"><button class="mull" id="gsMull" type="button" disabled><span class="mt">↻ Mulligan</span><span class="ms" id="gsMullWhat">no play to repeat yet</span></button><button class="frz" id="gsFrz" type="button" title="Freeze: no play called (hard count)">❄ Freeze</button></div>
       <div class="srch"><input id="gsQ" type="search" placeholder="Find a play: slot trig 4 zip…" autocomplete="off" aria-label="Find a play on the call sheet"><button class="micb" id="gsMic" type="button" aria-label="Hold and say the call">🎤</button></div>
@@ -710,13 +733,13 @@ textarea { min-height: 64px }
     <div class="grid2">
       <div class="panel" id="fullInPanel">
         <div class="mullrow"><button class="mull" id="mullBtn" disabled><span class="mt">↻ Mulligan</span><span class="ms" id="mullWhat">no play to repeat yet</span></button><button class="frz" id="frzBtn" type="button" title="Freeze: no play called (hard count)">❄ Freeze</button></div>
-        <h3>2 · Formation <small>stays until you change it</small></h3>
+        <h3 class="sm-formh">2 · Formation <small>stays until you change it</small></h3>
         <div class="chips" id="csForms"></div>
-        <h3 style="margin-top:12px">Motion <small>resets each play</small></h3>
+        <h3 style="margin-top:12px" class="sm-moth" id="smMotH">Motion <small>resets each play</small></h3>
         <div class="chips" id="cMotion"></div>
         <h3 style="margin-top:12px">3 · Play <small id="csSecName"></small></h3>
         <div class="chips" id="csPlays"></div>
-        <h3 style="margin-top:12px">RPO <small>resets each play</small></h3>
+        <h3 style="margin-top:12px" class="sm-rpoh" id="smRpoH">RPO <small>resets each play</small></h3>
         <div class="chips" id="cRpoTag"></div>
         <div class="srch"><input id="csSearch" type="search" placeholder="Or find any play: zone, power, mesh…" autocomplete="off" aria-label="Find any play on the call sheet"><button class="micb" id="csMic" type="button" aria-label="Hold and say the call">🎤</button></div><div id="csAdd"></div>
         <details style="margin-top:10px">
@@ -748,7 +771,7 @@ textarea { min-height: 64px }
         <p class="note" id="dModeNote"></p>
       </div>
     </div>
-    <div class="panel" style="margin-top:14px">
+    <div class="panel" style="margin-top:14px" id="resPanel">
       <h3>4 · Result <small>then tap the player to log it</small></h3>
       <div class="chips" id="cRes"></div>
       <div class="prow" id="rowPlayer" hidden><span class="lbl" id="plLabel">Ball carrier</span><div class="chips" id="cPlayer"></div></div>
@@ -2724,10 +2747,56 @@ textarea { min-height: 64px }
     });
     $("gsPick").textContent = pick.call ? ((pick.form ? pick.form + " " : "") + pick.call + (pick.motion ? " · " + pick.motion : "") + (pick.rpo ? " · " + pick.rpo : "")) : "Tap a play";
   }
+  // ---------- Simple mode: one question at a time ----------
+  // A per-device way to show the Chart inputs. It uses the same buttons and the same pick/log code as Full input,
+  // so a snap charted here is identical to one charted there.
+  var SM = { on: false, step: 1, n: null }, SM_KEY = "solutions-simple" + (typeof NS === "string" ? NS : "");
+  var SM_Q = ["", "Where is the ball?", "What formation?", "What play?", "What happened?"];
+  function smSaved() { try { return localStorage.getItem(SM_KEY) === "1" } catch (e) { return false } }
+  function smSet(on) { try { localStorage.setItem(SM_KEY, on ? "1" : "0") } catch (e) {} SM.step = 1; SM.n = null; smSync() }
+  function smStep(n) { SM.step = Math.max(1, Math.min(4, n)); var vc = $("v-chart"); vc.classList.remove("sm-mot", "sm-rpo"); smSync(); try { window.scrollTo(0, 0) } catch (e) {} }
+  function smSync() {
+    var vc = $("v-chart"), bar = $("smBar"); if (!vc || !bar) return;
+    SM.on = smSaved(); vc.classList.toggle("simple", SM.on); bar.hidden = !SM.on;
+    $("imSimple").setAttribute("aria-pressed", SM.on ? "true" : "false");
+    if (!SM.on) { vc.removeAttribute("data-step"); return }
+    $("imFull").setAttribute("aria-pressed", "false"); $("imSheet").setAttribute("aria-pressed", "false");
+    if (SM.n != null && S.snaps.length > SM.n) { SM.step = 1; vc.classList.remove("sm-mot", "sm-rpo") }   // a snap was logged: start the next one
+    SM.n = S.snaps.length;
+    vc.setAttribute("data-step", SM.step);
+    $("smStepTxt").textContent = "Step " + SM.step + " of 4";
+    $("smQ").textContent = SM_Q[SM.step];
+    var sum = "";
+    if (SM.step === 1) sum = pendingSnap() ? "Tap the field where the last play ended, or No gain" : "Tap the field if the ball isn't where it shows, then Next";
+    else if (SM.step === 2) sum = "Tap the formation";
+    else if (SM.step === 3) sum = (pick.form || "") + (pick.form ? " · " : "") + "tap the play";
+    else sum = [pick.form, pick.call, pick.motion, pick.rpo].filter(Boolean).join(" · ") + " · tap the result, then the player";
+    $("smSum").textContent = sum;
+    $("smBack").style.visibility = SM.step > 1 ? "visible" : "hidden";
+    // step 1 waits for the last play's spot: the next snap can't be logged until the ball is spotted
+    var nx = $("smNext"), show = (SM.step === 1 && !pendingSnap()) || (SM.step === 2 && !!pick.form) || (SM.step === 3 && !!pick.call);
+    nx.style.visibility = show ? "visible" : "hidden";
+    nx.textContent = SM.step === 2 && pick.form ? "Same ▶" : "Next ▶";
+    var mh = $("smMotH").querySelector("small"), rh = $("smRpoH").querySelector("small");
+    if (mh) mh.textContent = (pick.motion || "none") + " · tap to change"; if (rh) rh.textContent = (pick.rpo || "none") + " · tap to change";
+  }
+  function smWire() {
+    $("imSimple").addEventListener("click", function () { smSet(true); renderChips() });
+    $("imFull").addEventListener("click", function () { smSet(false) }); $("imSheet").addEventListener("click", function () { smSet(false) });
+    $("smNext").addEventListener("click", function () { smStep(SM.step + 1) }); $("smBack").addEventListener("click", function () { smStep(SM.step - 1) });
+    $("smMotH").addEventListener("click", function () { if (SM.on) $("v-chart").classList.toggle("sm-mot") });
+    $("smRpoH").addEventListener("click", function () { if (SM.on) $("v-chart").classList.toggle("sm-rpo") });
+    $("csForms").addEventListener("click", function (e) { if (SM.on && SM.step === 2 && e.target.closest("button")) smStep(3) });
+    ["csPlays", "cRun", "cPass", "cRpo"].forEach(function (id) { $(id).addEventListener("click", function (e) { if (SM.on && SM.step === 3 && e.target.closest("button") && pick.call) smStep(4) }) });
+    // these two have their own handlers wired later, so look after they've run
+    $("mullBtn").addEventListener("click", function () { setTimeout(function () { if (SM.on && SM.step < 4 && pick.call) smStep(4) }, 0) });
+    $("frzBtn").addEventListener("click", function () { setTimeout(function () { if (SM.on && SM.step < 4 && pick.callType === "freeze") smStep(4) }, 0) });
+  }
   function gsWire() {
     $("gsMull").addEventListener("click", function () { $("mullBtn").click() });
     $("imFull").addEventListener("click", function () { S.inMode = "full"; save(); renderChips() });
     $("imSheet").addEventListener("click", function () { S.inMode = "sheet"; save(); renderChips() });
+    smWire();
     var z = function (d) { GS_Z = Math.max(.6, Math.min(2, Math.round((GS_Z + d) * 10) / 10)); try { localStorage.setItem("solutions-gsz" + (typeof NS === "string" ? NS : ""), GS_Z) } catch (e) {} renderGrid() };
     $("gsZo").addEventListener("click", function () { z(-.1) }); $("gsZi").addEventListener("click", function () { z(.1) });
   }
@@ -3018,6 +3087,7 @@ textarea { min-height: 64px }
     var gm = $("gsMull"); if (gm) { gm.disabled = !pv; gm.classList.toggle("on", !!pick.mull); $("gsMullWhat").textContent = $("mullWhat").textContent }
     ["frzBtn", "gsFrz"].forEach(function (id) { var f = $(id); if (f) f.classList.toggle("on", pick.callType === "freeze") });
     $("logBtn").disabled = !pick.res;
+    smSync();
   }
 
   // ---------- logging ----------

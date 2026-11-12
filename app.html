@@ -2772,10 +2772,10 @@ textarea { min-height: 64px }
     else if (SM.step === 3) sum = (pick.form || "") + (pick.form ? " · " : "") + "tap the play";
     else sum = [pick.form, pick.call, pick.motion, pick.rpo].filter(Boolean).join(" · ") + " · tap the result, then the player";
     $("smSum").textContent = sum;
-    $("smBack").style.visibility = SM.step > 1 ? "visible" : "hidden";
+    $("smBack").style.display = SM.step > 1 ? "" : "none";
     // step 1 waits for the last play's spot: the next snap can't be logged until the ball is spotted
     var nx = $("smNext"), show = (SM.step === 1 && !pendingSnap()) || (SM.step === 2 && !!pick.form) || (SM.step === 3 && !!pick.call);
-    nx.style.visibility = show ? "visible" : "hidden";
+    nx.style.display = show ? "" : "none";
     nx.textContent = SM.step === 2 && pick.form ? "Same ▶" : "Next ▶";
     var mh = $("smMotH").querySelector("small"), rh = $("smRpoH").querySelector("small");
     if (mh) mh.textContent = (pick.motion || "none") + " · tap to change"; if (rh) rh.textContent = (pick.rpo || "none") + " · tap to change";

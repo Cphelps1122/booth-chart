@@ -229,15 +229,19 @@ main { padding-block: 14px 40px }
 @media (max-width: 560px) { .smbar { flex-wrap: wrap } .smbar .smmid { order: -1; flex-basis: 100% } .smbar .btn { flex: 1 } .smsum { white-space: normal } }
 #v-chart.simple #fastLog, #v-chart.simple label:has(> #fastLog) { display: none } .smq { font-family: var(--f-display); font-weight: 800; font-size: clamp(20px, 4.5vw, 30px); line-height: 1.15 }
 .smsum { font-size: 14px; font-weight: 700; opacity: .8; min-height: 18px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap } .smbar .btn { font-size: 17px; padding: 12px 16px; white-space: nowrap }
-#v-chart.simple #ncBox, #v-chart.simple #filmBar, #v-chart.simple #qScore, #v-chart.simple #livePanel, #v-chart.simple #gsPanel, #v-chart.simple .grid2 > .panel:not(#fullInPanel), #v-chart.simple .picked { display: none !important }
+#v-chart.simple #ncBox, #v-chart.simple #filmBar, #v-chart.simple #qScore, #v-chart.simple #livePanel, #v-chart.simple #gsPanel, #v-chart.simple:not([data-step="4"]) .grid2 > .panel:not(#fullInPanel), #v-chart.simple .picked, #v-chart.simple #dModeNote { display: none !important }
+#v-chart.simple[data-step="4"] #fullInPanel { display: none !important }
 #v-chart.simple #fullInPanel { display: block !important } #v-chart.simple .grid2 { display: block }
 #v-chart.simple[data-step="1"] .grid2, #v-chart.simple[data-step="1"] #resPanel, #v-chart.simple[data-step="2"] .spotpanel, #v-chart.simple[data-step="2"] #resPanel,
-#v-chart.simple[data-step="3"] .spotpanel, #v-chart.simple[data-step="3"] #resPanel, #v-chart.simple[data-step="4"] .spotpanel, #v-chart.simple[data-step="4"] .grid2 { display: none !important }
+#v-chart.simple[data-step="3"] .spotpanel, #v-chart.simple[data-step="3"] #resPanel, #v-chart.simple[data-step="4"] .spotpanel, #v-chart.simple[data-step="4"] #resPanel, #v-chart.simple[data-step="5"] .spotpanel, #v-chart.simple[data-step="5"] .grid2 { display: none !important }
 #v-chart.simple[data-step="2"] #fullInPanel > :not(.mullrow):not(.sm-formh):not(#csForms) { display: none !important }
 #v-chart.simple[data-step="3"] #fullInPanel > .mullrow, #v-chart.simple[data-step="3"] #fullInPanel > .sm-formh, #v-chart.simple[data-step="3"] #csForms { display: none !important }
 #v-chart.simple[data-step="3"]:not(.sm-mot) #cMotion, #v-chart.simple[data-step="3"]:not(.sm-rpo) #cRpoTag { display: none !important }
 #v-chart.simple .sm-moth, #v-chart.simple .sm-rpoh { cursor: pointer; border: 2px solid var(--line); border-radius: 10px; padding: 10px 12px; margin-top: 8px !important }
-#v-chart.simple #csForms .chip, #v-chart.simple #csPlays .chip, #v-chart.simple #cRes .chip, #v-chart.simple #cPlayer .chip, #v-chart.simple #cQB .chip { font-size: 19px; padding: 14px 18px }
+#v-chart.simple #csForms .chip, #v-chart.simple #csPlays .chip, #v-chart.simple #cRes .chip, #v-chart.simple #cPlayer .chip, #v-chart.simple #cQB .chip, #v-chart.simple #fastD .chip, #v-chart.simple #fullD .chip, .smcatch .chip { font-size: 19px; padding: 14px 18px }
+#v-chart.simple.sm-catch .spotpanel, #v-chart.simple.sm-catch .grid2, #v-chart.simple.sm-catch #resPanel, #v-chart.simple.sm-catch #smBar, #v-chart.simple.sm-catch #tryPanel { display: none !important }
+.smcatch { margin: 0 0 12px; border: 2px solid var(--chip-on) } .smcatch[hidden] { display: none } .smcatch .smsum { white-space: normal; font-size: 17px; opacity: 1; margin: 6px 0 4px } .smcatch h3 { margin-top: 12px } .smcatch .actions { margin-top: 16px } .smcatch .actions .btn { font-size: 17px; padding: 12px 16px }
+.smmiss { font: inherit; font-weight: 800; font-size: 14px; margin-top: 6px; padding: 7px 12px; border-radius: 999px; border: 2px solid var(--chip-on); background: transparent; color: var(--ink); cursor: pointer } .smmiss[hidden] { display: none }
 #v-chart.simple .sm-formh, #v-chart.simple #resPanel > h3:first-child { display: none }
 body.role-view #smBar { display: none !important }
 .inmode { display: flex; gap: 6px; align-items: center; margin: 0 0 10px; flex-wrap: wrap } .inmode > span:first-child { font-weight: 800; letter-spacing: .08em; font-size: 13px; text-transform: uppercase; margin-right: 4px }
@@ -674,8 +678,16 @@ textarea { min-height: 64px }
     </div>
     <div class="smbar" id="smBar" hidden>
       <button class="btn" id="smBack" type="button">◀ Back</button>
-      <div class="smmid"><div class="smstep" id="smStepTxt"></div><div class="smq" id="smQ"></div><div class="smsum" id="smSum"></div></div>
+      <div class="smmid"><div class="smstep" id="smStepTxt"></div><div class="smq" id="smQ"></div><div class="smsum" id="smSum"></div><button class="smmiss" id="smMiss" type="button" hidden></button></div>
+      <button class="btn" id="smSkip" type="button">Skip</button>
       <button class="btn primary" id="smNext" type="button">Next ▶</button>
+    </div>
+    <div class="panel smcatch" id="smCatch" hidden>
+      <div class="smstep" id="smcN"></div>
+      <div class="smq">What was the defense on this play?</div>
+      <div class="smsum" id="smcPlay"></div>
+      <div id="smcBody"></div>
+      <div class="actions"><button class="btn" id="smcLater" type="button">Later</button><button class="btn" id="smcDk" type="button">Don't know</button><button class="btn primary" id="smcSave" type="button">Save ▶</button></div>
     </div>
     <div class="panel trypanel" id="tryPanel" hidden style="margin-bottom:14px">
       <div id="tryGM" class="gm-try"></div>
@@ -2751,39 +2763,97 @@ textarea { min-height: 64px }
   // A per-device way to show the Chart inputs. It uses the same buttons and the same pick/log code as Full input,
   // so a snap charted here is identical to one charted there.
   var SM = { on: false, step: 1, n: null }, SM_KEY = "solutions-simple" + (typeof NS === "string" ? NS : "");
-  var SM_Q = ["", "Where is the ball?", "What formation?", "What play?", "What happened?"];
+  var SM_Q = ["", "Where is the ball?", "What formation?", "What play?", "What is the defense in?", "What happened?"];
   function smSaved() { try { return localStorage.getItem(SM_KEY) === "1" } catch (e) { return false } }
   function smSet(on) { try { localStorage.setItem(SM_KEY, on ? "1" : "0") } catch (e) {} SM.step = 1; SM.n = null; smSync() }
-  function smStep(n) { SM.step = Math.max(1, Math.min(4, n)); var vc = $("v-chart"); vc.classList.remove("sm-mot", "sm-rpo"); smSync(); try { window.scrollTo(0, 0) } catch (e) {} }
+  function smStep(n) { SM.step = Math.max(1, Math.min(5, n)); if (SM.step <= 4) SM.skipD = false; var vc = $("v-chart"); vc.classList.remove("sm-mot", "sm-rpo"); smSync(); try { window.scrollTo(0, 0) } catch (e) {} }
   function smSync() {
     var vc = $("v-chart"), bar = $("smBar"); if (!vc || !bar) return;
     SM.on = smSaved(); vc.classList.toggle("simple", SM.on); bar.hidden = !SM.on;
     $("imSimple").setAttribute("aria-pressed", SM.on ? "true" : "false");
-    if (!SM.on) { vc.removeAttribute("data-step"); return }
+    if (!SM.on) { vc.removeAttribute("data-step"); vc.classList.remove("sm-catch"); $("smCatch").hidden = true; SM.cat = null; return }
     $("imFull").setAttribute("aria-pressed", "false"); $("imSheet").setAttribute("aria-pressed", "false");
     if (SM.n != null && S.snaps.length > SM.n) { SM.step = 1; vc.classList.remove("sm-mot", "sm-rpo") }   // a snap was logged: start the next one
     SM.n = S.snaps.length;
     vc.setAttribute("data-step", SM.step);
-    $("smStepTxt").textContent = "Step " + SM.step + " of 4";
+    $("smStepTxt").textContent = "Step " + SM.step + " of 5";
     $("smQ").textContent = SM_Q[SM.step];
     var sum = "";
     if (SM.step === 1) sum = pendingSnap() ? "Tap the field where the last play ended, or No gain" : "Tap the field if the ball isn't where it shows, then Next";
     else if (SM.step === 2) sum = "Tap the formation";
     else if (SM.step === 3) sum = (pick.form || "") + (pick.form ? " · " : "") + "tap the play";
+    else if (SM.step === 4) { var dn = smDefNow(); sum = dn ? dn + " · tap what changed, then Next" : "Tap what you see · or Skip and fill it in after the series" }
     else sum = [pick.form, pick.call, pick.motion, pick.rpo].filter(Boolean).join(" · ") + " · tap the result, then the player";
     $("smSum").textContent = sum;
     $("smBack").style.display = SM.step > 1 ? "" : "none";
     // step 1 waits for the last play's spot: the next snap can't be logged until the ball is spotted
-    var nx = $("smNext"), show = (SM.step === 1 && !pendingSnap()) || (SM.step === 2 && !!pick.form) || (SM.step === 3 && !!pick.call);
+    var nx = $("smNext"), show = (SM.step === 1 && !pendingSnap()) || (SM.step === 2 && !!pick.form) || (SM.step === 3 && !!pick.call) || SM.step === 4;
     nx.style.display = show ? "" : "none";
     nx.textContent = SM.step === 2 && pick.form ? "Same ▶" : "Next ▶";
     var mh = $("smMotH").querySelector("small"), rh = $("smRpoH").querySelector("small");
     if (mh) mh.textContent = (pick.motion || "none") + " · tap to change"; if (rh) rh.textContent = (pick.rpo || "none") + " · tap to change";
+    $("smSkip").style.display = SM.step === 4 ? "" : "none";
+    // plays logged without a defense: ask once when the ball goes over, and keep a reminder on step 1
+    var miss = smMissing(), mb = $("smMiss");
+    mb.hidden = !(miss.length && SM.step === 1); mb.textContent = "Defense missing on " + miss.length + " play" + (miss.length === 1 ? "" : "s") + " · fill in";
+    if (SM.cat && !miss.length) SM.cat = null;
+    if (!SM.cat && !S.tryPending && SM.asked !== S.cur.series) {
+      if (miss.some(function (x) { return x.series < S.cur.series })) { SM.asked = S.cur.series; SM.cat = { n: miss[0].n, v: {} } }
+      else if (!miss.length) SM.asked = S.cur.series;
+    }
+    vc.classList.toggle("sm-catch", !!SM.cat); $("smCatch").hidden = !SM.cat;
+    if (SM.cat) smCatDraw();
+  }
+  function smMissing() { return S.snaps.filter(function (x) { return x.needD }) }
+  function smDefNow() {
+    var a = S.dmode === "full" ? [pick.front, pick.cov ? (/^\d$/.test(pick.cov) ? "Cov " + pick.cov : pick.cov) : null] : [pick.shell, pick.box ? pick.box + " in box" : null];
+    a = a.filter(Boolean); if (!a.length) return "";
+    return a.concat(pick.blitz && pick.blitz !== "No" ? "pressure" : "no pressure").join(" · ");
+  }
+  function smCatDraw() {
+    var miss = smMissing(), sn = miss.filter(function (x) { return x.n === SM.cat.n })[0] || miss[0];
+    if (!sn) { SM.cat = null; return } SM.cat.n = sn.n;
+    $("smcN").textContent = "Defense catch-up · " + miss.length + " play" + (miss.length === 1 ? "" : "s") + " left";
+    var g = sn.gain == null ? "" : (sn.gain > 0 ? " +" : " ") + sn.gain;
+    $("smcPlay").textContent = "Play " + sn.n + " · " + (sn.qtr === 5 ? "OT" : "Q" + sn.qtr) + " · " + ddLabel(sn) + " · " + callText(sn) + " · " + (sn.res || "") + (sn.td ? " TD" : g);
+    var body = $("smcBody"); body.innerHTML = "";
+    var secs = S.dmode === "full"
+      ? [["Their front", "front", list("front")], ["Coverage", "cov", list("cov"), function (v) { return /^\d$/.test(v) ? "Cov " + v : v }], ["Pressure", "blitz", ["No"].concat(list("blitz"))]]
+      : [["Shell", "shell", ["1-HIGH", "2-HIGH", "ZERO"]], ["Box", "box", ["5", "6", "7", "8"], function (v) { return v + " in box" }], ["Pressure", "blitz", ["No", "Yes"]]];
+    secs.forEach(function (sc) {
+      var h = document.createElement("h3"); h.textContent = sc[0]; body.appendChild(h);
+      var row = document.createElement("div"); row.className = "chips"; body.appendChild(row);
+      sc[2].forEach(function (v) {
+        var b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.textContent = sc[3] ? sc[3](v) : v;
+        b.setAttribute("aria-pressed", SM.cat.v[sc[1]] === v ? "true" : "false");
+        b.addEventListener("click", function () { SM.cat.v[sc[1]] = SM.cat.v[sc[1]] === v ? null : v; smCatDraw() });
+        row.appendChild(b);
+      });
+    });
+  }
+  function smCatDone(known) {
+    if (!SM.cat) return;
+    var sn = S.snaps.filter(function (x) { return x.n === SM.cat.n && x.needD })[0], v = SM.cat.v;
+    if (!sn) { SM.cat = null; smSync(); return }
+    if (known) {
+      if (!(v.shell || v.box || v.front || v.cov || v.blitz)) { toast("Tap what the defense was in, or Don't know"); return }
+      ["shell", "box", "front", "cov"].forEach(function (k) { if (v[k]) sn[k] = v[k] });
+      sn.blitz = v.blitz || "No";
+    }
+    delete sn.needD;
+    try { qTag(sn) } catch (e) {}
+    var left = smMissing(); SM.cat = left.length ? { n: left[0].n, v: {} } : null;
+    save(); renderAll(); try { window.scrollTo(0, 0) } catch (e) {}
+    if (!left.length) toast("Defense is caught up");
   }
   function smWire() {
     $("imSimple").addEventListener("click", function () { smSet(true); renderChips() });
     $("imFull").addEventListener("click", function () { smSet(false) }); $("imSheet").addEventListener("click", function () { smSet(false) });
-    $("smNext").addEventListener("click", function () { smStep(SM.step + 1) }); $("smBack").addEventListener("click", function () { smStep(SM.step - 1) });
+    $("smNext").addEventListener("click", function () { smStep(SM.step + 1) });
+    $("smSkip").addEventListener("click", function () { smStep(5); SM.skipD = true });
+    $("smMiss").addEventListener("click", function () { var m = smMissing(); if (m.length) { SM.cat = { n: m[0].n, v: {} }; smSync(); try { window.scrollTo(0, 0) } catch (e) {} } });
+    $("smcSave").addEventListener("click", function () { smCatDone(true) }); $("smcDk").addEventListener("click", function () { smCatDone(false) });
+    $("smcLater").addEventListener("click", function () { SM.cat = null; smSync() }); $("smBack").addEventListener("click", function () { smStep(SM.step - 1) });
     $("smMotH").addEventListener("click", function () { if (SM.on) $("v-chart").classList.toggle("sm-mot") });
     $("smRpoH").addEventListener("click", function () { if (SM.on) $("v-chart").classList.toggle("sm-rpo") });
     $("csForms").addEventListener("click", function (e) { if (SM.on && SM.step === 2 && e.target.closest("button")) smStep(3) });
@@ -3114,6 +3184,9 @@ textarea { min-height: 64px }
     snap.qb = pick.qb || null;
     snap.carrier = role === "carrier" ? pick.pl : (snap.res === "Scramble" || snap.res === "Sack" ? snap.qb : (snap.res === "Complete" ? pick.pl : null));
     snap.target = role === "target" ? pick.pl : null;
+    // Simple mode: a play logged with the defense skipped (or never set) is held for the catch-up prompt
+    if (SM.on && (SM.skipD || !(pick.shell || pick.box || pick.front || pick.cov))) { snap.needD = true; snap.shell = snap.box = snap.front = snap.cov = null; snap.blitz = "No" }
+    SM.skipD = false;
     qTag(snap);
     S.snaps.push(snap);
     if (g != null) advance(snap);

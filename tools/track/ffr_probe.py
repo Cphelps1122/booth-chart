@@ -1,16 +1,25 @@
 """
-Runs the Full Field Read model on the 4 Hudl test clips (track-auto test only).
-Prints counts; full predictions go out encrypted with debug_key.pem.
+Tries a ball model on the newest Hudl test clips (track-auto test only): whole frames at two sizes, and 2x2 tiles.
+Prints counts; predictions and one clip's frames go out encrypted with debug_key.pem.
 """
-import base64, json, os, sys
+import base64, io, json, os, sys, zipfile
 from collections import Counter
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import cv2  # noqa: E402
 from field_probe import call  # noqa: E402
 from run import DB_URL, download, log  # noqa: E402
-from track import read_samples  # noqa: E402
 from test_run import SOURCE  # noqa: E402
 
-IDS = ["softballtracker-sy17i/full-field-read-2-rfdetr-small-t1", "softballtracker-sy17i/full-field-read-2-rfdetr-small-t2", "full-field-read/2"]
+MODEL = "softballtracker-sy17i/full-field-read-3-rfdetr-nas-t1--81e540"
+BALL = ("football", "ball")
+
+
+def tiles(img):
+    h, w = img.shape[:2]
+    tw, th = int(w * 0.55), int(h * 0.55)
+    for y in (0, h - th):
+        for x in (0, w - tw):
+            yield x, y, img[y:y + th, x:x + tw]
 
 
 def main():
@@ -24,38 +33,48 @@ def main():
         if isinstance(clips, dict):
             found += [(r.get("at") or 0, p, r) for p, r in clips.items() if isinstance(r, dict) and r.get("url")]
     found.sort(key=lambda j: j[0], reverse=True)
-    clips = []
-    for _, play, rec in found[:4]:
+    res, keep = {}, {}
+    for i, (_, play, rec) in enumerate(found[:4], 1):
         path = download(rec["url"], rec.get("type"))
-        clips.append(read_samples(path, rec.get("a"), rec.get("b"))[0])
+        cap = cv2.VideoCapture(path)
+        end = (cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0) / (cap.get(cv2.CAP_PROP_FPS) or 30)
+        a, b = float(rec.get("a") or 0), min(end, float(rec.get("b") or end))
+        t, n, hit, cls = a, 0, Counter(), Counter()
+        while t < b and n < 30:
+            cap.set(cv2.CAP_PROP_POS_MSEC, t * 1000)
+            ok, img = cap.read()
+            t += max(0.33, (b - a) / 30)
+            if not ok:
+                continue
+            small = cv2.resize(img, (960, int(img.shape[0] * 960 / img.shape[1])))
+            out = {"full": (call(key, MODEL, img)[1] or {}).get("predictions", []),
+                   "small": (call(key, MODEL, small)[1] or {}).get("predictions", []), "tiles": []}
+            for x, y, tile in tiles(img):
+                for p in (call(key, MODEL, tile)[1] or {}).get("predictions", []):
+                    out["tiles"].append(dict(p, x=p["x"] + x, y=p["y"] + y))
+            for how, preds in out.items():
+                cls.update(p["class"] for p in preds)
+                hit[how] += any(p["class"].lower() in BALL and p["confidence"] >= 0.3 for p in preds)
+            res["%d|%d" % (i, n)] = out
+            if i == 1:
+                keep["f%03d.jpg" % n] = cv2.imencode(".jpg", small, [cv2.IMWRITE_JPEG_QUALITY, 70])[1].tobytes()
+            n += 1
         os.remove(path)
-    model = None
-    for m in IDS:
-        code, _ = call(key, m, clips[0][0])
-        log("%s -> %d" % (m, code))
-        if code == 200:
-            model = m
-            break
-    if not model:
-        return
-    res = {}
-    for i, fr in enumerate(clips, 1):
-        c, ball = Counter(), 0
-        for k in range(0, len(fr), 2):
-            p = (call(key, model, fr[k])[1] or {}).get("predictions", [])
-            res["%d|%d" % (i, k)] = p
-            c.update(x["class"] for x in p if x["confidence"] >= 0.4)
-            ball += any(x["class"] == "football" and x["confidence"] >= 0.25 for x in p)
-        n = len(range(0, len(fr), 2))
-        log("clip %d: %d frames, ball seen in %d, avg per frame %s" % (i, n, ball, {k: round(v / n, 1) for k, v in sorted(c.items())}))
+        log("clip %d (%dx%d): %d frames; ball seen: full size %d, small %d, tiles %d; classes %s" % (
+            i, int(cap.get(3)), int(cap.get(4)), n, hit["full"], hit["small"], hit["tiles"], dict(cls)))
     from cryptography.hazmat.primitives import hashes, serialization
     from cryptography.hazmat.primitives.asymmetric import padding
     from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as z:
+        z.writestr("preds.json", json.dumps(res))
+        for name, data in keep.items():
+            z.writestr(name, data)
     pub = serialization.load_pem_public_key(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "debug_key.pem"), "rb").read())
-    k, n = os.urandom(32), os.urandom(12)
-    blob = base64.b64encode(pub.encrypt(k, padding.OAEP(mgf=padding.MGF1(hashes.SHA256()), algorithm=hashes.SHA256(), label=None)) + n + AESGCM(k).encrypt(n, json.dumps(res).encode(), None)).decode()
+    k, nn = os.urandom(32), os.urandom(12)
+    blob = base64.b64encode(pub.encrypt(k, padding.OAEP(mgf=padding.MGF1(hashes.SHA256()), algorithm=hashes.SHA256(), label=None)) + nn + AESGCM(k).encrypt(nn, buf.getvalue(), None)).decode()
     for j in range(0, len(blob), 20000):
-        print("DBG 9 %d %s" % (j // 20000, blob[j:j + 20000]), flush=True)
+        print("DBG 8 %d %s" % (j // 20000, blob[j:j + 20000]), flush=True)
 
 
 if __name__ == "__main__":

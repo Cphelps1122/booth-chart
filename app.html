@@ -248,6 +248,12 @@ body.role-view #smBar { display: none !important }
 .inmode button { font: inherit; font-weight: 800; font-size: 15px; padding: 9px 16px; border-radius: 10px; border: 2px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer } .inmode button[aria-pressed=true] { background: var(--chip-on); color: var(--chip-on-ink); border-color: var(--chip-on) }
 .gshead { display: flex; align-items: center; gap: 8px; flex-wrap: wrap } .gshead h3 { margin: 0; flex: 1 } .gspick { font-weight: 800; font-size: 15px; padding: 6px 10px; background: var(--chip); color: var(--ink); border-radius: 8px } .gshead .btn { font-size: 18px; padding: 4px 12px }
 .gswrap { overflow: auto; margin-top: 8px; border: 1px solid #222; max-height: 78vh; -webkit-overflow-scrolling: touch; touch-action: pan-x pan-y pinch-zoom }
+/* call sheet: fit to the screen, and a full-screen view (settings are per device) */
+body.gs-full #gsPanel { position: fixed; inset: 0; z-index: 25; margin: 0; border-radius: 0; border: 0; overflow: hidden; display: flex; flex-direction: column; padding: calc(8px + env(safe-area-inset-top, 0px)) 8px calc(8px + env(safe-area-inset-bottom, 0px)) }
+body.gs-full #gsPanel > .mullrow, body.gs-full #gsPanel > .srch, body.gs-full #gsPanel > #gsHits, body.gs-full #gsPanel > #gsAdd { display: none }
+body.gs-full .gswrap { flex: 1; min-height: 0; max-height: none } .gshead .btn[aria-pressed=true] { background: var(--chip-on); color: var(--chip-on-ink); border-color: var(--chip-on) } .gshead .btn.txt { font-size: 14px; padding: 8px 12px } #gsGo[hidden] { display: none }
+.setup .gsv label { display: flex; flex-direction: row; gap: 10px; align-items: center; text-transform: none; letter-spacing: 0; font-size: 15px; font-weight: 600; margin: 10px 0; flex-wrap: wrap } .setup .gsv input[type=checkbox] { width: 22px; height: 22px; flex: 0 0 auto; margin: 0 } .setup .gsv select { width: auto; max-width: 100%; flex: 0 1 auto; font: inherit; font-size: 15px; padding: 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--ink) }
+.gsgrid.fitw .gc button, .gsgrid.fitw .gh, .gsgrid.fitw .gx { white-space: normal; overflow-wrap: break-word; min-width: 0 } .gsgrid.fitw > div { min-height: 1.9em } .gsgrid.gsmeas .gc button, .gsgrid.gsmeas .gh, .gsgrid.gsmeas .gx { overflow-wrap: normal } .gsgrid.fitw .gc button { padding: .3em .35em }
 .gsgrid { display: grid; gap: 0; background: #fff; font-family: Arial, Helvetica, sans-serif; font-weight: 700; transform-origin: 0 0 }
 .gsgrid > div { background: #fff; min-height: 22px; box-shadow: 0 0 0 .5px #9aa3ad; display: flex; align-items: center; padding: 1px 3px; overflow: hidden }
 .gsgrid .gh { justify-content: center; text-align: center; font-weight: 900; letter-spacing: .02em }
@@ -739,7 +745,7 @@ textarea { min-height: 64px }
       <div class="mullrow" style="margin-bottom:10px"><button class="mull" id="gsMull" type="button" disabled><span class="mt">↻ Mulligan</span><span class="ms" id="gsMullWhat">no play to repeat yet</span></button><button class="frz" id="gsFrz" type="button" title="Freeze: no play called (hard count)">❄ Freeze</button></div>
       <div class="srch"><input id="gsQ" type="search" placeholder="Find a play: slot trig 4 zip…" autocomplete="off" aria-label="Find a play on the call sheet"><button class="micb" id="gsMic" type="button" aria-label="Hold and say the call">🎤</button></div>
       <div class="hits" id="gsHits"></div><div id="gsAdd"></div>
-      <div class="gshead"><h3>Call sheet <small id="gsSit"></small></h3><span class="gspick" id="gsPick">Tap a play</span><button type="button" class="btn" id="gsZo" aria-label="Zoom out">−</button><button type="button" class="btn" id="gsZi" aria-label="Zoom in">+</button></div>
+      <div class="gshead"><h3>Call sheet <small id="gsSit"></small></h3><span class="gspick" id="gsPick">Tap a play</span><button type="button" class="btn primary txt" id="gsGo" hidden>Result ▶</button><button type="button" class="btn txt" id="gsFit" aria-pressed="false" title="Shrink the sheet to fit the screen. Tap again to switch between fitting the width and the whole sheet.">Fit</button><button type="button" class="btn" id="gsZo" aria-label="Zoom out">−</button><button type="button" class="btn" id="gsZi" aria-label="Zoom in">+</button><button type="button" class="btn txt" id="gsFullB" aria-pressed="false">⛶ Full screen</button></div>
       <div class="gswrap" id="gsWrap"><div class="gsgrid" id="gsGrid"></div></div>
     </div>
     <div class="grid2">
@@ -922,6 +928,15 @@ textarea { min-height: 64px }
     <div class="panel" id="tagPanel" style="margin-bottom:14px">
       <h3>Missing tags <small>this device</small></h3>
       <label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-size:15px"><input type="checkbox" id="tagNagOn"> Remind me when a play is logged without their look or the ball carrier / target</label>
+    </div>
+    <div class="panel gsv" id="gsvPanel" style="margin-bottom:14px">
+      <h3>Call sheet view <small>this device</small></h3>
+      <label for="gsvOpen">When the sheet opens <select id="gsvOpen"><option value="w">Fit the width (no sideways scrolling)</option><option value="all">Fit the whole sheet on screen</option><option value="keep">Keep my last zoom</option></select></label>
+      <label for="gsvMin">Smallest text when fitting <select id="gsvMin"><option value="0">Automatic</option><option value="7">Small</option><option value="9">Medium</option><option value="11">Large</option></select></label>
+      <label><input type="checkbox" id="gsvFull"> Open the sheet full screen</label>
+      <label><input type="checkbox" id="gsvGo"> In full screen, tapping a play jumps to the result</label>
+      <label><input type="checkbox" id="gsvBack"> After the play is logged and the ball is spotted, go back to the full-screen sheet</label>
+      <p class="note">Fit, − / + and Full screen on the sheet still work any time. Fitting never scrolls sideways: long play names wrap onto a second line, and a bigger text size just makes the sheet taller.</p>
     </div>
     <div class="panel" id="lockPanel" hidden style="margin-bottom:14px">
       <h3>Lock mode <small>admin only · a locked account sees everything live but can't chart</small></h3>
@@ -2690,6 +2705,43 @@ textarea { min-height: 64px }
   // ---------- call sheet mode: the uploaded sheet on screen, tap a play ----------
   var GS_Z = 1;
   try { GS_Z = +localStorage.getItem("solutions-gsz" + (typeof NS === "string" ? NS : "")) || 1 } catch (e) {}
+  // view settings (Settings → Call sheet view): open = "w" fit width | "all" fit whole sheet | "keep" last zoom
+  var GS_V = { open: "w", min: 0, full: false, go: true, back: true }, GS_VKEY = "solutions-gsview" + (typeof NS === "string" ? NS : "");
+  try { var gsv0 = JSON.parse(localStorage.getItem(GS_VKEY) || "null"); if (gsv0) Object.keys(GS_V).forEach(function (k) { if (gsv0[k] != null) GS_V[k] = gsv0[k] }) } catch (e) {}
+  var GS_FIT = GS_V.open === "keep" ? null : GS_V.open, GS_F = 1, GS_FULL = false, GS_WAS = false, GS_TEMP = null;
+  function gsvSave() { try { localStorage.setItem(GS_VKEY, JSON.stringify(GS_V)) } catch (e) {} }
+  function gsFull(on) { GS_FULL = !!on; GS_TEMP = null; document.body.classList.toggle("gs-full", GS_FULL); renderGrid() }
+  // Fit: keep each column's share of the width, let long play names wrap, and use the biggest text that fits.
+  // "w" = never scroll sideways; "all" = the whole sheet on screen (text gets smaller if it has to).
+  var GS_CACHE = null;
+  function gsFitApply() {
+    var g = $("gsGrid"), w = $("gsWrap"); if (!g || !w) return;
+    g.classList.remove("fitw"); g.style.width = "";
+    var fb = $("gsFit"); fb.setAttribute("aria-pressed", GS_FIT ? "true" : "false"); fb.textContent = GS_FIT === "all" ? "Fit: whole" : GS_FIT === "w" ? "Fit: width" : "Fit";
+    var G = S.sheetGrid; if (!GS_FIT || !G || !G.cells) return;
+    var cw = w.clientWidth, ch = GS_FULL ? w.clientHeight : Math.round(window.innerHeight * .78) - 2; if (!cw) return;
+    var key = [GS_FIT, cw, GS_FIT === "all" ? ch : 0, G.cols, G.cells.length, GS_V.min].join("|"), c = GS_CACHE && GS_CACHE.key === key ? GS_CACHE : null;
+    if (!c) {
+      var tr = getComputedStyle(g).gridTemplateColumns.split(" ").map(parseFloat).filter(function (x) { return x > 0 });
+      if (tr.length !== G.cols) tr = []; for (var q = tr.length; q < G.cols; q++) tr.push(1);
+      c = { key: key, tpl: tr.map(function (x) { return "minmax(0, " + Math.round(x) + "fr)" }).join(" "), natural: g.scrollWidth <= cw + 1 && (GS_FIT !== "all" || g.offsetHeight <= ch), f: 12 };
+    }
+    if (c.natural) { GS_CACHE = c; GS_F = 1; return }   // already fits as it is
+    g.classList.add("fitw"); g.style.width = "100%"; g.style.gridTemplateColumns = c.tpl;
+    if (!GS_CACHE || GS_CACHE.key !== key) {
+      var kids = g.children, btns = g.querySelectorAll("button"), fits = function (f) {
+        g.style.fontSize = f + "px"; if (GS_FIT === "all" && g.offsetHeight > ch) return false;
+        for (var i = 0; i < kids.length; i++) if (kids[i].scrollWidth > kids[i].clientWidth + 1) return false;
+        for (i = 0; i < btns.length; i++) if (btns[i].scrollWidth > btns[i].clientWidth) return false; return true;
+      };
+      g.classList.add("gsmeas");   // while measuring, a word may not be split: the text shrinks instead
+      var lo = 3, hi = 13; while (hi - lo > .4) { var mid = (lo + hi) / 2; if (fits(mid)) lo = mid; else hi = mid }
+      g.classList.remove("gsmeas");
+      c.f = Math.max(Math.floor(lo * 2) / 2, +GS_V.min || 7);   // never smaller than 7px: past that, long names split instead
+      GS_CACHE = c;
+    }
+    g.style.fontSize = c.f + "px"; GS_F = c.f / 12;
+  }
   function gsHex(h) { return h ? "#" + h : "" }
   function gsY(h) { var L = [0, 2, 4].map(function (i) { var v = parseInt(h.slice(i, i + 2), 16) / 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4) }); return .2126 * L[0] + .7152 * L[1] + .0722 * L[2] }
   function gsCR(a, b) { var x = gsY(a), y = gsY(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05) }
@@ -2707,6 +2759,13 @@ textarea { min-height: 64px }
   }
   function renderGrid() {
     var on = S.inMode === "sheet", G = S.sheetGrid;
+    if (on && !GS_WAS) { GS_FIT = GS_V.open === "keep" ? null : GS_V.open; if (GS_V.full && G && G.cells) GS_FULL = true }   // just opened: apply this device's settings
+    GS_WAS = on; if (!on) { GS_FULL = false; GS_TEMP = null }
+    // after a tap sent us to the result: come back once that play is logged and the ball is spotted
+    if (on && GS_TEMP != null && GS_V.back && S.snaps.length > GS_TEMP && !pendingSnap() && !S.tryPending && S.cur.ready !== false) { GS_TEMP = null; GS_FULL = true }
+    document.body.classList.toggle("gs-full", GS_FULL);
+    $("gsFullB").setAttribute("aria-pressed", GS_FULL ? "true" : "false"); $("gsFullB").textContent = GS_FULL ? "✕ Exit" : "⛶ Full screen";
+    $("gsGo").hidden = !(on && GS_FULL && pick.call);
     $("imFull").setAttribute("aria-pressed", on ? "false" : "true"); $("imSheet").setAttribute("aria-pressed", on ? "true" : "false");
     $("gsPanel").hidden = !on; $("fullInPanel").hidden = on;
     $("imNote").textContent = on && !G ? "Upload this week's call sheet in Setup to see it here." : "";
@@ -2715,7 +2774,8 @@ textarea { min-height: 64px }
     $("gsPick").textContent = pick.call ? ((pick.form ? pick.form + " " : "") + pick.call + (pick.motion ? " · " + pick.motion : "") + (pick.rpo ? " · " + pick.rpo : "")) : "Tap a play";
     var g = $("gsGrid"); g.innerHTML = "";
     if (!G || !G.cells) { g.innerHTML = "<div style='padding:14px'>No call sheet layout yet. Setup → Call sheet → Upload this week's call sheet (.xlsx).</div>"; return }
-    g.style.gridTemplateColumns = "repeat(" + G.cols + ", minmax(" + Math.round(120 * GS_Z) + "px, auto))"; g.style.fontSize = Math.round(12 * GS_Z) + "px";
+    var Z = GS_FIT ? 1 : GS_Z; g.style.zoom = ""; g.style.width = "";
+    g.style.gridTemplateColumns = "repeat(" + G.cols + ", minmax(" + Math.round(120 * Z) + "px, auto))"; g.style.fontSize = Math.round(12 * Z) + "px";
     var keys = sitKeys(S.cur), sitBox = {}; SHEET.forEach(function (b, i) { if (b.kind === "sit" && keys.indexOf(b.key) >= 0) sitBox[i] = 1 });
     var heads = G.cells.filter(function (c) { return c.h });
     $("gsSit").textContent = Object.keys(sitBox).length ? "· " + Object.keys(sitBox).map(function (i) { return SHEET[i].name }).join(", ") + " is up" : "";
@@ -2758,6 +2818,7 @@ textarea { min-height: 64px }
       g.appendChild(el);
     });
     $("gsPick").textContent = pick.call ? ((pick.form ? pick.form + " " : "") + pick.call + (pick.motion ? " · " + pick.motion : "") + (pick.rpo ? " · " + pick.rpo : "")) : "Tap a play";
+    gsFitApply();
   }
   // ---------- Simple mode: one question at a time ----------
   // A per-device way to show the Chart inputs. It uses the same buttons and the same pick/log code as Full input,
@@ -2867,8 +2928,18 @@ textarea { min-height: 64px }
     $("imFull").addEventListener("click", function () { S.inMode = "full"; save(); renderChips() });
     $("imSheet").addEventListener("click", function () { S.inMode = "sheet"; save(); renderChips() });
     smWire();
-    var z = function (d) { GS_Z = Math.max(.6, Math.min(2, Math.round((GS_Z + d) * 10) / 10)); try { localStorage.setItem("solutions-gsz" + (typeof NS === "string" ? NS : ""), GS_Z) } catch (e) {} renderGrid() };
+    var z = function (d) { if (GS_FIT) { GS_Z = Math.round(GS_F * 10) / 10; GS_FIT = null } GS_Z = Math.max(.3, Math.min(2, Math.round((GS_Z + d) * 10) / 10)); try { localStorage.setItem("solutions-gsz" + (typeof NS === "string" ? NS : ""), GS_Z) } catch (e) {} renderGrid() };
     $("gsZo").addEventListener("click", function () { z(-.1) }); $("gsZi").addEventListener("click", function () { z(.1) });
+    $("gsFit").addEventListener("click", function () { GS_FIT = GS_FIT === "w" ? "all" : GS_FIT === "all" ? "w" : (GS_V.open === "all" ? "all" : "w"); renderGrid() });
+    $("gsFullB").addEventListener("click", function () { gsFull(!GS_FULL) });
+    var toRes = function () { GS_FULL = false; GS_TEMP = S.snaps.length; renderGrid(); setTimeout(function () { try { $("cRes").scrollIntoView({ block: "center" }) } catch (e) {} }, 40) };
+    $("gsGo").addEventListener("click", toRes);
+    // full screen: a tapped play goes straight to the result (plays with a formation choice wait for the choice or Result ▶)
+    $("gsGrid").addEventListener("click", function (e) { var b = e.target.closest("button"); if (!b || !GS_FULL || !GS_V.go || b.hasAttribute("data-noadv")) return; setTimeout(function () { if (GS_FULL && pick.call) toRes() }, 0) });
+    var rt = null; window.addEventListener("resize", function () { clearTimeout(rt); rt = setTimeout(function () { if (S.inMode === "sheet" && GS_FIT) renderGrid() }, 120) });
+    $("gsvOpen").value = GS_V.open; $("gsvMin").value = String(GS_V.min); $("gsvFull").checked = !!GS_V.full; $("gsvGo").checked = !!GS_V.go; $("gsvBack").checked = !!GS_V.back;
+    var sv = function () { GS_V.open = $("gsvOpen").value; GS_V.min = +$("gsvMin").value; GS_V.full = $("gsvFull").checked; GS_V.go = $("gsvGo").checked; GS_V.back = $("gsvBack").checked; gsvSave(); GS_FIT = GS_V.open === "keep" ? null : GS_V.open; GS_WAS = false; toast("Call sheet view saved") };
+    ["gsvOpen", "gsvMin", "gsvFull", "gsvGo", "gsvBack"].forEach(function (id) { $(id).addEventListener("change", sv) });
   }
   var SIT_GROUP = "SITUATION PLAYS";
   function formSections() { return SHEET.map(function (x, i) { return [x, i] }).filter(function (p) { return p[0].kind === "form" }) }

@@ -241,6 +241,12 @@ main { padding-block: 14px 40px }
 #v-chart.simple #csForms .chip, #v-chart.simple #csPlays .chip, #v-chart.simple #cRes .chip, #v-chart.simple #cPlayer .chip, #v-chart.simple #cQB .chip, #v-chart.simple #fastD .chip, #v-chart.simple #fullD .chip, .smcatch .chip { font-size: 19px; padding: 14px 18px }
 #v-chart.simple.sm-catch .spotpanel, #v-chart.simple.sm-catch .grid2, #v-chart.simple.sm-catch #resPanel, #v-chart.simple.sm-catch #smBar, #v-chart.simple.sm-catch #tryPanel { display: none !important }
 .smcatch { margin: 0 0 12px; border: 2px solid var(--chip-on) } .smcatch[hidden] { display: none } .smcatch .smsum { white-space: normal; font-size: 17px; opacity: 1; margin: 6px 0 4px } .smcatch h3 { margin-top: 12px } .smcatch .actions { margin-top: 16px } .smcatch .actions .btn { font-size: 17px; padding: 12px 16px }
+#dlPanel[hidden] { display: none } body.role-theird #v-chart > :not(#dlPanel) { display: none !important }
+body.dl-live:not(.role-theird) #v-chart:not(.simple) .grid2 > .panel:not(#fullInPanel) { display: none }
+.dlpanel { border: 2px solid var(--chip-on) } .dlpanel .dlhead { margin-bottom: 12px } .dlpanel .smq { font-size: 26px; font-weight: 800 } .dlpanel .dlnow { font-size: 17px; font-weight: 700; margin: 6px 0 10px; opacity: .7 } .dlpanel .dlnow.ok { opacity: 1; color: #1a7f37 }
+.dlpanel .same { display: block; width: 100%; font: inherit; font-weight: 800; font-size: 20px; padding: 16px; border-radius: 12px; border: 0; background: var(--chip-on); color: var(--chip-on-ink); cursor: pointer; margin-bottom: 10px } .dlpanel .same small { display: block; font-weight: 600; font-size: 14px; opacity: .85; margin-top: 3px }
+.dlpanel .chip { font-size: 19px; padding: 14px 18px } .dlpanel .lk .chip { font-size: 17px; padding: 13px 14px } .dlpanel .lk .chip small { opacity: .6; font-weight: 600; margin-left: 6px } .dlpanel h3 { margin-top: 14px }
+.dllist { display: flex; flex-direction: column; gap: 6px } .dlrow { display: flex; gap: 10px; align-items: center; text-align: left; font: inherit; font-size: 15px; padding: 11px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer } .dlrow span { flex: 1; min-width: 0 } .dlrow em { font-style: normal; font-weight: 700; white-space: nowrap } .dlrow.miss { border-color: #d9822b } .dlrow.miss em { color: #d9822b } .dlrow.on { outline: 3px solid var(--chip-on) }
 .smlooks { margin-bottom: 14px } .smlooks[hidden], #v-chart:not(.simple) .smlooks { display: none } .smlooks .same { display: block; width: 100%; font: inherit; font-weight: 800; font-size: 20px; padding: 16px; border-radius: 12px; border: 0; background: var(--chip-on); color: var(--chip-on-ink); cursor: pointer; margin-bottom: 10px } .smlooks .same small { display: block; font-weight: 600; font-size: 14px; opacity: .85; margin-top: 3px }
 .smlooks .chips .chip, .smcatch .lk .chip { font-size: 17px; padding: 13px 14px } .smlooks .chip small, .smcatch .lk .chip small { opacity: .6; font-weight: 600; margin-left: 6px }
 .smmiss { font: inherit; font-weight: 800; font-size: 14px; margin-top: 6px; padding: 7px 12px; border-radius: 999px; border: 2px solid var(--chip-on); background: transparent; color: var(--ink); cursor: pointer } .smmiss[hidden] { display: none }
@@ -588,6 +594,7 @@ textarea { min-height: 64px }
       </div></div>
       <div class="h-door" data-door="game"><div class="hd-t">Game night</div><p class="hd-s">Friday: pick what this device is doing</p><div class="hd-l">
         <button type="button" class="pri" data-role="chart">Offense charter <small>just the chart</small></button>
+        <button type="button" data-role="theird">Their defense <small>shell, box and pressure while we have the ball</small></button>
         <a href="defense.html" data-role="defense">Defense charter <small>their plays vs our calls</small></a>
         <button type="button" data-role="oc">Offensive coordinator <small>Next Call, OC report, live</small></button>
         <button type="button" data-role="hc">Head coach <small>score, win chance, 4th down, halftime</small></button>
@@ -662,6 +669,7 @@ textarea { min-height: 64px }
 
   <!-- CHART -->
   <section id="v-chart">
+    <div class="panel dlpanel" id="dlPanel" hidden></div>
     <div class="viewnote">👁 View only on this device. Charting happens on the charters' iPads; everything here updates live. <button class="btn" type="button" data-role-open style="margin-left:8px;font-size:14px;padding:4px 10px">Change role</button></div>
     <div class="filmnote">This device is filming. Point it at the field and leave it; clips cut themselves when a charter logs a play. <button class="btn" type="button" data-role-open style="margin-left:8px;font-size:14px;padding:4px 10px">Change role</button></div>
     <div class="nc" id="ncBox" hidden></div>
@@ -1186,7 +1194,8 @@ textarea { min-height: 64px }
     <p class="note" style="margin:4px 0 0">Every tab stays. Your job just sets where this device starts. Change it any time from the button at the top.</p>
     <div class="rolegrid">
       <button type="button" data-pick="chart"><b>Offense charter</b><span>Opens right to the chart. Log every snap.</span></button>
-      <button type="button" data-pick="defense"><b>Defense charter</b><span>Opens the defense chart for this game.</span></button>
+      <button type="button" data-pick="theird"><b>Their defense</b><span>When we have the ball: tap their shell, box and pressure. Nothing else.</span></button>
+      <button type="button" data-pick="defense"><b>Defense charter</b><span>When they have the ball: opens the defense chart for this game.</span></button>
       <button type="button" data-pick="oc"><b>Offensive coordinator</b><span>Opens on Live with Next Call on top. Watch only.</span></button>
       <button type="button" data-pick="hc"><b>Head coach</b><span>Opens on Live: score, win chance, 4th down, halftime. Watch only.</span></button>
     </div>
@@ -1539,7 +1548,7 @@ textarea { min-height: 64px }
   var DEFAULT_DB = "https://cardinal-booth-default-rtdb.firebaseio.com";
   var SYNC_KEY = "cardinals-booth-sync-v1" + NS, DEVICE = Math.random().toString(36).slice(2, 10);
   var SY = { cfg: null, es: null, status: "off", mirror: null, last: null, pushing: false, dirty: false, needApply: false, timer: null, retry: null, applying: false };
-  var META_KEYS = ["reels", "clipNotes", "gc", "final", "lock", "dir", "wp", "clock", "clocks", "clk", "sheet", "sheetVer", "scout", "gameDate", "opp", "pre", "start", "lists", "dmode", "fast", "oppScore", "ourAdj", "scoreLog", "tryPending", "endAfter", "example", "cur", "preKick"];
+  var META_KEYS = ["reels", "clipNotes", "gc", "final", "lock", "dir", "wp", "clock", "clocks", "clk", "sheet", "sheetVer", "scout", "gameDate", "opp", "pre", "start", "lists", "dmode", "fast", "oppScore", "ourAdj", "scoreLog", "tryPending", "endAfter", "example", "cur", "preKick", "dl"];
   function syncCfg() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || "null") } catch (e) { return null } }
   function setSyncCfg(c) { try { if (c) localStorage.setItem(SYNC_KEY, JSON.stringify(c)); else localStorage.removeItem(SYNC_KEY) } catch (e) {} }
   function newCode() { var a = "abcdefghjkmnpqrstuvwxyz23456789", t = ""; var r = new Uint8Array(18); (window.crypto || window.msCrypto).getRandomValues(r); for (var i = 0; i < 18; i++) t += a[r[i] % a.length]; return "mel-" + t }
@@ -1596,7 +1605,7 @@ textarea { min-height: 64px }
   var LOCK = { on: false, admin: false }, LKU = { users: [], locks: {} };
   // Everything a view-only account must not be able to tap, type in or change. Viewing (tabs, reports, filters, exports) stays open.
   var LOCK_NO = ["#ncBox .nc-card", "#smBar", "#smCatch", "#tagNag", "#sbUs", "#sbThem", "#clkBadge",
-    "#homeSend", "#homeLock", "#hsToggle", ".wzgo", "[data-role=film]", "[data-pick=film]",
+    "#homeSend", "#homeLock", "#hsToggle", ".wzgo", "[data-role=film]", "[data-pick=film]", "[data-role=theird]", "[data-pick=theird]",
     "#v-setup input", "#v-setup select", "#v-setup textarea", "#v-setup button:not(#xlsxBtn):not(#pdfBtn):not(#dlCsv):not(#copyCsv):not(#gpBtn)", "#v-setup label.btn",
     "#dirQ1", "#dirQ3", "#luOpen", "#stadiumClear", "#gpSave", "#gpShare", "#gpRebuild", "#gpBody",
     "#luModal .mbox", "#lookModal .mbox", "#clockModal .mbox", "#scoreModal .mbox", "#editModal .mbox", "#penModal .mbox", "#egModal .mbox", "#plNoteIn"];
@@ -1682,6 +1691,22 @@ textarea { min-height: 64px }
     })();
   }
   function afterPush() { if (SY.dirty) schedulePush(); else if (SY.needApply) applyMirror(); if (!SY.dirty) updateIndex() }
+  // ---------- "Their defense" role: a second device charts only the defense's look ----------
+  // Its looks are saved on their own (S.dl), never inside a play, so it can't overwrite the offense charter and the charter can't overwrite it.
+  // Entries are keyed "n<play number>" until the play exists, then by the play's id. A charting device copies each entry into its play once.
+  var DLK = ["shell", "box", "front", "cov", "blitz"], DL = { edit: null, last: null };
+  function dlE() { return (S.dl && S.dl.e) || {} }
+  function dlMine() { try { return roleGet() === "theird" } catch (e) { return false } }
+  function dlLive() { return !!(S.dl && S.dl.on && S.dl.on === today()) }
+  function dlCanBake() { var r = ""; try { r = roleGet() } catch (e) {} return !LOCK.on && r !== "theird" && r !== "view" && r !== "oc" && r !== "hc" && r !== "film" }
+  function dlMerge(list, e) {
+    var ch = false;
+    list.forEach(function (x) {
+      var d = (x.id && e[x.id]) || e["n" + x.n]; if (!d || x.dlv === d.v) return;
+      DLK.forEach(function (k) { if (d[k] !== undefined) x[k] = d[k] }); x.dlv = d.v; delete x.needD; ch = true;
+    });
+    return ch;
+  }
   function applyMirror() {
     if (SY.pushing || SY.dirty) { SY.needApply = true; return }
     SY.needApply = false;
@@ -1690,8 +1715,10 @@ textarea { min-height: 64px }
     if (!m.meta && !Object.keys(snaps).length) { SY.last = { snaps: {}, meta: "" }; schedulePush(); return } // empty game online: keep this device's setup and upload it
     var list = Object.keys(snaps).map(function (k) { var x = snaps[k]; x.id = k; return x }).filter(function (x) { return x && typeof x === "object" });
     list.sort(function (a, b) { return (a.t || 0) - (b.t || 0) || (a.id < b.id ? -1 : 1) });
-    var rep = { snaps: {}, meta: null };
-    list.forEach(function (x, i) { x.n = i + 1; rep.snaps[x.id] = JSON.stringify(clean(x)) });
+    var rep = { snaps: {}, meta: null }, dlBake = dlCanBake(), dlOnline = (meta.dl && meta.dl.e) || null;
+    list.forEach(function (x, i) { x.n = i + 1 });
+    if (!dlBake && dlOnline) dlMerge(list, dlOnline);   // watching or charting the defense: show the looks, never save plays
+    list.forEach(function (x) { rep.snaps[x.id] = JSON.stringify(clean(x)) });
     var curRep = localRep(); // what this device shows now
     var same = JSON.stringify(Object.keys(curRep.snaps).sort()) === JSON.stringify(Object.keys(rep.snaps).sort()) && Object.keys(rep.snaps).every(function (k) { return curRep.snaps[k] === rep.snaps[k] });
     var metaObj = {}; META_KEYS.forEach(function (k) { if (meta[k] !== undefined) metaObj[k] = meta[k] }); metaObj.roster = meta.roster || rosterText();
@@ -1705,8 +1732,10 @@ textarea { min-height: 64px }
     if (!S.lists) S.lists = JSON.parse(JSON.stringify(DEF_LISTS));
     if (meta.roster) { try { localStorage.setItem(ROSTER_KEY, mergeRoster(meta.roster)) } catch (e) {} }
     SY.last = rep;
+    var dlBaked = dlBake && dlMerge(S.snaps, dlE());   // a charting device writes each new look into its play, once
     try { localStorage.setItem(KEY, JSON.stringify(S)) } catch (e) {}
     renderAll(); SY.applying = false;
+    if (dlBaked) schedulePush();
     try { filmCheck(true) } catch (e) {}
   }
   function setPath(obj, parts, val) {
@@ -2852,17 +2881,20 @@ textarea { min-height: 64px }
   var SM_Q = ["", "Where is the ball?", "What formation?", "What play?", "What is the defense in?", "What happened?"];
   function smSaved() { try { return localStorage.getItem(SM_KEY) === "1" } catch (e) { return false } }
   function smSet(on) { try { localStorage.setItem(SM_KEY, on ? "1" : "0") } catch (e) {} SM.step = 1; SM.n = null; smSync() }
-  function smStep(n) { SM.step = Math.max(1, Math.min(5, n)); if (SM.step <= 4) SM.skipD = false; var vc = $("v-chart"); vc.classList.remove("sm-mot", "sm-rpo"); smSync(); try { window.scrollTo(0, 0) } catch (e) {} }
+  function smStep(n) { if (n === 4 && dlLive()) n = SM.step < 4 ? 5 : 3;   // their defense is charted on another device
+    SM.step = Math.max(1, Math.min(5, n)); if (SM.step <= 4) SM.skipD = false; var vc = $("v-chart"); vc.classList.remove("sm-mot", "sm-rpo"); smSync(); try { window.scrollTo(0, 0) } catch (e) {} }
   function smSync() {
     var vc = $("v-chart"), bar = $("smBar"); if (!vc || !bar) return;
+    var live = dlLive(); document.body.classList.toggle("dl-live", live); dlDraw();
     SM.on = smSaved(); vc.classList.toggle("simple", SM.on); bar.hidden = !SM.on;
     $("imSimple").setAttribute("aria-pressed", SM.on ? "true" : "false");
     if (!SM.on) { vc.removeAttribute("data-step"); vc.classList.remove("sm-catch"); $("smCatch").hidden = true; SM.cat = null; return }
     $("imFull").setAttribute("aria-pressed", "false"); $("imSheet").setAttribute("aria-pressed", "false");
     if (SM.n != null && S.snaps.length > SM.n) { SM.step = 1; vc.classList.remove("sm-mot", "sm-rpo") }   // a snap was logged: start the next one
     SM.n = S.snaps.length;
+    if (live && SM.step === 4) SM.step = 5;
     vc.setAttribute("data-step", SM.step);
-    $("smStepTxt").textContent = "Step " + SM.step + " of 5";
+    $("smStepTxt").textContent = live ? "Step " + (SM.step === 5 ? 4 : SM.step) + " of 4 · defense on another device" : "Step " + SM.step + " of 5";
     $("smQ").textContent = SM_Q[SM.step];
     var sum = "";
     if (SM.step === 1) sum = pendingSnap() ? "Tap the field where the last play ended, or No gain" : "Tap the field if the ball isn't where it shows, then Next";
@@ -2883,7 +2915,7 @@ textarea { min-height: 64px }
     var miss = smMissing(), mb = $("smMiss");
     mb.hidden = !(miss.length && SM.step === 1); mb.textContent = "Defense missing on " + miss.length + " play" + (miss.length === 1 ? "" : "s") + " · fill in";
     if (SM.cat && !miss.length) SM.cat = null;
-    if (!SM.cat && !S.tryPending && SM.asked !== S.cur.series) {
+    if (!SM.cat && !S.tryPending && SM.asked !== S.cur.series && !live) {
       if (miss.some(function (x) { return x.series < S.cur.series })) { SM.asked = S.cur.series; SM.cat = { n: miss[0].n, v: {} } }
       else if (!miss.length) SM.asked = S.cur.series;
     }
@@ -2920,6 +2952,68 @@ textarea { min-height: 64px }
         c.addEventListener("click", function () { smLookSet(l); smStep(5) }); row.appendChild(c);
       });
     }
+  }
+  function dlLookOf(key, sn) {
+    var d = dlE()[key] || (sn && sn.id && dlE()[sn.id]); if (d) return d;
+    if (sn && !sn.needD && (sn.shell || sn.box || sn.front || sn.cov)) return { shell: sn.shell, box: sn.box, front: sn.front, cov: sn.cov, blitz: sn.blitz || "No" };
+    return null;
+  }
+  function dlPut(key, look) {
+    var d = {}; DLK.forEach(function (k) { if (look[k] != null) d[k] = look[k] }); if (!d.blitz) d.blitz = "No"; d.v = Date.now();
+    if (!S.dl) S.dl = {}; if (!S.dl.e) S.dl.e = {}; S.dl.e[key] = d; S.dl.on = today(); DL.last = d;
+    save(); renderChips();
+  }
+  function dlDraw() {
+    var el = $("dlPanel"); if (!el) return; var mine = dlMine(); el.hidden = !mine; if (!mine) return;
+    var e = dlE(), dirty = false;
+    // a look sent before the snap moves onto its play once that play has been logged
+    Object.keys(e).forEach(function (k) { var m = /^n(\d+)$/.exec(k); if (!m) return; var sn = S.snaps[+m[1] - 1]; if (sn && sn.id) { if (!e[sn.id]) e[sn.id] = e[k]; delete e[k]; dirty = true } else if (+m[1] > S.snaps.length + 1) { delete e[k]; dirty = true } });
+    if (!S.dl || S.dl.on !== today()) { if (!S.dl) S.dl = {}; if (!S.dl.e) S.dl.e = {}; S.dl.on = today(); dirty = true }
+    if (dirty) save();
+    var esn = DL.edit ? S.snaps.filter(function (x) { return x.id === DL.edit })[0] : null; if (!esn) DL.edit = null;
+    var key = esn ? esn.id : "n" + (S.snaps.length + 1), cur = dlLookOf(key, esn) || {};
+    var set = function (look) { dlPut(key, look); if (esn) { DL.edit = null; renderChips() } };
+    var mk = function (tag, cls, txt) { var x = document.createElement(tag); if (cls) x.className = cls; if (txt != null) x.textContent = txt; return x };
+    el.innerHTML = "";
+    var head = mk("div", "dlhead"); el.appendChild(head);
+    head.appendChild(mk("div", "smstep", esn ? "Fixing play " + esn.n : "Their defense · next play"));
+    head.appendChild(mk("div", "smq", esn ? ddLabel(esn) + " · " + callText(esn) : (S.cur.dn ? ddText(S.cur) : "Start of series")));
+    var has = cur.shell || cur.box || cur.front || cur.cov;
+    head.appendChild(mk("div", "dlnow" + (has ? " ok" : ""), has ? "✓ " + smLookTxt(cur) + (cur.blitz && cur.blitz !== "No" ? "" : " · no pressure") : (esn ? "No look on this play yet" : "Tap the look. It attaches to the play when the charter logs it.")));
+    if (esn) { var bk = mk("button", "btn", "◀ Back to the next play"); bk.type = "button"; bk.addEventListener("click", function () { DL.edit = null; renderChips() }); head.appendChild(bk) }
+    var L = smLooks(), lastLook = DL.last || L.last;
+    if (lastLook) {
+      var sb = mk("button", "same"); sb.type = "button"; sb.id = "dlSame"; sb.innerHTML = "Same as last play<small></small>"; sb.lastChild.textContent = smLookTxt(lastLook) || "";
+      sb.addEventListener("click", function () { set(lastLook) }); el.appendChild(sb);
+    }
+    if (L.top.length > 1) {
+      var lr = mk("div", "chips lk"); el.appendChild(lr);
+      L.top.forEach(function (l) { var c = mk("button", "chip", smLookTxt(l)); c.type = "button"; c.appendChild(mk("small", "", "×" + l.n)); c.addEventListener("click", function () { set(l) }); lr.appendChild(c) });
+    }
+    var secs = S.dmode === "full"
+      ? [["Their front", "front", list("front")], ["Coverage", "cov", list("cov"), function (v) { return /^\d$/.test(v) ? "Cov " + v : v }], ["Pressure", "blitz", ["No"].concat(list("blitz"))]]
+      : [["Shell", "shell", ["1-HIGH", "2-HIGH", "ZERO"]], ["Box", "box", ["5", "6", "7", "8"], function (v) { return v + " in box" }], ["Pressure", "blitz", ["No", "Yes"]]];
+    secs.forEach(function (sc) {
+      el.appendChild(mk("h3", "", sc[0])); var row = mk("div", "chips"); row.dataset.dk = sc[1]; el.appendChild(row);
+      sc[2].forEach(function (v) {
+        var b = mk("button", "chip", sc[3] ? sc[3](v) : v); b.type = "button"; b.dataset.v = v;
+        b.setAttribute("aria-pressed", (cur[sc[1]] || (sc[1] === "blitz" && has ? "No" : null)) === v ? "true" : "false");
+        b.addEventListener("click", function () { var n = {}; DLK.forEach(function (k) { if (cur[k] != null) n[k] = cur[k] }); n[sc[1]] = v; dlPut(key, n) });
+        row.appendChild(b);
+      });
+    });
+    var rec = S.snaps.slice(-8).reverse(), miss = S.snaps.filter(function (x) { return !dlLookOf(x.id, x) }).length;
+    el.appendChild(mk("h3", "", "Plays so far" + (miss ? " · " + miss + " with no look" : "")));
+    var lst = mk("div", "dllist"); el.appendChild(lst);
+    if (!rec.length) lst.appendChild(mk("div", "note", "Nothing logged yet. Plays show up here as the offense charter logs them."));
+    rec.forEach(function (x) {
+      var lk = dlLookOf(x.id, x), b = mk("button", "dlrow" + (lk ? "" : " miss") + (x.id === DL.edit ? " on" : "")); b.type = "button"; b.dataset.n = x.n;
+      b.appendChild(mk("b", "", "#" + x.n)); b.appendChild(mk("span", "", ddLabel(x) + " · " + callText(x) + " · " + (x.res || "") + (x.td ? " TD" : x.gain == null ? "" : (x.gain > 0 ? " +" : " ") + x.gain)));
+      b.appendChild(mk("em", "", lk ? smLookTxt(lk) || "—" : "no look · tap to add"));
+      b.addEventListener("click", function () { DL.edit = x.id === DL.edit ? null : x.id; renderChips(); try { window.scrollTo(0, 0) } catch (e2) {} });
+      lst.appendChild(b);
+    });
+    var ch = mk("button", "btn", "Change role"); ch.type = "button"; ch.style.marginTop = "14px"; ch.addEventListener("click", function () { roleOpen() }); el.appendChild(ch);
   }
   function smMissing() { return S.snaps.filter(function (x) { return x.needD }) }
   function smDefNow() {
@@ -3321,7 +3415,9 @@ textarea { min-height: 64px }
     snap.carrier = role === "carrier" ? pick.pl : (snap.res === "Scramble" || snap.res === "Sack" ? snap.qb : (snap.res === "Complete" ? pick.pl : null));
     snap.target = role === "target" ? pick.pl : null;
     // Simple mode: a play logged with the defense skipped (or never set) is held for the catch-up prompt
-    if (SM.on && (SM.skipD || !(pick.shell || pick.box || pick.front || pick.cov))) { snap.needD = true; snap.shell = snap.box = snap.front = snap.cov = null; snap.blitz = "No" }
+    var dle = dlE()["n" + snap.n];
+    if (dle) { snap.shell = snap.box = snap.front = snap.cov = null; snap.blitz = "No"; DLK.forEach(function (k) { if (dle[k] !== undefined) snap[k] = dle[k] }); snap.dlv = dle.v }   // the defense charter already sent this play's look
+    else if (dlLive() || (SM.on && (SM.skipD || !(pick.shell || pick.box || pick.front || pick.cov)))) { snap.needD = true; snap.shell = snap.box = snap.front = snap.cov = null; snap.blitz = "No" }
     SM.skipD = false;
     qTag(snap);
     S.snaps.push(snap);
@@ -6049,11 +6145,11 @@ textarea { min-height: 64px }
   $("homeOff").addEventListener("click", function () { document.getElementById("t-chart").click() });
   // ---------- roles: each device picks its job for the night ----------
   // the job is asked again each game night: it is saved with today's date and forgotten the next day
-  var ROLE_KEY = "solutions-role" + NS, ROLES = { chart: ["Offense charter", "Chart"], film: ["Filming", "Film"], view: ["View only", "Live"], oc: ["OC", "Live"], hc: ["Head coach", "Live"], all: ["All tools", "Chart"] };
+  var ROLE_KEY = "solutions-role" + NS, ROLES = { chart: ["Offense charter", "Chart"], film: ["Filming", "Film"], theird: ["Their defense", "Their D"], view: ["View only", "Live"], oc: ["OC", "Live"], hc: ["Head coach", "Live"], all: ["All tools", "Chart"] };
   function roleRaw() { try { var v = JSON.parse(localStorage.getItem(ROLE_KEY) || "null"); return v && v.d === wkToday() ? v.r : "" } catch (e) { return "" } }
   function roleGet() { var r = roleRaw(); return r === "all" ? "" : r }
   function roleApply() {
-    var r = roleGet(), raw = roleRaw(); ["chart", "film", "oc", "hc"].forEach(function (k) { document.body.classList.toggle("role-" + k, r === k) });
+    var r = roleGet(), raw = roleRaw(); ["chart", "film", "oc", "hc", "theird"].forEach(function (k) { document.body.classList.toggle("role-" + k, r === k) });
     document.body.classList.toggle("role-view", r === "view" || r === "oc" || r === "hc");
     $("roleChip").textContent = (ROLES[raw] ? ROLES[raw][0] : "Pick your job") + " ▾";
     $("roleChip").textContent = (ROLES[r] ? ROLES[r][0] : "Pick a role") + " ▾";
@@ -6061,11 +6157,15 @@ textarea { min-height: 64px }
     document.querySelectorAll("#roleModal [data-pick]").forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.pick === r) });
   }
   function roleSet(r) {
+    var was = roleGet();
     try { localStorage.setItem(ROLE_KEY, JSON.stringify({ r: r, d: wkToday() })) } catch (e) {}
+    // tell the offense charters whether a device is on their defense, so they stop being asked for it
+    if (r === "theird" && !LOCK.on) { if (!S.dl) S.dl = {}; if (!S.dl.e) S.dl.e = {}; S.dl.on = today(); save() }
+    else if (was === "theird" && S.dl && S.dl.on) { S.dl.on = ""; save() }
     if (r === "defense") { location.href = "defense.html"; return }
     roleApply(); $("roleModal").hidden = true; if (r === "all") return; $("t-chart").click();
     if (r === "chart") setTimeout(function () { var e = $("fullInPanel"); if (e && e.scrollIntoView) e.scrollIntoView({ block: "start" }) }, 60); else window.scrollTo(0, 0);
-    toast(r === "oc" || r === "hc" || r === "view" ? "Watching live: this device can't change plays" : r === "film" ? "Filming: tap Film this game to start" : r === "all" ? "All tools" : "Offense charter");
+    renderChips(); toast(r === "theird" ? "Their defense: tap the look for each play" : r === "oc" || r === "hc" || r === "view" ? "Watching live: this device can't change plays" : r === "film" ? "Filming: tap Film this game to start" : r === "all" ? "All tools" : "Offense charter");
   }
   function roleOpen() { roleApply(); $("roleModal").hidden = false }
   // on a game day, a device that hasn't picked tonight's job gets asked once when the app opens

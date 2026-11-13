@@ -245,6 +245,7 @@ main { padding-block: 14px 40px }
 body.dl-live:not(.role-theird) #v-chart:not(.simple) .grid2 > .panel:not(#fullInPanel) { display: none }
 .dlpanel { border: 2px solid var(--chip-on) } .dlpanel .dlhead { margin-bottom: 12px } .dlpanel .smq { font-size: 26px; font-weight: 800 } .dlpanel .dlnow { font-size: 17px; font-weight: 700; margin: 6px 0 10px; opacity: .7 } .dlpanel .dlnow.ok { opacity: 1; color: #1a7f37 }
 .dlpanel .same { display: block; width: 100%; font: inherit; font-weight: 800; font-size: 20px; padding: 16px; border-radius: 12px; border: 0; background: var(--chip-on); color: var(--chip-on-ink); cursor: pointer; margin-bottom: 10px } .dlpanel .same small { display: block; font-weight: 600; font-size: 14px; opacity: .85; margin-top: 3px }
+.dlpanel.fixing { border-color: #d9822b; box-shadow: 0 0 0 3px rgba(217,130,43,.25) } .dlpanel .dlcall { display: flex; gap: 10px; align-items: baseline; font-size: 19px; margin-top: 4px } .dlpanel .dlcall span { font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; opacity: .6; min-width: 78px } .dlpanel .dlcall.prev { font-size: 16px; opacity: .8 } .dlpanel .dlcall b.wait { font-weight: 600; opacity: .55 }
 .dlpanel .dlmode { display: flex; gap: 8px; align-items: center; margin-bottom: 12px } .dlpanel .dlmode span { font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; opacity: .6 } .dlpanel .dlmode .chip { font-size: 15px; padding: 8px 14px }
 .dlpanel .chip { font-size: 19px; padding: 14px 18px } .dlpanel .lk .chip { font-size: 17px; padding: 13px 14px } .dlpanel .lk .chip small { opacity: .6; font-weight: 600; margin-left: 6px } .dlpanel h3 { margin-top: 14px }
 .dllist { display: flex; flex-direction: column; gap: 6px } .dlrow { display: flex; gap: 10px; align-items: center; text-align: left; font: inherit; font-size: 15px; padding: 11px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer } .dlrow span { flex: 1; min-width: 0 } .dlrow em { font-style: normal; font-weight: 700; white-space: nowrap } .dlrow.miss { border-color: #d9822b } .dlrow.miss em { color: #d9822b } .dlrow.on { outline: 3px solid var(--chip-on) }
@@ -1549,7 +1550,7 @@ textarea { min-height: 64px }
   var DEFAULT_DB = "https://cardinal-booth-default-rtdb.firebaseio.com";
   var SYNC_KEY = "cardinals-booth-sync-v1" + NS, DEVICE = Math.random().toString(36).slice(2, 10);
   var SY = { cfg: null, es: null, status: "off", mirror: null, last: null, pushing: false, dirty: false, needApply: false, timer: null, retry: null, applying: false };
-  var META_KEYS = ["reels", "clipNotes", "gc", "final", "lock", "dir", "wp", "clock", "clocks", "clk", "sheet", "sheetVer", "scout", "gameDate", "opp", "pre", "start", "lists", "dmode", "fast", "oppScore", "ourAdj", "scoreLog", "tryPending", "endAfter", "example", "cur", "preKick", "dl"];
+  var META_KEYS = ["reels", "clipNotes", "gc", "final", "lock", "dir", "wp", "clock", "clocks", "clk", "sheet", "sheetVer", "scout", "gameDate", "opp", "pre", "start", "lists", "dmode", "fast", "oppScore", "ourAdj", "scoreLog", "tryPending", "endAfter", "example", "cur", "preKick", "dl", "np"];
   function syncCfg() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || "null") } catch (e) { return null } }
   function setSyncCfg(c) { try { if (c) localStorage.setItem(SYNC_KEY, JSON.stringify(c)); else localStorage.removeItem(SYNC_KEY) } catch (e) {} }
   function newCode() { var a = "abcdefghjkmnpqrstuvwxyz23456789", t = ""; var r = new Uint8Array(18); (window.crypto || window.msCrypto).getRandomValues(r); for (var i = 0; i < 18; i++) t += a[r[i] % a.length]; return "mel-" + t }
@@ -1695,7 +1696,7 @@ textarea { min-height: 64px }
   // ---------- "Their defense" role: a second device charts only the defense's look ----------
   // Its looks are saved on their own (S.dl), never inside a play, so it can't overwrite the offense charter and the charter can't overwrite it.
   // Entries are keyed "n<play number>" until the play exists, then by the play's id. A charting device copies each entry into its play once.
-  var DLK = ["shell", "box", "front", "cov", "blitz"], DL = { edit: null, last: null };
+  var DLK = ["shell", "box", "front", "cov", "blitz"], DL = { edit: null, last: null, mine: {}, gone: {} };
   function dlE() { return (S.dl && S.dl.e) || {} }
   function dlMine() { try { return roleGet() === "theird" } catch (e) { return false } }
   function dlLive() { return !!(S.dl && S.dl.on && S.dl.on === today()) }
@@ -1733,10 +1734,18 @@ textarea { min-height: 64px }
     if (!S.lists) S.lists = JSON.parse(JSON.stringify(DEF_LISTS));
     if (meta.roster) { try { localStorage.setItem(ROSTER_KEY, mergeRoster(meta.roster)) } catch (e) {} }
     SY.last = rep;
+    // the defense device: looks it sent a moment ago may not be in this copy of the online game yet. Keep them, and send again if they are missing.
+    var dlRedo = false;
+    if (dlMine()) {
+      if (!S.dl) S.dl = {}; if (!S.dl.e) S.dl.e = {};
+      Object.keys(DL.mine).forEach(function (k) { var o = S.dl.e[k]; if (!o || (o.v || 0) < DL.mine[k].v) { S.dl.e[k] = DL.mine[k]; dlRedo = true } else if (o.v > DL.mine[k].v) delete DL.mine[k] });
+      Object.keys(DL.gone).forEach(function (k) { if (S.dl.e[k]) { delete S.dl.e[k]; dlRedo = true } });
+      if (dlRedo) dlMerge(S.snaps, S.dl.e);
+    }
     var dlBaked = dlBake && dlMerge(S.snaps, dlE());   // a charting device writes each new look into its play, once
     try { localStorage.setItem(KEY, JSON.stringify(S)) } catch (e) {}
     renderAll(); SY.applying = false;
-    if (dlBaked) schedulePush();
+    if (dlBaked || dlRedo) schedulePush();
     try { filmCheck(true) } catch (e) {}
   }
   function setPath(obj, parts, val) {
@@ -2886,7 +2895,15 @@ textarea { min-height: 64px }
     SM.step = Math.max(1, Math.min(5, n)); if (SM.step <= 4) SM.skipD = false; var vc = $("v-chart"); vc.classList.remove("sm-mot", "sm-rpo"); smSync(); try { window.scrollTo(0, 0) } catch (e) {} }
   function smSync() {
     var vc = $("v-chart"), bar = $("smBar"); if (!vc || !bar) return;
-    var live = dlLive(); document.body.classList.toggle("dl-live", live); dlDraw();
+    var live = dlLive(); document.body.classList.toggle("dl-live", live);
+    // while a device is on their defense, a charting device shares the call it has picked for the coming play so the defense screen can show it
+    if (live && !SY.applying && dlCanBake()) {
+      var np = pick.call ? { n: S.snaps.length + 1 } : null;   // only once a play is picked: the formation alone carries over from the last snap
+      if (np) ["form", "motion", "call"].forEach(function (k) { if (pick[k]) np[k] = pick[k] });
+      if (np && JSON.stringify(np) !== JSON.stringify(S.np || null)) { S.np = np; DL.npMine = true; save() }
+      else if (!np && DL.npMine && S.np) { delete S.np; DL.npMine = false; save() }
+    }
+    dlDraw();
     SM.on = smSaved(); vc.classList.toggle("simple", SM.on); bar.hidden = !SM.on;
     $("imSimple").setAttribute("aria-pressed", SM.on ? "true" : "false");
     if (!SM.on) { vc.removeAttribute("data-step"); vc.classList.remove("sm-catch"); $("smCatch").hidden = true; SM.cat = null; return }
@@ -2961,27 +2978,36 @@ textarea { min-height: 64px }
   }
   function dlPut(key, look) {
     var d = {}; DLK.forEach(function (k) { if (look[k] != null) d[k] = look[k] }); if (!d.blitz) d.blitz = "No"; d.v = Date.now();
-    if (!S.dl) S.dl = {}; if (!S.dl.e) S.dl.e = {}; S.dl.e[key] = d; S.dl.on = today(); DL.last = d;
+    if (!S.dl) S.dl = {}; if (!S.dl.e) S.dl.e = {}; S.dl.e[key] = d; S.dl.on = today(); DL.last = d; DL.mine[key] = d; delete DL.gone[key];
     save(); renderChips();
   }
   function dlDraw() {
     var el = $("dlPanel"); if (!el) return; var mine = dlMine(); el.hidden = !mine; if (!mine) return;
     var e = dlE(), dirty = false;
     // a look sent before the snap moves onto its play once that play has been logged
-    Object.keys(e).forEach(function (k) { var m = /^n(\d+)$/.exec(k); if (!m) return; var sn = S.snaps[+m[1] - 1]; if (sn && sn.id) { if (!e[sn.id]) e[sn.id] = e[k]; delete e[k]; dirty = true } else if (+m[1] > S.snaps.length + 1) { delete e[k]; dirty = true } });
+    Object.keys(e).forEach(function (k) { var m = /^n(\d+)$/.exec(k); if (!m) return; var sn = S.snaps[+m[1] - 1]; if (sn && sn.id) { if (!e[sn.id]) { e[sn.id] = e[k]; DL.mine[sn.id] = e[k] } delete e[k]; delete DL.mine[k]; DL.gone[k] = true; dirty = true } else if (+m[1] > S.snaps.length + 1) { delete e[k]; delete DL.mine[k]; DL.gone[k] = true; dirty = true } });
     if (!S.dl || S.dl.on !== today()) { if (!S.dl) S.dl = {}; if (!S.dl.e) S.dl.e = {}; S.dl.on = today(); dirty = true }
     if (dirty) save();
+    if (DL.edit && DL.editN !== S.snaps.length) DL.edit = null;   // a new play was logged: back to the next play so a tap can't land on the old one
     var esn = DL.edit ? S.snaps.filter(function (x) { return x.id === DL.edit })[0] : null; if (!esn) DL.edit = null;
+    clearTimeout(DL.idle); if (esn) DL.idle = setTimeout(function () { if (DL.edit) { DL.edit = null; renderChips() } }, 12000);   // and after 12 seconds with no taps
+    el.classList.toggle("fixing", !!esn);
     var key = esn ? esn.id : "n" + (S.snaps.length + 1), cur = dlLookOf(key, esn) || {};
     var set = function (look) { dlPut(key, look); if (esn) { DL.edit = null; renderChips() } };
+    var lastSn = S.snaps[S.snaps.length - 1], npc = !esn && S.np && S.np.n === S.snaps.length + 1 ? S.np : null;
     var mk = function (tag, cls, txt) { var x = document.createElement(tag); if (cls) x.className = cls; if (txt != null) x.textContent = txt; return x };
     el.innerHTML = "";
     var head = mk("div", "dlhead"); el.appendChild(head);
     head.appendChild(mk("div", "smstep", esn ? "Fixing play " + esn.n : "Their defense · next play"));
     head.appendChild(mk("div", "smq", esn ? ddLabel(esn) + " · " + callText(esn) : (S.cur.dn ? ddText(S.cur) : "Start of series")));
+    if (!esn) {
+      var cl = mk("div", "dlcall"); cl.id = "dlCall"; cl.appendChild(mk("span", "", "This play")); cl.appendChild(mk("b", npc ? "" : "wait", npc ? callText(npc) : "waiting on the call")); head.appendChild(cl);
+      if (lastSn) { var pl = mk("div", "dlcall prev"); pl.id = "dlPrev"; pl.appendChild(mk("span", "", "Last play")); pl.appendChild(mk("b", "", callText(lastSn) + " · " + (lastSn.res || "") + (lastSn.td ? " TD" : lastSn.gain == null ? "" : (lastSn.gain > 0 ? " +" : " ") + lastSn.gain))); head.appendChild(pl) }
+    }
     var has = cur.shell || cur.box || cur.front || cur.cov;
     head.appendChild(mk("div", "dlnow" + (has ? " ok" : ""), has ? "✓ " + smLookTxt(cur) + (cur.blitz && cur.blitz !== "No" ? "" : " · no pressure") : (esn ? "No look on this play yet" : "Tap the look. It attaches to the play when the charter logs it.")));
-    if (esn) { var bk = mk("button", "btn", "◀ Back to the next play"); bk.type = "button"; bk.addEventListener("click", function () { DL.edit = null; renderChips() }); head.appendChild(bk) }
+    if (esn) { var bk = mk("button", "btn primary", "Done · back to the next play"); bk.type = "button"; bk.id = "dlDone"; bk.addEventListener("click", function () { DL.edit = null; renderChips() }); head.appendChild(bk) }
+    else if (dlE()[key]) { var cb = mk("button", "btn", "Clear this look"); cb.type = "button"; cb.id = "dlClear"; cb.addEventListener("click", function () { delete S.dl.e[key]; delete DL.mine[key]; DL.gone[key] = true; DL.last = null; save(); renderChips() }); head.appendChild(cb) }
     // fast (shell / box / pressure) or full (front / coverage / named blitz): one setting for the whole game
     var mode = mk("div", "dlmode"); mode.appendChild(mk("span", "", "Detail")); el.appendChild(mode);
     [["fast", "Fast"], ["full", "Full"]].forEach(function (m) {
@@ -3019,7 +3045,7 @@ textarea { min-height: 64px }
       var lk = dlLookOf(x.id, x), b = mk("button", "dlrow" + (lk ? "" : " miss") + (x.id === DL.edit ? " on" : "")); b.type = "button"; b.dataset.n = x.n;
       b.appendChild(mk("b", "", "#" + x.n)); b.appendChild(mk("span", "", ddLabel(x) + " · " + callText(x) + " · " + (x.res || "") + (x.td ? " TD" : x.gain == null ? "" : (x.gain > 0 ? " +" : " ") + x.gain)));
       b.appendChild(mk("em", "", lk ? smLookTxt(lk) || "—" : "no look · tap to add"));
-      b.addEventListener("click", function () { DL.edit = x.id === DL.edit ? null : x.id; renderChips(); try { window.scrollTo(0, 0) } catch (e2) {} });
+      b.addEventListener("click", function () { DL.edit = x.id === DL.edit ? null : x.id; DL.editN = S.snaps.length; renderChips(); try { window.scrollTo(0, 0) } catch (e2) {} });
       lst.appendChild(b);
     });
     var ch = mk("button", "btn", "Change role"); ch.type = "button"; ch.style.marginTop = "14px"; ch.addEventListener("click", function () { roleOpen() }); el.appendChild(ch);

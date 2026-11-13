@@ -6169,7 +6169,12 @@ textarea { min-height: 64px }
     var was = roleGet();
     try { localStorage.setItem(ROLE_KEY, JSON.stringify({ r: r, d: wkToday() })) } catch (e) {}
     // tell the offense charters whether a device is on their defense, so they stop being asked for it
-    if (r === "theird" && !LOCK.on) { if (!S.dl) S.dl = {}; if (!S.dl.e) S.dl.e = {}; S.dl.on = today(); save() }
+    if (r === "theird" && !LOCK.on) {
+      if (!S.dl) S.dl = {}; if (!S.dl.e) S.dl.e = {}; S.dl.on = today();
+      // this role starts in Full detail (front, coverage, blitz) unless looks were already charted the fast way in this game
+      if (S.dmode !== "full" && !Object.keys(S.dl.e).length && !S.snaps.some(function (x) { return x.shell || x.box })) S.dmode = "full";
+      save(); renderAll();
+    }
     else if (was === "theird" && S.dl && S.dl.on) { S.dl.on = ""; save() }
     if (r === "defense") { location.href = "defense.html"; return }
     roleApply(); $("roleModal").hidden = true; if (r === "all") return; $("t-chart").click();

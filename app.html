@@ -245,6 +245,7 @@ main { padding-block: 14px 40px }
 body.dl-live:not(.role-theird) #v-chart:not(.simple) .grid2 > .panel:not(#fullInPanel) { display: none }
 .dlpanel { border: 2px solid var(--chip-on) } .dlpanel .dlhead { margin-bottom: 12px } .dlpanel .smq { font-size: 26px; font-weight: 800 } .dlpanel .dlnow { font-size: 17px; font-weight: 700; margin: 6px 0 10px; opacity: .7 } .dlpanel .dlnow.ok { opacity: 1; color: #1a7f37 }
 .dlpanel .same { display: block; width: 100%; font: inherit; font-weight: 800; font-size: 20px; padding: 16px; border-radius: 12px; border: 0; background: var(--chip-on); color: var(--chip-on-ink); cursor: pointer; margin-bottom: 10px } .dlpanel .same small { display: block; font-weight: 600; font-size: 14px; opacity: .85; margin-top: 3px }
+.dlpanel .dlmode { display: flex; gap: 8px; align-items: center; margin-bottom: 12px } .dlpanel .dlmode span { font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; opacity: .6 } .dlpanel .dlmode .chip { font-size: 15px; padding: 8px 14px }
 .dlpanel .chip { font-size: 19px; padding: 14px 18px } .dlpanel .lk .chip { font-size: 17px; padding: 13px 14px } .dlpanel .lk .chip small { opacity: .6; font-weight: 600; margin-left: 6px } .dlpanel h3 { margin-top: 14px }
 .dllist { display: flex; flex-direction: column; gap: 6px } .dlrow { display: flex; gap: 10px; align-items: center; text-align: left; font: inherit; font-size: 15px; padding: 11px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer } .dlrow span { flex: 1; min-width: 0 } .dlrow em { font-style: normal; font-weight: 700; white-space: nowrap } .dlrow.miss { border-color: #d9822b } .dlrow.miss em { color: #d9822b } .dlrow.on { outline: 3px solid var(--chip-on) }
 .smlooks { margin-bottom: 14px } .smlooks[hidden], #v-chart:not(.simple) .smlooks { display: none } .smlooks .same { display: block; width: 100%; font: inherit; font-weight: 800; font-size: 20px; padding: 16px; border-radius: 12px; border: 0; background: var(--chip-on); color: var(--chip-on-ink); cursor: pointer; margin-bottom: 10px } .smlooks .same small { display: block; font-weight: 600; font-size: 14px; opacity: .85; margin-top: 3px }
@@ -2981,7 +2982,15 @@ textarea { min-height: 64px }
     var has = cur.shell || cur.box || cur.front || cur.cov;
     head.appendChild(mk("div", "dlnow" + (has ? " ok" : ""), has ? "✓ " + smLookTxt(cur) + (cur.blitz && cur.blitz !== "No" ? "" : " · no pressure") : (esn ? "No look on this play yet" : "Tap the look. It attaches to the play when the charter logs it.")));
     if (esn) { var bk = mk("button", "btn", "◀ Back to the next play"); bk.type = "button"; bk.addEventListener("click", function () { DL.edit = null; renderChips() }); head.appendChild(bk) }
+    // fast (shell / box / pressure) or full (front / coverage / named blitz): one setting for the whole game
+    var mode = mk("div", "dlmode"); mode.appendChild(mk("span", "", "Detail")); el.appendChild(mode);
+    [["fast", "Fast"], ["full", "Full"]].forEach(function (m) {
+      var b = mk("button", "chip", m[1]); b.type = "button"; b.dataset.dm = m[0]; b.setAttribute("aria-pressed", (S.dmode === "full" ? "full" : "fast") === m[0] ? "true" : "false");
+      b.addEventListener("click", function () { if ((S.dmode === "full" ? "full" : "fast") === m[0]) return; S.dmode = m[0]; DL.last = null; save(); renderAll(); toast(m[0] === "full" ? "Full: front, coverage and blitz, on every device" : "Fast: shell, box and pressure, on every device") });
+      mode.appendChild(b);
+    });
     var L = smLooks(), lastLook = DL.last || L.last;
+    if (lastLook && !smLookTxt(lastLook)) lastLook = null;
     if (lastLook) {
       var sb = mk("button", "same"); sb.type = "button"; sb.id = "dlSame"; sb.innerHTML = "Same as last play<small></small>"; sb.lastChild.textContent = smLookTxt(lastLook) || "";
       sb.addEventListener("click", function () { set(lastLook) }); el.appendChild(sb);

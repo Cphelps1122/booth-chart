@@ -2730,7 +2730,7 @@ textarea { min-height: 64px }
   var GS_Z = 1;
   try { GS_Z = +localStorage.getItem("solutions-gsz" + (typeof NS === "string" ? NS : "")) || 1 } catch (e) {}
   // view settings (Settings → Call sheet view): open = "w" fit width | "all" fit whole sheet | "keep" last zoom
-  var GS_V = { open: "w", min: 0, full: false, go: true, back: true }, GS_VKEY = "solutions-gsview" + (typeof NS === "string" ? NS : "");
+  var GS_V = { open: "all", min: 0, full: false, go: true, back: true }, GS_VKEY = "solutions-gsview" + (typeof NS === "string" ? NS : "");
   try { var gsv0 = JSON.parse(localStorage.getItem(GS_VKEY) || "null"); if (gsv0) Object.keys(GS_V).forEach(function (k) { if (gsv0[k] != null) GS_V[k] = gsv0[k] }) } catch (e) {}
   var GS_FIT = GS_V.open === "keep" ? null : GS_V.open, GS_F = 1, GS_FULL = false, GS_WAS = false, GS_TEMP = null;
   function gsvSave() { try { localStorage.setItem(GS_VKEY, JSON.stringify(GS_V)) } catch (e) {} }
@@ -2995,7 +2995,7 @@ textarea { min-height: 64px }
     smWire();
     var z = function (d) { if (GS_FIT) { GS_Z = Math.round(GS_F * 10) / 10; GS_FIT = null } GS_Z = Math.max(.3, Math.min(2, Math.round((GS_Z + d) * 10) / 10)); try { localStorage.setItem("solutions-gsz" + (typeof NS === "string" ? NS : ""), GS_Z) } catch (e) {} renderGrid() };
     $("gsZo").addEventListener("click", function () { z(-.1) }); $("gsZi").addEventListener("click", function () { z(.1) });
-    $("gsFit").addEventListener("click", function () { GS_FIT = GS_FIT === "w" ? "all" : GS_FIT === "all" ? "w" : (GS_V.open === "all" ? "all" : "w"); renderGrid() });
+    $("gsFit").addEventListener("click", function () { GS_FIT = GS_FIT === "w" ? "all" : GS_FIT === "all" ? "w" : (GS_V.open === "w" ? "w" : "all"); renderGrid() });
     $("gsFullB").addEventListener("click", function () { gsFull(!GS_FULL) });
     var toRes = function () { GS_FULL = false; GS_TEMP = S.snaps.length; renderGrid(); setTimeout(function () { try { $("cRes").scrollIntoView({ block: "center" }) } catch (e) {} }, 40) };
     $("gsGo").addEventListener("click", toRes);

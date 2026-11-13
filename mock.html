@@ -19,6 +19,9 @@ h2 { margin: 0 0 8px; font: 800 18px/1.1 var(--f-display); letter-spacing: .06em
 .result { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); font: 800 clamp(16px, 3.6vw, 26px)/1 var(--f-display); text-transform: uppercase; background: rgba(11,16,22,.88); padding: 6px 12px; border-radius: 6px; white-space: nowrap; pointer-events: none } .result.good { color: var(--good) } .result.bad { color: var(--bad) } .result.td { color: var(--gold) }
 .btn { font: 700 14px var(--f-display); letter-spacing: .08em; text-transform: uppercase; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel2); color: var(--ink); cursor: pointer; min-height: 40px } .btn.pri { background: var(--us); border-color: var(--us) } .btn.gold { background: var(--gold); border-color: var(--gold); color: #1a1406 } .btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px }
 .gswrap { overflow: auto; border: 1px solid #222; max-height: 62vh; -webkit-overflow-scrolling: touch }
+/* fit: same rules as the live chart's call sheet (Settings, Call sheet view) */
+.gsgrid.fitw { width: 100%; min-width: 0 } .gsgrid.fitw .gc button, .gsgrid.fitw .gh, .gsgrid.fitw .gx { white-space: normal; overflow-wrap: break-word; min-width: 0 } .gsgrid.fitw > div { min-height: 1.9em } .gsgrid.fitw .gc button { padding: .3em .35em } .gsgrid.gsmeas .gc button, .gsgrid.gsmeas .gh, .gsgrid.gsmeas .gx { overflow-wrap: normal }
+.fitbtn { font: inherit; font-size: 13px; font-weight: 700; float: right; padding: 4px 10px; border-radius: 6px; border: 1px solid #556; background: none; color: inherit; cursor: pointer; text-transform: none; letter-spacing: 0 } .fitbtn[aria-pressed=true] { background: #ffd400; color: #000; border-color: #ffd400 }
 .gsgrid { display: grid; background: #fff; color: #000; font: 700 12px Arial, Helvetica, sans-serif; width: max-content; min-width: 100% }
 .gsgrid > div { background: #fff; min-height: 24px; box-shadow: 0 0 0 .5px #9aa3ad; display: flex; align-items: center; padding: 1px 3px; overflow: hidden } .gsgrid .gh { justify-content: center; text-align: center; font-weight: 900 } .gsgrid .sit-on { outline: 3px solid #ffd400; outline-offset: -3px } .gsgrid .gc.sit-on { background: #fff9d6 } .gsgrid .gc { gap: 2px; flex-wrap: wrap }
 .gsgrid .gc button { font: inherit; border: 1px solid transparent; background: none; padding: 5px; border-radius: 5px; cursor: pointer; flex: 1 1 auto; text-align: left; white-space: nowrap; line-height: 1.15 } .gsgrid .gc button:hover:enabled { border-color: #9aa3ad } .gsgrid .gc button:disabled { cursor: default } .gsgrid .gc button[aria-pressed=true] { background: #111; color: #fff } .gsgrid .k-run { color: #d00000 } .gsgrid .k-pass { color: #0030d0 } .gsgrid .k-scr { color: #000 } .gsgrid .d { font-size: .8em; opacity: .7; margin-right: 3px } .gsgrid .n { font-size: .78em; background: #ffd400; color: #000; border-radius: 4px; padding: 0 3px; margin-left: 3px }
@@ -93,7 +96,7 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
     <div class="fieldbox"><canvas id="fld" width="1280" height="760" aria-label="View from behind our offense"></canvas><div class="tag" id="tag"></div><div class="result" id="res" hidden></div></div>
     <div class="field"><svg id="strip" viewBox="0 0 1000 150" role="img" aria-label="Field showing the ball, line of scrimmage and line to gain"></svg></div>
     <div id="act"></div>
-    <section class="panel"><h2>Call sheet <small id="sheetSit"></small></h2><div class="gswrap"><div class="gsgrid" id="grid"></div></div></section>
+    <section class="panel"><h2>Call sheet <small id="sheetSit"></small><button type="button" class="fitbtn" id="fitBtn" aria-pressed="true" title="Fit the sheet to the screen. Tap to switch between the whole sheet, the width, and full size.">Fit: whole</button></h2><div class="gswrap"><div class="gsgrid" id="grid"></div></div></section>
     <section class="panel" id="readPanel" hidden><h2>Pre-snap read <span id="readSub"></span></h2><div id="read"></div></section>
     <section class="panel"><h2>Drives</h2><div class="field"><svg id="drives" viewBox="0 0 1000 120" role="img" aria-label="Drives drawn on the field"></svg></div></section>
     <section class="panel"><h2>Play by play</h2><ul class="log" id="log"></ul></section>
@@ -433,7 +436,37 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
     S.cells.forEach(function (c) { var el = document.createElement("div"); el.style.gridRow = (c.r + 1) + " / span " + c.rs; el.style.gridColumn = (c.c + 1) + " / span " + c.cs; if (c.f) { el.style.background = "#" + c.f; el.style.color = lum(c.f) < .4 ? "#fff" : "#000" }
       if (c.h) { el.className = "gh"; el.textContent = c.v; if (names.some(function (n) { return n.indexOf(String(c.v).toUpperCase()) === 0 })) el.classList.add("sit-on") }
       else if (c.b != null && SHEET.boxes[c.b]) { el.className = "gc k-" + (c.k || "scr"); if (on[c.b]) el.classList.add("sit-on"); cellPlays(c).forEach(function (p) { var b = document.createElement("button"), n = G.snaps.filter(function (s) { return s.call === p.name }).length; b.type = "button"; b.className = "k-" + p.kind; b.disabled = !!locked; b.setAttribute("aria-pressed", SEL && SEL.id === p.id ? "true" : "false"); b.innerHTML = (p.d ? "<span class='d'>" + esc(p.d) + "</span>" : "") + esc(p.lab) + (n ? "<span class='n'>×" + n + "</span>" : ""); b.onclick = function () { tapPlay(p) }; el.appendChild(b) }) }
-      else { el.className = "gx"; el.textContent = c.v } g.appendChild(el) }) }
+      else { el.className = "gx"; el.textContent = c.v } g.appendChild(el) }); gridFit() }
+  // ---- fit the sheet to the screen: same rules and the same per-device settings as the live chart's Call sheet view
+  // "all" = whole sheet on screen, "w" = never scroll sideways, "keep" = full size. Long names wrap; text is as large as fits.
+  var FITV = (function () { var a = authGet(), v = null; ["solutions-gsview" + (a && a.school && a.school !== "melissa" ? "-" + a.school : ""), "solutions-gsview"].forEach(function (k) { if (!v) v = store.get(k) }); return { open: v && v.open ? v.open : "all", min: v && +v.min ? +v.min : 0 } })();
+  var FIT = FITV.open === "keep" ? null : FITV.open, FITC = null;
+  function gridFit() {
+    var g = $("grid"), w = g.parentNode, S = SHEET && SHEET.grid, fb = $("fitBtn");
+    fb.setAttribute("aria-pressed", FIT ? "true" : "false"); fb.textContent = FIT === "all" ? "Fit: whole" : FIT === "w" ? "Fit: width" : "Fit: off";
+    g.classList.remove("fitw"); g.style.fontSize = ""; if (!FIT || !S) return;
+    var cw = w.clientWidth, ch = Math.round(window.innerHeight * .62) - 2; if (!cw) return;
+    var key = [FIT, cw, FIT === "all" ? ch : 0, S.cols, S.cells.length, FITV.min].join("|"), c = FITC && FITC.key === key ? FITC : null;
+    if (!c) {
+      var tr = getComputedStyle(g).gridTemplateColumns.split(" ").map(parseFloat).filter(function (x) { return x > 0 });
+      if (tr.length !== S.cols) tr = []; for (var q = tr.length; q < S.cols; q++) tr.push(1);
+      c = { key: key, tpl: tr.map(function (x) { return "minmax(0, " + Math.round(x) + "fr)" }).join(" "), natural: g.scrollWidth <= cw + 1 && (FIT !== "all" || g.offsetHeight <= ch), f: 12, done: false };
+    }
+    if (c.natural) { FITC = c; return }
+    g.classList.add("fitw"); g.style.gridTemplateColumns = c.tpl;
+    if (!c.done) {
+      var kids = g.children, btns = g.querySelectorAll("button"), fits = function (f) {
+        g.style.fontSize = f + "px"; if (FIT === "all" && g.offsetHeight > ch) return false;
+        for (var i = 0; i < kids.length; i++) if (kids[i].scrollWidth > kids[i].clientWidth + 1) return false;
+        for (i = 0; i < btns.length; i++) if (btns[i].scrollWidth > btns[i].clientWidth) return false; return true;
+      };
+      g.classList.add("gsmeas"); var lo = 3, hi = 13; while (hi - lo > .4) { var mid = (lo + hi) / 2; if (fits(mid)) lo = mid; else hi = mid } g.classList.remove("gsmeas");
+      c.f = Math.max(Math.floor(lo * 2) / 2, FITV.min || 7); c.done = true; FITC = c;
+    }
+    g.style.fontSize = c.f + "px";
+  }
+  $("fitBtn").onclick = function () { FIT = FIT === "all" ? "w" : FIT === "w" ? null : "all"; if (G && SHEET) gridDraw(); else gridFit() };
+  var fitT = null; window.addEventListener("resize", function () { clearTimeout(fitT); fitT = setTimeout(function () { if (G && SHEET) gridDraw() }, 120) });
   function lum(h) { return (parseInt(h.slice(0, 2), 16) * .3 + parseInt(h.slice(2, 4), 16) * .59 + parseInt(h.slice(4, 6), 16) * .11) / 255 }
   function refresh() { if (!G) return; board(); stripSVG(); driveSVG(); gridDraw();
     var hasRead = D.def && D.def.length; $("readPanel").hidden = !hasRead; if (hasRead) $("read").innerHTML = readHTML();

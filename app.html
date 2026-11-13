@@ -1594,6 +1594,27 @@ textarea { min-height: 64px }
   }
   // ---------- lock mode: an admin can make an account view-only (sees everything live, can't chart) ----------
   var LOCK = { on: false, admin: false }, LKU = { users: [], locks: {} };
+  // Everything a view-only account must not be able to tap, type in or change. Viewing (tabs, reports, filters, exports) stays open.
+  var LOCK_NO = ["#ncBox .nc-card", "#smBar", "#smCatch", "#tagNag", "#sbUs", "#sbThem", "#clkBadge",
+    "#homeSend", "#homeLock", "#hsToggle", ".wzgo", "[data-role=film]", "[data-pick=film]",
+    "#v-setup input", "#v-setup select", "#v-setup textarea", "#v-setup button:not(#xlsxBtn):not(#pdfBtn):not(#dlCsv):not(#copyCsv):not(#gpBtn)", "#v-setup label.btn",
+    "#dirQ1", "#dirQ3", "#luOpen", "#stadiumClear", "#gpSave", "#gpShare", "#gpRebuild", "#gpBody",
+    "#luModal .mbox", "#lookModal .mbox", "#clockModal .mbox", "#scoreModal .mbox", "#editModal .mbox", "#penModal .mbox", "#egModal .mbox", "#plNoteIn"];
+  (function () {
+    var st = document.createElement("style"); st.textContent = LOCK_NO.map(function (x) { return "body.inlocked " + x }).join(", ") + " { pointer-events: none !important; opacity: .55 }";
+    document.head.appendChild(st);
+    var sel = LOCK_NO.join(", ") + ", #v-chart .panel, #v-chart .spotpanel, #v-chart .actions, #v-chart .inmode, #v-chart .tries, .edit, .del, .lookcell";
+    // the styles stop taps; this also stops keyboards, switch controls and anything a style misses
+    ["click", "change", "input", "beforeinput", "keydown", "submit", "drop", "paste"].forEach(function (ev) {
+      document.addEventListener(ev, function (e) {
+        if (!LOCK.on || !e.target || !e.target.closest) return;
+        if (ev === "keydown" && (e.key === "Tab" || e.key === "Escape")) return;
+        if (!e.target.closest(sel)) return;
+        e.stopImmediatePropagation(); if (e.cancelable) e.preventDefault();
+        if (ev === "click" || ev === "keydown") toast("View only: this account can't make changes");
+      }, true);
+    });
+  })();
   function lockApply(on) {
     if (on === LOCK.on) return; LOCK.on = on;
     document.body.classList.toggle("inlocked", on);
@@ -2766,6 +2787,7 @@ textarea { min-height: 64px }
     GS_WAS = on; if (!on) { GS_FULL = false; GS_TEMP = null }
     // after a tap sent us to the result: come back once that play is logged and the ball is spotted
     if (on && GS_TEMP != null && GS_V.back && S.snaps.length > GS_TEMP && !pendingSnap() && !S.tryPending && S.cur.ready !== false) { GS_TEMP = null; GS_FULL = true }
+    if (LOCK.on) { GS_FULL = false; GS_TEMP = null }   // a view-only account couldn't tap Exit
     document.body.classList.toggle("gs-full", GS_FULL);
     $("gsFullB").setAttribute("aria-pressed", GS_FULL ? "true" : "false"); $("gsFullB").textContent = GS_FULL ? "✕ Exit" : "⛶ Full screen";
     $("gsGo").hidden = !(on && GS_FULL && pick.call);

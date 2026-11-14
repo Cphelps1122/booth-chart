@@ -405,19 +405,45 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
   }
   // The predictor learns: how far each model's pregame score was off, averaged over our finished games.
   // A week's saved prediction can be rewritten after the game, so one only counts when it is known to pre-date kickoff.
-  function predCalibrate() {
-    if (!ONLINE) return;
-    // locked at the first snap, or — for games charted before locking existed — saved before that night's kickoff
-    var usable = function (g) { if (g.pk) return true; var p = g.pred; if (!p || p.us == null || !p.at || !g.date) return false; var kick = Date.parse(g.date + "T18:00:00"); return isFinite(kick) && p.at < kick };
-    var G = GAMES.filter(function (g) { return !g.practice && g.final && usable(g) }), acc = {};
+  var PCAL = null;
+  // why each game did or didn't feed the learning
+  function predWhy(g) {
+    var kick = g.date ? Date.parse(g.date + "T18:00:00") : NaN, p = g.pred;
+    if (g.practice) return { ok: false, w: "Practice game — never counts." };
+    if (!(g.final || g.us || g.them)) return { ok: false, w: "No final score yet. Tap End game on this one." };
+    if (g.pk) return { ok: true, w: "Counted. The pick was locked at the first snap." };
+    if (!g.date) return { ok: false, w: "This game has no date, so there is no week to look up a pick in." };
+    if (!p || p.us == null) return { ok: false, w: "No prediction was saved for the week of " + nice(g.date) + "." };
+    if (!p.at) return { ok: false, w: "A pick is saved for this week but has no time on it, so there is no way to tell it was made before kickoff." };
+    if (!isFinite(kick)) return { ok: false, w: "Couldn't read this game's date." };
+    if (p.at >= kick) return { ok: false, w: "The week's pick was last saved after kickoff (" + new Date(p.at).toLocaleString() + "), so it could be hindsight." };
+    return { ok: true, w: "Counted. The pick was saved " + new Date(p.at).toLocaleString() + ", before kickoff." };
+  }
+  function predCalc() {
+    var G = GAMES.filter(function (g) { return predWhy(g).ok }), acc = {};
     ["sc", "sim", "bl"].forEach(function (k) { acc[k] = { u: 0, t: 0, n: 0, nt: 0 } });
     G.forEach(function (g) { models(g).forEach(function (m) { var gr = grade1(m, g); if (!gr) return; var a = acc[m.k]; a.n++; a.u += gr.offUs; if (gr.offThem != null) { a.nt++; a.t += gr.offThem } }) });
     // held back by the number of games (n + 3) and capped, so one odd night can't swing next week
     var cl = function (v) { return Math.max(-7, Math.min(7, Math.round(v * 10) / 10)) }, out = { at: Date.now() }, any = false;
     ["sc", "sim", "bl"].forEach(function (k) { var a = acc[k]; if (!a.n) return; any = true; out[k] = { us: cl(a.u / (a.n + 3)), them: a.nt ? cl(a.t / (a.nt + 3)) : 0, n: a.n } });
-    if (!any) return;
+    return any ? out : null;
+  }
+  function predCalibrate() {
+    PCAL = predCalc(); var out = PCAL;
+    if (!ONLINE || !out) return;
     var same = function (c) { return c && ["sc", "sim", "bl"].every(function (k) { var x = c[k] || null, y = out[k] || null; return (!x && !y) || (x && y && x.us === y.us && x.them === y.them && x.n === y.n) }) };
     get("/predCal").then(function (cur) { if (same(cur)) return; return solToken().then(function (t) { return fetch(SOL_DB + "/schools/" + encodeURIComponent(ACC.school) + "/predCal.json?auth=" + encodeURIComponent(t), { method: "PUT", body: JSON.stringify(out) }) }) }).catch(function () {});
+  }
+  // "Why the predictor did or didn't learn from each game" — so a missing correction can be traced
+  function predWhyHTML(G) {
+    var rows = G.map(function (g) { var w = predWhy(g), M = models(g).filter(function (m) { return m.k === "sc" && m.us != null })[0];
+      return "<tr><td><b>" + esc(nice(g.date) + " " + g.opp) + "</b></td><td>" + ((g.final || g.us || g.them) ? g.us + "–" + g.them : "–") + "</td><td>" + (M ? M.us + "–" + (M.them == null ? "?" : M.them) : "–") + "</td><td>" + (w.ok ? "<span class='g held'>Counted</span>" : "<span class='g miss'>Not counted</span>") + "</td><td>" + esc(w.w) + "</td></tr>" }).join("");
+    var n = G.filter(function (g) { return predWhy(g).ok }).length, c = PCAL && PCAL.sc;
+    var lean = function (v, who) { var x = Math.abs(v).toFixed(1); return Math.abs(v) < .3 ? "right on " + who : (v > 0 ? x + " high on " + who : x + " low on " + who) };
+    return "<section class='panel'><h2>Why the predictor learned from each game <small>" + n + " of " + G.length + " game" + (G.length === 1 ? "" : "s") + " feeding it</small></h2>" +
+      "<p class='note'>" + (c ? "In use now: across " + c.n + " game" + (c.n === 1 ? "" : "s") + " the scores model ran <b>" + lean(c.us, esc(SCHOOL)) + "</b> and <b>" + lean(c.them, "the opponent") + "</b>. The Matchup Predictor moves tonight's pick by that much." : "Nothing learned yet. It needs at least 2 games with a pick made before kickoff, so the Matchup Predictor is running uncorrected.") + "</p>" +
+      "<div class='tbl'><table><tr><th>Game</th><th>Final</th><th>Pick</th><th></th><th>Why</th></tr>" + rows + "</table></div>" +
+      "<p class='note'>A pick counts when it was locked at the first snap, or saved before kickoff that night. Open Reports → Matchup Predictor during the week and it saves itself.</p></section>";
   }
   function simGameHTML(g) {
     var v = g.sv;
@@ -600,7 +626,7 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
       k(pr.length ? right + "/" + pr.length : "–", "Projection picked winner", mErr != null ? "off by " + mErr.toFixed(1) + " pts a game" : "needs Matchup Predictor") +
       k(pcs(Q.look, Q.n), "Snaps with their look tagged", Q.n + " plays charted") +
       (function () { var SG = G.filter(function (g) { return g.sv }), inR = SG.reduce(function (t, g) { return t + g.sv.inR }, 0), tot = SG.reduce(function (t, g) { return t + g.sv.rows.length }, 0); return k(tot ? pcs(inR, tot) : "–", "Sim forecasts in range", SG.length ? SG.length + " game" + (SG.length === 1 ? "" : "s") + " with a pregame sim" : "run Pregame Sim on Reports") })() + "</div>";
-    h += modelsSeasonHTML(G);
+    h += modelsSeasonHTML(G); h += predWhyHTML(G);
     h += "<section class='panel'><h2>Game by game <small>tap a game above for its full postgame report</small></h2><div class='tbl'><table><tr><th>Game</th><th>Result</th><th>Projection</th><th>Scout grade</th><th>Look right</th><th>Blitz within 10</th><th>Next Call eff</th><th>Other calls eff</th><th>4th downs per chart</th><th>Sim in range</th><th>Look tagged</th></tr>" +
       G.map(function (g) { var nl = g.nc; return "<tr><td>" + esc(nice(g.date) + " " + g.opp) + "</td><td><span class='wl " + res(g) + "'>" + (res(g) ? res(g).toUpperCase() + " " : "") + g.us + "–" + g.them + "</span></td><td>" + (g.pred ? g.pred.us + "–" + g.pred.them : "–") + "</td><td>" + (g.gr.score == null ? (g.scout ? "too few tags" : "no scout") : g.gr.score + "% (" + g.gr.items.length + ")") + "</td><td>" + (g.gr.lookAcc == null ? "–" : g.gr.lookAcc + "%") + "</td><td>" + (g.gr.blitzAcc == null ? "–" : g.gr.blitzAcc + "%") + "</td><td>" + (nl.tracked ? pcs(nl.f.ef, nl.f.n) + " (" + nl.f.n + ")" : "–") + "</td><td>" + (nl.tracked ? pcs(nl.o.ef, nl.o.n) + " (" + nl.o.n + ")" : "–") + "</td><td>" + (g.dec.fourth.length ? g.dec.fourth.filter(function (x) { return x.ok }).length + "/" + g.dec.fourth.length : "–") + "</td><td>" + (g.sv ? g.sv.inR + "/" + g.sv.rows.length : "–") + "</td><td>" + pcs(g.q.look, g.q.n) + "</td></tr>" }).join("") + "</table></div></section>";
     // pitch lines

@@ -1791,7 +1791,9 @@ details.more > .rail { margin-top: 8px }
   });
   // Matchup predictor: power ratings from game scores (strength of schedule built in)
   // =====================================================================================
-  var SCORES = {}, HFA = 2.5, CAP = 28, SD = 14;
+  var SCORES = {}, HFA = 2.5, CAP = 28, SD = 14, PCAL = null;
+  // what Game Impact worked out from our finished games: how many points this model usually runs high (+) or low (−)
+  function predCalGet() { var c = PCAL && PCAL.sc; return c && c.n >= 2 ? c : null }
   function tkey(n) { return String(n || "").toLowerCase().replace(/\b(high school|hs)\b/g, "").replace(/[^a-z0-9]+/g, " ").trim() }
   function nk(n) { return tkey(String(n || "").replace(/\((tx|texas)\)|,\s*tx\b/ig, " ")).replace(/\b(high|school|isd|the|tx)\b/g, " ").replace(/\s+/g, " ").trim() }
   var AUTO = {}, AUTOSIG = "";
@@ -1919,9 +1921,12 @@ details.more > .rail { margin-top: 8px }
     var BTr = backtest(G), E = eloRun(G), OD = offDef(G), home = e.ha === "H" ? 1 : e.ha === "A" ? -1 : 0;
     var m1 = F.R[us] - F.R[them] + home * HFA, m2 = E.R[us] - E.R[them] + home * HFA, mr = BTr.w * m1 + (1 - BTr.w) * m2, FC = filmCheck(F.R[them]);
     var CO = commonOpp(G, us, them, F), L = links(G, us, them), cw = CO.length >= 2 ? Math.min(.4, .12 * CO.length) : 0, cm = CO.length ? avg(CO.map(function (x) { return x.edge })) + home * HFA : 0;
-    var adj = predAdj(), fa = FC ? -FC.adj : 0, m = (1 - cw) * mr + cw * cm + fa + adj, sd = BTr.sd + (L.level === "Weak" ? 4 : L.level === "Medium" ? 1.5 : 0), wp = phi(m / sd);
+    var adj = predAdj(), fa = FC ? -FC.adj : 0, m0 = (1 - cw) * mr + cw * cm + fa + adj;
+    // learned correction from how this model did on our own finished games
+    var PC = predCalGet(), pcU = PC ? PC.us : 0, pcT = PC ? PC.them : 0, pcA = (pcU + pcT) / 2;
+    var m = m0 - (pcU - pcT), sd = BTr.sd + (L.level === "Weak" ? 4 : L.level === "Medium" ? 1.5 : 0), wp = phi(m / sd);
     var ps = OD.mu + (OD.O[us] || 0) - (OD.D[them] || 0) + home * HFA / 2, pt = OD.mu + (OD.O[them] || 0) - (OD.D[us] || 0) - home * HFA / 2, sh = (m - (ps - pt)) / 2;
-    var su = Math.max(0, Math.round(ps + sh)), st = Math.max(0, Math.round(pt - sh));
+    var su = Math.max(0, Math.round(ps + sh - pcA)), st = Math.max(0, Math.round(pt - sh - pcA));
     var sos = function (k) { var o = G.filter(function (g) { return g.a === k || g.b === k }).map(function (g) { return F.R[g.a === k ? g.b : g.a] }); return o.length ? avg(o) : 0 };
     var teams = Object.keys(F.R).filter(function (k) { return (F.n[k] || 0) >= 4 }), sosRank = function (k) { var s = sos(k); return 1 + teams.filter(function (t) { return t !== k && sos(t) > s }).length };
     var nmOf = function (k) { var g = G.filter(function (x) { return x.a === k || x.b === k })[0]; return g ? (g.a === k ? g.an : g.bn) : k };
@@ -1930,8 +1935,9 @@ details.more > .rail { margin-top: 8px }
     var odd = resid(us).concat(resid(them)).filter(function (x) { return Math.abs(x.d) >= 30 });
     var right = BTr.bl.right, tot = BTr.bl.tot, miss = BTr.bl.miss || 0;
     var gu = F.n[us] || 0, gt = F.n[them] || 0, conf = Math.min(gu, gt) < 3 ? "Early-season estimate" : L.level === "Weak" ? "Low" : L.level === "Medium" || Math.min(gu, gt) < 6 ? "Medium" : "High";
-    return { BT: BTr, m1: m1, m2: m2, FC: FC, fa: fa, us: ACC.profile.name, them: e.opp, ha: e.ha, m: m, mr: mr, cm: cm, cw: cw, adj: adj, sd: sd, wp: wp, su: su, st: st, ru: F.R[us], rt: F.R[them], sru: sosRank(us), srt: sosRank(them), teams: teams.length, movers: movers, moversT: moversT, odd: odd, CO: CO, L: L, nmOf: nmOf, right: right, tot: tot, miss: tot ? miss : null, conf: conf, gu: gu, gt: gt, early: Math.min(gu, gt) < 3 };
+    return { BT: BTr, m1: m1, m2: m2, FC: FC, fa: fa, pc: PC, m0: m0, us: ACC.profile.name, them: e.opp, ha: e.ha, m: m, mr: mr, cm: cm, cw: cw, adj: adj, sd: sd, wp: wp, su: su, st: st, ru: F.R[us], rt: F.R[them], sru: sosRank(us), srt: sosRank(them), teams: teams.length, movers: movers, moversT: moversT, odd: odd, CO: CO, L: L, nmOf: nmOf, right: right, tot: tot, miss: tot ? miss : null, conf: conf, gu: gu, gt: gt, early: Math.min(gu, gt) < 3 };
   }
+  function calTxt(v, who) { var x = Math.abs(v).toFixed(1); return Math.abs(v) < .3 ? "right on " + who : (v > 0 ? x + " high on " : x + " low on ") + who }
   function predHTML() {
     var p = predictNow(), add = "<div class='tb'>" + secH("Add scores", "paste any team's MaxPreps schedule page, scores included") + "<div class='tpaste'><input id='psTeam' placeholder='Team name — leave blank for a full weekly scoreboard'><textarea id='psText' rows='4' placeholder='Paste their MaxPreps schedule here'></textarea><button type='button' class='big pri' id='psGo'>Add scores</button><span class='tnote'>or <button type='button' id='psXl'>Upload Excel / CSV</button> <a href='#' id='psTpl'>Download blank sheet</a></span><input type='file' id='psXf' accept='.xlsx,.csv' hidden><span class='tnote' id='psMsg'>" + allGames().length + " games on file. Add your district for the best strength of schedule.</span></div><div class='tteams'>" + srcKeys().map(function (k) { var t = SCORES[k]; return "<span>" + esc(t.manual ? "Added by hand" : t.file ? t.file : t.board ? "Scoreboard " + ((t.games[0] || {}).date || "") : t.team) + " · " + (t.games || []).filter(function (g) { return t.board || g.us != null }).length + " <button type='button' class='psX' data-k='" + esc(k) + "' title='Remove this paste'>×</button></span>" }).join("") + "</div></div>" + edHTML();
     if (!p) return "<p class='tnote'>Pick a week with an opponent to predict.</p>" + add;
@@ -1950,7 +1956,7 @@ details.more > .rail { margin-top: 8px }
       "<div class='tpc'><div class='tsub'>Games that moved " + esc(p.them) + " most</div>" + p.moversT.map(function (mv) { return "<div class='trow'><span>" + esc(mv.t) + "</span><b class='" + (mv.d >= 0 ? "" : "neg") + "'>" + (mv.d >= 0 ? "+" : "") + mv.d.toFixed(1) + "</b></div>" }).join("") + (p.odd.length ? "<p class='tnote'>⚠ Check these scores (way off what the model expects): " + p.odd.slice(0, 4).map(function (x) { return esc(x.t) }).join("; ") + "</p>" : "") + "</div>" +
       "<div class='tpc'><div class='tsub'>How the models are doing</div>" + (p.tot ? "<div class='tbig'>" + p.right + "–" + (p.tot - p.right) + "</div><div class='tnote'>blend: winners picked (" + pc(p.right, p.tot) + "%) · average miss " + p.miss.toFixed(1) + " points</div>" +
         "<table class='tco' style='margin-top:6px'><tr><th>Model</th><th>Record</th><th>Miss</th></tr>" + [["Margin ratings", p.BT.m1], ["Elo", p.BT.m2], ["Blend", p.BT.bl]].map(function (x) { return "<tr><td>" + x[0] + "</td><td>" + x[1].right + "–" + (x[1].tot - x[1].right) + " (" + pc(x[1].right, x[1].tot) + "%)</td><td>" + (x[1].miss != null ? x[1].miss.toFixed(1) : "–") + "</td></tr>" }).join("") + "</table>" +
-        (p.BT.hiN ? "<p class='tnote'>When it said 70%+ the pick won " + p.BT.hiR + " of " + p.BT.hiN + " (" + pc(p.BT.hiR, p.BT.hiN) + "%).</p>" : "") + "<p class='tnote'>Every past game re-predicted using only earlier games. Blend weights and the win-chance spread (" + p.BT.sd.toFixed(1) + " pts) are set from these results.</p>" : "<p class='tnote'>Needs more weeks of scores to grade itself.</p>") + "<p class='tnote'>A planning tool, not betting odds.</p></div>" +
+        (p.BT.hiN ? "<p class='tnote'>When it said 70%+ the pick won " + p.BT.hiR + " of " + p.BT.hiN + " (" + pc(p.BT.hiR, p.BT.hiN) + "%).</p>" : "") + "<p class='tnote'>Every past game re-predicted using only earlier games. Blend weights and the win-chance spread (" + p.BT.sd.toFixed(1) + " pts) are set from these results.</p>" : "<p class='tnote'>Needs more weeks of scores to grade itself.</p>") + (p.pc ? "<p class='tnote'><b>Learning from our games.</b> Across " + p.pc.n + " finished game" + (p.pc.n === 1 ? "" : "s") + ", this model's locked pick ran " + calTxt(p.pc.us, esc(p.us)) + " and " + calTxt(p.pc.them, esc(p.them)) + ", so tonight's pick is moved by that much. It updates itself after every End game.</p>" : "<p class='tnote'>After a few games with a pick locked at kickoff, it starts correcting itself from how far off it was.</p>") + "<p class='tnote'>A planning tool, not betting odds.</p></div>" +
       "<div class='tpc'><div class='tsub'>Film check</div>" + (p.FC ? (p.FC.off ? "<div class='trow'><span>Their offense</span><b>" + p.FC.off.sr.toFixed(0) + "% success · " + p.FC.off.ypp.toFixed(1) + " ypp</b></div>" : "") + (p.FC.def ? "<div class='trow'><span>Their defense allows</span><b>" + p.FC.def.sr.toFixed(0) + "% · " + p.FC.def.ypp.toFixed(1) + " ypp</b></div>" : "") + "<p class='tnote'>Average is " + p.FC.base.sr + "% and " + p.FC.base.ypp + " ypp. Film says " + esc(p.them) + " is " + (p.FC.str - p.rt >= 0 ? "better" : "worse") + " than their scores, so the pick moves " + Math.abs(p.fa).toFixed(1) + " pts" + (p.fa >= 0 ? " toward " + esc(p.us) : " toward " + esc(p.them)) + " (max 4).</p>" : "<p class='tnote'>Add this week's Hudl files for " + esc(p.them) + " (offense, defense or both) and the film's success rate and yards per play get compared to their scores.</p>") + "</div>" +
       "<div class='tpc'><div class='tsub'>Starting ratings</div><p class='tnote'>Optional. One team per line: <b>Team, Class, Last season rating</b> (e.g. Central, 5A, 12.5). Class alone works too. Keeps early-season and thin schedules from swinging.</p><textarea id='prTxt' rows='4' style='width:100%;box-sizing:border-box;font:inherit;font-size:13px;padding:8px;border:1px solid #c9d1da;border-radius:8px;background:#fff;color:#141a22'>" + esc(Object.keys(SCORES._prior || {}).map(function (k) { var x = SCORES._prior[k]; return (x.n || k) + ", " + (x.cls || "") + (x.last != null && x.last !== "" ? ", " + x.last : "") }).join("\n")) + "</textarea><button type='button' id='prSave' style='margin-top:6px;font:inherit;font-weight:800;padding:7px 14px;border-radius:8px;border:0;background:var(--red);color:#fff;cursor:pointer'>Save starting ratings</button> <span class='tnote' id='prMsg'>" + Object.keys(SCORES._prior || {}).length + " teams set</span></div></div>" + add;
   }
@@ -2064,8 +2070,14 @@ details.more > .rail { margin-top: 8px }
       if (ONLINE && solSchoolBase()) wkPut("/scores/" + k, SCORES[k]).then(fin, function () { $("psMsg").textContent = "Couldn't save. Check the connection." }); else fin();
     };
   }
-  function savePred() { var p = predictNow(); if (p && !p.need && WK.cur && ONLINE && solSchoolBase()) wkPut("/weeks/" + WK.cur.date + "/pred", { us: p.su, them: p.st, wp: Math.round(p.wp * 100), at: Date.now() }).catch(function () {}) }
-  function loadScores() { if (!(ONLINE && solSchoolBase())) return; wkGet("/scores").then(function (d) { SCORES = d || {}; if (TSEL === "pred") renderTemplates(); savePred() }) }
+  // don't rewrite a past week's pick: the one locked at kickoff is what gets graded, and a later save would be hindsight
+  function savePred() { var p = predictNow(); if (WK.cur && WK.cur.date < wkToday()) return; if (p && !p.need && WK.cur && ONLINE && solSchoolBase()) wkPut("/weeks/" + WK.cur.date + "/pred", { us: p.su, them: p.st, wp: Math.round(p.wp * 100), at: Date.now() }).catch(function () {}) }
+  function loadScores() {
+    if (!(ONLINE && solSchoolBase())) return;
+    Promise.all([wkGet("/scores"), wkGet("/predCal").catch(function () { return null })]).then(function (R) {
+      SCORES = R[0] || {}; PCAL = R[1] || null; if (TSEL === "pred") renderTemplates(); savePred();
+    });
+  }
 
   $("setSave").addEventListener("click", saveSettings);
   $("setReset").addEventListener("click", function () { if (!confirm("Put every setting back to the Solutions defaults?")) return; SET = JSON.parse(JSON.stringify(SET_DEF)); DD = JSON.parse(JSON.stringify(DEF_DD)); ZN = JSON.parse(JSON.stringify(DEF_Z)); renderBuckets(); renderSettings(); saveSettings() });

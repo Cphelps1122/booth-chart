@@ -403,6 +403,20 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
     var cal = { g: Math.round(100 * errs.reduce(function (t, e) { return t + e }, 0) / (errs.length + 2)) / 100, n: G.length, at: Date.now() };
     get("/simCal").then(function (cur) { if (cur && cur.n === cal.n && Math.abs((cur.g || 0) - cal.g) < 0.01) return; return solToken().then(function (t) { return fetch(SOL_DB + "/schools/" + encodeURIComponent(ACC.school) + "/simCal.json?auth=" + encodeURIComponent(t), { method: "PUT", body: JSON.stringify(cal) }) }) }).catch(function () {});
   }
+  // The predictor learns: how far each model's locked pregame score was off, averaged over our finished games.
+  // Only predictions locked at the first snap count — a week's saved prediction can be rewritten after the game.
+  function predCalibrate() {
+    if (!ONLINE) return;
+    var G = GAMES.filter(function (g) { return !g.practice && g.final && g.pk }), acc = {};
+    ["sc", "sim", "bl"].forEach(function (k) { acc[k] = { u: 0, t: 0, n: 0, nt: 0 } });
+    G.forEach(function (g) { models(g).forEach(function (m) { var gr = grade1(m, g); if (!gr) return; var a = acc[m.k]; a.n++; a.u += gr.offUs; if (gr.offThem != null) { a.nt++; a.t += gr.offThem } }) });
+    // held back by the number of games (n + 3) and capped, so one odd night can't swing next week
+    var cl = function (v) { return Math.max(-7, Math.min(7, Math.round(v * 10) / 10)) }, out = { at: Date.now() }, any = false;
+    ["sc", "sim", "bl"].forEach(function (k) { var a = acc[k]; if (!a.n) return; any = true; out[k] = { us: cl(a.u / (a.n + 3)), them: a.nt ? cl(a.t / (a.nt + 3)) : 0, n: a.n } });
+    if (!any) return;
+    var same = function (c) { return c && ["sc", "sim", "bl"].every(function (k) { var x = c[k] || null, y = out[k] || null; return (!x && !y) || (x && y && x.us === y.us && x.them === y.them && x.n === y.n) }) };
+    get("/predCal").then(function (cur) { if (same(cur)) return; return solToken().then(function (t) { return fetch(SOL_DB + "/schools/" + encodeURIComponent(ACC.school) + "/predCal.json?auth=" + encodeURIComponent(t), { method: "PUT", body: JSON.stringify(out) }) }) }).catch(function () {});
+  }
   function simGameHTML(g) {
     var v = g.sv;
     if (!v) return "<section class='panel'><h2>Pregame sim vs tonight</h2><p class='note'>No pregame sim was run for this week. Open Reports → Pregame Sim with their defense film loaded before the next game, and it's graded here after End game.</p></section>";
@@ -453,7 +467,7 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
     }).then(function (G) {
       GAMES = (G || []).filter(function (g) { return g.off.length }).sort(function (a, b) { return a.date.localeCompare(b.date) });
       GAMES.forEach(function (g) { g.gr = gradeGame(g); g.dec = decisions(g); g.nc = nextCall(g); g.q = quality(g); g.sv = simVsActual(g) });
-      simCalibrate();
+      simCalibrate(); predCalibrate();
       var ss = GAMES.map(function (g) { return g.season }).filter(function (v, i, a) { return a.indexOf(v) === i }).sort().reverse();
       var selG = SEL && GAMES.filter(function (g) { return g.code === SEL })[0];
       SEASON = selG ? selG.season : (ss[0] || null);

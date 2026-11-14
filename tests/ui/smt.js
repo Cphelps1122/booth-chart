@@ -1,0 +1,70 @@
+// Simple mode: the defense step and the catch-up prompt when the ball goes over
+// Run: node tests/ui/smt.js   (screenshots go to $SHOT_DIR, default a temp folder)
+const {chromium,devices}=require('playwright'); const {start}=require('/home/claude/booth-chart/tests/rtdb_server.js');
+const http=require('http'), fs=require('fs'), path=require('path');
+const ROOT='/home/claude/booth-chart', OUT=(process.env.SHOT_DIR || require('path').join(require('os').tmpdir(),'booth-shots')+'/'), SEASON='season-aaaaaaaaaaaaaaaa', d='2026-11-06', G='/schools/melissa/games/mel-anna';
+const R=start({admins:{},members:{u1:'melissa'},schools:{melissa:{season:SEASON,profile:{name:'Melissa'},schedule:[{date:d,opp:'Anna',ha:'H'}],
+  games:{[SEASON]:{list:{'mel-anna':{opp:'Anna',date:d,plays:0,real:1,gc:'A1106',updated:1}}},'mel-anna':{meta:{opp:'Anna',gameDate:d,gc:'A1106'}}}}}},9124);
+http.createServer((q,r)=>{ const f=path.join(ROOT,decodeURIComponent(q.url.split('?')[0])); if(!f.startsWith(ROOT)||!fs.existsSync(f)||fs.statSync(f).isDirectory()){r.statusCode=404;return r.end()}
+  r.setHeader('Content-Type',{'.html':'text/html','.js':'text/javascript','.png':'image/png'}[path.extname(f)]||'application/octet-stream'); fs.createReadStream(f).pipe(r) }).listen(8765);
+let pass=0, fail=0; const ok=(c,m)=>{ console.log((c?'  PASS ':'  FAIL ')+m); c?pass++:fail++ };
+const wait=async(fn,ms=8000)=>{ const t=Date.now(); while(Date.now()-t<ms){ if(await fn()) return true; await new Promise(r=>setTimeout(r,250)) } return false };
+(async()=>{
+ const b=await chromium.launch();
+ const mk=async(name,vp)=>{ const ctx=await b.newContext({viewport:vp,deviceScaleFactor:2});
+   await ctx.route(/googleapis\.com|fonts\./, r=>r.fulfill({status:200,body:'{}'}));
+   const p=await ctx.newPage(); p.errs=[]; p.on('pageerror',e=>p.errs.push(name+': '+e.message+' @'+(e.stack||'').split('\n')[1]));
+   await p.addInitScript(([SEASON])=>{ window.SOL_TEST=1; window.SOL_CONFIG={db:'http://localhost:9124',apiKey:'x'}; if (sessionStorage.s) return; sessionStorage.s=1;
+     localStorage.setItem('solutions-auth-v1', JSON.stringify({uid:'u1',email:'x@x',idToken:'t',refreshToken:'r',exp:Date.now()+3600e3,school:'melissa',profile:{name:'Melissa'}}));
+     localStorage.setItem('cardinals-booth-season-v1', SEASON); localStorage.setItem('solutions-role', 'chart');
+     localStorage.setItem('cardinals-booth-sync-v1', JSON.stringify({url:'http://localhost:9124',code:'mel-anna'})); localStorage.setItem('cardinals-last-used', String(Date.now())) },[SEASON]);
+   await p.goto('http://localhost:8765/app.html'); await p.waitForTimeout(2500); await p.click('#t-chart'); return p };
+ const A=await mk('ipad',{width:1024,height:1366}), P=await mk('phone',{width:390,height:844});
+ const S=(p,f)=>p.evaluate(f);
+ const step=p=>p.getAttribute('#v-chart','data-step');
+ const spot=async p=>{ await S(p,()=>{ const s=window.__sol.S, l=s.snaps[s.snaps.length-1]; if(l&&l.gain==null){ l.gain=4; window.__sol.save() } }); await p.click('#imSimple'); await p.waitForTimeout(150) };
+ // one play up to the defense step
+ const toDef=async p=>{ await spot(p); if(await p.isVisible('#smNext')) await p.click('#smNext'); await p.click('#csForms button >> nth=0'); await p.click('#csPlays button >> nth=0'); await p.waitForTimeout(150) };
+ const result=async p=>{ await p.click('#cRes [data-v="Rush"]'); await p.waitForTimeout(200); if(await p.isVisible('#logBtn') && await p.isEnabled('#logBtn')) await p.click('#logBtn'); await p.waitForTimeout(300) };
+ await A.click('#imSimple'); await P.click('#imSimple');
+ console.log('1. Defense step');
+ await toDef(A); ok(await step(A)==='4','after the play, step 4 is the defense ('+await step(A)+')');
+ ok(await A.isVisible('#cShell') && !await A.isVisible('#csPlays') && !await A.isVisible('#cRes'),'only the defense chips show');
+ ok(await A.isVisible('#smSkip'),'Skip button shows'); await A.screenshot({path:OUT+'ipad_def.png'});
+ await A.click('#cShell [data-v="2-HIGH"]'); await A.click('#cBox [data-v="6"]'); await A.click('#smNext'); ok(await step(A)==='5','Next goes to the result');
+ await A.screenshot({path:OUT+'ipad_res.png'});
+ await result(A);
+ let s1=await S(A,()=>window.__sol.S.snaps[0]); ok(s1 && s1.shell==='2-HIGH' && s1.box==='6' && !s1.needD,'play 1 saved with 2-HIGH, 6 in box');
+ console.log('2. Skipped defense');
+ await toDef(A); await A.click('#smSkip'); ok(await step(A)==='5','Skip goes to the result'); await result(A);
+ await toDef(A); await A.click('#smSkip'); await result(A);
+ let sn=await S(A,()=>window.__sol.S.snaps.map(x=>({n:x.n,needD:!!x.needD,shell:x.shell,box:x.box,series:x.series})));
+ ok(sn.length===3 && sn[1].needD && sn[2].needD && !sn[1].shell,'plays 2 and 3 flagged, no carried-over defense on them '+JSON.stringify(sn));
+ await spot(A); ok(await A.isVisible('#smMiss') && /2 plays/.test(await A.textContent('#smMiss')),'step 1 shows the reminder: '+await A.textContent('#smMiss'));
+ ok(!await A.isVisible('#smCatch'),'no prompt in the middle of the drive'); await A.screenshot({path:OUT+'ipad_remind.png'});
+ ok(await wait(()=>{ const x=R.getAt(G+'/snaps')||{}; return Object.values(x).filter(v=>v.needD).length===2 }),'flag synced to the database');
+ console.log('3. Ball goes over: catch-up prompt');
+ await S(A,()=>document.getElementById('endSeries').click()); await A.waitForTimeout(300);
+ ok(await A.isVisible('#smCatch'),'prompt opens when the series ends'); ok(!await A.isVisible('#smBar') && !await A.isVisible('.spotpanel'),'nothing else on screen');
+ ok(/Play 2/.test(await A.textContent('#smcPlay')),'asks about play 2 first: '+await A.textContent('#smcPlay')); await A.screenshot({path:OUT+'ipad_catch.png'});
+ await A.click('#smcSave'); ok(/Play 2/.test(await A.textContent('#smcPlay')),'Save with nothing picked stays put');
+ await A.click('#smcBody .chip >> text=1-HIGH'); await A.click('#smcBody .chip >> text=7 in box'); await A.click('#smcBody .chip >> text=Yes'); await A.screenshot({path:OUT+'ipad_catch2.png'}); await A.click('#smcSave');
+ ok(/Play 3/.test(await A.textContent('#smcPlay')),'moves to play 3');
+ await A.click('#smcDk'); await A.waitForTimeout(200);
+ ok(!await A.isVisible('#smCatch') && await A.isVisible('#smBar'),'prompt closes when caught up');
+ sn=await S(A,()=>window.__sol.S.snaps.map(x=>({n:x.n,needD:!!x.needD,shell:x.shell,box:x.box,blitz:x.blitz})));
+ ok(sn[1].shell==='1-HIGH'&&sn[1].box==='7'&&sn[1].blitz==='Yes'&&!sn[1].needD&&!sn[2].needD,'play 2 filled in, play 3 cleared '+JSON.stringify(sn.slice(1)));
+ ok(await wait(()=>{ const x=Object.values(R.getAt(G+'/snaps')||{}); const p2=x.find(v=>v.n===2); return p2 && p2.shell==='1-HIGH' && p2.box==='7' && !x.some(v=>v.needD) }),'fill-in synced to the database');
+ console.log('4. Later, and phone');
+ await toDef(A); await A.click('#smSkip'); await result(A); await spot(A); await S(A,()=>document.getElementById('endSeries').click()); await A.waitForTimeout(300);
+ ok(await A.isVisible('#smCatch'),'prompt again on the next change'); await A.click('#smcLater'); ok(!await A.isVisible('#smCatch') && await A.isVisible('#smMiss'),'Later closes it, reminder stays');
+ await A.click('#smMiss'); ok(await A.isVisible('#smCatch'),'reminder reopens it');
+ await P.reload(); await P.waitForTimeout(2500); await P.click('#t-chart'); await P.click('#imSimple'); await P.waitForTimeout(300);
+ ok(await P.isVisible('#smCatch'),'phone opening the game sees the open play too'); await P.screenshot({path:OUT+'phone_catch.png'});
+ await P.click('#smcLater'); await toDef(P); await P.screenshot({path:OUT+'phone_def.png'});
+ const ov=await P.evaluate(()=>{ const c=document.getElementById('v-chart'); let w=0; c.querySelectorAll('*').forEach(e=>{ if(e.offsetParent) w=Math.max(w,e.getBoundingClientRect().right) }); return Math.round(w-innerWidth) });
+ ok(ov<=1,'phone: the chart area does not run off the side ('+ov+'px). The scoreboard in the header does, which is separate and pre-existing.');
+ await P.click('#imFull'); ok(!await P.isVisible('#smCatch') && await P.isVisible('#cShell'),'Full input unchanged');
+ ok(A.errs.length+P.errs.length===0,'no page errors '+A.errs.concat(P.errs).join(' | '));
+ console.log('\n'+pass+' passed, '+fail+' failed'); process.exit(fail?1:0);
+})();

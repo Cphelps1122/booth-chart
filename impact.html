@@ -403,11 +403,13 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
     var cal = { g: Math.round(100 * errs.reduce(function (t, e) { return t + e }, 0) / (errs.length + 2)) / 100, n: G.length, at: Date.now() };
     get("/simCal").then(function (cur) { if (cur && cur.n === cal.n && Math.abs((cur.g || 0) - cal.g) < 0.01) return; return solToken().then(function (t) { return fetch(SOL_DB + "/schools/" + encodeURIComponent(ACC.school) + "/simCal.json?auth=" + encodeURIComponent(t), { method: "PUT", body: JSON.stringify(cal) }) }) }).catch(function () {});
   }
-  // The predictor learns: how far each model's locked pregame score was off, averaged over our finished games.
-  // Only predictions locked at the first snap count — a week's saved prediction can be rewritten after the game.
+  // The predictor learns: how far each model's pregame score was off, averaged over our finished games.
+  // A week's saved prediction can be rewritten after the game, so one only counts when it is known to pre-date kickoff.
   function predCalibrate() {
     if (!ONLINE) return;
-    var G = GAMES.filter(function (g) { return !g.practice && g.final && g.pk }), acc = {};
+    // locked at the first snap, or — for games charted before locking existed — saved before that night's kickoff
+    var usable = function (g) { if (g.pk) return true; var p = g.pred; if (!p || p.us == null || !p.at || !g.date) return false; var kick = Date.parse(g.date + "T18:00:00"); return isFinite(kick) && p.at < kick };
+    var G = GAMES.filter(function (g) { return !g.practice && g.final && usable(g) }), acc = {};
     ["sc", "sim", "bl"].forEach(function (k) { acc[k] = { u: 0, t: 0, n: 0, nt: 0 } });
     G.forEach(function (g) { models(g).forEach(function (m) { var gr = grade1(m, g); if (!gr) return; var a = acc[m.k]; a.n++; a.u += gr.offUs; if (gr.offThem != null) { a.nt++; a.t += gr.offThem } }) });
     // held back by the number of games (n + 3) and capped, so one odd night can't swing next week

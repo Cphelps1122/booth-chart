@@ -119,8 +119,8 @@ const PLAYS = [
  {g:'rb', name:'Split Zip', fr:'zip_i', nums:[4,5], align:'SS', job:'carry'},
  {g:'rb', name:'Zip', fr:'zip_i', nums:[4,5], align:'SS', job:'carry'},
  {g:'rb', name:'Scat', fr:'scat_i', nums:[8,9], align:'OPP', job:'carry', aim:'OUT', rule:'Scat: line up opposite the number. Aiming point: outside the tackle to the number side. Flat and fast.'},
- {g:'rb', name:'Pro', fr:'p2233', nums:[22,33], align:'OPP', job:'carry'},
- {g:'rb', name:'Pro', fr:'p2233', nums:[44,55], align:'OPP', job:'carry'},
+ {g:'rb', name:'Pro', label:'Pro 22 / 33', fr:'p2233', nums:[22,33], align:'OPP', job:'carry'},
+ {g:'rb', name:'Pro', label:'Pro 44 / 55', fr:'p2233', nums:[44,55], align:'OPP', job:'carry'},
  {g:'rb', name:'TX Split Zone', fr:'zone5_12', nums:[4,5], align:'OPP', job:'carry'},
  {g:'rb', name:'TX Split Zip', fr:'zip12', nums:[4,5], align:'OPP', job:'carry'},
  {g:'rb', name:'TX Over Kick', fr:'kick', nums:[2,3], align:'OPP', job:'carry'},
@@ -132,7 +132,7 @@ const PLAYS = [
  {g:'bite', name:'Bite Scat', fr:'scat', bite:1, ans:0, nums:[8,9], carrier:'OPP', blocker:'SS', job:'SAFETY', aim:'OUT', rule:'Bite Scat: OPP back gets the ball: aim outside the tackle to the number side, flat and fast. SAME SIDE back blocks the safety.'},
  {g:'bite', name:'Bite Zone', fr:'zone5', bite:1, ans:2, nums:[4,5], carrier:'SS', blocker:'OPP', job:'MY_OLB', rule:'Bite Zone: SAME SIDE back gets the ball. OPP back blocks the OLB on his side (or the safety).'},
  {g:'bite', name:'Bite Uno', fr:'uno', bitef:1, ans:2, carrier:'BND', blocker:'FLD', job:'BND_ILB', rule:'Bite Uno: BND back gets the ball. FLD back blocks the BND backer.'},
- {g:'bite', name:'Bite', fr:'p2233', bite:1, ans:2, nums:[22,33], carrier:'SS', blocker:'OPP', job:'MY_ILB', rule:'Bite 22/33: SAME SIDE back gets the ball. OPP back blocks the backer over him.'},
+ {g:'bite', name:'Bite', label:'Bite 22 / 33', fr:'p2233', bite:1, ans:2, nums:[22,33], carrier:'SS', blocker:'OPP', job:'MY_ILB', rule:'Bite 22/33: SAME SIDE back gets the ball. OPP back blocks the backer over him.'},
 ];
 const GROUPS = [
  {id:'qb', label:'QB runs: you block'},
@@ -334,7 +334,7 @@ function finish(){
   const nm = $('nm').value.trim();
   $('who').textContent = nm ? nm + ' scored' : 'You scored';
   $('final').textContent = right + ' / ' + deck.length;
-  const names = [...new Set(missed.map(p => p.name))];
+  const names = [...new Set(missed.map(p => p.label || p.name))];
   $('missbox').innerHTML = names.length ? '<div style="font-size:20px">Work on these:</div><ul>' + names.map(n => '<li>' + n + '</li>').join('') + '</ul>' : '<p style="text-align:center;font-size:19px">Perfect. Nothing missed.</p>';
   $('again').classList.toggle('hidden', !names.length);
   setSend();
@@ -346,7 +346,7 @@ let attemptId = null;
 function save(){
   const rec = { name: ($('nm').value.trim() || 'Player').slice(0, 60), score: right, total: deck.length, at: Date.now(),
     groups: GROUPS.filter(g => picked.has(g.id)).map(g => g.label).join(', ').slice(0, 400),
-    missed: log.join('\n').slice(0, 4000), plays: [...new Set(missed.map(p => p.name))].join('|').slice(0, 4000),
+    missed: log.join('\n').slice(0, 4000), plays: [...new Set(missed.map(p => p.label || p.name))].join('|').slice(0, 4000),
     question: $('qbox').value.trim().slice(0, 4000) };
   const url = attemptId ? SOL_DB + '/quiz/' + SCHOOL + '/' + attemptId + '.json' : SOL_DB + '/quiz/' + SCHOOL + '.json';
   fetch(url, { method: 'POST', body: JSON.stringify(rec) }).then(r => r.json()).then(j => { attemptId = j && j.name; $('saved').textContent = 'Saved for Coach \u2713'; }).catch(() => { $('saved').textContent = 'Could not save. Use Text Coach.'; });

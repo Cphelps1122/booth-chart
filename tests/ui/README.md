@@ -10,6 +10,7 @@ rather than on every change.
     node tests/ui/gst.js       # Call sheet: fit to the screen, full screen, and the per-device settings
     node tests/ui/tdt.js       # "Their defense": two devices on one game, in Fast and in Full
     node tests/ui/mk.js        # Mock game: the call sheet follows the same fit rules
+    node tests/ui/qz.js       # Player quiz: a player saves an attempt with no account; the coach page lists and deletes it
     node tests/ui/pl.js        # Matchup Predictor: learning from past games, and the why-panel on Game Impact
 
 Each prints `N passed, N failed` and exits non-zero on a failure.

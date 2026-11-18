@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DeSoto RB Quiz</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@500;700&family=Barlow+Condensed:wght@600;700&display=swap">
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f4f4f2;color:#111;font-family:'Barlow',system-ui,-apple-system,'Segoe UI',Arial,sans-serif;-webkit-tap-highlight-color:transparent}
+main{max-width:680px;margin:0 auto;padding:14px 12px 40px}
+h1{margin:4px 0 0;font-family:'Barlow Condensed',sans-serif;font-size:32px;text-align:center;font-weight:700;letter-spacing:1px}
+.sub{text-align:center;font-size:18px;color:#444;margin-bottom:12px}
+.card{background:#fff;border:2px solid #111;border-radius:14px;padding:12px;margin-bottom:12px}
+button{font:inherit;cursor:pointer}
+.groups{display:grid;gap:10px;margin:10px 0 14px}
+.chip{min-height:52px;border:2px solid #111;border-radius:10px;background:#fff;font-size:19px;padding:6px 10px;text-align:left}
+.chip[aria-pressed="true"]{background:#111;color:#fff}
+.go{width:100%;min-height:54px;border:0;border-radius:12px;background:#1f5fbf;color:#fff;font-size:24px}
+.go.alt{background:#fff;color:#111;border:2px solid #111}
+.top{display:flex;justify-content:space-between;font-size:18px;color:#444}
+.bar{height:10px;background:#e3e3e0;border-radius:6px;overflow:hidden;margin:6px 0 10px}
+.bar i{display:block;height:100%;background:#1f5fbf}
+.call{text-align:center;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:38px;line-height:42px;color:#c0392b}
+.hash{text-align:center;font-size:18px;margin:2px 0}
+.ask{text-align:center;font-size:20px;margin:6px 0;min-height:30px}
+svg{width:100%;height:auto;display:block;font-family:'Barlow Condensed',sans-serif;font-weight:700;user-select:none}
+.tap{cursor:pointer}
+.tap .hit{fill:rgba(255,255,255,.001);stroke:#111;stroke-width:0}
+.live .hit{stroke:#ffd84d;stroke-width:3;stroke-dasharray:4 4}
+.right .hit{fill:#c9efcf;stroke:#1f9a3a;stroke-width:3;stroke-dasharray:none}
+.wrong .hit{fill:#f7c9c4;stroke:#c0392b;stroke-width:3;stroke-dasharray:none}
+.fb{text-align:center;font-size:19px;min-height:30px;margin:6px 0}
+.ok{color:#1f7a30}.no{color:#b03024}
+.rule{background:#f4f4f2;border-radius:10px;padding:8px 10px;font-size:19px;margin:6px 0 10px}
+.hidden{display:none}
+ul{padding-left:20px;font-size:20px;margin:8px 0}
+.big{font-size:56px;text-align:center;margin:4px 0}
+label{font-size:18px}
+input{font:inherit;font-size:20px;width:100%;min-height:46px;border:2px solid #111;border-radius:10px;padding:6px 10px;margin:4px 0 12px}
+.key{font-size:17px;color:#333;line-height:1.35}
+</style>
+</head>
+<body>
+<main>
+<h1>DESOTO RB QUIZ</h1>
+<div class="sub">Line up right. Find your man. Hit your hole.</div>
+
+<section id="start" class="card">
+<label for="nm">Your name</label>
+<input id="nm" autocomplete="name">
+<div style="font-size:20px">Pick what to study:</div>
+<div class="groups" id="groups"></div>
+<button class="go" id="begin">Start</button>
+<div class="key" style="margin-top:12px">
+<b>Field</b> = wide side of the field. <b>Boundary</b> = short side.<br>
+<b>FLD / BND</b> = line up to the field / boundary.<br>
+<b>SS</b> = same side as the number. <b>OPP</b> = opposite the number.<br>
+Odd numbers (1, 3, 5, 9) go <b>left</b>. Even numbers (2, 4, 8) go <b>right</b>.<br>
+When you carry it: aim right up the center's backside (Scat: outside the tackle to the number side, flat and fast).
+</div>
+</section>
+
+<section id="quiz" class="hidden">
+<div class="top"><span id="count"></span><span id="score"></span></div>
+<div class="bar"><i id="prog"></i></div>
+<div class="card">
+<div class="call" id="call"></div>
+<div class="hash" id="hash"></div>
+<div class="ask" id="ask"></div>
+<div id="dia"></div>
+<div class="fb" id="fb" aria-live="polite"></div>
+<div class="rule hidden" id="rule"></div>
+<button class="go hidden" id="next">Next</button>
+</div>
+</section>
+
+<section id="done" class="card hidden">
+<div style="text-align:center;font-size:19px" id="who"></div>
+<div id="saved" style="text-align:center;font-size:15px;color:#1f7a30;min-height:20px"></div>
+<div class="big" id="final"></div>
+<div id="missbox"></div>
+<label for="qbox" style="display:block;margin-top:12px">Questions for Coach, or why you picked what you picked:</label>
+<textarea id="qbox" rows="4" style="font:inherit;font-size:18px;width:100%;border:2px solid #111;border-radius:10px;padding:8px;margin:4px 0 10px"></textarea>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+<a class="go" id="sms" href="#" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;text-decoration:none">Text Coach</a>
+<a class="go alt" id="mail" href="#" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;text-decoration:none">Email Coach</a>
+</div>
+<p style="font-size:15px;color:#555;margin:6px 0 0">Sends your score, what you missed, and your question.</p>
+<button class="go" id="again" style="margin-top:14px">Retry the ones I missed</button>
+<button class="go alt" id="home" style="margin-top:10px">Start over</button>
+</section>
+</main>
+<script>
+/* align: FLD | BND | SS | OPP.  dir: L/R for plays with no number.
+   job: carry, or a block target: FLD_ILB BND_ILB FLD_OLB MY_OLB MY_ILB SAFETY MY_CORNER
+   Bite plays (two backs): ss/opp/fld/bnd = what that back does. */
+const PLAYS = [
+ // QB runs: you block (from the call sheet)
+ {g:'qb', name:'Aces Q', fr:'aces_n', rb:'L', ans:0, align:'FLD', job:'FLD_ILB', rule:'Aces Q: line up FLD, block the FLD ILB.'},
+ {g:'qb', name:'Mike Q', nums:[2,3], fr:'mike_n', rb:'L', ans:0, align:'FLD', job:'FLD_OLB', rule:'Mike Q: line up FLD, block the FLD OLB (or safety).'},
+ {g:'qb', name:'Tebow', nums:[2,3], fr:'tebow', rb:'R', ans:0, align:'FLD', job:'BND_ILB', rule:'Gas Tebow: line up FLD, block the BND ILB.'},
+ {g:'qb', name:'Read', fr:'mike_n', rb:'L', ans:0, align:'FLD', job:'FLD_OLB', rule:'Read: line up FLD, block the FLD OLB.'},
+ {g:'qb', name:'Gator', nums:[2,3], fr:'gator', rb:'R', align:'FLD', job:'BOX', rule:'Gas Gator: line up FLD. 2 LBs in the box: block the BND ILB. 1 LB in the box: block the safety.'},
+ {g:'qb', name:'Smack Pepsi', nums:[2,3], fr:'smack_pepsi', rb:'L', ans:0, align:'FLD', job:'FLD_OLB', rule:'Gas Pepsi: line up FLD, block the FLD OLB.'},
+ {g:'qb', name:'Glenda / Gary Q', fr:'gary_n', rb:'R', ans:6, align:'FLD', job:'OVERHANG', rule:'Glenda / Gary Q: trig to the field, you line up same side (field). Block the overhang outside backer.'},
+ {g:'qb', name:'Plank', fr:'pirate', rb:'L', ans:1, dir:'L', align:'SS', job:'MY_CORNER', rule:'Plank (left): line up same side, block the corner.'},
+ {g:'qb', name:'Pirate', fr:'pirate', rb:'L', ans:1, dir:'R', align:'SS', job:'MY_CORNER', rule:'Pirate (right): line up same side, block the corner.'},
+ {g:'qb', name:'Swamp', fr:'swamp', rb:'R', align:'FLD', job:'BOX', rule:'Swamp: line up FLD. 2 LBs in the box: block the BND ILB. 1 LB in the box: block the safety.'},
+ {g:'qb', name:'Zipper', fr:'zipper', rb:'R', ans:7, align:'FLD', job:'FLD_ILB', rule:'Zipper: line up FLD, block the FLD ILB.'},
+ {g:'qb', name:'Uno Q', fr:'uno', rb:'L', ans:2, align:'FLD', job:'BND_ILB', rule:'Uno Q: line up FLD, block the BND ILB.'},
+ {g:'qb', name:'Delta Q', fr:'dirty', rb:'L', ans:0, dir:'L', align:'SS', job:'MY_ILB', rule:'Delta Q (left): line up same side, block the LB over you.'},
+ {g:'qb', name:'Dirty Q', fr:'dirty', rb:'L', ans:0, dir:'R', align:'SS', job:'MY_ILB', rule:'Dirty Q (right): line up same side, block the LB over you.'},
+ // RB runs: you carry
+ {g:'rb', name:'Crab', fr:'crab_i', nums:[2,3], align:'SS', job:'carry'},
+ {g:'rb', name:'Smack', fr:'smack_i', nums:[2,3], align:'SS', job:'carry'},
+ {g:'rb', name:'Power', fr:'po_i', nums:[2,3], align:'SS', job:'carry'},
+ {g:'rb', name:'Split Zone', fr:'split_i', nums:[4,5], align:'SS', job:'carry'},
+ {g:'rb', name:'Split Zip', fr:'zip_i', nums:[4,5], align:'SS', job:'carry'},
+ {g:'rb', name:'Zip', fr:'zip_i', nums:[4,5], align:'SS', job:'carry'},
+ {g:'rb', name:'Scat', fr:'scat_i', nums:[8,9], align:'OPP', job:'carry', aim:'OUT', rule:'Scat: line up opposite the number. Aiming point: outside the tackle to the number side. Flat and fast.'},
+ {g:'rb', name:'Pro', fr:'p2233', nums:[22,33], align:'OPP', job:'carry'},
+ {g:'rb', name:'Pro', fr:'p2233', nums:[44,55], align:'OPP', job:'carry'},
+ {g:'rb', name:'TX Split Zone', fr:'zone5_12', nums:[4,5], align:'OPP', job:'carry'},
+ {g:'rb', name:'TX Split Zip', fr:'zip12', nums:[4,5], align:'OPP', job:'carry'},
+ {g:'rb', name:'TX Over Kick', fr:'kick', nums:[2,3], align:'OPP', job:'carry'},
+ {g:'rb', name:'TX Over Zip', fr:'zip12', nums:[4,5], align:'OPP', job:'carry'},
+ {g:'rb', name:'Unbal Kick', fr:'kick', nums:[2,3], align:'OPP', job:'carry'},
+ {g:'rb', name:'Unbal Zone', fr:'zone4_12', nums:[4,5], align:'OPP', job:'carry'},
+ // Bite: two backs
+ {g:'bite', name:'Bite Smack Pepsi', fr:'smack_pepsi', bite:1, ans:0, nums:[2,3], carrier:'OPP', blocker:'SS', job:'SAFETY', rule:'Bite Pepsi: OPP back gets the ball. SAME SIDE back blocks the safety.'},
+ {g:'bite', name:'Bite Scat', fr:'scat', bite:1, ans:0, nums:[8,9], carrier:'OPP', blocker:'SS', job:'SAFETY', aim:'OUT', rule:'Bite Scat: OPP back gets the ball: aim outside the tackle to the number side, flat and fast. SAME SIDE back blocks the safety.'},
+ {g:'bite', name:'Bite Zone', fr:'zone5', bite:1, ans:2, nums:[4,5], carrier:'SS', blocker:'OPP', job:'MY_OLB', rule:'Bite Zone: SAME SIDE back gets the ball. OPP back blocks the OLB on his side (or the safety).'},
+ {g:'bite', name:'Bite Uno', fr:'uno', bitef:1, ans:2, carrier:'BND', blocker:'FLD', job:'BND_ILB', rule:'Bite Uno: BND back gets the ball. FLD back blocks the BND backer.'},
+ {g:'bite', name:'Bite', fr:'p2233', bite:1, ans:2, nums:[22,33], carrier:'SS', blocker:'OPP', job:'MY_ILB', rule:'Bite 22/33: SAME SIDE back gets the ball. OPP back blocks the backer over him.'},
+];
+const GROUPS = [
+ {id:'qb', label:'QB runs: you block'},
+ {id:'rb', label:'RB runs: you carry'},
+ {id:'bite', label:'Bite: two backs'},
+];
+
+const FR = {"tebow": [["B", -4.3, -2.7, 0], ["B", 0.1, -2.55, 0], ["B", 4.6, -2.3, 1], ["E", -2.8, -1, 0], ["T", -1.4, -1, 0], ["N", 0.6, -1, 0], ["E", 3.0, -1, 0]], "gator": [["$", -3.3, -2.9, 0], ["B", 0.3, -2.1, 0], ["B", 4.3, -2.1, 1], ["E", -2.9, -1, 0], ["N", -0.45, -0.95, 0], ["T", 1.45, -1, 0], ["E", 2.95, -1, 0]], "uno": [["B", -4.1, -2.5, 0], ["B", 0.3, -2.5, 0], ["B", 4.2, -2.25, 0], ["E", -2.8, -1, 0], ["N", -0.8, -1, 0], ["T", 1.5, -1, 0], ["E", 2.75, -1.05, 0]], "dirty": [["B", -3.2, -2.3, 0], ["B", 0.4, -2.25, 0], ["B", 4.05, -2.25, 0], ["E", -2.7, -1, 0], ["N", -0.5, -1, 0], ["T", 1.4, -1, 0], ["E", 2.9, -1.05, 0]], "pirate": [["$", -3.6, -3.4, 0], ["C", -5.9, -2.35, 0], ["E", -3.2, -1.12, 0], ["T", -1.45, -1, 0], ["B", 0.1, -2.2, 0], ["B", 3.7, -2.3, 1], ["N", 0.7, -1, 0], ["E", 3.3, -1, 0]], "swamp": [["$", -3.3, -3.5, 0], ["C", -5.5, -2.6, 0], ["E", -3.2, -1.12, 0], ["T", -1.45, -1, 0], ["B", 0.25, -2.4, 0], ["B", 4.2, -2.4, 1], ["N", 0.6, -1, 0], ["E", 3.1, -1, 0]], "zipper": [["$", -3.45, -3.3, 0], ["C", -5.3, -2.3, 0], ["E", -2.6, -1.0, 0], ["T", -1.35, -1, 0], ["N", 0.6, -1, 0], ["E", 2.95, -1, 0], ["B", 0.2, -2.3, 0], ["B", 3.9, -2.1, 0]], "smack_pepsi": [["$", -4.3, -3.3, 0], ["B", -2.4, -2.3, 0], ["B", 0.1, -2.3, 0], ["B", 2.9, -2.3, 0], ["E", -3.0, -1, 0], ["N", -0.65, -1, 0], ["T", 1.4, -1, 0], ["E", 2.8, -1, 0]], "scat": [["$", -5.4, -3.2, 0], ["B", -3.6, -2.3, 0], ["B", 0.1, -2.3, 0], ["B", 3.3, -2.3, 0], ["E", -2.9, -1.0, 0], ["T", -1.45, -1, 0], ["N", 0.3, -1, 0], ["E", 2.85, -1, 0]], "zone5": [["B", -2.9, -2.25, 0], ["B", 0.4, -2.25, 0], ["B", 3.5, -2.1, 0], ["E", -2.8, -1, 0], ["N", -0.7, -1, 0], ["T", 1.2, -1, 0], ["E", 2.6, -1, 0]], "p2233": [["B", -2.7, -2.25, 0], ["B", 0.2, -2.3, 0], ["B", 4.2, -2.25, 0], ["E", -2.5, -1, 0], ["N", -0.9, -1, 0], ["T", 1.1, -1, 0], ["E", 2.75, -1.05, 0]], "kick": [["$", -4.0, -3.2, 0], ["C", -5.3, -1.9, 0], ["B", -1.3, -2.3, 0], ["B", 1.4, -2.3, 0], ["E", -3.0, -1.05, 0], ["T", -1.5, -1, 0], ["N", 0.3, -1, 0], ["E", 2.8, -1, 0]], "zip12": [["C", -4.8, -1.9, 0], ["B", -0.7, -2.3, 0], ["B", 2.1, -2.3, 0], ["E", -2.6, -1.0, 0], ["T", -1.35, -1, 0], ["N", 0.6, -1, 0], ["E", 2.95, -1, 0], ["$", -3.6, -3.2, 0]], "zone4_12": [["$", -3.9, -3.3, 0], ["C", -5.0, -2.3, 0], ["B", -0.5, -2.3, 0], ["B", 2.0, -2.3, 0], ["E", -3.0, -1.05, 0], ["T", -1.5, -1, 0], ["N", 0.5, -1, 0], ["E", 2.9, -1, 0]], "zone5_12": [["B", -1.2, -2.3, 0], ["B", 1.0, -2.3, 0], ["$", 3.4, -3.2, 0], ["C", 4.6, -1.7, 0], ["E", -2.6, -1, 0], ["N", -0.75, -1, 0], ["T", 1.2, -1, 0], ["E", 3.0, -1.05, 0]], "oregon": [["B", -1.85, -2.3, 0], ["B", 1.35, -2.3, 0], ["B", 5.0, -1.9, 0], ["E", -2.55, -1, 0], ["N", -0.75, -1, 0], ["T", 1.0, -1, 0], ["E", 3.0, -1.05, 0]], "smack_i": [["B", -0.85, -2.3, 0], ["B", 1.1, -2.3, 0], ["V", -2.6, -1.05, 0], ["V", -0.6, -1.05, 0], ["V", 1.15, -1.05, 0], ["V", 2.5, -1.05, 0]], "mike_i": [["B", 0, -2.4, 0], ["V", -2.55, -1.05, 0], ["V", -1.4, -1.05, 0], ["V", 0.5, -1.05, 0], ["V", 2.5, -1.05, 0]], "crab_i": [["B", -1.4, -2.3, 0], ["B", 1.1, -2.3, 0], ["V", -2.55, -1.05, 0], ["V", -1.4, -1.05, 0], ["V", 0.55, -1.05, 0], ["V", 2.5, -1.05, 0]], "po_i": [["B", -0.9, -2.3, 0], ["B", 1.1, -2.3, 0], ["V", -2.6, -1.05, 0], ["V", -1.2, -1.05, 0], ["V", 0.5, -1.05, 0], ["V", 2.5, -1.05, 0]], "zip_i": [["B", -0.9, -2.3, 0], ["B", 1.15, -2.3, 0], ["V", -2.5, -1.05, 0], ["V", -1.3, -1.05, 0], ["V", 0.5, -1.05, 0], ["V", 2.5, -1.05, 0]], "aces_i": [["B", -2.8, -2.3, 0], ["B", 0, -2.4, 0], ["B", 2.8, -2.3, 0], ["V", -2.5, -1.05, 0], ["V", -1.35, -1.05, 0], ["V", 0.5, -1.05, 0], ["V", 2.45, -1.05, 0]], "thor_i": [["B", -0.85, -2.4, 0], ["B", 1.15, -2.4, 0], ["V", -2.3, -1.05, 0], ["V", -1.15, -1.05, 0], ["V", 0.6, -1.05, 0], ["V", 2.8, -1.05, 0]], "split_i": [["B", -0.85, -2.4, 0], ["B", 1.1, -2.4, 0], ["V", -2.3, -1.05, 0], ["V", -1.25, -1.05, 0], ["V", 0.6, -1.05, 0], ["V", 2.9, -1.05, 0]], "scat_i": [["B", -1.55, -2.4, 0], ["B", 0.7, -2.4, 0], ["V", -2.6, -1.05, 0], ["V", -0.5, -1.05, 0], ["V", 1.25, -1.05, 0], ["V", 2.75, -1.05, 0]], "gary_i": [["B", -1.5, -2.4, 0], ["B", 0.65, -2.4, 0], ["V", -2.4, -1.05, 0], ["V", -0.5, -1.05, 0], ["V", 1.2, -1.05, 0], ["V", 2.35, -1.05, 0]], "mike_n": [["B", -2.95, -2.2, 1], ["B", 0, -2.2, 0], ["B", 2.5, -2.2, 0], ["$", 4.4, -3.3, 0], ["E", -2.9, -1, 0], ["T", -1.2, -1, 0], ["N", 0.7, -1, 0], ["E", 3.1, -1, 0]], "aces_n": [["B", -3.4, -2.2, 1], ["B", 0, -2.2, 0], ["B", 3.7, -2.2, 0], ["$", 5.6, -3.2, 0], ["E", -2.9, -1, 0], ["N", -0.3, -1, 0], ["T", 1.4, -1, 0], ["E", 3.0, -1, 0]], "gary_n": [["B", -1.5, -2.4, 0], ["B", 0.65, -2.4, 0], ["V", -2.4, -1.05, 0], ["V", -0.5, -1.05, 0], ["V", 1.2, -1.05, 0], ["V", 2.35, -1.05, 0], ["B", 3.7, -1.9, 0]]};
+const W = 560, OLY = 205, UX = 22, UY = 30;
+function side(n){ return n % 2 ? 'L' : 'R'; }
+function flip(s){ return s === 'L' ? 'R' : 'L'; }
+
+function build(p){
+  const hashL = Math.random() < .5;          // ball on left hash -> field is right
+  const field = hashL ? 'R' : 'L';
+  const num = p.nums ? p.nums[Math.floor(Math.random()*p.nums.length)] : null;
+  const playSide = num !== null ? side(num) : (p.dir || null);
+  const resolve = a => a === 'FLD' ? field : a === 'BND' ? flip(field) : a === 'SS' ? playSide : flip(playSide);
+  const callName = num !== null ? (p.name.startsWith('Bite') && num > 9 ? 'Bite ' + num : p.name.startsWith('Pro') ? 'Pro ' + num : (p.name.replace(/^(TX|Unbal|Bite)( Over| Smack)?\s*/, m => m) + '').replace(/^/, '')) : p.name;
+  let call = p.name;
+  if (num !== null) {
+    if (p.name === 'Pro') call = 'Pro ' + num;
+    else if (p.name === 'Bite') call = 'Bite ' + num;
+    else if (p.name.startsWith('Bite ')) call = 'Bite ' + num + ' ' + p.name.slice(5);
+    else if (p.name.startsWith('TX Over ')) call = 'TX Over ' + num + ' ' + p.name.slice(8);
+    else if (p.name.startsWith('TX ')) call = 'TX ' + num + ' ' + p.name.slice(3);
+    else if (p.name.startsWith('Unbal ')) call = 'Unbal ' + num + ' ' + p.name.slice(6);
+    else call = num + ' ' + p.name;
+  }
+  const q = {p, call, hashL, field, num, playSide};
+  if (p.g === 'bite') {
+    q.me = Math.random() < .5 ? 'L' : 'R';
+    const carrierSide = resolve(p.carrier);
+    q.carry = q.me === carrierSide;
+    q.mySide = q.me;
+    q.target = q.carry ? 'aim' : p.job;
+    q.rule = p.rule;
+  } else {
+    q.align = resolve(p.align);
+    q.mySide = q.align;
+    q.target = p.job === 'carry' ? 'aim' : p.job;
+    q.rule = p.rule || (call + ': line up ' + (p.align === 'SS' ? 'same side as the ' + num + ' (' + (q.align === 'L' ? 'left' : 'right') + ')' : 'opposite the ' + num + ' (' + (q.align === 'L' ? 'left' : 'right') + ')') + '. You carry it: aim right up the center’s backside.');
+  }
+  return q;
+}
+
+function targetId(q){
+  const t = q.target, f = q.field, b = flip(f), m = q.mySide, D = q.D;
+  if (t === 'aim') return q.p.aim === 'OUT' ? 'aim-O' + q.playSide : 'aim-C';
+  if (q.p.ans !== undefined) return 'd' + q.p.ans;
+  const of = (cls, sd) => D.filter(d => d[4] === cls && (!sd || d[5] === sd));
+  const inner = a => a.slice().sort((p, r) => Math.abs(p[6]) - Math.abs(r[6]))[0];
+  const deep = a => a.slice().sort((p, r) => p[7] - r[7])[0];
+  const nearSide = (cls, sd) => inner(of(cls, sd)) || of(cls).slice().sort((p, r) => sd === 'R' ? r[6] - p[6] : p[6] - r[6])[0];
+  let d = null;
+  if (t === 'BOX') { const box = D.filter(x => x[3] === 'B' && !x[8] && Math.abs(x[6]) <= 2.5); d = box.length >= 2 ? (box.filter(x => x[5] === b).sort((p, r) => Math.abs(p[6]) - Math.abs(r[6]))[0] || box[0]) : (deep(of('saf')) || deep(D.filter(x => x[4] !== 'dl'))); }
+  if (t === 'FLD_ILB') d = nearSide('ilb', f);
+  if (t === 'BND_ILB') d = nearSide('ilb', b);
+  if (t === 'MY_ILB') d = nearSide('ilb', m);
+  if (t === 'FLD_OLB') d = inner(of('olb', f)) || deep(of('saf')) || nearSide('ilb', f);
+  if (t === 'MY_OLB') d = inner(of('olb', m)) || deep(of('saf')) || nearSide('ilb', m);
+  if (t === 'SAFETY') d = deep(of('saf')) || deep(D.filter(x => x[4] !== 'dl'));
+  if (t === 'MY_CORNER') d = of('cb', m)[0] || D.filter(x => x[4] !== 'dl' && x[5] === m).sort((p, r) => Math.abs(r[6]) - Math.abs(p[6]))[0] || of('cb')[0];
+  return d ? d[0] : 'aim-C';
+}
+
+function tapper(id, x, y, r, inner){
+  return '<g class="tap" data-id="' + id + '"><circle class="hit" cx="' + x + '" cy="' + y + '" r="' + r + '"></circle>' + inner + '</g>';
+}
+function txt(t, x, y, size, color){
+  return '<text x="' + x + '" y="' + y + '" text-anchor="middle" dominant-baseline="central" font-size="' + (size||18) + '" fill="' + (color||'#111') + '">' + t + '</text>';
+}
+
+function draw(q){
+  const bx = q.hashL ? 190 : 370, f = q.field === 'R' ? 1 : -1;
+  let s = '';
+  s += '<rect x="0" y="0" width="560" height="300" fill="#3d8b45"></rect>';
+  s += '<rect x="10" y="0" width="540" height="300" fill="#4a9a52"></rect>';
+  for (let y = 20; y <= 290; y += 45) s += '<line x1="10" x2="550" y1="' + y + '" y2="' + y + '" stroke="#ffffff" stroke-opacity=".35" stroke-width="2"></line>';
+  [190, 370].forEach(h => { for (let y = 20; y <= 290; y += 9) s += '<line x1="' + (h-5) + '" x2="' + (h+5) + '" y1="' + y + '" y2="' + y + '" stroke="#fff" stroke-width="2"></line>'; });
+  const fx = q.field === 'R' ? 470 : 90, bdx = q.field === 'R' ? 55 : 505;
+  s += txt('FIELD', fx, 280, 22, '#ffffff') + txt('BND', bdx, 280, 20, '#ffffff');
+  // defense from the play's diagram, mirrored so its strength sits to the field
+  const raw = FR[q.p.fr];
+  const dol = raw.find(d => d[0] === '$') || raw.find(d => d[3]);
+  const fs = dol ? Math.sign(dol[1]) : (Math.sign(raw.filter(d => 'BC$'.includes(d[0])).reduce((a, d) => a + d[1], 0)) || 1);
+  let m = fs === f ? 1 : -1;
+  if (q.p.rb) m = q.p.rb === q.mySide ? 1 : -1;
+  if (q.p.bite) m = q.playSide === 'L' ? 1 : -1;
+  if (q.p.bitef) m = q.field === 'L' ? 1 : -1;
+  const D = [];
+  raw.forEach((d, k) => {
+    const x = d[1] * m, px = Math.max(26, Math.min(534, bx + x * UX)), py = Math.max(24, OLY + d[2] * UY);
+    let cls = 'dl';
+    if (d[0] === '$') cls = 'saf'; else if (d[0] === 'C') cls = 'cb'; else if (d[0] === 'B') cls = Math.abs(x) <= 2.3 ? 'ilb' : 'olb';
+    D.push(['d' + k, px, py, d[0], cls, x < 0 ? 'L' : 'R', x, d[2], d[3]]);
+  });
+  // offense
+  for (let k = -2; k <= 2; k++) {
+    if (k === 0) s += '<rect x="' + (bx-8) + '" y="' + (OLY-8) + '" width="16" height="16" fill="#111"></rect>';
+    else s += '<circle cx="' + (bx + k*22) + '" cy="' + OLY + '" r="9" fill="#fff" stroke="#111" stroke-width="2"></circle>';
+  }
+  s += txt('Q', bx, 252, 20, '#fff');
+  q.D = D;
+  return s;
+}
+
+let log = [], deck = [], i = 0, right = 0, missed = [], stage = 0, picked = new Set(['qb','rb','bite']);
+const $ = id => document.getElementById(id);
+
+function drawGroups(){
+  $('groups').innerHTML = '';
+  GROUPS.forEach(g => {
+    const b = document.createElement('button');
+    b.className = 'chip';
+    b.textContent = g.label + ' (' + PLAYS.filter(p => p.g === g.id).length + ')';
+    b.setAttribute('aria-pressed', picked.has(g.id));
+    b.onclick = () => { picked.has(g.id) ? picked.delete(g.id) : picked.add(g.id); drawGroups(); };
+    $('groups').appendChild(b);
+  });
+}
+function shuffle(a){ for (let k = a.length-1; k > 0; k--){ const j = Math.floor(Math.random()*(k+1)); [a[k],a[j]] = [a[j],a[k]]; } return a; }
+function begin(plays){
+  if (!plays.length) return;
+  deck = shuffle(plays.map(build)); i = 0; right = 0; missed = []; log = [];
+  $('start').classList.add('hidden'); $('done').classList.add('hidden'); $('quiz').classList.remove('hidden');
+  show();
+}
+
+function render(){
+  const q = deck[i];
+  let s = draw(q);
+  const bx = q.hashL ? 190 : 370;
+  let taps = '';
+  if (stage === 1) {
+    taps += tapper('al-L', bx - 30, 250, 18, txt('?', bx - 30, 250, 22, '#ffd84d'));
+    taps += tapper('al-R', bx + 30, 250, 18, txt('?', bx + 30, 250, 22, '#ffd84d'));
+  } else {
+    const me = q.mySide === 'L' ? bx - 30 : bx + 30;
+    s += '<circle cx="' + me + '" cy="250" r="12" fill="#ffd84d" stroke="#111" stroke-width="2"></circle>' + txt('T', me, 250, 17);
+    if (q.p.g === 'bite') { const o = q.mySide === 'L' ? bx + 30 : bx - 30; s += '<circle cx="' + o + '" cy="250" r="11" fill="#fff" stroke="#111" stroke-width="2"></circle>' + txt('T', o, 250, 16); }
+    q.D.forEach(d => { if (d[8]) s += '<circle cx="' + d[1] + '" cy="' + d[2] + '" r="15" fill="none" stroke="#111" stroke-width="1.6" stroke-dasharray="2 4"></circle>'; taps += tapper(d[0], d[1], d[2], 17, txt(d[3], d[1], d[2], 19)); });
+    [['aim-OL',-55],['aim-L',-22],['aim-C',0],['aim-R',22],['aim-OR',55]].forEach(a => taps += tapper(a[0], bx + a[1], OLY + 22, 10, '<circle cx="' + (bx+a[1]) + '" cy="' + (OLY+22) + '" r="5" fill="#ffd84d"></circle>'));
+  }
+  $('dia').innerHTML = '<svg viewBox="0 0 560 300" role="img" aria-label="Field with the ball on the ' + (q.hashL ? 'left' : 'right') + ' hash">' + s + taps + '</svg>';
+  $('dia').querySelectorAll('.tap').forEach(el => { el.classList.add('live'); el.addEventListener('click', () => answer(el)); });
+}
+
+function show(){
+  const q = deck[i];
+  stage = q.p.g === 'bite' ? 2 : 1;
+  $('count').textContent = 'Rep ' + (i+1) + ' of ' + deck.length;
+  $('score').textContent = right + ' right';
+  $('prog').style.width = (i/deck.length*100) + '%';
+  $('call').textContent = q.call;
+  $('hash').textContent = 'Ball on the ' + (q.hashL ? 'LEFT' : 'RIGHT') + ' hash' + (q.p.g === 'bite' ? ' • You are the ' + (q.me === 'L' ? 'LEFT' : 'RIGHT') + ' back' : '');
+  $('ask').textContent = stage === 1 ? 'Step 1: Tap where you line up.' : 'Tap your man if you block. Tap a yellow dot if you get the ball.';
+  $('fb').textContent = ''; $('fb').className = 'fb';
+  $('rule').classList.add('hidden'); $('next').classList.add('hidden');
+  q.wrong = false;
+  render();
+}
+
+function lock(el, good, id){
+  $('dia').querySelectorAll('.tap').forEach(t => t.classList.remove('live'));
+  const g = $('dia').querySelector('[data-id="' + id + '"]'); if (g) g.classList.add('right');
+  if (!good) el.classList.add('wrong');
+}
+
+function answer(el){
+  const q = deck[i]; if (!stage) return;
+  const id = el.dataset.id;
+  if (stage === 1) {
+    const want = 'al-' + q.align, good = id === want;
+    lock(el, good, want); stage = 0;
+    if (!good) { q.wrong = true; q.notes = (q.notes || []).concat('lined up ' + (q.align === 'L' ? 'right' : 'left') + ' (should be ' + (q.align === 'L' ? 'left' : 'right') + ')'); }
+    $('fb').textContent = good ? 'Right spot!' : 'Wrong side.'; $('fb').className = 'fb ' + (good ? 'ok' : 'no');
+    setTimeout(() => {
+      stage = 2; render();
+      $('ask').textContent = q.target === 'aim' ? 'Step 2: You get the ball. Tap your aiming point.' : 'Step 2: Tap the man you block.';
+      $('fb').textContent = good ? '' : 'You belong on the ' + (q.align === 'L' ? 'left' : 'right') + '.';
+    }, 900);
+    return;
+  }
+  const want = targetId(q), good = id === want;
+  lock(el, good, want); stage = 0;
+  if (!good) { q.wrong = true; const pd = q.D.find(x => x[0] === id); q.notes = (q.notes || []).concat(id.startsWith('aim') ? 'wrong aiming point' : 'blocked the ' + (pd ? pd[3] : 'wrong man') + ' (wrong man)'); }
+  if (!q.wrong) right++; else { missed.push(q.p); log.push(q.call + ' (ball on ' + (q.hashL ? 'left' : 'right') + ' hash): ' + q.notes.join(', ')); }
+  $('fb').textContent = good ? (q.target === 'aim' ? 'Right up the center’s backside!' : 'That’s your man!') : (q.target === 'aim' ? 'You get the ball. Aim right up the center’s backside.' : 'Not him. Green is your man.');
+  $('fb').className = 'fb ' + (good ? 'ok' : 'no');
+  $('rule').textContent = q.rule; $('rule').classList.remove('hidden');
+  $('score').textContent = right + ' right';
+  $('next').textContent = i + 1 < deck.length ? 'Next' : 'See score';
+  $('next').classList.remove('hidden');
+}
+
+function finish(){
+  $('quiz').classList.add('hidden'); $('done').classList.remove('hidden');
+  const nm = $('nm').value.trim();
+  $('who').textContent = nm ? nm + ' scored' : 'You scored';
+  $('final').textContent = right + ' / ' + deck.length;
+  const names = [...new Set(missed.map(p => p.name))];
+  $('missbox').innerHTML = names.length ? '<div style="font-size:20px">Work on these:</div><ul>' + names.map(n => '<li>' + n + '</li>').join('') + '</ul>' : '<p style="text-align:center;font-size:19px">Perfect. Nothing missed.</p>';
+  $('again').classList.toggle('hidden', !names.length);
+  setSend();
+  attemptId = null; save();
+}
+const SOL_DB = (window.SOL_CONFIG && window.SOL_CONFIG.db) || 'https://cardinal-booth-default-rtdb.firebaseio.com';
+const SCHOOL = (new URLSearchParams(location.search).get('s') || 'melissa').toLowerCase().replace(/[^a-z0-9_-]/g, '');
+let attemptId = null;
+function save(){
+  const rec = { name: ($('nm').value.trim() || 'Player').slice(0, 60), score: right, total: deck.length, at: Date.now(),
+    groups: GROUPS.filter(g => picked.has(g.id)).map(g => g.label).join(', ').slice(0, 400),
+    missed: log.join('\n').slice(0, 4000), plays: [...new Set(missed.map(p => p.name))].join('|').slice(0, 4000),
+    question: $('qbox').value.trim().slice(0, 4000) };
+  const url = attemptId ? SOL_DB + '/quiz/' + SCHOOL + '/' + attemptId + '.json' : SOL_DB + '/quiz/' + SCHOOL + '.json';
+  fetch(url, { method: 'POST', body: JSON.stringify(rec) }).then(r => r.json()).then(j => { attemptId = j && j.name; $('saved').textContent = 'Saved for Coach \u2713'; }).catch(() => { $('saved').textContent = 'Could not save. Use Text Coach.'; });
+}
+function saveQuestion(){
+  if (!attemptId) return;
+  fetch(SOL_DB + '/quiz/' + SCHOOL + '/' + attemptId + '/question.json', { method: 'PUT', body: JSON.stringify($('qbox').value.trim().slice(0, 4000)) })
+    .then(r => { if (r.ok) $('saved').textContent = 'Saved for Coach \u2713 (question too)'; }).catch(() => {});
+}
+let qTimer = null;
+$('qbox').addEventListener('input', () => { clearTimeout(qTimer); qTimer = setTimeout(saveQuestion, 800); });
+const COACH_PHONE = '+12145786616', COACH_EMAIL = '';
+function report(){
+  const nm = $('nm').value.trim() || 'A player';
+  let t = 'DeSoto RB Quiz \u2013 ' + nm + ': ' + right + '/' + deck.length + '\n';
+  t += log.length ? 'Missed:\n' + log.map(l => '- ' + l).join('\n') : 'Missed: none';
+  const qq = $('qbox').value.trim();
+  if (qq) t += '\nQuestion: ' + qq;
+  return t;
+}
+function setSend(){
+  const body = encodeURIComponent(report());
+  $('sms').href = 'sms:' + COACH_PHONE + '?&body=' + body;
+  $('mail').href = 'mailto:' + COACH_EMAIL + '?subject=' + encodeURIComponent('RB Quiz: ' + ($('nm').value.trim() || 'player')) + '&body=' + body;
+}
+$('qbox').addEventListener('input', setSend);
+$('sms').addEventListener('click', e => { e.preventDefault(); saveQuestion(); const u = $('sms').href; try { window.top.location.href = u; } catch (x) { const w = window.open(u, '_blank'); if (!w) location.href = u; } });
+
+$('next').onclick = () => { i++; i < deck.length ? show() : finish(); };
+$('begin').onclick = () => { if (!$('nm').value.trim()) { $('nm').focus(); $('nm').style.borderColor = '#c0392b'; $('nm').placeholder = 'Type your name first'; return; } begin(PLAYS.filter(p => picked.has(p.g))); };
+$('again').onclick = () => begin([...new Set(missed)]);
+$('home').onclick = () => { $('done').classList.add('hidden'); $('start').classList.remove('hidden'); };
+drawGroups();
+</script>
+</body>
+</html>

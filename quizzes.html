@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Solutions Player Quizzes</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600;700&display=swap">
+<style>
+/* Player quizzes: every attempt players send from quiz.html, for coaches only. */
+:root {
+  --bg: #f3f2f0; --panel: #ffffff; --ink: #16171b; --muted: #62656d; --line: #dcdad6;
+  --bar: #0d0e12; --barink: #f4f4f5; --school: #e0302a; --chip: #ecebe8; --good: #1f7a30; --bad: #b03024;
+  --f-display: "Barlow Condensed", "Arial Narrow", sans-serif; --f-body: "Barlow", "Segoe UI", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root { --bg: #121316; --panel: #1b1d21; --ink: #ecedef; --muted: #a2a5ad; --line: #2e3137; --chip: #2a2d33; --good: #6fd38a; --bad: #ff8a80; color-scheme: dark } }
+* { box-sizing: border-box } [hidden] { display: none !important }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.4; margin: 0 }
+.gut { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)) }
+header { position: sticky; top: 0; z-index: 5; background: var(--bar); color: var(--barink); border-bottom: 3px solid var(--school); padding-block: 10px }
+.hrow { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; max-width: 1100px; margin: 0 auto }
+.brand { font-family: var(--f-display); font-weight: 800; font-size: 22px; letter-spacing: .03em; text-transform: uppercase }
+.brand .school { color: color-mix(in srgb, var(--school) 60%, #fff) }
+.tabs { display: flex; gap: 6px; max-width: 1100px; margin: 8px auto 0; flex-wrap: wrap }
+.tabs button, .tabs a { font-family: var(--f-display); font-weight: 700; font-size: 16px; letter-spacing: .06em; text-transform: uppercase; padding: 6px 12px; border-radius: 7px; border: 0; background: transparent; color: #b9bbc0; cursor: pointer; text-decoration: none }
+.tabs [aria-selected="true"] { background: #fff; color: #0d0e12 }
+main { max-width: 1100px; margin: 0 auto; padding-block: 14px; display: flex; flex-direction: column; gap: 12px }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; min-width: 0 }
+h2 { font-family: var(--f-display); font-weight: 700; font-size: 16px; letter-spacing: .1em; text-transform: uppercase; margin: 0 0 8px; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap }
+h2 small { font-family: var(--f-body); font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--muted); font-size: 13px; margin-left: auto }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center }
+.btn { font: 700 15px var(--f-body); min-height: 40px; padding: 6px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--chip); color: var(--ink); cursor: pointer; text-decoration: none; display: inline-flex; align-items: center }
+.btn.danger { color: var(--bad) }
+.btn.primary { background: var(--school); color: #fff; border-color: var(--school) }
+select, input { font: 500 15px var(--f-body); min-height: 40px; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--ink) }
+table { width: 100%; border-collapse: collapse; font-size: 14.5px }
+th { text-align: left; font: 700 12px var(--f-body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: 6px 8px; border-bottom: 1px solid var(--line) }
+td { padding: 8px; border-bottom: 1px solid var(--line); vertical-align: top }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums }
+.scroll { overflow-x: auto }
+.att { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px }
+.att .top { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap }
+.att .nm { font-family: var(--f-display); font-weight: 800; font-size: 22px }
+.att .sc { font-family: var(--f-display); font-weight: 800; font-size: 22px; font-variant-numeric: tabular-nums }
+.att .when { color: var(--muted); font-size: 13.5px }
+.att .del { margin-left: auto }
+.miss { white-space: pre-line; font-size: 14px; color: var(--ink) }
+.q { background: color-mix(in srgb, var(--school) 10%, var(--panel)); border-radius: 8px; padding: 8px 10px; font-size: 15px }
+.muted { color: var(--muted) }
+.list { display: flex; flex-direction: column; gap: 10px }
+.good { color: var(--good) } .bad { color: var(--bad) }
+.bar { height: 8px; background: var(--chip); border-radius: 5px; overflow: hidden; min-width: 80px }
+.bar i { display: block; height: 100%; background: var(--school) }
+.msg { padding: 12px 14px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line) }
+.link { font-family: ui-monospace, Menlo, monospace; font-size: 13.5px; word-break: break-all }
+</style>
+</head>
+<body>
+<header class="gut">
+  <div class="hrow"><div class="brand"><span class="school" id="schoolName">SOLUTIONS</span> PLAYER QUIZZES</div></div>
+  <div class="tabs" data-solnav="quizzes"></div>
+</header>
+<main class="gut">
+  <div class="msg" id="msg" hidden></div>
+
+  <section class="panel" id="sharePanel" hidden>
+    <h2>Quiz link for players <small>no account needed</small></h2>
+    <div class="row"><span class="link" id="qlink"></span><button class="btn" id="copyLink" type="button">Copy link</button><a class="btn" id="openQuiz" target="_blank" rel="noopener">Open quiz</a></div>
+  </section>
+
+  <section class="panel" id="sumPanel" hidden>
+    <h2>Players <small id="sumNote"></small></h2>
+    <div class="scroll"><table>
+      <thead><tr><th>Player</th><th class="num">Tries</th><th class="num">Last</th><th class="num">Best</th><th>Last try</th></tr></thead>
+      <tbody id="sumBody"></tbody>
+    </table></div>
+  </section>
+
+  <section class="panel" id="missPanel" hidden>
+    <h2>Most missed plays <small>across every attempt shown</small></h2>
+    <div class="scroll"><table><tbody id="missBody"></tbody></table></div>
+  </section>
+
+  <section class="panel" id="attPanel" hidden>
+    <h2>Attempts <small id="attNote"></small></h2>
+    <div class="row" style="margin-bottom:10px">
+      <label for="who" class="muted">Player</label>
+      <select id="who"><option value="">Everyone</option></select>
+      <label class="row muted" style="gap:6px"><input type="checkbox" id="qOnly"> Only ones with a question</label>
+      <button class="btn danger" id="clearAll" type="button" style="margin-left:auto">Clear all attempts</button>
+    </div>
+    <div class="list" id="attList"></div>
+  </section>
+</main>
+<script src="nav.js"></script>
+<script>
+window.SOL_CONFIG = window.SOL_CONFIG || { db: "https://cardinal-booth-default-rtdb.firebaseio.com", apiKey: "AIzaSyDm0t01_w92gL5sm4_1RnVLip7xWkjb9ME" };
+(function () {
+  "use strict";
+  var SOL = window.SOL_CONFIG, $ = function (id) { return document.getElementById(id) };
+  function authGet() { try { return JSON.parse(localStorage.getItem("solutions-auth-v1") || "null") } catch (e) { return null } }
+  function solToken() { var a = authGet(); if (!a || !a.school) return Promise.reject(new Error("NO_SESSION")); if (a.exp > Date.now() + 60000) return Promise.resolve(a.idToken);
+    return fetch("https://securetoken.googleapis.com/v1/token?key=" + SOL.apiKey, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "grant_type=refresh_token&refresh_token=" + encodeURIComponent(a.refreshToken) }).then(function (r) { return r.json() }).then(function (d) { if (d.error) throw new Error("NO_SESSION"); a.idToken = d.id_token; a.refreshToken = d.refresh_token; a.exp = Date.now() + (+d.expires_in - 60) * 1000; try { localStorage.setItem("solutions-auth-v1", JSON.stringify(a)) } catch (e) {} return a.idToken }) }
+  function url(path) { var a = authGet(); return solToken().then(function (t) { return SOL.db + "/quiz/" + encodeURIComponent(a.school) + (path ? "/" + path : "") + ".json?auth=" + encodeURIComponent(t) }) }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] }) }
+  function msg(t) { $("msg").innerHTML = t; $("msg").hidden = !t }
+  function when(ms) { var d = new Date(ms); return d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" }) + " " + d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) }
+  function pct(a) { return a.total ? Math.round(a.score / a.total * 100) : 0 }
+
+  var ALL = [];
+  var acc = authGet();
+  if (!acc || !acc.school) { msg("Sign in to Solutions first, then come back to this page. <a href='app.html'>Go to sign in</a>"); return }
+  $("schoolName").textContent = String(acc.school).toUpperCase();
+  var quizUrl = new URL("quiz.html" + (acc.school === "melissa" ? "" : "?s=" + encodeURIComponent(acc.school)), location.href).href;
+  $("qlink").textContent = quizUrl; $("openQuiz").href = quizUrl; $("sharePanel").hidden = false;
+  $("copyLink").onclick = function () { (navigator.clipboard ? navigator.clipboard.writeText(quizUrl) : Promise.reject()).then(function () { $("copyLink").textContent = "Copied" }, function () { $("copyLink").textContent = "Select the link to copy" }) };
+
+  function load() {
+    msg("Loading attempts…");
+    url("").then(function (u) { return fetch(u) }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json() }).then(function (d) {
+      ALL = Object.keys(d || {}).map(function (k) { var a = d[k]; a.id = k; return a }).sort(function (x, y) { return y.at - x.at });
+      msg(ALL.length ? "" : "No attempts yet. Send your players the quiz link above.");
+      draw();
+    }).catch(function (e) { msg(/NO_SESSION/.test(e.message) ? "Your sign-in ran out. <a href='app.html'>Sign in again</a>" : "Couldn't load attempts (" + esc(e.message) + "). Check your connection and reload.") });
+  }
+
+  function draw() {
+    var names = {}; ALL.forEach(function (a) { var k = a.name.trim().toLowerCase(); (names[k] = names[k] || { name: a.name.trim(), list: [] }).list.push(a) });
+    var keys = Object.keys(names).sort();
+    var sel = $("who"), keep = sel.value;
+    sel.innerHTML = "<option value=''>Everyone</option>" + keys.map(function (k) { return "<option value='" + esc(k) + "'>" + esc(names[k].name) + "</option>" }).join("");
+    sel.value = names[keep] ? keep : "";
+    $("sumBody").innerHTML = keys.map(function (k) { var L = names[k].list, last = L[0], best = L.reduce(function (b, a) { return pct(a) > pct(b) ? a : b }, L[0]);
+      return "<tr><td>" + esc(names[k].name) + "</td><td class='num'>" + L.length + "</td><td class='num'>" + last.score + "/" + last.total + "</td><td class='num'>" + best.score + "/" + best.total + "</td><td class='muted'>" + esc(when(last.at)) + "</td></tr>" }).join("");
+    $("sumNote").textContent = keys.length + " player" + (keys.length === 1 ? "" : "s");
+    $("sumPanel").hidden = !ALL.length;
+
+    var shown = ALL.filter(function (a) { return (!sel.value || a.name.trim().toLowerCase() === sel.value) && (!$("qOnly").checked || (a.question || "").trim()) });
+    var cnt = {}; shown.forEach(function (a) { String(a.plays || "").split("|").filter(Boolean).forEach(function (p) { cnt[p] = (cnt[p] || 0) + 1 }) });
+    var top = Object.keys(cnt).sort(function (x, y) { return cnt[y] - cnt[x] }).slice(0, 10), mx = top.length ? cnt[top[0]] : 1;
+    $("missBody").innerHTML = top.map(function (p) { return "<tr><td>" + esc(p) + "</td><td style='width:45%'><div class='bar'><i style='width:" + Math.round(cnt[p] / mx * 100) + "%'></i></div></td><td class='num'>" + cnt[p] + "×</td></tr>" }).join("");
+    $("missPanel").hidden = !top.length;
+
+    $("attNote").textContent = shown.length + " shown";
+    $("attList").innerHTML = shown.map(function (a) {
+      var p = pct(a);
+      return "<div class='att'><div class='top'><span class='nm'>" + esc(a.name) + "</span><span class='sc " + (p >= 80 ? "good" : p < 60 ? "bad" : "") + "'>" + a.score + "/" + a.total + "</span><span class='when'>" + esc(when(a.at)) + (a.groups ? " · " + esc(a.groups) : "") + "</span>" +
+        "<button class='btn danger del' type='button' data-del='" + esc(a.id) + "' aria-label='Delete this attempt by " + esc(a.name) + "'>Delete</button></div>" +
+        (a.question ? "<div class='q'><b>Question:</b> " + esc(a.question) + "</div>" : "") +
+        (a.missed ? "<div class='miss'>" + esc(a.missed) + "</div>" : "<div class='good'>Nothing missed.</div>") + "</div>";
+    }).join("");
+    $("attPanel").hidden = !ALL.length;
+  }
+
+  $("who").onchange = draw; $("qOnly").onchange = draw;
+  $("attList").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-del]"); if (!b) return;
+    var a = ALL.find(function (x) { return x.id === b.dataset.del });
+    if (!a || !confirm("Delete " + a.name + "'s attempt (" + a.score + "/" + a.total + ", " + when(a.at) + ")? This can't be undone.")) return;
+    b.disabled = true;
+    url(a.id).then(function (u) { return fetch(u, { method: "DELETE" }) }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); ALL = ALL.filter(function (x) { return x.id !== a.id }); if (!ALL.length) msg("No attempts yet. Send your players the quiz link above."); draw() })
+      .catch(function (e) { b.disabled = false; msg("Couldn't delete (" + esc(e.message) + ").") });
+  });
+  $("clearAll").onclick = function () {
+    if (!ALL.length || !confirm("Delete all " + ALL.length + " attempts for every player? This can't be undone.")) return;
+    url("").then(function (u) { return fetch(u, { method: "DELETE" }) }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); ALL = []; msg("All attempts cleared."); draw() })
+      .catch(function (e) { msg("Couldn't clear (" + esc(e.message) + ").") });
+  };
+  load();
+})();
+</script>
+</body>
+</html>

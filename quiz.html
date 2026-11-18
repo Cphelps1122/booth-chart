@@ -27,7 +27,7 @@ button{font:inherit;cursor:pointer}
 svg{width:100%;height:auto;display:block;font-family:'Barlow Condensed',sans-serif;font-weight:700;user-select:none}
 .tap{cursor:pointer}
 .tap .hit{fill:rgba(255,255,255,.001);stroke:#111;stroke-width:0}
-.live .hit{stroke:#ffd84d;stroke-width:3;stroke-dasharray:4 4}
+.live .hit{stroke:#ffd84d;stroke-width:2;stroke-dasharray:4 4}
 .right .hit{fill:#c9efcf;stroke:#1f9a3a;stroke-width:3;stroke-dasharray:none}
 .wrong .hit{fill:#f7c9c4;stroke:#c0392b;stroke-width:3;stroke-dasharray:none}
 .fb{text-align:center;font-size:19px;min-height:30px;margin:6px 0}
@@ -213,8 +213,8 @@ function draw(q){
   s += '<rect x="10" y="0" width="540" height="300" fill="#4a9a52"></rect>';
   for (let y = 20; y <= 290; y += 45) s += '<line x1="10" x2="550" y1="' + y + '" y2="' + y + '" stroke="#ffffff" stroke-opacity=".35" stroke-width="2"></line>';
   [190, 370].forEach(h => { for (let y = 20; y <= 290; y += 9) s += '<line x1="' + (h-5) + '" x2="' + (h+5) + '" y1="' + y + '" y2="' + y + '" stroke="#fff" stroke-width="2"></line>'; });
-  const fx = q.field === 'R' ? 470 : 90, bdx = q.field === 'R' ? 55 : 505;
-  s += txt('FIELD', fx, 280, 22, '#ffffff') + txt('BND', bdx, 280, 20, '#ffffff');
+  const fx = bx + f*128, bdx = bx - f*132;
+  s += txt('FIELD', fx, 282, 24, '#ffffff') + txt('BND', bdx, 282, 22, '#ffffff');
   // defense from the play's diagram, mirrored so its strength sits to the field
   const raw = FR[q.p.fr];
   const dol = raw.find(d => d[0] === '$') || raw.find(d => d[3]);
@@ -268,17 +268,25 @@ function render(){
   const bx = q.hashL ? 190 : 370;
   let taps = '';
   if (stage === 1) {
-    taps += tapper('al-L', bx - 30, 250, 18, txt('?', bx - 30, 250, 22, '#ffd84d'));
-    taps += tapper('al-R', bx + 30, 250, 18, txt('?', bx + 30, 250, 22, '#ffd84d'));
+    taps += tapper('al-L', bx - 32, 252, 20, '<circle cx="' + (bx-32) + '" cy="252" r="15" fill="none" stroke="#ffd84d" stroke-width="2.5"></circle>' + txt('?', bx - 32, 252, 24, '#ffd84d'));
+    taps += tapper('al-R', bx + 32, 252, 20, '<circle cx="' + (bx+32) + '" cy="252" r="15" fill="none" stroke="#ffd84d" stroke-width="2.5"></circle>' + txt('?', bx + 32, 252, 24, '#ffd84d'));
   } else {
     const me = q.mySide === 'L' ? bx - 30 : bx + 30;
     s += '<circle cx="' + me + '" cy="250" r="12" fill="#ffd84d" stroke="#111" stroke-width="2"></circle>' + txt('T', me, 250, 17);
     if (q.p.g === 'bite') { const o = q.mySide === 'L' ? bx + 30 : bx - 30; s += '<circle cx="' + o + '" cy="250" r="11" fill="#fff" stroke="#111" stroke-width="2"></circle>' + txt('T', o, 250, 16); }
-    q.D.forEach(d => { if (d[8]) s += '<circle cx="' + d[1] + '" cy="' + d[2] + '" r="15" fill="none" stroke="#111" stroke-width="1.6" stroke-dasharray="2 4"></circle>'; taps += tapper(d[0], d[1], d[2], 17, txt(d[3], d[1], d[2], 19)); });
-    [['aim-OL',-55],['aim-L',-22],['aim-C',0],['aim-R',22],['aim-OR',55]].forEach(a => taps += tapper(a[0], bx + a[1], OLY + 22, 10, '<circle cx="' + (bx+a[1]) + '" cy="' + (OLY+22) + '" r="5" fill="#ffd84d"></circle>'));
+    q.D.forEach(d => { if (d[8]) s += '<circle cx="' + d[1] + '" cy="' + d[2] + '" r="15" fill="none" stroke="#111" stroke-width="1.6" stroke-dasharray="2 4"></circle>'; taps += tapper(d[0], d[1], d[2], 21, txt(d[3], d[1], d[2], 25)); });
+    [['aim-OL',-55],['aim-L',-22],['aim-C',0],['aim-R',22],['aim-OR',55]].forEach(a => taps += tapper(a[0], bx + a[1], OLY + 24, 11, '<circle cx="' + (bx+a[1]) + '" cy="' + (OLY+24) + '" r="8.5" fill="#ffd84d" stroke="#111" stroke-width="1.5"></circle>'));
   }
-  $('dia').innerHTML = '<svg viewBox="0 0 560 300" role="img" aria-label="Field with the ball on the ' + (q.hashL ? 'left' : 'right') + ' hash">' + s + taps + '</svg>';
-  $('dia').querySelectorAll('.tap').forEach(el => { el.classList.add('live'); el.addEventListener('click', () => answer(el)); });
+  $('dia').innerHTML = '<svg viewBox="' + ((q.hashL ? 190 : 370) - 170) + ' 34 340 260" role="img" aria-label="Field with the ball on the ' + (q.hashL ? 'left' : 'right') + ' hash">' + s + taps + '</svg>';
+  $('dia').querySelectorAll('.tap').forEach(el => el.classList.add('live'));
+  // a tap counts for the nearest player or aiming point, so small fingers don't have to hit a dot exactly
+  const svg = $('dia').querySelector('svg');
+  svg.addEventListener('click', e => {
+    const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY; const p = pt.matrixTransform(svg.getScreenCTM().inverse());
+    let best = null, bd = 1e9;
+    $('dia').querySelectorAll('.tap').forEach(el => { const c = el.querySelector('.hit'), dx = +c.getAttribute('cx') - p.x, dy = +c.getAttribute('cy') - p.y, d = dx*dx + dy*dy; if (d < bd) { bd = d; best = el } });
+    if (best && bd <= 40*40) answer(best);
+  });
 }
 
 function show(){

@@ -11,7 +11,7 @@ fs.writeFileSync(CSV,['PLAY #,ODK,DN,DIST,YARD LN,O FORMATION,FRONT,BLITZ,MFC/MF
  '15,D,1,10,-19,GOLD,41 OVER,,MFO,2,DUNCANVILLE','16,D,2,10,-19,TEXAS,HEADS,SAM,MFC,3,DUNCANVILLE','17,D,3,7,-22,CREW,41 UNDER,,MFC,3 CLOUD,DUNCANVILLE','18,D,1,10,-30,GOLD,41 OVER,MIKE,MFO,2,DUNCANVILLE'].join('\n'));
 // stand-in for the SheetJS reader (no network in tests): same calls the page makes, reading CSV
 const SHIM=`window.XLSX={read:(b)=>({SheetNames:['S'],Sheets:{S:new TextDecoder().decode(b)}}),utils:{sheet_to_json:(t)=>{const L=t.trim().split(/\\r?\\n/).map(l=>l.split(','));return L.slice(1).map(r=>Object.fromEntries(L[0].map((h,i)=>[h,r[i]==null?'':r[i]])))}}};`;
-const R=start({admins:{},members:{u1:'melissa',u2:'melissa'},schools:{melissa:{profile:{name:'Melissa'}}}},9128);
+const R=start({admins:{u1:true},members:{u1:'melissa',u2:'melissa',u3:'melissa'},schools:{melissa:{profile:{name:'Melissa'}}}},9128);
 http.createServer((q,r)=>{ const f=path.join(ROOT,decodeURIComponent(q.url.split('?')[0])); if(!f.startsWith(ROOT)||!fs.existsSync(f)||fs.statSync(f).isDirectory()){r.statusCode=404;return r.end()}
   r.setHeader('Content-Type',{'.html':'text/html','.js':'text/javascript'}[path.extname(f)]||'application/octet-stream'); fs.createReadStream(f).pipe(r) }).listen(8768);
 let pass=0, fail=0; const ok=(c,m)=>{ console.log((c?'  PASS ':'  FAIL ')+m); c?pass++:fail++ };
@@ -22,7 +22,9 @@ async function ctxFor(b,vp,uid){ const ctx=await b.newContext({viewport:vp});
   await ctx.route(/cdnjs\.cloudflare\.com.*xlsx/, r=>r.fulfill({status:200,contentType:'text/javascript',body:SHIM}));
   await ctx.route(/firebasestorage\.googleapis\.com/, async r=>{ const u=new URL(r.request().url());
     if (r.request().method()==='POST') { const name=u.searchParams.get('name'); STORED[name]=r.request().postDataBuffer(); return r.fulfill({status:200,contentType:'application/json',body:JSON.stringify({name,downloadTokens:'tk'+Object.keys(STORED).length})}) }
-    const name=decodeURIComponent(u.pathname.split('/o/')[1]||''); const buf=STORED[name]; return buf? r.fulfill({status:200,contentType:'video/webm',body:buf}) : r.fulfill({status:404,body:''}) });
+    const name=decodeURIComponent(u.pathname.split('/o/')[1]||'');
+    if (r.request().method()==='DELETE') { const had=name in STORED; delete STORED[name]; return r.fulfill({status:had?204:404,body:''}) }
+    const buf=STORED[name]; return buf? r.fulfill({status:200,contentType:'video/webm',body:buf}) : r.fulfill({status:404,body:''}) });
   if (uid) await ctx.addInitScript(([uid])=>{ window.SOL_CONFIG={db:'http://localhost:9128',apiKey:'x'};
     localStorage.setItem('solutions-auth-v1', JSON.stringify({uid,email:'x@x',idToken:'t',refreshToken:'r',exp:Date.now()+3600e3,school:'melissa',profile:{name:'Melissa'}})) },[uid]);
   else await ctx.addInitScript(()=>{ window.SOL_CONFIG={db:'http://localhost:9128'} });
@@ -75,15 +77,22 @@ async function ctxFor(b,vp,uid){ const ctx=await b.newContext({viewport:vp});
  await P.click('#again'); ok((await P.textContent('#count'))==='Rep 1 of 2','Retry runs just the 2 missed');
  await P.screenshot({path:OUT+'fq_retry.png'});
 
- console.log('3. Coach sees it; a view-only account can\'t build');
+ console.log('3. Only the owner can make or delete film quizzes');
  await C.reload(); await wait(()=>C.isVisible('#attPanel')); ok(/Film: DUNCANVILLE/.test(await C.textContent('#attList')),'the attempt shows on Player quizzes');
+ const Co=await ctxFor(b,{width:1024,height:900},'u3'); await Co.goto('http://localhost:8768/quizzes.html'); await wait(()=>Co.isVisible('#fqPanel'));
+ ok(!await Co.isVisible('#fqBuild') && await Co.$$eval('#fqList [data-fdel]',x=>x.length)===0 && await Co.$$eval('#fqList .fq-item',x=>x.length)===1,'another coach sees the quiz and can share it, but gets no builder and no Delete');
  R.db.schools.melissa.locks={u2:true}; const Lk=await ctxFor(b,{width:1024,height:900},'u2');
  await Lk.goto('http://localhost:8768/quizzes.html'); await wait(()=>Lk.isVisible('#fqPanel'));
  ok(!await Lk.isVisible('#fqBuild') && await Lk.$$eval('#fqList [data-fdel]',x=>x.length)===0 && await Lk.$$eval('#fqList .fq-item',x=>x.length)===1,'locked: sees the quiz, no builder, no Delete');
 
- console.log('4. Bad link');
+ console.log('4. Delete removes the quiz and its clips');
+ C.on('dialog',d=>d.accept()); await C.click('#fqList [data-fdel]');
+ ok(await wait(()=>!(R.db.share||{})[tok] && !(R.db.schools.melissa.filmq||{})[tok]),'the quiz and its list entry are gone');
+ ok(Object.keys(STORED).length===0,'all 3 clips were deleted from storage ('+Object.keys(STORED).length+' left)');
+ ok(await C.$$eval('#fqList .fq-item',x=>x.length)===0,'and it drops off the list');
+ console.log('5. Bad link');
  await P.goto('http://localhost:8768/quiz.html?film=nope0000000000000000000'); await P.waitForTimeout(800);
  ok(/isn.t available/.test(await P.textContent('#sub')) && !await P.isEnabled('#begin'),'a dead link says so and can\'t start');
- const errs=[...C.errs,...P.errs,...Lk.errs]; ok(!errs.length,'no page errors '+errs.join(' | '));
+ const errs=[...C.errs,...P.errs,...Lk.errs,...Co.errs]; ok(!errs.length,'no page errors '+errs.join(' | '));
  console.log('\n'+pass+' passed, '+fail+' failed'); await b.close(); process.exit(fail?1:0);
 })().catch(e=>{ console.error(e); process.exit(1) });

@@ -285,6 +285,7 @@ window.SOL_CONFIG = window.SOL_CONFIG || { db: "https://cardinal-booth-default-r
       .then(function (j) { return STORE + "/" + encodeURIComponent(j.name) + "?alt=media&token=" + String(j.downloadTokens || "").split(",")[0] });
   }
   $("fqMake").onclick = function () {
+    if (!OWNER) return;
     var L = live(), use = ROWS.map(function (R, k) { return { R: R, k: k } }).filter(function (x) { return !x.R.skip && L.some(function (a) { return ANS[x.k][a[0]] }) });
     if (!use.length) return;
     var tok = tokNew(), title = ($("fqTitle").value.trim() || "Film quiz").slice(0, 80), done = 0, b = $("fqMake"); b.disabled = true;
@@ -307,23 +308,33 @@ window.SOL_CONFIG = window.SOL_CONFIG || { db: "https://cardinal-booth-default-r
   };
 
   function qUrl(tok) { return new URL("quiz.html?film=" + tok + (SCH === "melissa" ? "" : "&s=" + encodeURIComponent(SCH)), location.href).href }
-  var LOCKED = false;
+  var OWNER = false; // only the Solutions owner (an admin account) makes or deletes film quizzes for now
   function list() {
     at("/schools/" + encodeURIComponent(SCH) + "/filmq").then(function (u) { return fetch(u) }).then(function (r) { return r.ok ? r.json() : null }).then(function (d) {
       var K = Object.keys(d || {}).sort(function (a, b) { return d[b].at - d[a].at });
       $("fqList").innerHTML = K.map(function (k) { var q = d[k], u = qUrl(k);
         return "<div class='fq-item'><span class='t'>" + esc(q.title) + "</span><a class='btn primary' href='#' data-share='" + esc(k) + "' data-title='" + esc(q.title) + "'>Share link</a><a class='btn' href='" + esc(u) + "' target='_blank' rel='noopener'>Open</a>" +
-          (LOCKED ? "" : "<button class='btn danger' type='button' data-fdel='" + esc(k) + "' style='margin-left:auto'>Delete</button>") + "<span class='m'>" + q.clips + " clips · " + q.qs + " questions · " + esc(new Date(q.at).toLocaleDateString(undefined, { month: "short", day: "numeric" })) + " · <span class='link'>" + esc(u) + "</span></span></div>" }).join("");
+          (!OWNER ? "" : "<button class='btn danger' type='button' data-fdel='" + esc(k) + "' style='margin-left:auto'>Delete</button>") + "<span class='m'>" + q.clips + " clips · " + q.qs + " questions · " + esc(new Date(q.at).toLocaleDateString(undefined, { month: "short", day: "numeric" })) + " · <span class='link'>" + esc(u) + "</span></span></div>" }).join("");
     }, function () {});
   }
   $("fqList").addEventListener("click", function (e) {
     var s = e.target.closest("[data-share]"); if (s) { e.preventDefault(); var u = qUrl(s.dataset.share), data = { title: s.dataset.title, text: "Film quiz: " + s.dataset.title + ". Watch each clip and name the look. Type your name, then hit Start. When you finish, hit Text Coach.", url: u };
       if (navigator.share) navigator.share(data).catch(function () {}); else if (navigator.clipboard) navigator.clipboard.writeText(u).then(function () { s.textContent = "Link copied" }, function () {}); return }
-    var b = e.target.closest("[data-fdel]"); if (!b || !confirm("Delete this film quiz? Players with the link won't be able to open it.")) return; b.disabled = true;
-    var k = b.dataset.fdel; at("/share/" + k).then(function (u) { return fetch(u, { method: "DELETE" }) }).then(function () { return at("/schools/" + encodeURIComponent(SCH) + "/filmq/" + k) }).then(function (u) { return fetch(u, { method: "DELETE" }) }).then(list, function () { b.disabled = false });
+    var b = e.target.closest("[data-fdel]"); if (!b || !OWNER || !confirm("Delete this film quiz and its clips? Players with the link won't be able to open it, and the clips are removed from storage.")) return; b.disabled = true; b.textContent = "Deleting…";
+    var k = b.dataset.fdel;
+    // clips first (their names are in the quiz's clip links), then the quiz, then the list entry
+    at("/share/" + k).then(function (u) { return fetch(u) }).then(function (r) { return r.ok ? r.json() : null }).then(function (d) {
+      var x = null; try { x = d && d.items ? JSON.parse(d.items) : null } catch (er) {}
+      var names = ((x && x.clips) || []).map(function (c) { var m = String(c.url || "").match(/\/o\/([^?]+)/); return m ? decodeURIComponent(m[1]) : null })
+        .filter(function (n) { return n && n.indexOf("schools/" + SCH + "/clips/film-" + k + "/") === 0 });
+      return solToken().then(function (t) { return Promise.all(names.map(function (n) { return fetch(STORE + "/" + encodeURIComponent(n), { method: "DELETE", headers: { "Authorization": "Firebase " + t } })
+        .then(function (r) { if (!r.ok && r.status !== 404) throw new Error("clip delete HTTP " + r.status) }) })) });
+    }).then(function () { return at("/share/" + k) }).then(function (u) { return fetch(u, { method: "DELETE" }) })
+      .then(function () { return at("/schools/" + encodeURIComponent(SCH) + "/filmq/" + k) }).then(function (u) { return fetch(u, { method: "DELETE" }) })
+      .then(list, function (er) { b.disabled = false; b.textContent = "Delete"; $("fqNote").textContent = "Couldn't delete (" + (er.message || er) + "). Nothing was removed from the list; try again."; });
   });
-  at("/schools/" + encodeURIComponent(SCH) + "/locks/" + encodeURIComponent(acc.uid || "_")).then(function (u) { return fetch(u) }).then(function (r) { return r.ok ? r.json() : null }).then(function (v) { LOCKED = v === true }, function () {})
-    .then(function () { $("fqBuild").hidden = LOCKED; $("fqPanel").hidden = false; drawAsks(); list() });
+  at("/admins/" + encodeURIComponent(acc.uid || "_")).then(function (u) { return fetch(u) }).then(function (r) { return r.ok ? r.json() : null }).then(function (v) { OWNER = v === true }, function () {})
+    .then(function () { $("fqBuild").hidden = !OWNER; $("fqPanel").hidden = false; drawAsks(); list() });
 })();
 </script>
 </body>

@@ -394,15 +394,21 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
         var C = { calls: {}, run: [], pass: [], n: 0 }; (A || []).forEach(function (a) { (a || []).forEach(function (x) { if (!x || x.kind === "try" || x.res === "Penalty" || x.gain == null && !/Incomplete/.test(x.res || "")) return;
           var run = x.pt === "Run" || (!x.pt && /Rush|Run|Scramble/.test(x.res || "")), q = { gain: +x.gain || 0, res: x.res || "", run: run, dn: x.dn, dist: x.dist, sh: SHMAP(x.shell) };
           C.n++; (run ? C.run : C.pass).push(q); var k = String(x.call || "").toUpperCase().trim(); if (k) (C.calls[k] = C.calls[k] || []).push(q) }) });
-        OURC = C; if ($("dataNote")) $("dataNote").textContent = C.n ? "Using " + C.n + " plays you charted live this season for results." : "" }) }, function () {});
+        OURC = C; ourNote() }) }, function () {});
   }
+  function selfPlays() { return D.ours ? D.ours.rows.filter(function (r) { return (!r.odk || r.odk === "O") && r.type && !r.pen && r.dn !== 0 }).length : 0 }
+  function ourNote() { var a = selfPlays(), b = OURC ? OURC.n : 0, t = "Our side: " + a + " self scout play" + (a === 1 ? "" : "s") + " + " + b + " charted live (" + (a + b) + " total).";
+    if ($("dataNote")) $("dataNote").textContent = a || b ? t : "";
+    if ($("nOurs")) $("nOurs").textContent = D.ours ? RAW.ours.length + " file(s) · " + a + " plays · " + D.calls.length + " calls" + (b ? " · plus " + b + " charted live" : "") : (b ? b + " plays charted live. Add your self scout from Reports." : "Optional. Lets results come from your own plays.") }
   function chartedFor(p) { var k = String(p.name || "").toUpperCase().trim(), f = String(p.form || "").toUpperCase().trim(), ks = [k]; if (f && k.indexOf(f + " ") === 0) ks.push(k.slice(f.length + 1).trim()); var w = k.split(" "); for (var i = 1; i < w.length; i++) ks.push(w.slice(i).join(" "));
-    for (var j = 0; j < ks.length; j++) { var P = OURC.calls[ks[j]]; if (P && P.length >= 3) return P } return null }
+    for (var j = 0; j < ks.length; j++) { var P = OURC.calls[ks[j]]; if (P && P.length) return P } return null }
   function rollResult(p) {
     var s = situ(), POOL = lookPool(p.form).rows, L = POOL.length ? pick(POOL) : { sh: "MFO" }, c = filmFor(p), out;
-    var ch = chartedFor(p); if (ch) { look = { sh: L.sh || "MFO", front: L.front, blitz: L.blitz, cov: L.cov, likely: false };
+    var ch = chartedFor(p), sc = c ? c.plays.map(function (q) { return { gain: q.gain || 0, res: q.res || "", run: q.run, dn: q.dn, dist: q.dist, sh: q.sh } }) : [];
+    if (ch || sc.length >= 3) ch = (ch || []).concat(sc); else ch = null;
+    if (ch) { look = { sh: L.sh || "MFO", front: L.front, blitz: L.blitz, cov: L.cov, likely: false };
       var Wc = ch.map(function (q) { return (q.sh && q.sh === look.sh ? 3 : 1) * (q.dn === G.dn ? 1.5 : 1) * (q.dist != null && Math.abs(q.dist - G.dist) <= 2 ? 1.3 : 1) }), tc = Wc.reduce(function (a, b) { return a + b }, 0), rc = rand() * tc, pq = ch[0]; for (var j = 0; j < Wc.length; j++) { rc -= Wc[j]; if (rc <= 0) { pq = ch[j]; break } }
-      var rs = pq.res.toUpperCase(); out = { gain: pq.gain, int: /INTERCEPT/.test(rs), fum: /FUMBLE/.test(rs) && rand() < .5, sack: /SACK/.test(rs), film: true, src: "charted" }; if (!pq.run && !out.int && !out.sack && /INCOMPLETE/.test(rs)) { out.inc = true; out.gain = 0 }
+      var rs = pq.res.toUpperCase(); out = { gain: pq.gain, int: /INTERCEPT/.test(rs), fum: /FUMBLE/.test(rs) && rand() < .5, sack: /SACK/.test(rs), film: true, src: "film" }; if (!pq.run && !out.int && !out.sack && /INCOMPLETE/.test(rs)) { out.inc = true; out.gain = 0 }
       if (G.ball + out.gain > 100) out.gain = 100 - G.ball; if (G.ball + out.gain < 1) out.gain = 1 - G.ball; return out }
     look = { sh: L.sh || "MFO", front: L.front, blitz: L.blitz, cov: L.cov, likely: false };
     if (c) { var W = c.plays.map(function (q) { return (q.sh && q.sh === look.sh ? 3 : 1) * (q.b === s.b ? 1.5 : 1) }), tot = W.reduce(function (a, b) { return a + b }, 0), r = rand() * tot, pl = c.plays[0]; for (var i = 0; i < W.length; i++) { r -= W[i]; if (r <= 0) { pl = c.plays[i]; break } }
@@ -989,7 +995,7 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
     var r = $("report"); r.innerHTML = h; r.hidden = false; r.scrollIntoView({ behavior: "smooth" }); $("again").onclick = function () { newGame(); window.scrollTo({ top: 0, behavior: "smooth" }) } }
 
   function loadData() { D.ours = RAW.ours.length ? SK.load(RAW.ours, {}) : null; D.them = RAW.them.length ? SK.load(RAW.them, {}) : null; build();
-    $("nOurs").textContent = D.ours ? RAW.ours.length + " file(s) · " + D.calls.length + " calls with 4+ plays" : "Optional. Lets results come from your own plays.";
+    ourNote();
     $("nThem").textContent = D.them ? RAW.them.length + " file(s) · " + D.def.length + " defensive snaps" : "Optional. Adds the pre-snap read and their real drive results.";
     $("dOurs").classList.toggle("ok", !!D.ours); $("dThem").classList.toggle("ok", !!D.them) }
   function addFiles(kind, files) { claim(); Promise.all(Array.prototype.map.call(files, parseFile)).then(function (L) { RAW[kind] = RAW[kind].concat(L); loadData(); saveFiles(); toast("Loaded") }, function () { toast("Couldn't read that file. Export it from Hudl as Excel (.xlsx) or CSV.") }) }
@@ -1075,15 +1081,27 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
       $("mgList").innerHTML = h;
     }, function () { $("mgList").innerHTML = "<p class='note'>Couldn't load. Check the connection.</p>" });
   }
+  function packFiles(P) { if (!P) return []; var L = [];
+    try { if (typeof P.files === "string") L = JSON.parse(P.files); else if (P.f) L = (Array.isArray(P.f) ? P.f : Object.keys(P.f).sort(function (a, b) { return a - b }).map(function (k) { return P.f[k] })).filter(Boolean).map(function (x) { var d = JSON.parse(x.data || "{}"); return { name: x.name, header: d.header || [], rows: d.rows || [] } }) } catch (e) { L = [] }
+    return L.filter(function (f) { return f && !/^Charted live/.test(f.name || "") }) }
+  function loadSelf() { return schoolGet("/mock/self").then(function (P) { var L = packFiles(P); if (L.length) { RAW.ours = L; loadData() } return L }, function () { return [] }) }
+  // this week's call sheet, the one set while charting
+  function weekSheet(date) { return schoolGet("/weeks/" + date + "/callsheet").then(function (d) {
+    if (!d || !d.sheet) return false; var B = Array.isArray(d.sheet) ? d.sheet : Object.keys(d.sheet).map(function (k) { return d.sheet[k] });
+    B.forEach(function (b) { if (b && !Array.isArray(b.plays)) b.plays = b.plays ? Object.keys(b.plays).map(function (k) { return b.plays[k] }) : [] }); B = B.filter(Boolean); if (!B.length) return false;
+    var grid = d.grid && d.grid.cells ? { cells: Array.isArray(d.grid.cells) ? d.grid.cells : Object.keys(d.grid.cells).map(function (k) { return d.grid.cells[k] }), rows: d.grid.rows, cols: d.grid.cols } : null;
+    if (!grid) { var cells = [], rows = 1; B.forEach(function (b, i) { cells.push({ r: 0, c: i, rs: 1, cs: 1, v: b.name, h: 1 }); (b.plays || []).forEach(function (p, j) { var t = p.t || p.name || ""; if (!t) return; var k = p.k || p.c || (/ZONE|POWER|COUNTER|DART|TRAP|DUO|ZIP|SMACK|CRAB|SCAT|SPLIT|TOSS|SWEEP/i.test(t) ? "run" : "pass"); cells.push({ r: j + 1, c: i, rs: 1, cs: 1, v: t, k: k, b: i }); rows = Math.max(rows, j + 2) }) }); grid = { cells: cells, rows: rows, cols: B.length } }
+    var ok = useSheet({ boxes: B, grid: grid, name: "Call sheet · week of " + date }); if (ok) saveSheet(); return ok }, function () { return false }) }
   function schedUse(date) { setTimeout(function () { mgLoad(date) }, 50);
     var e = SCHED.filter(function (x) { return x.date === date })[0]; if (!e) return; SCHEDON = date; claim(); $("oppName").value = e.opp; schedDraw(); $("schedNote").textContent = "Loading " + e.opp + "…";
-    Promise.all([schoolGet("/mock/weeks/" + date), schoolGet("/mock/self")]).then(function (R) {
-      var them = [], ours = []; try { them = R[0] && R[0].files ? JSON.parse(R[0].files) : [] } catch (x) {} try { ours = R[1] && R[1].files ? JSON.parse(R[1].files) : [] } catch (x) {}
+    Promise.all([schoolGet("/mock/weeks/" + date), schoolGet("/mock/self"), weekSheet(date)]).then(function (R) {
+      var them = packFiles(R[0]), ours = packFiles(R[1]);
       RAW.them = them; if (ours.length) RAW.ours = ours; loadData(); saveFiles();
-      $("schedNote").textContent = (them.length ? e.opp + ": " + (R[0].plays || "") + " plays from Reports. " : "No " + e.opp + " data yet. Open their folder on Reports and tap Send to mock game. ") + (ours.length ? "Our side: self scout from Reports." : "");
+      $("schedNote").textContent = (them.length ? e.opp + ": " + (R[0].plays || "") + " plays from Reports. " : "No " + e.opp + " data yet. Open their folder on Reports and tap Send to mock game. ") + (ours.length ? "Our side: self scout from Reports. " : "") + (R[2] ? "Call sheet: this week's, from charting." : "Call sheet: no sheet saved for this week yet, using the last one.");
     }, function () { $("schedNote").textContent = "Couldn't load. Check the connection." });
   }
-  ourCharted();
+  ourCharted(); if (authGet() && !SHARED) loadSelf();
+  if (window.SOL_TEST) window.__mock = { chartedFor: chartedFor, filmFor: filmFor, schedUse: schedUse, packFiles: packFiles };
   if (authGet() && !SHARED) schoolGet("/schedule").then(function (l) { SCHED = (Array.isArray(l) ? l : Object.keys(l || {}).map(function (k) { return l[k] })).filter(function (x) { return x && x.date && x.opp }).sort(function (a, b) { return a.date < b.date ? -1 : 1 }); schedDraw() }, function () {});
   cloud("owner").then(function (o) { OWNER = o || null; lockUI() }, function () {});
   cloud("names").then(function (n) { if (n) { $("usName").value = n.us; $("oppName").value = n.opp } }, function () {});

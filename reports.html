@@ -2270,9 +2270,10 @@ details.more > .rail { margin-top: 8px }
   // ---------- weeks picker: pull other weeks' files into this report (read only) ----------
   $("st6go").addEventListener("click", function () {
     var F = RAW.filter(function (f) { return !f.from }).map(function (f) { return { name: f.name, header: f.header, rows: f.rows } }); if (!F.length) return;
-    var self = FOLDER === "self", path = self ? "/mock/self" : "/mock/weeks/" + (WK.cur && WK.cur.date), v = { files: JSON.stringify(F), opp: self ? "" : WK.cur.opp, at: Date.now(), plays: ROWS.length };
+    var self = FOLDER === "self", path = self ? "/mock/self" : "/mock/weeks/" + (WK.cur && WK.cur.date), v = { opp: self ? "" : WK.cur.opp, at: Date.now(), plays: ROWS.length, n: F.length };
     $("st6go").disabled = true;
-    wkPut(path, v).then(function () { toast(self ? "Our games sent to the mock game" : WK.cur.opp + " sent to the mock game: " + ROWS.length + " plays"); $("st6go").disabled = false; $("st6").className = "step done"; $("st6").querySelector(".n").textContent = "✓" }, function () { toast("Couldn't send. Check the connection."); $("st6go").disabled = false });
+    // one file per write so a big self scout can't fail as one giant block
+    wkPut(path, v).then(function () { return F.reduce(function (p, f, i) { return p.then(function () { return wkPut(path + "/f/" + i, { name: f.name, data: JSON.stringify({ header: f.header, rows: f.rows }) }) }) }, Promise.resolve()) }).then(function () { toast(self ? "Our games sent to the mock game: " + ROWS.length + " plays from " + F.length + " file" + (F.length === 1 ? "" : "s") : WK.cur.opp + " sent to the mock game: " + ROWS.length + " plays"); $("st6go").disabled = false; $("st6").className = "step done"; $("st6").querySelector(".n").textContent = "✓" }, function () { toast("Couldn't send. Check the connection."); $("st6go").disabled = false });
   });
   var WKSEL = {}; // other weeks are only pulled in when picked, and never remembered: every folder opens with just its own files
   // each saved file in this folder: what's in it, and a button to take it out (for files that don't belong here)

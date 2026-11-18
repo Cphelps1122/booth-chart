@@ -64,7 +64,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums }
 
   <section class="panel" id="sharePanel" hidden>
     <h2>Quiz link for players <small>no account needed</small></h2>
-    <div class="row"><span class="link" id="qlink"></span><button class="btn" id="copyLink" type="button">Copy link</button><a class="btn" id="openQuiz" target="_blank" rel="noopener">Open quiz</a></div>
+    <div class="row"><span class="link" id="qlink"></span><button class="btn primary" id="shareLink" type="button">Share link</button><button class="btn" id="copyLink" type="button">Copy link</button><a class="btn" id="openQuiz" target="_blank" rel="noopener">Open quiz</a></div>
   </section>
 
   <section class="panel" id="sumPanel" hidden>
@@ -112,6 +112,11 @@ window.SOL_CONFIG = window.SOL_CONFIG || { db: "https://cardinal-booth-default-r
   $("schoolName").textContent = String(acc.school).toUpperCase();
   var quizUrl = new URL("quiz.html" + (acc.school === "melissa" ? "" : "?s=" + encodeURIComponent(acc.school)), location.href).href;
   $("qlink").textContent = quizUrl; $("openQuiz").href = quizUrl; $("sharePanel").hidden = false;
+  $("shareLink").onclick = function () {
+    var data = { title: "RB Quiz", text: "Take the RB quiz. Type your name, then hit Start.", url: quizUrl };
+    if (navigator.share) { navigator.share(data).catch(function () {}) }
+    else { location.href = "sms:?&body=" + encodeURIComponent(data.text + " " + quizUrl) }
+  };
   $("copyLink").onclick = function () { (navigator.clipboard ? navigator.clipboard.writeText(quizUrl) : Promise.reject()).then(function () { $("copyLink").textContent = "Copied" }, function () { $("copyLink").textContent = "Select the link to copy" }) };
 
   function load() {

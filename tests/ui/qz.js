@@ -51,6 +51,7 @@ const wait=async(fn,ms=8000)=>{ const t=Date.now(); while(Date.now()-t<ms){ if(a
   ok(await wait(async()=>(await C.$$('#attList .att')).length===1), 'Coach page lists the attempt');
   ok(/Marcus/.test(await C.textContent('#sumBody')), 'Player summary shows Marcus');
   ok(/quiz\.html/.test(await C.textContent('#qlink')), 'Coach page shows the player quiz link');
+  ok(await C.isVisible('#shareLink'), 'Coach page has a Share link button');
   ok(/Player quizzes/i.test(await C.textContent('.tabs')), 'Site menu includes Player quizzes');
   await C.screenshot({path:OUT+'qz-coach.png', fullPage:true});
   C.once('dialog', d=>d.accept());

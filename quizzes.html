@@ -113,7 +113,7 @@ window.SOL_CONFIG = window.SOL_CONFIG || { db: "https://cardinal-booth-default-r
   var quizUrl = new URL("quiz.html" + (acc.school === "melissa" ? "" : "?s=" + encodeURIComponent(acc.school)), location.href).href;
   $("qlink").textContent = quizUrl; $("openQuiz").href = quizUrl; $("sharePanel").hidden = false;
   $("shareLink").onclick = function () {
-    var data = { title: "RB Quiz", text: "Take the RB quiz. Type your name, then hit Start.", url: quizUrl };
+    var data = { title: "RB Quiz", text: "Take the RB quiz. Type your name, then hit Start. When you finish, hit Text Coach to send me your results.", url: quizUrl };
     if (navigator.share) { navigator.share(data).catch(function () {}) }
     else { location.href = "sms:?&body=" + encodeURIComponent(data.text + " " + quizUrl) }
   };

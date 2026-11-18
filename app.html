@@ -445,6 +445,8 @@ body.infinal #v-chart .panel, body.infinal #v-chart .spotpanel, body.infinal #v-
 .h-door .hd-l a, .h-door .hd-l button { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; font: 700 16px Inter, system-ui, sans-serif; padding: 10px 12px; border-radius: 10px; border: 1px solid #26354a; background: #0f141b; color: #e8edf2; cursor: pointer; text-decoration: none }
 .h-door .hd-l a:hover, .h-door .hd-l button:hover { border-color: var(--red) } .h-door .hd-l small { font-weight: 500; color: #9aa7b6; font-size: 12.5px }
 .h-door .hd-l .pri { background: var(--red); border-color: var(--red); color: #fff } .h-door .hd-l .pri small { color: #ffe1e5 }
+.h-all { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0 0 12px } .h-all span { font: 800 12px Inter, system-ui, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: #9aa7b6; margin-right: 4px }
+.h-all a, .h-all button { font: 700 14px Inter, system-ui, sans-serif; text-transform: none; letter-spacing: 0; padding: 8px 12px; border-radius: 999px; border: 1px solid #26354a; background: #0f141b; color: #e8edf2; text-decoration: none; cursor: pointer } .h-all a:hover, .h-all button:hover { border-color: #6EC926 }
 .h-setrow { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 0 0 16px; color: #9aa7b6; font-size: 14px } .h-setrow button { font: 700 14px Inter, system-ui, sans-serif; padding: 8px 12px; border-radius: 999px; border: 1px solid #26354a; background: #0f141b; color: #e8edf2; cursor: pointer }
 body.inapp .h-hero, body.inapp .h-prod { display: none }
 .rolechip { cursor: pointer; border: 1px solid rgba(255,255,255,.35) !important; background: rgba(255,255,255,.08) !important; color: #fff !important; font-weight: 800 }
@@ -592,6 +594,8 @@ textarea { min-height: 64px }
         <a href="reports.html">Scout &amp; reports <small>Hudl exports, game-day sheet</small></a>
         <a href="scout.html">Scout reports (PDF) <small>self scout, opponent scout, game card</small></a>
         <a href="reports.html">Pregame Sim <small>run the matchup</small></a>
+        <a href="mock.html">Mock game <small>call a practice game off your call sheet</small></a>
+        <a href="quizzes.html">Player quizzes <small>who took them, what they missed</small></a>
         <button type="button" data-go="practice">Practice game <small>try things, nothing counts</small></button>
       </div></div>
       <div class="h-door" data-door="game"><div class="hd-t">Game night</div><p class="hd-s">Friday: pick what this device is doing</p><div class="hd-l">
@@ -607,10 +611,12 @@ textarea { min-height: 64px }
         <button type="button" data-go="report">What worked? <small>OC report: best plays by situation</small></button>
         <a href="defense.html#dc">What did they do? <small>DC report: their plays vs our calls</small></a>
         <a href="stats.html">Season so far <small>team and player stats</small></a>
+        <a href="track.html">Tracking <small>player trails from game film</small></a>
         <button type="button" data-go="reels">Film &amp; reels <small>playlists, notes, share</small></button>
         <button type="button" data-go="export">Exports &amp; backup <small>Hudl CSV, PDF</small></button>
       </div></div>
     </div>
+    <nav class="h-all" id="homeAll" aria-label="All pages"><span>All pages</span><button type="button" data-role="chart">Chart</button><a href="defense.html">Defense</a><a href="reports.html">Reports</a><a href="scout.html">Scout PDFs</a><a href="stats.html">Stats</a><a href="impact.html">Impact</a><a href="mock.html">Mock game</a><a href="track.html">Tracking</a><a href="quizzes.html">Player quizzes</a><a id="allAdm" href="admin.html" hidden>Admin</a></nav>
     <div class="h-setrow"><button type="button" data-go="settings">⚙ Settings</button><span>School, roster, buttons, lock mode, clips online, sync</span><a class="h-btn" id="homeAdm" href="admin.html" hidden style="margin-left:auto">Admin</a></div>
     <div class="h-prod" hidden>
       <button class="h-card" id="homeOff" type="button">
@@ -6215,7 +6221,7 @@ textarea { min-height: 64px }
   $("roleChip").addEventListener("click", roleOpen); $("roleClose").addEventListener("click", function () { roleSet("all") });
   document.querySelectorAll("#roleModal [data-pick]").forEach(function (b) { b.addEventListener("click", function () { roleSet(b.dataset.pick) }) });
   document.querySelectorAll("[data-role-open]").forEach(function (b) { b.addEventListener("click", roleOpen) });
-  document.querySelectorAll(".h-door [data-role]").forEach(function (b) { if (b.tagName === "BUTTON") b.addEventListener("click", function () { roleSet(b.dataset.role) }) });
+  document.querySelectorAll(".h-door [data-role], .h-all [data-role]").forEach(function (b) { if (b.tagName === "BUTTON") b.addEventListener("click", function () { roleSet(b.dataset.role) }) });
   document.querySelectorAll(".h-doors [data-go], .h-setrow [data-go]").forEach(function (b) {
     b.addEventListener("click", function () {
       var g = b.dataset.go;
@@ -6310,7 +6316,7 @@ textarea { min-height: 64px }
     });
   }).then(function () { if (!$("v-home").hidden) loadHome() }, function () {});
   if (ONLINE) { $("navOut").hidden = false; $("navOut").addEventListener("click", function () { solLogout(); location.href = "index.html" });
-    solToken().then(function (t) { return fetch(SOL_DB + "/admins/" + ACC.uid + ".json?auth=" + t).then(function (r) { return r.json() }) }).then(function (ok) { if (ok === true) { $("navAdm").hidden = false; if ($("homeAdm")) $("homeAdm").hidden = false; $("navOut").style.marginLeft = "12px" } }, function () {}) }
+    solToken().then(function (t) { return fetch(SOL_DB + "/admins/" + ACC.uid + ".json?auth=" + t).then(function (r) { return r.json() }) }).then(function (ok) { if (ok === true) { $("navAdm").hidden = false; if ($("homeAdm")) $("homeAdm").hidden = false; if ($("allAdm")) $("allAdm").hidden = false; $("navOut").style.marginLeft = "12px" } }, function () {}) }
   $("schoolName").textContent = SCHOOL.name.toUpperCase(); document.documentElement.style.setProperty("--school", SCHOOL.color);
   $("hlGo").addEventListener("click", function () { var v = $("hlIn").value.trim(); if (v.length < 4) { toast("At least 4 letters or numbers"); return } seasonKey(true); S.lock = lockOf(v); lastIdx = null; save(); updateIndex(); $("hlIn").value = ""; toast("Game code set: " + v.toUpperCase()); setTimeout(loadHome, 600) });
   $("homeContinue").addEventListener("click", function () { if (!roleGet()) { roleOpen(); return } document.getElementById("t-chart").click() });

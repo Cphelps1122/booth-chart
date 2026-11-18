@@ -12,6 +12,7 @@ rather than on every change.
     node tests/ui/mk.js        # Mock game: the call sheet follows the same fit rules
     node tests/ui/qz.js       # Player quiz: a player saves an attempt with no account; the coach page lists and deletes it
     node tests/ui/pl.js        # Matchup Predictor: learning from past games, and the why-panel on Game Impact
+    node tests/ui/hm.js        # Home screen: every coach page can be reached from home, on an iPad and a phone
 
 Each prints `N passed, N failed` and exits non-zero on a failure.
 Screenshots are written to `$SHOT_DIR` (a temp folder by default):

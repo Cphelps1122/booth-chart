@@ -130,6 +130,7 @@ label.f { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font
 .hero .big { font-family: var(--f-display); font-weight: 800; font-size: 54px; line-height: 1 } .hero .lab { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: #b9bbc0; font-weight: 700 }
 .hero .txt { flex: 1 1 280px; font-size: 15px; line-height: 1.45 }
 .g { display: inline-block; font-weight: 800; font-size: 12px; padding: 2px 8px; border-radius: 999px; letter-spacing: .03em }
+.pok { margin-left: 6px; font: inherit; font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--line, #cbd5e1); background: transparent; color: inherit; cursor: pointer } @media print { .pok { display: none } }
 .g.held { background: #dcfce7; color: #166534 } .g.close { background: #fef3c7; color: #92400e } .g.miss { background: #fee2e2; color: #991b1b } .g.na { background: var(--chip); color: var(--muted) }
 .wl { font-weight: 800 } .wl.w { color: #16a34a } .wl.l { color: #dc2626 }
 tr.tot td { font-weight: 800; background: var(--chip) } td.it { font-weight: 700 }
@@ -406,6 +407,8 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
   // The predictor learns: how far each model's pregame score was off, averaged over our finished games.
   // A week's saved prediction can be rewritten after the game, so one only counts when it is known to pre-date kickoff.
   var PCAL = null;
+  // POK: games where the coach confirmed an untimed pick was made before kickoff ({date: {at}}). CANFIX: this account may confirm (not view-only).
+  var POK = {}, CANFIX = false;
   // why each game did or didn't feed the learning
   function predWhy(g) {
     var kick = g.date ? Date.parse(g.date + "T18:00:00") : NaN, p = g.pred;
@@ -414,7 +417,8 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
     if (g.pk) return { ok: true, w: "Counted. The pick was locked at the first snap." };
     if (!g.date) return { ok: false, w: "This game has no date, so there is no week to look up a pick in." };
     if (!p || p.us == null) return { ok: false, w: "No prediction was saved for the week of " + nice(g.date) + "." };
-    if (!p.at) return { ok: false, w: "A pick is saved for this week but has no time on it, so there is no way to tell it was made before kickoff." };
+    if (!p.at && POK[g.date]) return { ok: true, undo: true, w: "Counted. You confirmed this pick was made before kickoff." };
+    if (!p.at) return { ok: false, ask: true, w: "A pick is saved for this week but has no time on it, so there is no way to tell it was made before kickoff." };
     if (!isFinite(kick)) return { ok: false, w: "Couldn't read this game's date." };
     if (p.at >= kick) return { ok: false, w: "The week's pick was last saved after kickoff (" + new Date(p.at).toLocaleString() + "), so it could be hindsight." };
     return { ok: true, w: "Counted. The pick was saved " + new Date(p.at).toLocaleString() + ", before kickoff." };
@@ -437,13 +441,21 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
   // "Why the predictor did or didn't learn from each game" — so a missing correction can be traced
   function predWhyHTML(G) {
     var rows = G.map(function (g) { var w = predWhy(g), M = models(g).filter(function (m) { return m.k === "sc" && m.us != null })[0];
-      return "<tr><td><b>" + esc(nice(g.date) + " " + g.opp) + "</b></td><td>" + ((g.final || g.us || g.them) ? g.us + "–" + g.them : "–") + "</td><td>" + (M ? M.us + "–" + (M.them == null ? "?" : M.them) : "–") + "</td><td>" + (w.ok ? "<span class='g held'>Counted</span>" : "<span class='g miss'>Not counted</span>") + "</td><td>" + esc(w.w) + "</td></tr>" }).join("");
+      return "<tr><td><b>" + esc(nice(g.date) + " " + g.opp) + "</b></td><td>" + ((g.final || g.us || g.them) ? g.us + "–" + g.them : "–") + "</td><td>" + (M ? M.us + "–" + (M.them == null ? "?" : M.them) : "–") + "</td><td>" + (w.ok ? "<span class='g held'>Counted</span>" : "<span class='g miss'>Not counted</span>") + (CANFIX && g.date && (w.ask || w.undo) ? " <button type='button' class='pok' data-pok='" + esc(g.date) + "' data-on='" + (w.ask ? 1 : 0) + "'>" + (w.ask ? "Count it" : "Stop counting") + "</button>" : "") + "</td><td>" + esc(w.w) + "</td></tr>" }).join("");
     var n = G.filter(function (g) { return predWhy(g).ok }).length, c = PCAL && PCAL.sc;
     var lean = function (v, who) { var x = Math.abs(v).toFixed(1); return Math.abs(v) < .3 ? "right on " + who : (v > 0 ? x + " high on " + who : x + " low on " + who) };
     return "<section class='panel'><h2>Why the predictor learned from each game <small>" + n + " of " + G.length + " game" + (G.length === 1 ? "" : "s") + " feeding it</small></h2>" +
       "<p class='note'>" + (c ? "In use now: across " + c.n + " game" + (c.n === 1 ? "" : "s") + " the scores model ran <b>" + lean(c.us, esc(SCHOOL)) + "</b> and <b>" + lean(c.them, "the opponent") + "</b>. The Matchup Predictor moves tonight's pick by that much." : "Nothing learned yet. It needs at least 2 games with a pick made before kickoff, so the Matchup Predictor is running uncorrected.") + "</p>" +
       "<div class='tbl'><table><tr><th>Game</th><th>Final</th><th>Pick</th><th></th><th>Why</th></tr>" + rows + "</table></div>" +
       "<p class='note'>A pick counts when it was locked at the first snap, or saved before kickoff that night. Open Reports → Matchup Predictor during the week and it saves itself.</p></section>";
+  }
+  function pokWire() {
+    $("out").querySelectorAll("button[data-pok]").forEach(function (b) { b.addEventListener("click", function () {
+      var d = b.dataset.pok, on = b.dataset.on === "1"; b.disabled = true;
+      solToken().then(function (t) { return fetch(SOL_DB + "/schools/" + encodeURIComponent(ACC.school) + "/predOk/" + encodeURIComponent(d) + ".json?auth=" + encodeURIComponent(t), on ? { method: "PUT", body: JSON.stringify({ at: Date.now() }) } : { method: "DELETE" }) })
+        .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); if (on) POK[d] = { at: Date.now() }; else delete POK[d]; predCalibrate(); render() })
+        .catch(function () { b.disabled = false; b.textContent = "Couldn't save — try again" });
+    }) });
   }
   function simGameHTML(g) {
     var v = g.sv;
@@ -495,6 +507,7 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
     }).then(function (G) {
       GAMES = (G || []).filter(function (g) { return g.off.length }).sort(function (a, b) { return a.date.localeCompare(b.date) });
       GAMES.forEach(function (g) { g.gr = gradeGame(g); g.dec = decisions(g); g.nc = nextCall(g); g.q = quality(g); g.sv = simVsActual(g) });
+      return Promise.all([get("/predOk"), get("/locks/" + encodeURIComponent(ACC.uid || "_"))]).then(function (X) { POK = (X[0] && typeof X[0] === "object") ? X[0] : {}; CANFIX = X[1] !== true; }, function () {}).then(function () {
       simCalibrate(); predCalibrate();
       var ss = GAMES.map(function (g) { return g.season }).filter(function (v, i, a) { return a.indexOf(v) === i }).sort().reverse();
       var selG = SEL && GAMES.filter(function (g) { return g.code === SEL })[0];
@@ -502,6 +515,7 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
       $("seasonSel").innerHTML = ss.map(function (s) { return "<option value='" + esc(s) + "'" + (s === SEASON ? " selected" : "") + ">" + (s === "Undated" ? "Undated games" : s + " season") + "</option>" }).join("") || "<option>No games yet</option>";
       $("loadNote").textContent = GAMES.length ? GAMES.length + " charted game" + (GAMES.length === 1 ? "" : "s") + " · " + GAMES.filter(function (g) { return g.scout }).length + " with a scout to grade" : "No charted games yet.";
       render(); showDiag(GAMES.map(function (g) { return "Game " + g.code.slice(0, 4) + "… " + g.opp + " " + g.date + " · " + g.off.length + " snaps" }));
+      });
     }, function (e) { $("loadNote").textContent = "Couldn't load games. Check the connection and refresh."; render(); showDiag(["Error: " + (e && e.message || e)]) });
   }
 
@@ -522,7 +536,7 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
       return "<button type='button' data-g='" + esc(g.code) + "' aria-pressed='" + (SEL === g.code) + "'>" + esc(g.opp) + "<small>" + nice(g.date) + " · " + (res(g) ? res(g).toUpperCase() + " " : "") + g.us + "–" + g.them + (g.gr.score != null ? " · scout " + g.gr.score + "%" : "") + "</small></button>" }).join("");
     $("gameSeg").querySelectorAll("button").forEach(function (b) { b.addEventListener("click", function () { SEL = b.dataset.g || null; try { history.replaceState(null, "", SEL ? "?game=" + encodeURIComponent(SEL) : location.pathname) } catch (e) {} render(); window.scrollTo(0, 0) }) });
     if (!G.length) { $("out").innerHTML = "<div class='panel empty'>No charted games yet. Chart a game and tap End game to grade it.</div>"; return }
-    PLR = []; $("out").innerHTML = SEL ? gameHTML(G.filter(function (g) { return g.code === SEL })[0]) : seasonHTML(G); plWire();
+    PLR = []; $("out").innerHTML = SEL ? gameHTML(G.filter(function (g) { return g.code === SEL })[0]) : seasonHTML(G); plWire(); pokWire();
   }
   function ncLine(n) {
     if (!n.tracked) return null;

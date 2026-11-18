@@ -59,13 +59,16 @@ http.createServer((q,r)=>{ const f=path.join(ROOT,decodeURIComponent(q.url.split
      g1:{opp:'Celina',date:'2026-10-09',plays:24,real:1,gc:'X',updated:1,final:1},
      g2:{opp:'Lovejoy',date:'2026-10-16',plays:24,real:1,gc:'X',updated:1,final:1},
      g3:{opp:'Prosper',date:'2026-10-23',plays:24,real:1,gc:'X',updated:1,final:1},
-     g4:{opp:'Royse City',date:'2026-10-30',plays:24,real:1,gc:'X',updated:1,final:1}}},
+     g4:{opp:'Royse City',date:'2026-10-30',plays:24,real:1,gc:'X',updated:1,final:1},
+     g5:{opp:'Anna',date:'2026-11-06',plays:24,real:1,gc:'X',updated:1,final:1}}},
    g1:game('g1','2026-10-09','Celina',35,10,28,14), g2:game('g2','2026-10-16','Lovejoy',31,7,24,10),
    // charted before locking existed: the week's pick, saved the day before kickoff — counts
    g3:{meta:{opp:'Prosper',gameDate:'2026-10-23',gc:'X',final:{us:21,them:17,at:1}},snaps:snaps(24)},
    // same, but the pick was saved the day AFTER the game: hindsight, must be ignored
-   g4:{meta:{opp:'Royse City',gameDate:'2026-10-30',gc:'X',final:{us:14,them:28,at:1}},snaps:snaps(24)}},
-   weeks:Object.assign({},weeks,{'2026-10-23':{pred:{us:30,them:10,wp:80,at:Date.parse('2026-10-22T12:00:00')}},'2026-10-30':{pred:{us:14,them:28,wp:50,at:Date.parse('2026-10-31T12:00:00')}}})}),9125);
+   g4:{meta:{opp:'Royse City',gameDate:'2026-10-30',gc:'X',final:{us:14,them:28,at:1}},snaps:snaps(24)},
+   // a pick saved before picks carried a time: not counted until the coach taps Count it
+   g5:{meta:{opp:'Anna',gameDate:'2026-11-06',gc:'X',final:{us:27,them:13,at:1}},snaps:snaps(24)}},
+   weeks:Object.assign({},weeks,{'2026-10-23':{pred:{us:30,them:10,wp:80,at:Date.parse('2026-10-22T12:00:00')}},'2026-10-30':{pred:{us:14,them:28,wp:50,at:Date.parse('2026-10-31T12:00:00')}},'2026-11-06':{pred:{us:21,them:19,wp:55}}})}),9125);
  const I=await (async()=>{ const ctx=await b.newContext({viewport:{width:1280,height:1400}});
    await ctx.route(/googleapis\.com|gstatic|fonts\./, r=>r.fulfill({status:200,body:'{}'}));
    const p=await ctx.newPage(); p.errs=[]; p.on('pageerror',e=>p.errs.push(e.message));
@@ -87,11 +90,30 @@ http.createServer((q,r)=>{ const f=path.join(ROOT,decodeURIComponent(q.url.split
    const sec=h.closest('.panel'); return { head:h.textContent, note:sec.querySelector('.note').textContent, rows:[...sec.querySelectorAll('tbody tr, table tr')].slice(1).map(r=>[...r.children].map(c=>c.textContent.trim()).join(' | ')) } });
  ok(why,'the panel is on Season impact');
  console.log(why && why.head); (why?why.rows:[]).forEach(r=>console.log('   '+r.slice(0,150)));
- ok(why && /3 of 4 games feeding it/.test(why.head),'counts how many games feed it: '+(why&&why.head));
+ ok(why && /3 of 5 games feeding it/.test(why.head),'counts how many games feed it: '+(why&&why.head));
  ok(why && /ran .*high on Melissa/.test(why.note),'says what it learned: '+(why&&why.note.slice(0,120)));
- ok(why && why.rows.length===4 && why.rows.filter(r=>/Not counted/.test(r)).length===1,'every game listed, one marked not counted');
+ ok(why && why.rows.length===5 && why.rows.filter(r=>/Not counted/.test(r)).length===2,'every game listed, two marked not counted');
  ok(why && /after kickoff/.test(why.rows.filter(r=>/Not counted/.test(r))[0]),'and it says why: '+(why?why.rows.filter(r=>/Not counted/.test(r))[0].slice(0,140):''));
  await I.evaluate(()=>{ const h=[...document.querySelectorAll('.panel h2')].find(x=>/Why the predictor learned/.test(x.textContent)); h.closest('.panel').scrollIntoView() }); await I.waitForTimeout(400); const el=await I.evaluateHandle(()=>[...document.querySelectorAll('.panel h2')].find(x=>/Why the predictor learned/.test(x.textContent)).closest('.panel')); await el.asElement().screenshot({path:OUT+'why.png'});
+
+ console.log('5. Count it: the coach confirms an untimed pick');
+ const btns=()=>I.evaluate(()=>[...document.querySelectorAll('button[data-pok]')].map(b=>b.closest('tr').children[0].textContent.trim()+' | '+b.textContent));
+ let B=await btns(); ok(B.length===1 && /Anna \| Count it/.test(B[0]),'only the untimed pick gets a Count it button (not the one saved after kickoff): '+B.join(' ; '));
+ await I.click('button[data-pok]');
+ ok(await wait(()=>{ const c=R2.db.schools.melissa.predCal; return c && c.sc && c.sc.n===4 }),'tapping it feeds the game in: '+JSON.stringify(R2.db.schools.melissa.predCal));
+ const c4=R2.db.schools.melissa.predCal; ok(c4 && Math.abs(c4.sc.us-(7+7+9-6)/7)<0.06 && Math.abs(c4.sc.them-(-4-3-7+6)/7)<0.06,'and the numbers include it');
+ ok(R2.db.schools.melissa.predOk && R2.db.schools.melissa.predOk['2026-11-06'],'the confirmation is saved for every device');
+ const row=await I.evaluate(()=>[...document.querySelectorAll('button[data-pok]')].map(b=>b.closest('tr').textContent)[0]||''); const head=await I.evaluate(()=>[...document.querySelectorAll('.panel h2')].find(x=>/Why the predictor learned/.test(x.textContent)).textContent);
+ ok(/You confirmed/.test(row) && /Stop counting/.test(row) && /4 of 5/.test(head),'the row says so and offers Stop counting: '+head);
+ { const el=await I.evaluateHandle(()=>[...document.querySelectorAll('.panel h2')].find(x=>/Why the predictor learned/.test(x.textContent)).closest('.panel')); await el.asElement().screenshot({path:OUT+'why-counted.png'}) }
+ await I.click('button[data-pok]');
+ ok(await wait(()=>{ const c=R2.db.schools.melissa.predCal; return c && c.sc && c.sc.n===3 && !(R2.db.schools.melissa.predOk||{})['2026-11-06'] }),'Stop counting takes it back out');
+ await I.click('button[data-pok]'); await wait(()=>R2.db.schools.melissa.predCal.sc.n===4);
+ // a view-only account sees the panel but gets no button
+ R2.db.schools.melissa.locks={u1:true}; await I.reload(); await I.waitForTimeout(3500);
+ await I.evaluate(()=>{ const b=document.querySelector('#gameSeg button[data-g=""]'); if(b) b.click() }); await I.waitForTimeout(800);
+ const lk=await I.evaluate(()=>({n:document.querySelectorAll('button[data-pok]').length, t:[...document.querySelectorAll('.panel h2')].find(x=>/Why the predictor learned/.test(x.textContent)).textContent}));
+ ok(lk.n===0 && /4 of 5/.test(lk.t),'a view-only account still sees it counted but has nothing to tap');
 
  I.errs.length && console.log('impact errors:', I.errs.slice(0,3));
 

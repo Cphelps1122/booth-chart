@@ -51,6 +51,15 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums }
 .bar { height: 8px; background: var(--chip); border-radius: 5px; overflow: hidden; min-width: 80px }
 .bar i { display: block; height: 100%; background: var(--school) }
 .msg { padding: 12px 14px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line) }
+.fq-files { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; margin: 6px 0 10px }
+.drop { display: flex; flex-direction: column; gap: 4px; border: 2px dashed var(--line); border-radius: 10px; padding: 12px; cursor: pointer }
+.drop b { font-size: 16px } .drop span { color: var(--muted); font-size: 13.5px } .drop.ok { border-style: solid; border-color: var(--good) }
+.asks { display: flex; gap: 6px 14px; flex-wrap: wrap; margin: 4px 0 10px } .asks label { display: flex; gap: 6px; align-items: center; font-weight: 600 }
+.asks input { min-height: 0; width: 18px; height: 18px }
+#fqRev td select { min-height: 34px; padding: 3px 6px; max-width: 170px }
+#fqRev td.cl { font-weight: 700; white-space: nowrap } #fqRev td.sit { color: var(--muted); font-size: 13px; min-width: 120px }
+.fq-item { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center }
+.fq-item .t { font-weight: 800; font-size: 17px } .fq-item .m { color: var(--muted); font-size: 13.5px; flex-basis: 100% }
 .link { font-family: ui-monospace, Menlo, monospace; font-size: 13.5px; word-break: break-all }
 </style>
 </head>
@@ -65,6 +74,23 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums }
   <section class="panel" id="sharePanel" hidden>
     <h2>Quiz link for players <small>no account needed</small></h2>
     <div class="row"><span class="link" id="qlink"></span><button class="btn primary" id="shareLink" type="button">Share link</button><button class="btn" id="copyLink" type="button">Copy link</button><a class="btn" id="openQuiz" target="_blank" rel="noopener">Open quiz</a></div>
+  </section>
+
+  <section class="panel" id="fqPanel" hidden>
+    <h2>Film quiz <small>real clips of this week's opponent; players name the look</small></h2>
+    <p class="muted" style="margin:0 0 8px">Download a Hudl playlist's clips and its Excel export (same playlist). Clip 1 goes with row 1, clip 2 with row 2, and so on. The answers come from the playlist's tags, so each question is only as right as the tagging.</p>
+    <div id="fqBuild">
+      <div class="row" style="margin-bottom:8px"><label for="fqTitle" class="muted">Quiz name</label><input id="fqTitle" placeholder="Film: opponent's defense" style="flex:1;min-width:200px" maxlength="80"></div>
+      <div class="fq-files">
+        <label class="drop" id="fqDx" for="fqX"><b>1. Hudl export</b><span id="fqXn">The playlist's Excel (.xlsx) or CSV</span><input type="file" id="fqX" accept=".xlsx,.xls,.csv" hidden></label>
+        <label class="drop" id="fqDv" for="fqV"><b>2. Clips</b><span id="fqVn">The same playlist's video clips (pick them all at once)</span><input type="file" id="fqV" accept="video/*" multiple hidden></label>
+      </div>
+      <div class="muted">What to ask on each clip:</div>
+      <div class="asks" id="fqAsks"></div>
+      <div class="scroll" id="fqRevBox" hidden><table id="fqRev"><thead id="fqHead"></thead><tbody id="fqBody"></tbody></table></div>
+      <div class="row" style="margin-top:10px"><button class="btn primary" id="fqMake" type="button" disabled>Make the film quiz</button><span class="muted" id="fqNote"></span></div>
+    </div>
+    <div class="list" id="fqList" style="margin-top:12px"></div>
   </section>
 
   <section class="panel" id="sumPanel" hidden>
@@ -171,6 +197,133 @@ window.SOL_CONFIG = window.SOL_CONFIG || { db: "https://cardinal-booth-default-r
       .catch(function (e) { msg("Couldn't clear (" + esc(e.message) + ").") });
   };
   load();
+})();
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+/* Film quiz: Hudl clips + the same playlist's export. Each clip becomes a question per tag (front, coverage, ...),
+   answer = the tag, other choices = other values from that column. Clips go to Firebase Storage; the quiz is a share
+   (readable by players with the link, no account); /schools/<s>/filmq/<tok> lists the school's film quizzes. */
+(function () {
+  "use strict";
+  var SOL = window.SOL_CONFIG, $ = function (id) { return document.getElementById(id) };
+  var BUCKET = SOL.bucket || "cardinal-booth.firebasestorage.app";
+  var STORE = (SOL.storage || "https://firebasestorage.googleapis.com") + "/v0/b/" + BUCKET + "/o";
+  function authGet() { try { return JSON.parse(localStorage.getItem("solutions-auth-v1") || "null") } catch (e) { return null } }
+  function solToken() { var a = authGet(); if (!a || !a.school) return Promise.reject(new Error("NO_SESSION")); if (a.exp > Date.now() + 60000) return Promise.resolve(a.idToken);
+    return fetch("https://securetoken.googleapis.com/v1/token?key=" + SOL.apiKey, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "grant_type=refresh_token&refresh_token=" + encodeURIComponent(a.refreshToken) })
+      .then(function (r) { return r.json() }).then(function (j) { if (!j.id_token) throw new Error("NO_SESSION"); a.idToken = j.id_token; a.refreshToken = j.refresh_token; a.exp = Date.now() + (+j.expires_in || 3600) * 1000; localStorage.setItem("solutions-auth-v1", JSON.stringify(a)); return a.idToken }) }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] }) }
+  var acc = authGet(); if (!acc || !acc.school) return;
+  var SCH = acc.school, DB = SOL.db;
+  function at(path) { return solToken().then(function (t) { return DB + path + ".json?auth=" + encodeURIComponent(t) }) }
+
+  // the tags a question can come from: [key, label, header names Hudl uses, the question]
+  var ASKS = [["front", "Front", ["FRONT"], "What's the front?"], ["cov", "Coverage", ["COVERAGE", "COV"], "What's the coverage?"],
+    ["shell", "Shell", ["MFC/MFO/0", "SHELL", "MOFO/MOFC"], "Middle of the field: closed, open or zero?"], ["blitz", "Blitz", ["BLITZ"], "Who's coming?"],
+    ["lb", "LB alignment", ["LB ALIGNMENT", "LB ALIGN"], "How are the backers aligned?"], ["stunt", "Stunt", ["STUNT"], "What's the stunt?"]];
+  var DEF = { front: 1, cov: 1, blitz: 1 }, NONE = { blitz: "No blitz", stunt: "No stunt" };
+  var X = null, V = [], ROWS = [], on = {}, ANS = {}, OPTS = {};
+  ASKS.forEach(function (a) { on[a[0]] = !!DEF[a[0]] });
+
+  function col(row, names) { for (var k in row) { var K = String(k).trim().toUpperCase(); if (names.indexOf(K) >= 0) { var v = row[k]; return v == null ? "" : String(v).trim() } } return null }
+  function hasCol(names) { return X && X.some(function (r) { return col(r, names) !== null }) }
+  function val(r, a) { var v = col(r, a[2]); if (v === null) return ""; v = v.toUpperCase(); return v || NONE[a[0]] || "" }
+  function clipNo(f) { var m = f.name.match(/(\d+)(?!.*\d)/); return m ? +m[1] : null }
+
+  function drawAsks() {
+    $("fqAsks").innerHTML = ASKS.map(function (a) { var has = hasCol(a[2]); return "<label" + (X && !has ? " class='muted' title='Not in this export'" : "") + "><input type='checkbox' data-ask='" + a[0] + "'" + (on[a[0]] && (!X || has) ? " checked" : "") + (X && !has ? " disabled" : "") + "> " + a[1] + "</label>" }).join("");
+  }
+  $("fqAsks").addEventListener("change", function (e) { var c = e.target.closest("[data-ask]"); if (!c) return; on[c.dataset.ask] = c.checked; review() });
+  function live() { return ASKS.filter(function (a) { return on[a[0]] && hasCol(a[2]) }) }
+
+  // match clips to rows: "Clip 003" goes with row 3; clips with no number go in the order picked
+  function match() {
+    ROWS = []; ANS = {}; OPTS = {}; if (!X || !V.length) return;
+    var numbered = V.every(function (f) { return clipNo(f) != null });
+    var L = V.slice().sort(function (a, b) { return numbered ? clipNo(a) - clipNo(b) : a.name.localeCompare(b.name, undefined, { numeric: true }) });
+    L.forEach(function (f, k) { var n = numbered ? clipNo(f) : k + 1; ROWS.push({ f: f, n: n, r: X[n - 1] || null }) });
+    ASKS.forEach(function (a) { var c = {}; X.forEach(function (r) { var v = val(r, a); if (v) c[v] = (c[v] || 0) + 1 }); OPTS[a[0]] = Object.keys(c).sort(function (x, y) { return c[y] - c[x] }) });
+    ROWS.forEach(function (R, k) { ANS[k] = {}; ASKS.forEach(function (a) { ANS[k][a[0]] = R.r ? val(R.r, a) : "" }) });
+  }
+  function sit(r) { if (!r) return "No row " ; var dn = col(r, ["DN"]), di = col(r, ["DIST"]), yl = col(r, ["YARD LN"]), fo = col(r, ["O FORMATION", "OFF FORM"]), pn = col(r, ["PLAY #"]);
+    return [pn ? "Play " + pn : "", dn && dn !== "0" ? dn + "&" + di : dn === "0" ? "1st&10" : "", yl ? "on " + yl : "", fo || ""].filter(Boolean).join(" · ") }
+  function qCount() { var n = 0; ROWS.forEach(function (R, k) { if (R.skip) return; live().forEach(function (a) { if (ANS[k][a[0]]) n++ }) }); return n }
+  function review() {
+    var L = live(), ok = X && V.length;
+    $("fqRevBox").hidden = !ok; if (!ok) { $("fqMake").disabled = true; return }
+    $("fqHead").innerHTML = "<tr><th>Clip</th><th>Hudl row</th>" + L.map(function (a) { return "<th>" + esc(a[1]) + "</th>" }).join("") + "<th></th></tr>";
+    $("fqBody").innerHTML = ROWS.map(function (R, k) {
+      return "<tr" + (R.skip ? " style='opacity:.45'" : "") + "><td class='cl'>" + esc(R.f.name.replace(/\.[^.]+$/, "")) + "</td><td class='sit'>" + esc(R.r ? sit(R.r) : "No row " + R.n + " in the export") + "</td>" +
+        L.map(function (a) { var v = ANS[k][a[0]], o = OPTS[a[0]].slice(); if (v && o.indexOf(v) < 0) o.unshift(v);
+          return "<td><select data-k='" + k + "' data-a='" + a[0] + "' aria-label='" + esc(a[1]) + " answer'><option value=''>Don't ask</option>" + o.map(function (x) { return "<option" + (x === v ? " selected" : "") + ">" + esc(x) + "</option>" }).join("") + "</select></td>" }).join("") +
+        "<td><button class='btn' type='button' data-skip='" + k + "'>" + (R.skip ? "Use" : "Leave out") + "</button></td></tr>" }).join("");
+    var n = qCount(), miss = ROWS.filter(function (R) { return !R.r }).length;
+    $("fqNote").textContent = n + " question" + (n === 1 ? "" : "s") + " from " + ROWS.filter(function (R) { return !R.skip }).length + " clips" + (miss ? " · " + miss + " clip" + (miss === 1 ? " has" : "s have") + " no matching row: check it's the same playlist" : "");
+    $("fqMake").disabled = !n;
+  }
+  $("fqBody").addEventListener("change", function (e) { var s = e.target.closest("select[data-k]"); if (s) { ANS[s.dataset.k][s.dataset.a] = s.value; review() } });
+  $("fqBody").addEventListener("click", function (e) { var b = e.target.closest("[data-skip]"); if (b) { var R = ROWS[b.dataset.skip]; R.skip = !R.skip; review() } });
+
+  $("fqX").onchange = function () { var f = this.files[0]; if (!f) return;
+    f.arrayBuffer().then(function (buf) {
+      if (!window.XLSX) throw new Error("The Excel reader didn't load. Check your connection and reload.");
+      var wb = XLSX.read(buf, { type: "array" }); X = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: "" });
+      if (!X.length) throw new Error("That file has no rows.");
+      var tm = {}; X.forEach(function (r) { var t = col(r, ["TEAM", "OPPONENT"]); if (t) tm[t] = (tm[t] || 0) + 1 }); var top = Object.keys(tm).sort(function (a, b) { return tm[b] - tm[a] })[0];
+      if (!$("fqTitle").value && top) $("fqTitle").value = "Film: " + top;
+      $("fqXn").textContent = f.name + " · " + X.length + " rows"; $("fqDx").classList.add("ok"); drawAsks(); match(); review();
+    }).catch(function (e) { X = null; $("fqXn").textContent = "Couldn't read that file. " + (e.message || ""); $("fqDx").classList.remove("ok"); review() }) };
+  $("fqV").onchange = function () { V = [].slice.call(this.files); var mb = V.reduce(function (t, f) { return t + f.size }, 0) / 1048576;
+    $("fqVn").textContent = V.length + " clip" + (V.length === 1 ? "" : "s") + " · " + mb.toFixed(mb < 10 ? 1 : 0) + " MB"; $("fqDv").classList.toggle("ok", !!V.length); match(); review() };
+
+  function tokNew() { var t = ""; while (t.length < 24) t += Math.random().toString(36).slice(2); return t.slice(0, 24) }
+  function upload(tok, f, k, t) {
+    var ext = (f.name.match(/\.(mp4|mov|m4v|webm)$/i) || [, "mp4"])[1].toLowerCase(), path = "schools/" + SCH + "/clips/film-" + tok + "/" + (k + 1) + "." + ext;
+    return fetch(STORE + "?uploadType=media&name=" + encodeURIComponent(path), { method: "POST", headers: { "Authorization": "Firebase " + t, "Content-Type": f.type || "video/mp4" }, body: f })
+      .then(function (r) { if (!r.ok) throw new Error("clip upload HTTP " + r.status); return r.json() })
+      .then(function (j) { return STORE + "/" + encodeURIComponent(j.name) + "?alt=media&token=" + String(j.downloadTokens || "").split(",")[0] });
+  }
+  $("fqMake").onclick = function () {
+    var L = live(), use = ROWS.map(function (R, k) { return { R: R, k: k } }).filter(function (x) { return !x.R.skip && L.some(function (a) { return ANS[x.k][a[0]] }) });
+    if (!use.length) return;
+    var tok = tokNew(), title = ($("fqTitle").value.trim() || "Film quiz").slice(0, 80), done = 0, b = $("fqMake"); b.disabled = true;
+    var note = function () { $("fqNote").textContent = "Uploading clips: " + done + " of " + use.length + "… keep this page open" }; note();
+    solToken().then(function (t) {
+      var out = [], chain = Promise.resolve();
+      use.forEach(function (x) { chain = chain.then(function () { return upload(tok, x.R.f, x.k, t) }).then(function (url) { done++; note();
+        out.push({ url: url, clip: x.R.f.name.replace(/\.[^.]+$/, "").slice(0, 60), sit: x.R.r ? sit(x.R.r) : "",
+          asks: L.filter(function (a) { return ANS[x.k][a[0]] }).map(function (a) { var ans = ANS[x.k][a[0]], o = OPTS[a[0]].filter(function (v) { return v !== ans }).slice(0, 3); if (NONE[a[0]] && ans !== NONE[a[0]] && o.indexOf(NONE[a[0]]) < 0) o = o.slice(0, 2).concat(NONE[a[0]]);
+            return { k: a[0], q: a[3], a: ans, ch: o.concat(ans) } }) }) }) });
+      return chain.then(function () {
+        var n = out.reduce(function (s, c) { return s + c.asks.length }, 0);
+        var body = { by: acc.uid, at: Date.now(), items: JSON.stringify({ kind: "filmquiz", s: SCH, title: title, clips: out }) };
+        return fetch(DB + "/share/" + tok + ".json?auth=" + encodeURIComponent(t), { method: "PUT", body: JSON.stringify(body) }).then(function (r) { if (!r.ok) throw new Error("save HTTP " + r.status) })
+          .then(function () { return fetch(DB + "/schools/" + encodeURIComponent(SCH) + "/filmq/" + tok + ".json?auth=" + encodeURIComponent(t), { method: "PUT", body: JSON.stringify({ title: title, at: Date.now(), clips: out.length, qs: n }) }) })
+          .then(function (r) { if (!r.ok) throw new Error("list HTTP " + r.status); return n });
+      });
+    }).then(function (n) { $("fqNote").textContent = "Made \u201c" + title + "\u201d: " + n + " questions. Share its link below."; V = []; X = null; ROWS = []; $("fqV").value = ""; $("fqX").value = ""; $("fqVn").textContent = "The same playlist's video clips (pick them all at once)"; $("fqXn").textContent = "The playlist's Excel (.xlsx) or CSV"; $("fqDv").classList.remove("ok"); $("fqDx").classList.remove("ok"); $("fqTitle").value = ""; $("fqRevBox").hidden = true; drawAsks(); list() },
+      function (e) { b.disabled = false; $("fqNote").textContent = "Couldn't finish (" + (e.message || e) + "). Nothing was shared; try again on a good connection." });
+  };
+
+  function qUrl(tok) { return new URL("quiz.html?film=" + tok + (SCH === "melissa" ? "" : "&s=" + encodeURIComponent(SCH)), location.href).href }
+  var LOCKED = false;
+  function list() {
+    at("/schools/" + encodeURIComponent(SCH) + "/filmq").then(function (u) { return fetch(u) }).then(function (r) { return r.ok ? r.json() : null }).then(function (d) {
+      var K = Object.keys(d || {}).sort(function (a, b) { return d[b].at - d[a].at });
+      $("fqList").innerHTML = K.map(function (k) { var q = d[k], u = qUrl(k);
+        return "<div class='fq-item'><span class='t'>" + esc(q.title) + "</span><a class='btn primary' href='#' data-share='" + esc(k) + "' data-title='" + esc(q.title) + "'>Share link</a><a class='btn' href='" + esc(u) + "' target='_blank' rel='noopener'>Open</a>" +
+          (LOCKED ? "" : "<button class='btn danger' type='button' data-fdel='" + esc(k) + "' style='margin-left:auto'>Delete</button>") + "<span class='m'>" + q.clips + " clips · " + q.qs + " questions · " + esc(new Date(q.at).toLocaleDateString(undefined, { month: "short", day: "numeric" })) + " · <span class='link'>" + esc(u) + "</span></span></div>" }).join("");
+    }, function () {});
+  }
+  $("fqList").addEventListener("click", function (e) {
+    var s = e.target.closest("[data-share]"); if (s) { e.preventDefault(); var u = qUrl(s.dataset.share), data = { title: s.dataset.title, text: "Film quiz: " + s.dataset.title + ". Watch each clip and name the look. Type your name, then hit Start. When you finish, hit Text Coach.", url: u };
+      if (navigator.share) navigator.share(data).catch(function () {}); else if (navigator.clipboard) navigator.clipboard.writeText(u).then(function () { s.textContent = "Link copied" }, function () {}); return }
+    var b = e.target.closest("[data-fdel]"); if (!b || !confirm("Delete this film quiz? Players with the link won't be able to open it.")) return; b.disabled = true;
+    var k = b.dataset.fdel; at("/share/" + k).then(function (u) { return fetch(u, { method: "DELETE" }) }).then(function () { return at("/schools/" + encodeURIComponent(SCH) + "/filmq/" + k) }).then(function (u) { return fetch(u, { method: "DELETE" }) }).then(list, function () { b.disabled = false });
+  });
+  at("/schools/" + encodeURIComponent(SCH) + "/locks/" + encodeURIComponent(acc.uid || "_")).then(function (u) { return fetch(u) }).then(function (r) { return r.ok ? r.json() : null }).then(function (v) { LOCKED = v === true }, function () {})
+    .then(function () { $("fqBuild").hidden = LOCKED; $("fqPanel").hidden = false; drawAsks(); list() });
 })();
 </script>
 </body>

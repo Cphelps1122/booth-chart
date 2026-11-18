@@ -38,21 +38,24 @@ ul{padding-left:20px;font-size:20px;margin:8px 0}
 .big{font-size:56px;text-align:center;margin:4px 0}
 label{font-size:18px}
 input{font:inherit;font-size:20px;width:100%;min-height:46px;border:2px solid #111;border-radius:10px;padding:6px 10px;margin:4px 0 12px}
+.film video{width:100%;display:block;border-radius:10px;background:#000;max-height:56vh}
+.film .chs{display:grid;gap:8px;margin-top:10px}
+.film .chip.right{background:#c9efcf;border-color:#1f9a3a}.film .chip.wrong{background:#f7c9c4;border-color:#c0392b}
 .key{font-size:17px;color:#333;line-height:1.35}
 </style>
 </head>
 <body>
 <main>
-<h1>DESOTO RB QUIZ</h1>
-<div class="sub">Line up right. Find your man. Hit your hole.</div>
+<h1 id="ttl">DESOTO RB QUIZ</h1>
+<div class="sub" id="sub">Line up right. Find your man. Hit your hole.</div>
 
 <section id="start" class="card">
 <label for="nm">Your name</label>
 <input id="nm" autocomplete="name">
-<div style="font-size:20px">Pick what to study:</div>
+<div style="font-size:20px" id="pickLbl">Pick what to study:</div>
 <div class="groups" id="groups"></div>
 <button class="go" id="begin">Start</button>
-<div class="key" style="margin-top:12px">
+<div class="key" id="key" style="margin-top:12px">
 <b>Field</b> = wide side of the field. <b>Boundary</b> = short side.<br>
 <b>FLD / BND</b> = line up to the field / boundary.<br>
 <b>SS</b> = same side as the number. <b>OPP</b> = opposite the number.<br>
@@ -291,6 +294,7 @@ function render(){
 
 function show(){
   const q = deck[i];
+  if (q.film) return showFilm(q);
   stage = q.p.g === 'bite' ? 2 : 1;
   $('count').textContent = 'Rep ' + (i+1) + ' of ' + deck.length;
   $('score').textContent = right + ' right';
@@ -337,6 +341,39 @@ function answer(el){
   $('next').classList.remove('hidden');
 }
 
+// ---- film quiz (quiz.html?film=<share>): real clips, name the look ----
+let FILMQ = null;
+function filmDeck(){
+  const out = [];
+  shuffle(FILMQ.clips.slice()).forEach(c => c.asks.forEach(a => { const r = { film: true, url: c.url, clip: c.clip, sit: c.sit, q: a.q, a: a.a, ch: a.ch, k: a.k, label: c.clip + ': ' + a.q.replace(/\?$/, '') }; r.p = r; out.push(r); }));
+  return out;
+}
+function showFilm(q){
+  stage = 3;
+  $('count').textContent = 'Rep ' + (i+1) + ' of ' + deck.length;
+  $('score').textContent = right + ' right';
+  $('prog').style.width = (i/deck.length*100) + '%';
+  $('call').textContent = q.clip; $('hash').textContent = q.sit || ''; $('ask').textContent = q.q;
+  $('fb').textContent = ''; $('fb').className = 'fb'; $('rule').classList.add('hidden'); $('next').classList.add('hidden');
+  const v = $('dia').querySelector('video');
+  if (!v || v.dataset.url !== q.url) {
+    $('dia').innerHTML = '<div class="film"><video playsinline muted autoplay loop controls preload="auto"></video><div class="chs"></div></div>';
+    const nv = $('dia').querySelector('video'); nv.dataset.url = q.url; nv.src = q.url;
+    nv.onerror = () => { $('fb').textContent = 'This clip won\u2019t play here. Answer from what you know, or tell Coach.'; };
+  }
+  $('dia').querySelector('.chs').innerHTML = shuffle(q.ch.slice()).map(c => '<button class="chip" type="button" data-c="' + c.replace(/"/g, '&quot;') + '">' + c.replace(/</g, '&lt;') + '</button>').join('');
+}
+function answerFilm(b){
+  const q = deck[i]; if (stage !== 3) return; stage = 0;
+  const good = b.dataset.c === q.a;
+  $('dia').querySelectorAll('.chs .chip').forEach(x => { if (x.dataset.c === q.a) x.classList.add('right'); });
+  if (!good) { b.classList.add('wrong'); missed.push(q.p); log.push(q.clip + ' \u2013 ' + q.q + ' Picked ' + b.dataset.c + ', it was ' + q.a); } else right++;
+  $('fb').textContent = good ? 'Right!' : 'It was ' + q.a + '.'; $('fb').className = 'fb ' + (good ? 'ok' : 'no');
+  $('score').textContent = right + ' right';
+  $('next').textContent = i + 1 < deck.length ? 'Next' : 'See score'; $('next').classList.remove('hidden');
+}
+$('dia').addEventListener('click', e => { const b = e.target.closest('.chs .chip'); if (b) answerFilm(b); });
+
 function finish(){
   $('quiz').classList.add('hidden'); $('done').classList.remove('hidden');
   const nm = $('nm').value.trim();
@@ -353,7 +390,7 @@ const SCHOOL = (new URLSearchParams(location.search).get('s') || 'melissa').toLo
 let attemptId = null;
 function save(){
   const rec = { name: ($('nm').value.trim() || 'Player').slice(0, 60), score: right, total: deck.length, at: Date.now(),
-    groups: GROUPS.filter(g => picked.has(g.id)).map(g => g.label).join(', ').slice(0, 400),
+    groups: (FILMQ ? FILMQ.title : GROUPS.filter(g => picked.has(g.id)).map(g => g.label).join(', ')).slice(0, 400),
     missed: log.join('\n').slice(0, 4000), plays: [...new Set(missed.map(p => p.label || p.name))].join('|').slice(0, 4000),
     question: $('qbox').value.trim().slice(0, 4000) };
   const url = attemptId ? SOL_DB + '/quiz/' + SCHOOL + '/' + attemptId + '.json' : SOL_DB + '/quiz/' + SCHOOL + '.json';
@@ -369,7 +406,7 @@ $('qbox').addEventListener('input', () => { clearTimeout(qTimer); qTimer = setTi
 const COACH_PHONE = '+12145786616', COACH_EMAIL = '';
 function report(){
   const nm = $('nm').value.trim() || 'A player';
-  let t = 'DeSoto RB Quiz \u2013 ' + nm + ': ' + right + '/' + deck.length + '\n';
+  let t = (FILMQ ? FILMQ.title : 'DeSoto RB Quiz') + ' \u2013 ' + nm + ': ' + right + '/' + deck.length + '\n';
   t += log.length ? 'Missed:\n' + log.map(l => '- ' + l).join('\n') : 'Missed: none';
   const qq = $('qbox').value.trim();
   if (qq) t += '\nQuestion: ' + qq;
@@ -378,14 +415,31 @@ function report(){
 function setSend(){
   const body = encodeURIComponent(report());
   $('sms').href = 'sms:' + COACH_PHONE + '?&body=' + body;
-  $('mail').href = 'mailto:' + COACH_EMAIL + '?subject=' + encodeURIComponent('RB Quiz: ' + ($('nm').value.trim() || 'player')) + '&body=' + body;
+  $('mail').href = 'mailto:' + COACH_EMAIL + '?subject=' + encodeURIComponent((FILMQ ? FILMQ.title : 'RB Quiz') + ': ' + ($('nm').value.trim() || 'player')) + '&body=' + body;
 }
 $('qbox').addEventListener('input', setSend);
 $('sms').addEventListener('click', e => { e.preventDefault(); saveQuestion(); const u = $('sms').href; try { window.top.location.href = u; } catch (x) { const w = window.open(u, '_blank'); if (!w) location.href = u; } });
 
 $('next').onclick = () => { i++; i < deck.length ? show() : finish(); };
-$('begin').onclick = () => { if (!$('nm').value.trim()) { $('nm').focus(); $('nm').style.borderColor = '#c0392b'; $('nm').placeholder = 'Type your name first'; return; } begin(PLAYS.filter(p => picked.has(p.g))); };
-$('again').onclick = () => begin([...new Set(missed)]);
+$('begin').onclick = () => { if (!$('nm').value.trim()) { $('nm').focus(); $('nm').style.borderColor = '#c0392b'; $('nm').placeholder = 'Type your name first'; return; } if (FILMQ) beginFilm(filmDeck()); else begin(PLAYS.filter(p => picked.has(p.g))); };
+$('again').onclick = () => FILMQ ? beginFilm([...new Set(missed)]) : begin([...new Set(missed)]);
+function beginFilm(reps){
+  if (!reps.length) return;
+  deck = reps; i = 0; right = 0; missed = []; log = [];
+  $('start').classList.add('hidden'); $('done').classList.add('hidden'); $('quiz').classList.remove('hidden');
+  show();
+}
+const FILM = new URLSearchParams(location.search).get('film');
+if (FILM) {
+  ['groups', 'pickLbl', 'key'].forEach(id => $(id).classList.add('hidden'));
+  $('ttl').textContent = 'FILM QUIZ'; $('sub').textContent = 'Loading the clips\u2026'; $('begin').disabled = true;
+  fetch(SOL_DB + '/share/' + encodeURIComponent(FILM) + '.json').then(r => r.ok ? r.json() : null).then(d => {
+    const x = d && d.items ? JSON.parse(d.items) : null;
+    if (!x || x.kind !== 'filmquiz' || !x.clips || !x.clips.length) throw 0;
+    FILMQ = x; $('ttl').textContent = x.title.toUpperCase();
+    $('sub').textContent = 'Watch each clip. Name the look. ' + x.clips.reduce((n, c) => n + c.asks.length, 0) + ' questions.'; $('begin').disabled = false;
+  }).catch(() => { $('sub').textContent = 'This film quiz isn\u2019t available. Ask Coach for a new link.'; });
+}
 $('home').onclick = () => { $('done').classList.add('hidden'); $('start').classList.remove('hidden'); };
 drawGroups();
 </script>

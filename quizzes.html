@@ -85,6 +85,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums }
         <label class="drop" id="fqDx" for="fqX"><b>1. Hudl export</b><span id="fqXn">The playlist's Excel (.xlsx) or CSV</span><input type="file" id="fqX" accept=".xlsx,.xls,.csv" hidden></label>
         <label class="drop" id="fqDv" for="fqV"><b>2. Clips</b><span id="fqVn">The same playlist's video clips (pick them all at once)</span><input type="file" id="fqV" accept="video/*" multiple hidden></label>
       </div>
+      <div class="row" style="margin-bottom:8px"><label for="fqLen" class="muted">Keep from each clip</label><select id="fqLen"><option value="4">First 4 seconds</option><option value="6" selected>First 6 seconds</option><option value="8">First 8 seconds</option><option value="10">First 10 seconds</option><option value="0">The whole clip</option></select><span class="muted">Clips are shortened and shrunk to phone size before they upload, so they take far less storage. Your originals aren't changed.</span></div>
       <div class="muted">What to ask on each clip:</div>
       <div class="asks" id="fqAsks"></div>
       <div class="scroll" id="fqRevBox" hidden><table id="fqRev"><thead id="fqHead"></thead><tbody id="fqBody"></tbody></table></div>
@@ -277,9 +278,34 @@ window.SOL_CONFIG = window.SOL_CONFIG || { db: "https://cardinal-booth-default-r
   $("fqV").onchange = function () { V = [].slice.call(this.files); var mb = V.reduce(function (t, f) { return t + f.size }, 0) / 1048576;
     $("fqVn").textContent = V.length + " clip" + (V.length === 1 ? "" : "s") + " · " + mb.toFixed(mb < 10 ? 1 : 0) + " MB"; $("fqDv").classList.toggle("ok", !!V.length); match(); review() };
 
+  // ---- shorten + shrink a clip in the browser: play it into a 640-wide canvas and record the first N seconds ----
+  try { var sv = localStorage.getItem("sol-fq-len"); if (sv != null && $("fqLen").querySelector("option[value='" + sv + "']")) $("fqLen").value = sv } catch (e) {}
+  $("fqLen").onchange = function () { try { localStorage.setItem("sol-fq-len", this.value) } catch (e) {} };
+  function recType() { var L = ["video/mp4;codecs=avc1", "video/mp4", "video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"]; if (!window.MediaRecorder || !MediaRecorder.isTypeSupported) return null; for (var i = 0; i < L.length; i++) if (MediaRecorder.isTypeSupported(L[i])) return L[i]; return null }
+  function shrink(f, secs) {
+    return new Promise(function (ok, no) {
+      var type = recType(); if (!type) return no(new Error("This browser can't shorten clips"));
+      var v = document.createElement("video"), url = URL.createObjectURL(f), done = false, rec = null, timer = null, parts = [];
+      v.muted = true; v.playsInline = true; v.setAttribute("playsinline", ""); v.preload = "auto"; v.src = url;
+      var stop = function () { if (done) return; done = true; clearTimeout(timer); try { v.pause() } catch (e) {} if (rec && rec.state !== "inactive") rec.stop(); else fail(new Error("nothing recorded")) };
+      var fail = function (e) { clearTimeout(timer); URL.revokeObjectURL(url); no(e) };
+      setTimeout(function () { if (!rec) fail(new Error("clip wouldn't load")) }, 20000);
+      v.onerror = function () { fail(new Error("clip wouldn't load")) };
+      v.onloadedmetadata = function () {
+        var w = v.videoWidth || 640, h = v.videoHeight || 360, sc = Math.min(1, 640 / w), c = document.createElement("canvas");
+        c.width = Math.round(w * sc / 2) * 2; c.height = Math.round(h * sc / 2) * 2; var g = c.getContext("2d");
+        var st = c.captureStream(30); rec = new MediaRecorder(st, { mimeType: type, videoBitsPerSecond: 900000 });
+        rec.ondataavailable = function (e) { if (e.data && e.data.size) parts.push(e.data) };
+        rec.onstop = function () { URL.revokeObjectURL(url); var b = new Blob(parts, { type: type.split(";")[0] }); b.size ? ok(b) : no(new Error("nothing recorded")) };
+        var draw = function () { if (done) return; g.drawImage(v, 0, 0, c.width, c.height); if (secs && v.currentTime >= secs) return stop(); if (v.requestVideoFrameCallback) v.requestVideoFrameCallback(draw); else setTimeout(draw, 33) };
+        v.onended = stop;
+        v.play().then(function () { g.drawImage(v, 0, 0, c.width, c.height); rec.start(250); draw(); timer = setTimeout(stop, ((secs || v.duration || 60) + 15) * 1000) }, function (e) { fail(e) });
+      };
+    });
+  }
   function tokNew() { var t = ""; while (t.length < 24) t += Math.random().toString(36).slice(2); return t.slice(0, 24) }
   function upload(tok, f, k, t) {
-    var ext = (f.name.match(/\.(mp4|mov|m4v|webm)$/i) || [, "mp4"])[1].toLowerCase(), path = "schools/" + SCH + "/clips/film-" + tok + "/" + (k + 1) + "." + ext;
+    var ext = /webm/.test(f.type || "") ? "webm" : /mp4/.test(f.type || "") && !f.name ? "mp4" : ((f.name || "").match(/\.(mp4|mov|m4v|webm)$/i) || [, "mp4"])[1].toLowerCase(), path = "schools/" + SCH + "/clips/film-" + tok + "/" + (k + 1) + "." + ext;
     return fetch(STORE + "?uploadType=media&name=" + encodeURIComponent(path), { method: "POST", headers: { "Authorization": "Firebase " + t, "Content-Type": f.type || "video/mp4" }, body: f })
       .then(function (r) { if (!r.ok) throw new Error("clip upload HTTP " + r.status); return r.json() })
       .then(function (j) { return STORE + "/" + encodeURIComponent(j.name) + "?alt=media&token=" + String(j.downloadTokens || "").split(",")[0] });
@@ -289,10 +315,12 @@ window.SOL_CONFIG = window.SOL_CONFIG || { db: "https://cardinal-booth-default-r
     var L = live(), use = ROWS.map(function (R, k) { return { R: R, k: k } }).filter(function (x) { return !x.R.skip && L.some(function (a) { return ANS[x.k][a[0]] }) });
     if (!use.length) return;
     var tok = tokNew(), title = ($("fqTitle").value.trim() || "Film quiz").slice(0, 80), done = 0, b = $("fqMake"); b.disabled = true;
-    var note = function () { $("fqNote").textContent = "Uploading clips: " + done + " of " + use.length + "… keep this page open" }; note();
+    var secs = +$("fqLen").value || 0, full = 0, before = 0, after = 0, step = "";
+    var note = function () { $("fqNote").textContent = step + " clip " + Math.min(done + 1, use.length) + " of " + use.length + "… keep this page open and on screen" };
     solToken().then(function (t) {
       var out = [], chain = Promise.resolve();
-      use.forEach(function (x) { chain = chain.then(function () { return upload(tok, x.R.f, x.k, t) }).then(function (url) { done++; note();
+      use.forEach(function (x) { chain = chain.then(function () { step = "Shortening"; note(); before += x.R.f.size;
+          return (secs ? shrink(x.R.f, secs).catch(function () { full++; return x.R.f }) : Promise.resolve(x.R.f)) }).then(function (blob) { after += blob.size; step = "Uploading"; note(); return upload(tok, blob, x.k, t) }).then(function (url) { done++;
         out.push({ url: url, clip: x.R.f.name.replace(/\.[^.]+$/, "").slice(0, 60), sit: x.R.r ? sit(x.R.r) : "",
           asks: L.filter(function (a) { return ANS[x.k][a[0]] }).map(function (a) { var ans = ANS[x.k][a[0]], o = OPTS[a[0]].filter(function (v) { return v !== ans }).slice(0, 3); if (NONE[a[0]] && ans !== NONE[a[0]] && o.indexOf(NONE[a[0]]) < 0) o = o.slice(0, 2).concat(NONE[a[0]]);
             return { k: a[0], q: a[3], a: ans, ch: o.concat(ans) } }) }) }) });
@@ -303,7 +331,8 @@ window.SOL_CONFIG = window.SOL_CONFIG || { db: "https://cardinal-booth-default-r
           .then(function () { return fetch(DB + "/schools/" + encodeURIComponent(SCH) + "/filmq/" + tok + ".json?auth=" + encodeURIComponent(t), { method: "PUT", body: JSON.stringify({ title: title, at: Date.now(), clips: out.length, qs: n }) }) })
           .then(function (r) { if (!r.ok) throw new Error("list HTTP " + r.status); return n });
       });
-    }).then(function (n) { $("fqNote").textContent = "Made \u201c" + title + "\u201d: " + n + " questions. Share its link below."; V = []; X = null; ROWS = []; $("fqV").value = ""; $("fqX").value = ""; $("fqVn").textContent = "The same playlist's video clips (pick them all at once)"; $("fqXn").textContent = "The playlist's Excel (.xlsx) or CSV"; $("fqDv").classList.remove("ok"); $("fqDx").classList.remove("ok"); $("fqTitle").value = ""; $("fqRevBox").hidden = true; drawAsks(); list() },
+    }).then(function (n) { var mb = function (x) { return (x / 1048576).toFixed(x < 10485760 ? 1 : 0) + " MB" };
+      $("fqNote").textContent = "Made \u201c" + title + "\u201d: " + n + " questions, " + mb(after) + " of clips" + (secs ? " (from " + mb(before) + ")" : "") + "." + (full ? " " + full + " clip" + (full === 1 ? "" : "s") + " couldn't be shortened and went up full size." : "") + " Share its link below."; V = []; X = null; ROWS = []; $("fqV").value = ""; $("fqX").value = ""; $("fqVn").textContent = "The same playlist's video clips (pick them all at once)"; $("fqXn").textContent = "The playlist's Excel (.xlsx) or CSV"; $("fqDv").classList.remove("ok"); $("fqDx").classList.remove("ok"); $("fqTitle").value = ""; $("fqRevBox").hidden = true; drawAsks(); list() },
       function (e) { b.disabled = false; $("fqNote").textContent = "Couldn't finish (" + (e.message || e) + "). Nothing was shared; try again on a good connection." });
   };
 

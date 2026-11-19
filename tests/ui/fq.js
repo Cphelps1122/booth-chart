@@ -5,7 +5,8 @@ const {chromium}=require('playwright'); const {start}=require('/home/claude/boot
 const http=require('http'), fs=require('fs'), path=require('path'), os=require('os'), cp=require('child_process');
 const ROOT='/home/claude/booth-chart', OUT=(process.env.SHOT_DIR || path.join(os.tmpdir(),'booth-shots')+'/');
 const VD=path.join(os.tmpdir(),'fq-clips'); fs.mkdirSync(VD,{recursive:true}); fs.mkdirSync(OUT,{recursive:true});
-const CLIPS=['001','002','003'].map(n=>{ const f=path.join(VD,'Wide - Clip '+n+'.webm'); if(!fs.existsSync(f)) cp.execSync('ffmpeg -v error -y -f lavfi -i testsrc=size=320x180:rate=15:duration=2 -c:v libvpx-vp9 -b:v 200k "'+f+'"'); return f });
+const CLIPS=['001','002','003'].map(n=>{ const f=path.join(VD,'Wide - Clip '+n+'.webm'); if(!fs.existsSync(f)) cp.execSync('ffmpeg -v error -y -f lavfi -i testsrc=size=1280x720:rate=30:duration=8 -c:v libvpx-vp9 -b:v 3M "'+f+'"'); return f });
+const probe=buf=>{ const f=path.join(VD,'probe.bin'); fs.writeFileSync(f,buf); try { const w=+cp.execSync('ffprobe -v error -select_streams v:0 -show_entries stream=width -of csv=p=0 "'+f+'"').toString().trim(); const ts=cp.execSync('ffprobe -v error -select_streams v:0 -show_entries packet=pts_time -of csv=p=0 "'+f+'"').toString().trim().split(/\s+/).map(Number).filter(x=>!isNaN(x)); return { w, secs:+(Math.max(...ts)-Math.min(...ts)).toFixed(2) } } catch(e){ return null } };
 const CSV=path.join(VD,'PlaylistData.csv');
 fs.writeFileSync(CSV,['PLAY #,ODK,DN,DIST,YARD LN,O FORMATION,FRONT,BLITZ,MFC/MFO/0,COVERAGE,TEAM',
  '15,D,1,10,-19,GOLD,41 OVER,,MFO,2,DUNCANVILLE','16,D,2,10,-19,TEXAS,HEADS,SAM,MFC,3,DUNCANVILLE','17,D,3,7,-22,CREW,41 UNDER,,MFC,3 CLOUD,DUNCANVILLE','18,D,1,10,-30,GOLD,41 OVER,MIKE,MFO,2,DUNCANVILLE'].join('\n'));
@@ -24,7 +25,7 @@ async function ctxFor(b,vp,uid){ const ctx=await b.newContext({viewport:vp});
     if (r.request().method()==='POST') { const name=u.searchParams.get('name'); STORED[name]=r.request().postDataBuffer(); return r.fulfill({status:200,contentType:'application/json',body:JSON.stringify({name,downloadTokens:'tk'+Object.keys(STORED).length})}) }
     const name=decodeURIComponent(u.pathname.split('/o/')[1]||'');
     if (r.request().method()==='DELETE') { const had=name in STORED; delete STORED[name]; return r.fulfill({status:had?204:404,body:''}) }
-    const buf=STORED[name]; return buf? r.fulfill({status:200,contentType:'video/webm',body:buf}) : r.fulfill({status:404,body:''}) });
+    const buf=STORED[name]; return buf? r.fulfill({status:200,contentType:/\.mp4$/.test(name)?'video/mp4':'video/webm',body:buf}) : r.fulfill({status:404,body:''}) });
   if (uid) await ctx.addInitScript(([uid])=>{ window.SOL_CONFIG={db:'http://localhost:9128',apiKey:'x'};
     localStorage.setItem('solutions-auth-v1', JSON.stringify({uid,email:'x@x',idToken:'t',refreshToken:'r',exp:Date.now()+3600e3,school:'melissa',profile:{name:'Melissa'}})) },[uid]);
   else await ctx.addInitScript(()=>{ window.SOL_CONFIG={db:'http://localhost:9128'} });
@@ -48,9 +49,16 @@ async function ctxFor(b,vp,uid){ const ctx=await b.newContext({viewport:vp});
  await C.click('#fqBody [data-skip="2"]');
  await C.selectOption('#fqBody select[data-k="2"][data-a="front"]','HEADS'); // coach fixes a bad tag
  await C.screenshot({path:OUT+'fq_build.png',fullPage:true});
+ ok(await C.inputValue('#fqLen')==='6','clips keep the first 6 seconds by default'); await C.selectOption('#fqLen','4');
+ const big=CLIPS.reduce((t,f)=>t+fs.statSync(f).size,0);
  await C.click('#fqMake');
- ok(await wait(()=>C.$$eval('#fqList .fq-item',L=>L.length===1)),'Make uploads the clips and lists the quiz');
- ok(Object.keys(STORED).length===3 && Object.keys(STORED).every(k=>/^schools\/melissa\/clips\/film-[a-z0-9]{24}\/\d\.webm$/.test(k)),'3 clips stored under the school: '+Object.keys(STORED)[0]);
+ ok(await wait(()=>C.$$eval('#fqList .fq-item',L=>L.length===1),60000),'Make shortens, uploads the clips and lists the quiz');
+ console.log('   note: '+await C.textContent('#fqNote'));
+ ok(/MB of clips \(from/.test(await C.textContent('#fqNote')) && !/full size/.test(await C.textContent('#fqNote')),'the note shows the size before and after, none went up full size');
+ const one=Object.values(STORED)[0], pr=probe(one); ok(pr && pr.w===640 && pr.secs>=3.3 && pr.secs<=4.6,'a stored clip is 640 wide and about 4 seconds long ('+JSON.stringify(pr)+', '+one.length+' bytes)');
+ ok(Object.values(STORED).reduce((t,x)=>t+x.length,0) < big/2,'together they are much smaller than the originals');
+ ok(await C.evaluate(()=>localStorage.getItem('sol-fq-len'))==='4','the length you pick is remembered on this device');
+ ok(Object.keys(STORED).length===3 && Object.keys(STORED).every(k=>/^schools\/melissa\/clips\/film-[a-z0-9]{24}\/\d\.(webm|mp4)$/.test(k)),'3 clips stored under the school: '+Object.keys(STORED)[0]);
  const tok=Object.keys(R.db.share||{})[0], sh=tok && JSON.parse(R.db.share[tok].items);
  ok(sh && sh.kind==='filmquiz' && sh.clips.length===3 && R.db.share[tok].by==='u1','the quiz is saved as a share link');
  ok(sh && sh.clips[2].asks.find(a=>a.k==='front').a==='HEADS','the coach\'s fix is the answer');
@@ -66,7 +74,8 @@ async function ctxFor(b,vp,uid){ const ctx=await b.newContext({viewport:vp});
  ok(!await P.isVisible('#groups') && !await P.isVisible('#key'),'the RB quiz picks and key are hidden');
  await P.fill('#nm','Jalen'); await P.click('#begin');
  ok(await wait(()=>P.evaluate(()=>{ const v=document.querySelector('#dia video'); return v && v.readyState>=2 })),'the clip plays');
- await P.waitForTimeout(500); await P.screenshot({path:OUT+'fq_player.png'});
+ ok(await wait(()=>P.evaluate(()=>{ const v=document.querySelector('#dia video'); if(!v) return false; window.__mx=Math.max(window.__mx||0,v.currentTime); return window.__mx>3 && v.currentTime<1.5 }),15000),'the shortened clip plays through and loops back to the start');
+ await P.screenshot({path:OUT+'fq_player.png'});
  let wrong=0; for (let k=0;k<9;k++){ const q=await P.evaluate(()=>({q:document.getElementById('ask').textContent, c:document.getElementById('call').textContent}));
    const s=sh.clips.find(c=>c.clip===q.c), a=s.asks.find(x=>x.q===q.q);
    const pick= k<2 ? a.ch.find(x=>x!==a.a) : a.a; if(pick!==a.a) wrong++;

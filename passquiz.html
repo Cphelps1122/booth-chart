@@ -72,7 +72,7 @@ input{font:inherit;font-size:20px;width:100%;min-height:46px;border:2px solid #1
 <div class="key" style="margin-top:12px">
 Each play: <b>1)</b> tap where YOU line up on that play, <b>2)</b> pick your route, <b>3)</b> know where the ball goes first.<br>
 Spots are numbered left to right, 1 to 4. The back is 0.<br>
-<span style="color:#1f9a3a">Green dashes</span> = motion. <span style="color:#c0392b">Red</span> = your choices on an option route. A dot = stop / sit. A T = block.
+<span style="color:#7a1fd6;font-weight:700">Purple dashes</span> = motion. <span style="color:#c0392b">Red</span> = your choices on an option route. A dot = stop / sit. A T = block.
 </div>
 </section>
 
@@ -243,7 +243,7 @@ function endMark(P, kind, color){
 function drawRoute(R){
   if (R.none) return '';
   let s = '';
-  if (R.mo) s += line(R.mo, '#1f9a3a', true);
+  if (R.mo) s += line(R.mo, '#7a1fd6', true);
   s += line(R.r, '#111', false, R.w) + endMark(R.r, R.e, '#111');
   (R.o || []).forEach(o => { const P = o.filter(x => Array.isArray(x)), k = typeof o[o.length-1] === 'string' ? o[o.length-1] : 'arrow'; s += line(P, '#d62a20') + endMark(P, k, '#d62a20') });
   return s;

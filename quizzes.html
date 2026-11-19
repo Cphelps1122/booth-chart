@@ -495,7 +495,7 @@ window.SOL_CONFIG = window.SOL_CONFIG || { db: "https://cardinal-booth-default-r
       function (e) { b.disabled = false; $("fqNote").textContent = "Couldn't finish (" + (e.message || e) + "). Nothing was shared; try again on a good connection." });
   };
 
-  function qUrl(tok) { return new URL("quiz.html?film=" + tok + (SCH === "melissa" ? "" : "&s=" + encodeURIComponent(SCH)), location.href).href }
+  function qUrl(tok) { return new URL("film.html?film=" + tok + (SCH === "melissa" ? "" : "&s=" + encodeURIComponent(SCH)), location.href).href }
   var OWNER = false; // only the Solutions owner (an admin account) makes or deletes film quizzes for now
   function list() {
     at("/schools/" + encodeURIComponent(SCH) + "/filmq").then(function (u) { return fetch(u) }).then(function (r) { return r.ok ? r.json() : null }).then(function (d) {

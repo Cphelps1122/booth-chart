@@ -64,7 +64,7 @@ async function ctxFor(b,vp,uid){ const ctx=await b.newContext({viewport:vp});
  ok(sh && sh.clips[2].asks.find(a=>a.k==='front').a==='HEADS','the coach\'s fix is the answer');
  ok(sh && sh.clips.every(c=>c.asks.every(a=>a.ch.includes(a.a) && new Set(a.ch).size===a.ch.length && a.ch.length>=2)),'every question has the answer plus other choices, no repeats');
  ok(R.db.schools.melissa.filmq && R.db.schools.melissa.filmq[tok].qs===9,'and listed for the school (9 questions)');
- const link=await C.$eval('#fqList .link',e=>e.textContent); ok(new RegExp('quiz\\.html\\?film='+tok+'$').test(link),'its player link: '+link);
+ const link=await C.$eval('#fqList .link',e=>e.textContent); ok(new RegExp('film\\.html\\?film='+tok+'$').test(link),'its player link: '+link);
  await C.screenshot({path:OUT+'fq_made.png',fullPage:true});
 
  { const src=fs.readFileSync(ROOT+'/quizzes.html','utf8'); const fn=src.match(/function nums\(f\)[^\n]*\n\s*\/\/[^\n]*\n\s*function clipNos\(files\) \{[\s\S]*?\n  \}/)[0];
@@ -74,7 +74,9 @@ async function ctxFor(b,vp,uid){ const ctx=await b.newContext({viewport:vp});
    ok(clipNos(F(['a 1.mp4','b 1.mp4']))===null,'no number that changes: falls back to name order'); }
  console.log('2. Player takes it on a phone, no account');
  const P=await ctxFor(b,{width:390,height:844},null);
- await P.goto('http://localhost:8768/quiz.html?film='+tok); await wait(()=>P.isEnabled('#begin'));
+ { const html=fs.readFileSync(ROOT+'/film.html','utf8'); ok(/<title>Film Quiz<\/title>/.test(html) && /og:title" content="Film Quiz"/.test(html),'the link page is titled Film Quiz, so a text shows "Film Quiz"'); }
+ await P.goto('http://localhost:8768/film.html?film='+tok); await wait(()=>/quiz\.html\?film=/.test(P.url())); ok(/quiz\.html\?film=/.test(P.url()),'the Film Quiz link goes straight on to the quiz');
+ await wait(()=>P.isEnabled('#begin'));
  ok(/FILM: DUNCANVILLE/.test(await P.textContent('#ttl')) && /9 questions/.test(await P.textContent('#sub')),'the quiz loads: '+await P.textContent('#sub'));
  ok(!await P.isVisible('#groups') && !await P.isVisible('#key'),'the RB quiz picks and key are hidden');
  await P.fill('#nm','Jalen'); await P.click('#begin');

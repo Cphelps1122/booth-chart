@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Film Quiz</title>
+<meta property="og:title" content="Film Quiz">
+<meta property="og:description" content="Watch each clip and name the look.">
+<!-- Film quiz links point here so a text's link preview says "Film Quiz"; players go straight on to the quiz -->
+<script>location.replace('quiz.html' + location.search + location.hash)</script>
+</head>
+<body style="font-family:system-ui,sans-serif;text-align:center;padding:40px">
+<p>Opening the film quiz&hellip; <a id="go" href="quiz.html">Tap here if it doesn't open.</a></p>
+<script>document.getElementById('go').href = 'quiz.html' + location.search</script>
+</body>
+</html>

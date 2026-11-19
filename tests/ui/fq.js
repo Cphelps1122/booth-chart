@@ -7,7 +7,7 @@ const ROOT='/home/claude/booth-chart', OUT=(process.env.SHOT_DIR || path.join(os
 const VD=path.join(os.tmpdir(),'fq-clips'); fs.mkdirSync(VD,{recursive:true}); fs.mkdirSync(OUT,{recursive:true});
 const CLIPS=['001','002','003'].map(n=>{ const f=path.join(VD,'Wide - Clip '+n+'.webm'); if(!fs.existsSync(f)) cp.execSync('ffmpeg -v error -y -f lavfi -i testsrc=size=1280x720:rate=30:duration=8 -c:v libvpx-vp9 -b:v 3M "'+f+'"'); return f });
 const probe=buf=>{ const f=path.join(VD,'probe.bin'); fs.writeFileSync(f,buf); try { const w=+cp.execSync('ffprobe -v error -select_streams v:0 -show_entries stream=width -of csv=p=0 "'+f+'"').toString().trim(); const ts=cp.execSync('ffprobe -v error -select_streams v:0 -show_entries packet=pts_time -of csv=p=0 "'+f+'"').toString().trim().split(/\s+/).map(Number).filter(x=>!isNaN(x)); return { w, secs:+(Math.max(...ts)-Math.min(...ts)).toFixed(2) } } catch(e){ return null } };
-const CSV=path.join(VD,'PlaylistData.csv');
+const CSV=path.join(VD,'PlaylistData.csv'); let DENY=false;
 fs.writeFileSync(CSV,['PLAY #,ODK,DN,DIST,YARD LN,O FORMATION,FRONT,BLITZ,MFC/MFO/0,COVERAGE,TEAM',
  '15,D,1,10,-19,GOLD,41 OVER,,MFO,2,DUNCANVILLE','16,D,2,10,-19,TEXAS,HEADS,SAM,MFC,3,DUNCANVILLE','17,D,3,7,-22,CREW,41 UNDER,,MFC,3 CLOUD,DUNCANVILLE','18,D,1,10,-30,GOLD,41 OVER,MIKE,MFO,2,DUNCANVILLE'].join('\n'));
 // stand-in for the SheetJS reader (no network in tests): same calls the page makes, reading CSV
@@ -24,7 +24,7 @@ async function ctxFor(b,vp,uid){ const ctx=await b.newContext({viewport:vp});
   await ctx.route(/firebasestorage\.googleapis\.com/, async r=>{ const u=new URL(r.request().url());
     if (r.request().method()==='POST') { const name=u.searchParams.get('name'); STORED[name]=r.request().postDataBuffer(); return r.fulfill({status:200,contentType:'application/json',body:JSON.stringify({name,downloadTokens:'tk'+Object.keys(STORED).length})}) }
     const name=decodeURIComponent(u.pathname.split('/o/')[1]||'');
-    if (r.request().method()==='DELETE') { const had=name in STORED; delete STORED[name]; return r.fulfill({status:had?204:404,body:''}) }
+    if (r.request().method()==='DELETE') { if (DENY && name.endsWith('/1.'+name.split('.').pop())) return r.fulfill({status:403,body:''}); const had=name in STORED; delete STORED[name]; return r.fulfill({status:had?204:404,body:''}) }
     const buf=STORED[name]; return buf? r.fulfill({status:200,contentType:/\.mp4$/.test(name)?'video/mp4':'video/webm',body:buf}) : r.fulfill({status:404,body:''}) });
   if (uid) await ctx.addInitScript(([uid])=>{ window.SOL_CONFIG={db:'http://localhost:9128',apiKey:'x'};
     localStorage.setItem('solutions-auth-v1', JSON.stringify({uid,email:'x@x',idToken:'t',refreshToken:'r',exp:Date.now()+3600e3,school:'melissa',profile:{name:'Melissa'}})) },[uid]);
@@ -104,9 +104,11 @@ async function ctxFor(b,vp,uid){ const ctx=await b.newContext({viewport:vp});
  ok(!await Lk.isVisible('#fqBuild') && await Lk.$$eval('#fqList [data-fdel]',x=>x.length)===0 && await Lk.$$eval('#fqList .fq-item',x=>x.length)===1,'locked: sees the quiz, no builder, no Delete');
 
  console.log('4. Delete removes the quiz and its clips');
+ DENY=true; // storage refuses one clip: the quiz still deletes
  C.on('dialog',d=>d.accept()); await C.click('#fqList [data-fdel]');
  ok(await wait(()=>!(R.db.share||{})[tok] && !(R.db.schools.melissa.filmq||{})[tok]),'the quiz and its list entry are gone');
- ok(Object.keys(STORED).length===0,'all 3 clips were deleted from storage ('+Object.keys(STORED).length+' left)');
+ ok(Object.keys(STORED).length===1,'2 clips deleted; the one storage refused stays ('+Object.keys(STORED).length+' left)');
+ ok(/1 clip couldn't be removed/.test(await C.textContent('#fqDelNote')),'the note says one clip stayed in storage');
  ok(await C.$$eval('#fqList .fq-item',x=>x.length)===0,'and it drops off the list');
  console.log('5. Bad link');
  await P.goto('http://localhost:8768/quiz.html?film=nope0000000000000000000'); await P.waitForTimeout(800);

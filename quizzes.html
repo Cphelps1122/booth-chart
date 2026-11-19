@@ -103,6 +103,7 @@ legend { font-weight: 700; padding: 0 6px }
       <div class="row" style="margin-top:10px"><button class="btn primary" id="fqMake" type="button" disabled>Make the film quiz</button><span class="muted" id="fqNote"></span></div>
     </div>
     <div class="list" id="fqList" style="margin-top:12px"></div>
+    <div class="muted" id="fqDelNote" aria-live="polite" style="margin-top:6px"></div>
   </section>
 
   <section class="panel" id="weekPanel" hidden>
@@ -508,17 +509,20 @@ window.SOL_CONFIG = window.SOL_CONFIG || { db: "https://cardinal-booth-default-r
     var s = e.target.closest("[data-share]"); if (s) { e.preventDefault(); var u = qUrl(s.dataset.share), data = { title: s.dataset.title, text: "Film quiz: " + s.dataset.title + ". Watch each clip and name the look. Type your name, then hit Start. When you finish, hit Text Coach.", url: u };
       if (navigator.share) navigator.share(data).catch(function () {}); else if (navigator.clipboard) navigator.clipboard.writeText(u).then(function () { s.textContent = "Link copied" }, function () {}); return }
     var b = e.target.closest("[data-fdel]"); if (!b || !OWNER || !confirm("Delete this film quiz and its clips? Players with the link won't be able to open it, and the clips are removed from storage.")) return; b.disabled = true; b.textContent = "Deleting…";
-    var k = b.dataset.fdel;
-    // clips first (their names are in the quiz's clip links), then the quiz, then the list entry
-    at("/share/" + k).then(function (u) { return fetch(u) }).then(function (r) { return r.ok ? r.json() : null }).then(function (d) {
+    var k = b.dataset.fdel, item = b.closest(".fq-item"), left = 0;
+    function say(t) { var m = item.querySelector(".fq-msg"); if (!m) { m = document.createElement("span"); m.className = "fq-msg bad"; m.style.cssText = "flex-basis:100%;font-size:14px"; item.appendChild(m) } m.textContent = t }
+    function ok(r, what) { if (!r.ok && r.status !== 404) throw new Error(what + " HTTP " + r.status) }
+    // clips first, best effort (a clip storage won't remove doesn't stop the delete), then the quiz, then the list entry
+    at("/share/" + k).then(function (u) { return fetch(u) }).then(function (r) { return r.ok ? r.json() : null }, function () { return null }).then(function (d) {
       var x = null; try { x = d && d.items ? JSON.parse(d.items) : null } catch (er) {}
       var names = ((x && x.clips) || []).map(function (c) { var m = String(c.url || "").match(/\/o\/([^?]+)/); return m ? decodeURIComponent(m[1]) : null })
         .filter(function (n) { return n && n.indexOf("schools/" + SCH + "/clips/film-" + k + "/") === 0 });
       return solToken().then(function (t) { return Promise.all(names.map(function (n) { return fetch(STORE + "/" + encodeURIComponent(n), { method: "DELETE", headers: { "Authorization": "Firebase " + t } })
-        .then(function (r) { if (!r.ok && r.status !== 404) throw new Error("clip delete HTTP " + r.status) }) })) });
-    }).then(function () { return at("/share/" + k) }).then(function (u) { return fetch(u, { method: "DELETE" }) })
-      .then(function () { return at("/schools/" + encodeURIComponent(SCH) + "/filmq/" + k) }).then(function (u) { return fetch(u, { method: "DELETE" }) })
-      .then(list, function (er) { b.disabled = false; b.textContent = "Delete"; $("fqNote").textContent = "Couldn't delete (" + (er.message || er) + "). Nothing was removed from the list; try again."; });
+        .then(function (r) { if (!r.ok && r.status !== 404) left++ }, function () { left++ }) })) });
+    }).then(function () { return at("/share/" + k) }).then(function (u) { return fetch(u, { method: "DELETE" }) }).then(function (r) { ok(r, "quiz") })
+      .then(function () { return at("/schools/" + encodeURIComponent(SCH) + "/filmq/" + k) }).then(function (u) { return fetch(u, { method: "DELETE" }) }).then(function (r) { ok(r, "list") })
+      .then(function () { list(); if (left) $("fqDelNote").textContent = "Deleted. " + left + " clip" + (left === 1 ? "" : "s") + " couldn't be removed from storage; they're no longer used." },
+        function (er) { b.disabled = false; b.textContent = "Delete"; say("Couldn't delete (" + (er.message || er) + "). Try again; if it keeps failing, sign out and back in."); });
   });
   at("/admins/" + encodeURIComponent(acc.uid || "_")).then(function (u) { return fetch(u) }).then(function (r) { return r.ok ? r.json() : null }).then(function (v) { OWNER = v === true }, function () {})
     .then(function () { $("fqBuild").hidden = !OWNER; $("fqPanel").hidden = false; drawAsks(); list() });

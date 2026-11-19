@@ -60,11 +60,10 @@ input{font:inherit;font-size:20px;width:100%;min-height:46px;border:2px solid #1
 <section id="start" class="card">
 <label for="nm">Your name</label>
 <input id="nm" autocomplete="name">
-<div style="font-size:20px">Which receiver are you?</div>
-<div class="nums" id="nums"></div>
 <button class="go" id="begin">Start</button>
 <div class="key" style="margin-top:12px">
-Each play: <b>1)</b> tap where you line up, <b>2)</b> pick your route, <b>3)</b> know where the ball goes first.<br>
+Each play: <b>1)</b> tap where YOU line up on that play, <b>2)</b> pick your route, <b>3)</b> know where the ball goes first.<br>
+Spots are numbered left to right, 1 to 4. The back is 0.<br>
 <span style="color:#1f9a3a">Green dashes</span> = motion. <span style="color:#c0392b">Red</span> = your choices on an option route. A dot = stop / sit. A T = block.
 </div>
 </section>
@@ -105,71 +104,85 @@ Each play: <b>1)</b> tap where you line up, <b>2)</b> pick your route, <b>3)</b>
 // o = option branches (red) from the end of r; w = first leg is a wavy (jog) release; none = stays in.
 window.PASS = [
  {name:'Gold Batman', form:'Gold', prog:['Inside choice','Outside sit'], pro:'RIP/LIZ away from working side', drop:'Dip & Rip', p:{
+  0:{at:[249,458], none:1},
   1:{at:[55,424], mo:[[55,424],[133,423]], r:[[133,423],[136,265]], e:'none', o:[[[136,265],[139,158]],[[136,265],[178,157]],[[136,265],[158,258],[178,273],'dot']]},
   2:{at:[106,398], r:[[106,398],[80,375],[64,345],[62,208]], e:'dot'},
   3:{at:[463,420], r:[[463,420],[459,266]], e:'dot'},
   4:{at:[549,401], r:[[549,401],[552,270]], e:'dot'}}},
  {name:'Gold Joker', form:'Gold', prog:['Outside choice','Inside sit'], pro:'RIP/LIZ away from working side', drop:'Dip & Rip', p:{
+  0:{at:[249,458], none:1},
   1:{at:[50,421], mo:[[50,421],[143,421]], r:[[143,421],[100,385],[70,330],[56,263]], e:'none', o:[[[56,263],[59,143]],[[56,263],[113,147]]]},
   2:{at:[108,395], r:[[108,395],[140,367],[150,258],[172,258],[195,280]], e:'dot'},
   3:{at:[471,418], r:[[471,418],[468,264]], e:'dot'},
   4:{at:[550,401], r:[[550,401],[549,260]], e:'dot'}}},
  {name:'Gold Vegas', form:'Gold', prog:[], pro:'RIP/LIZ away from working side', drop:'Punch QK', p:{
+  0:{at:[249,458], none:1},
   1:{at:[58,399], r:[[58,399],[58,377],[147,349]], e:'arrow'},
   2:{at:[128,417], r:[[128,417],[95,380],[65,310],[54,242]], e:'arrow'},
   3:{at:[481,418], r:[[481,418],[515,375],[545,310],[558,242]], e:'arrow'},
   4:{at:[549,401], r:[[549,401],[549,380],[461,351]], e:'arrow'}}},
  {name:'Red Vegas', form:'Red', prog:['Inside slant','Outside slant'], pro:'RIP/LIZ away from working side', drop:'Punch QK', p:{
+  0:{at:[249,458], none:1},
   1:{at:[58,399], r:[[58,399],[58,318]], e:'dot'},
   2:{at:[433,416], r:[[433,416],[465,380],[495,320],[513,218]], e:'arrow'},
   3:{at:[493,415], r:[[493,415],[493,375],[377,348]], e:'arrow'},
   4:{at:[585,404], r:[[585,404],[585,327],[517,327]], e:'arrow', w:1}}},
  {name:'Red Florida', form:'Red', prog:['RB','Mesh','OTB'], pro:'LOCO/ROPE, call to boundary', drop:'Punch QK', p:{
+  0:{at:[316,455], r:[[316,455],[420,420],[540,351]], e:'arrow'},
   1:{at:[110,402], r:[[110,402],[200,380],[335,366]], e:'none', o:[[[335,366],[450,358]]]},
   2:{at:[379,418], r:[[379,418],[365,395],[250,358],[92,350]], e:'arrow'},
   3:{at:[433,417], r:[[433,417],[400,385],[300,340],[205,330]], e:'none', o:[[[205,330],[131,327]]]},
   4:{at:[489,401], r:[[489,401],[277,263]], e:'dot'}}},
  {name:'Slot Dip Miami', form:'Slot Dip', call:'88*99 Stay', prog:['RB','TE','Over'], pro:'88*99 Stay', drop:'Sprint out', p:{
+  0:{at:[313,457], r:[[313,457],[430,415],[535,347]], e:'arrow'},
   1:{at:[110,396], r:[[110,396],[150,330],[230,290],[322,270]], e:'arrow'},
   2:{at:[238,420], r:[[238,420],[318,418],[360,375],[436,358]], e:'arrow'},
   3:{at:[407,396], r:[[407,396],[370,360],[310,338],[247,332]], e:'arrow'},
   4:{at:[478,418], mo:[[478,418],[390,420]], r:[[390,420],[330,385],[260,368],[201,367]], e:'arrow'}}},
  {name:'Bunch Washington', form:'Bunch', prog:['RB','Mesh','OTB'], pro:'LOCO/ROPE, call to field', drop:'Punch QK', p:{
+  0:{at:[249,458], r:[[249,458],[160,440],[73,408]], e:'arrow'},
   1:{at:[162,421], r:[[162,421],[269,259]], e:'dot'},
   2:{at:[191,399], r:[[191,399],[220,360],[280,343],[344,340]], e:'none', o:[[[344,340],[440,340]]]},
   3:{at:[355,398], r:[[355,398],[335,370],[280,352],[204,347]], e:'none', o:[[[204,347],[121,347]]]},
   4:{at:[391,425], mo:[[391,425],[200,427]], r:[[200,427],[130,410],[95,380],[87,348]], e:'bar'}}},
  {name:'Bunch Wyoming', form:'Bunch', prog:['RB','Mesh','OTB'], pro:'LOCO/ROPE, call to field', drop:'Punch QK', p:{
+  0:{at:[249,458], r:[[249,458],[150,440],[90,380],[61,240]], e:'arrow'},
   1:{at:[157,416], r:[[157,416],[266,264]], e:'dot'},
   2:{at:[191,401], r:[[191,401],[240,360],[345,350]], e:'none', o:[[[345,350],[473,348]]]},
   3:{at:[354,401], r:[[354,401],[330,370],[210,356]], e:'none', o:[[[210,356],[120,358]]]},
   4:{at:[385,416], r:[[385,416],[410,320],[425,293],[480,278],[540,276]], e:'arrow'}}},
  {name:'Bunch Mesh', form:'Bunch', prog:['Out','Mesh'], pro:'RIP/LIZ, call away from working side', drop:'Punch QK', p:{
+  0:{at:[249,458], none:1},
   1:{at:[154,417], r:[[154,417],[148,300],[130,280],[55,277]], e:'arrow'},
   2:{at:[181,400], r:[[181,400],[230,355],[336,343]], e:'none', o:[[[336,343],[402,343]]]},
   3:{at:[358,398], r:[[358,398],[330,360],[260,345],[204,349]], e:'none', o:[[[204,349],[129,347]]]},
   4:{at:[386,419], r:[[386,419],[403,300],[420,282],[493,278]], e:'arrow'}}},
  {name:'Bunch Mesh Hammer RT', form:'Bunch', prog:['Post','Mesh','OTB'], pro:'RIP/LIZ, call to boundary', drop:'Punch QK', p:{
+  0:{at:[249,458], none:1},
   1:{at:[157,418], r:[[157,418],[259,270]], e:'dot'},
   2:{at:[190,401], r:[[190,401],[230,360],[340,348]], e:'none', o:[[[340,348],[447,349]]]},
   3:{at:[352,400], r:[[352,400],[330,365],[270,352],[214,351]], e:'none', o:[[[214,351],[101,352]]]},
   4:{at:[386,420], r:[[386,420],[400,330],[399,271],[308,140]], e:'arrow'}}},
  {name:'Crew Husky', form:'Crew', prog:['RB','Mesh','OTB'], pro:'LOCO/ROPE, call to field', drop:'Punch QK', p:{
+  0:{at:[249,458], r:[[249,458],[160,440],[80,418]], e:'arrow'},
   1:{at:[148,425], r:[[148,425],[283,257]], e:'dot'},
   2:{at:[185,399], r:[[185,399],[240,355],[342,335]], e:'none', o:[[[342,335],[455,334]]]},
   3:{at:[223,425], r:[[223,425],[150,415],[95,390],[76,356]], e:'bar'},
   4:{at:[424,397], r:[[424,397],[380,365],[300,346],[214,343]], e:'none', o:[[[214,343],[120,343]]]}}},
  {name:'Gray LTY*RTY Verts', form:'Gray', prog:['Inside vert','Seam','Sit'], pro:'RIP/LIZ, call to boundary', drop:'Punch 3', p:{
+  0:{at:[249,458], none:1},
   1:{at:[77,427], mo:[[77,427],[397,419]], r:[[397,419],[460,370],[500,310],[510,263]], e:'dot'},
   2:{at:[208,403], none:1},
   3:{at:[355,416], r:[[355,416],[390,350],[415,270],[425,178]], e:'arrow'},
   4:{at:[393,398], r:[[393,398],[340,350],[290,280],[266,180]], e:'arrow'}}},
  {name:'Gray LTY*RTY DC RT', form:'Gray', prog:['Outside choice','Inside sit','RB check'], pro:'GREEN/YELLOW, call to field', drop:'Dip & Rip', p:{
+  0:{at:[249,458], none:1},
   1:{at:[75,423], mo:[[75,423],[400,420]], r:[[400,420],[470,370],[515,310],[529,261]], e:'none', o:[[[529,261],[534,127]]]},
   2:{at:[208,403], none:1},
   3:{at:[369,420], r:[[369,420],[405,350],[422,270],[423,193]], e:'arrow'},
   4:{at:[410,398], r:[[410,398],[345,340],[295,250],[270,155]], e:'arrow'}}},
  {name:'Gray LTY*RTY Deuces', form:'Gray', prog:['Inside dig & go','Outside vert','Flat'], pro:'GREEN/YELLOW, call to field', drop:'Dip & Rip', p:{
+  0:{at:[249,458], none:1},
   1:{at:[80,420], mo:[[80,420],[378,408]], r:[[378,408],[430,385],[520,372],[610,369]], e:'arrow'},
   2:{at:[208,403], none:1},
   3:{at:[470,417], r:[[470,417],[471,272],[430,243],[431,111]], e:'arrow'},
@@ -177,7 +190,8 @@ window.PASS = [
 ];
 
 const $ = id => document.getElementById(id);
-const BALL = 273, LOS = 401, VB = '0 96 682 380';
+const LOS = 401, VB = '0 96 682 380', FW = 682;
+let BALL = 273;
 let ME = 0, deck = [], i = 0, pts = 0, tot = 0, log = [], missed = [], stage = 0, cur = null;
 
 // ---------- drawing ----------
@@ -185,9 +199,9 @@ function field(){
   let s = '<rect x="-400" y="-300" width="1500" height="900" fill="#4a9a52"></rect>';
   for (let y = 83 - 61.7*5; y < 600; y += 61.7) s += '<line x1="-400" x2="1100" y1="' + y + '" y2="' + y + '" stroke="#fff" stroke-opacity=".4" stroke-width="2"></line>';
   [253, 428].forEach(h => { for (let y = -200; y < 600; y += 12) s += '<line x1="' + (h-5) + '" x2="' + (h+5) + '" y1="' + y + '" y2="' + y + '" stroke="#fff" stroke-opacity=".7" stroke-width="2"></line>' });
-  [229,251,296,318].forEach(x => s += '<circle cx="' + x + '" cy="' + LOS + '" r="10" fill="#fff" stroke="#111" stroke-width="2"></circle>');
-  s += '<rect x="263" y="391" width="20" height="20" fill="#111"></rect>';
-  s += '<circle cx="275" cy="446" r="11" fill="#fff" stroke="#111" stroke-width="2"></circle><text x="275" y="447" text-anchor="middle" dominant-baseline="central" font-size="12">QB</text>';
+  [-44,-22,23,45].forEach(d => s += '<circle cx="' + (BALL + d) + '" cy="' + LOS + '" r="10" fill="#fff" stroke="#111" stroke-width="2"></circle>');
+  s += '<rect x="' + (BALL - 10) + '" y="391" width="20" height="20" fill="#111"></rect>';
+  s += '<circle cx="' + (BALL + 2) + '" cy="438" r="11" fill="#fff" stroke="#111" stroke-width="2"></circle><text x="' + (BALL + 2) + '" y="439" text-anchor="middle" dominant-baseline="central" font-size="12">QB</text>';
   return s;
 }
 function poly(P){ return P.map(p => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' L ') }
@@ -233,7 +247,7 @@ function choices(play){
   const mine = play.p[ME], startPt = mine.mo ? mine.mo[mine.mo.length-1] : mine.at, side = Math.sign(startPt[0] - BALL) || 1;
   const right = Object.assign({ ok: 1 }, mine), out = [right], pool = [];
   Object.keys(play.p).forEach(k => { if (+k !== ME) pool.push(play.p[k]) });
-  PASS.forEach(pl => { if (pl !== play && pl.p[ME]) pool.push(pl.p[ME]) });
+  shuffle(PASS.filter(pl => pl.name !== play.name.replace(/\b(LT|RT)\b/g, m => m === 'LT' ? 'RT' : 'LT') && pl.name !== play.name && pl.p[ME])).forEach(pl => { const q = play.flip ? flipPlay(pl) : pl; if (q.p[ME]) pool.push(q.p[ME]) });
   for (const R of pool) {
     if (out.length >= 4) break;
     const c = routeFrom(R, startPt, side); if (!c) continue;
@@ -246,21 +260,28 @@ function choices(play){
 }
 
 // ---------- flow ----------
+function flipPlay(pl){
+  const fx = p => [FW - p[0], p[1]], fR = R => { const o = {}; Object.keys(R).forEach(k => { const v = R[k];
+    o[k] = k === 'at' ? fx(v) : (k === 'mo' || k === 'r') ? v.map(fx) : k === 'o' ? v.map(b => b.map(p => Array.isArray(p) ? fx(p) : p)) : v }); return o };
+  const P = {}, recv = Object.keys(pl.p).filter(k => k !== '0').map(k => fR(pl.p[k])).sort((a, b) => a.at[0] - b.at[0]);
+  recv.forEach((R, j) => P[j + 1] = R); P[0] = fR(pl.p[0]);
+  return Object.assign({}, pl, { p: P, flip: 1, name: pl.name.replace(/\b(LT|RT)\b/g, m => m === 'LT' ? 'RT' : 'LT') });
+}
 function shuffle(a){ for (let k = a.length-1; k > 0; k--){ const j = Math.floor(Math.random()*(k+1)); [a[k],a[j]] = [a[j],a[k]] } return a }
 function begin(plays){
   if (!plays.length) return;
-  deck = shuffle(plays.slice()); i = 0; pts = 0; tot = 0; log = []; missed = [];
+  deck = shuffle(plays.map(p => Math.random() < .5 ? flipPlay(p) : p)); i = 0; pts = 0; tot = 0; log = []; missed = [];
   $('start').classList.add('hidden'); $('done').classList.add('hidden'); $('quiz').classList.remove('hidden');
   show();
 }
 function show(){
-  cur = { play: deck[i], miss: [] }; stage = 1;
-  const pl = cur.play;
+  cur = { play: deck[i], miss: [] }; stage = 1; ME = -1;
+  const pl = cur.play; BALL = pl.flip ? FW - 273 : 273;
   $('count').textContent = 'Play ' + (i+1) + ' of ' + deck.length;
   $('score').textContent = pts + ' / ' + tot + ' right';
   $('prog').style.width = (i/deck.length*100) + '%';
   $('call').textContent = pl.name;
-  $('sub2').textContent = 'You are #' + ME + (pl.call ? ' \u2022 Call: ' + pl.call : '') + ' \u2022 Ball on the left hash';
+  $('sub2').textContent = (pl.call ? 'Call: ' + pl.call + ' \u2022 ' : '') + 'Ball on the ' + (pl.flip ? 'RIGHT' : 'LEFT') + ' hash';
   $('rule').classList.add('hidden'); $('next').classList.add('hidden'); $('fb').textContent = ''; $('fb').className = 'fb';
   stepAlign();
 }
@@ -268,7 +289,7 @@ function mark(good, what){ tot++; if (good) pts++; else cur.miss.push(what); $('
 
 function stepAlign(){
   const pl = cur.play;
-  $('ask').textContent = 'Step 1: Tap where #' + ME + ' lines up.';
+  $('ask').textContent = 'Step 1: Tap where YOU line up on this play.';
   let s = field(), taps = '';
   Object.keys(pl.p).forEach(k => { const a = pl.p[k].at; taps += '<g class="tap live" data-k="' + k + '"><circle class="hit" cx="' + a[0] + '" cy="' + a[1] + '" r="24"></circle>' + man(a, '?', '#fff') + '</g>' });
   $('dia').innerHTML = '<svg viewBox="' + VB + '" role="img" aria-label="Formation">' + s + taps + '</svg>';
@@ -278,24 +299,22 @@ function stepAlign(){
     const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY; const p = pt.matrixTransform(svg.getScreenCTM().inverse());
     let best = null, bd = 1e9; svg.querySelectorAll('.tap').forEach(g => { const c = g.querySelector('.hit'), d = (c.cx.baseVal.value - p.x)**2 + (c.cy.baseVal.value - p.y)**2; if (d < bd) { bd = d; best = g } });
     if (!best || bd > 90*90) return;
-    stage = 0;
-    const good = +best.dataset.k === ME;
+    stage = 0; ME = +best.dataset.k;
     svg.querySelectorAll('.tap').forEach(g => g.classList.remove('live'));
-    svg.querySelector('[data-k="' + ME + '"]').classList.add('right'); if (!good) best.classList.add('wrong');
-    mark(good, 'alignment');
-    $('fb').textContent = good ? 'Right spot!' : 'You line up on the green one.'; $('fb').className = 'fb ' + (good ? 'ok' : 'no');
-    setTimeout(stepRoute, 1000);
+    best.classList.add('right'); best.querySelector('text').textContent = ME;
+    $('fb').textContent = 'You are #' + ME + (ME === 0 ? ' (the back)' : '') + ' on this play.'; $('fb').className = 'fb ok';
+    setTimeout(stepRoute, 900);
   });
 }
 
 function stepRoute(){
   const pl = cur.play, mine = pl.p[ME];
   stage = 2;
-  $('ask').textContent = 'Step 2: Pick your route.';
+  $('ask').textContent = 'Step 2: You\u2019re #' + ME + '. Pick your route.';
   $('fb').textContent = ''; $('fb').className = 'fb';
   const C = choices(pl);
   // zoom every card the same amount, on the part of the field these routes use
-  const P = [[229, LOS], [318, LOS], mine.at]; C.forEach(c => { if (c.mo) P.push(...c.mo); if (c.r) P.push(...c.r); (c.o || []).forEach(o => o.forEach(p => { if (Array.isArray(p)) P.push(p) })) });
+  const P = [[BALL - 44, LOS], [BALL + 45, LOS], mine.at]; C.forEach(c => { if (c.mo) P.push(...c.mo); if (c.r) P.push(...c.r); (c.o || []).forEach(o => o.forEach(p => { if (Array.isArray(p)) P.push(p) })) });
   let x0 = Math.min(...P.map(p => p[0])) - 34, x1 = Math.max(...P.map(p => p[0])) + 34, y0 = Math.min(...P.map(p => p[1])) - 30, y1 = Math.max(LOS + 50, Math.max(...P.map(p => p[1])) + 30);
   if (x1 - x0 < (y1 - y0) * 0.9) { const m = ((y1 - y0) * 0.9 - (x1 - x0)) / 2; x0 -= m; x1 += m }
   if (y1 - y0 < (x1 - x0) * 0.75) { y0 -= (x1 - x0) * 0.75 - (y1 - y0) }
@@ -336,7 +355,7 @@ function finishRep(){
   const pl = cur.play;
   if (stage) { stage = 0 }
   if (!pl.prog.length) { $('dia').innerHTML = '<svg viewBox="' + VB + '" role="img" aria-label="' + pl.name + ', all routes">' + field() + Object.keys(pl.p).map(k => drawRoute(pl.p[k])).join('') + Object.keys(pl.p).map(k => man(pl.p[k].at, k, +k === ME ? '#ffd84d' : '#fff')).join('') + '</svg>' }
-  if (cur.miss.length) { missed.push(pl); log.push(pl.name + ' (#' + ME + '): missed ' + cur.miss.join(', ')) }
+  if (cur.miss.length) { missed.push(pl); log.push(pl.name + (pl.flip ? ' (right hash)' : '') + ', lined up #' + ME + ': missed ' + cur.miss.join(', ')) }
   $('rule').innerHTML = '<b>' + pl.name + '</b>' + (pl.prog.length ? '<br>Progression: ' + pl.prog.map((x, k) => (k+1) + ') ' + x).join(' ') : '') + '<br>Protection: ' + pl.pro + ' \u2022 Drop: ' + pl.drop;
   $('rule').classList.remove('hidden');
   $('next').textContent = i + 1 < deck.length ? 'Next play' : 'See score';
@@ -346,7 +365,7 @@ function finishRep(){
 function finish(){
   $('quiz').classList.add('hidden'); $('done').classList.remove('hidden');
   const nm = $('nm').value.trim();
-  $('who').textContent = (nm || 'You') + ' (#' + ME + ') scored';
+  $('who').textContent = (nm || 'You') + ' scored';
   $('final').textContent = pts + ' / ' + tot;
   const names = [...new Set(missed.map(p => p.name))];
   $('missbox').innerHTML = names.length ? '<div style="font-size:20px">Work on these:</div><ul>' + log.map(l => '<li>' + l + '</li>').join('') + '</ul>' : '<p style="text-align:center;font-size:22px">Perfect. Nothing missed.</p>';
@@ -359,7 +378,7 @@ const SOL_DB = (window.SOL_CONFIG && window.SOL_CONFIG.db) || 'https://cardinal-
 const SCHOOL = (new URLSearchParams(location.search).get('s') || 'melissa').toLowerCase().replace(/[^a-z0-9_-]/g, '');
 let attemptId = null;
 function save(){
-  const rec = { name: ($('nm').value.trim() || 'Player').slice(0, 60), score: pts, total: tot, at: Date.now(), kind: 'pass', groups: ('WR / TE quiz \u2022 #' + ME).slice(0, 400),
+  const rec = { name: ($('nm').value.trim() || 'Player').slice(0, 60), score: pts, total: tot, at: Date.now(), kind: 'pass', groups: 'WR / TE quiz',
     missed: log.join('\n').slice(0, 4000), plays: [...new Set(missed.map(p => p.name))].join('|').slice(0, 4000), question: $('qbox').value.trim().slice(0, 4000) };
   fetch(SOL_DB + '/quiz/' + SCHOOL + '.json', { method: 'POST', body: JSON.stringify(rec) }).then(r => r.json()).then(j => { attemptId = j && j.name; $('saved').textContent = 'Saved for Coach \u2713' }).catch(() => { $('saved').textContent = 'Could not save. Use Text Coach.' });
 }
@@ -368,7 +387,7 @@ let qTimer = null;
 $('qbox').addEventListener('input', () => { clearTimeout(qTimer); qTimer = setTimeout(saveQuestion, 800); setSend() });
 const COACH_PHONE = '+12145786616', COACH_EMAIL = '';
 function report(){
-  let t = 'DeSoto WR/TE Quiz \u2013 ' + ($('nm').value.trim() || 'A player') + ' (#' + ME + '): ' + pts + '/' + tot + '\n';
+  let t = 'DeSoto WR/TE Quiz \u2013 ' + ($('nm').value.trim() || 'A player') + ': ' + pts + '/' + tot + '\n';
   t += log.length ? 'Missed:\n' + log.map(l => '- ' + l).join('\n') : 'Missed: none';
   const qq = $('qbox').value.trim(); if (qq) t += '\nQuestion: ' + qq;
   return t;
@@ -377,17 +396,14 @@ function setSend(){ const body = encodeURIComponent(report()); $('sms').href = '
 $('sms').addEventListener('click', e => { e.preventDefault(); saveQuestion(); const u = $('sms').href; try { window.top.location.href = u } catch (x) { const w = window.open(u, '_blank'); if (!w) location.href = u } });
 
 // ---------- start screen ----------
-[1,2,3,4].forEach(n => { const b = document.createElement('button'); b.className = 'chip'; b.type = 'button'; b.textContent = n; b.setAttribute('aria-pressed', 'false');
-  b.onclick = () => { ME = n; $('nums').querySelectorAll('.chip').forEach(x => x.setAttribute('aria-pressed', x === b)) }; $('nums').appendChild(b) });
 $('begin').onclick = () => {
   if (!$('nm').value.trim()) { $('nm').focus(); $('nm').style.borderColor = '#c0392b'; $('nm').placeholder = 'Type your name first'; return }
-  if (!ME) { $('nums').style.outline = '3px solid #c0392b'; $('nums').style.borderRadius = '10px'; return }
   begin(PASS);
 };
 $('next').onclick = () => { i++; i < deck.length ? show() : finish() };
 $('again').onclick = () => begin([...new Set(missed)]);
 $('home').onclick = () => { $('done').classList.add('hidden'); $('start').classList.remove('hidden') };
-if (window.SOL_TEST) window.__pass = { choices: choices, setMe: n => { ME = n } };
+if (window.SOL_TEST) window.__pass = { choices: choices, flipPlay: flipPlay, setMe: n => { ME = n }, setBall: x => { BALL = x } };
 </script>
 </body>
 </html>

@@ -17,27 +17,35 @@ const wait=async(fn,ms=8000)=>{ const t=Date.now(); while(Date.now()-t<ms){ if(a
   await P.addInitScript(()=>{ window.SOL_TEST=1; window.SOL_CONFIG={db:'http://localhost:9129'} });
   await P.goto('http://localhost:8773/passquiz.html');
   // every play: the right route is among the choices, every choice is different, 2 to 4 choices
-  const chk=await P.evaluate(()=>{ const out=[]; for(const n of [1,2,3,4]){ window.__pass.setMe(n); for(const pl of PASS){ const C=window.__pass.choices(pl); out.push({n, play:pl.name, k:C.length, right:C.filter(c=>c.ok).length}) } } window.__pass.setMe(0); return out });
-  ok(chk.every(c=>c.right===1), 'Every play and number has exactly one right route among the choices');
+  const chk=await P.evaluate(()=>{ const out=[]; for(const flip of [0,1]) for(const n of [0,1,2,3,4]){ window.__pass.setMe(n); for(const raw of PASS){ const pl=flip?window.__pass.flipPlay(raw):raw; window.__pass.setBall(flip?682-273:273); const C=window.__pass.choices(pl); out.push({n, play:pl.name, k:C.length, right:C.filter(c=>c.ok).length}) } } window.__pass.setBall(273); return out });
+  const fl=await P.evaluate(()=>{ const f=window.__pass.flipPlay(PASS.find(p=>p.name==='Red Vegas')); return { xs:[1,2,3,4].map(n=>f.p[n].at[0]), was4:f.p[1].r[1][0]===682-585, back:f.p[0].at[0]===682-249, name:window.__pass.flipPlay(PASS.find(p=>p.name==='Bunch Mesh Hammer RT')).name } });
+  ok(fl.xs.every((x,j)=>j===0||x>fl.xs[j-1]), 'Flipped play renumbers 1-4 left to right ('+fl.xs.join(', ')+')');
+  ok(fl.was4, 'On the flip, the old far-right #4 becomes #1 on the far left, route mirrored');
+  ok(fl.back, 'The back (0) flips with the play');
+  ok(fl.name==='Bunch Mesh Hammer LT', 'RT plays read LT when flipped');
+  ok(chk.every(c=>c.right===1), 'Every play, every spot 0-4, both hashes: exactly one right route among the choices');
   ok(chk.every(c=>c.k>=2 && c.k<=4), 'Every route question has 2 to 4 choices');
+  await P.click('#begin'); ok(await P.isVisible('#start'), 'Start needs a name');
   await P.fill('#nm','Jalen'); await P.click('#begin');
-  ok(await P.isVisible('#start'), 'Start needs a receiver number');
-  await P.click('#nums .chip >> nth=2'); await P.click('#begin');
-  ok(await P.isVisible('#quiz'), 'Quiz starts as #3');
+  ok(await P.isVisible('#quiz'), 'Quiz starts with no number to pick up front');
+  ok((await P.$$('#dia .tap')).length===5, 'Step 1 shows 5 spots to pick from (1-4 and the back)');
+  let sawRight=false;
   let plays=0;
   while(await P.isVisible('#quiz') && plays<20){
     plays++;
-    const tb=await P.locator('#dia .tap >> nth=0').boundingBox(); await P.mouse.click(tb.x+tb.width/2, tb.y+tb.height/2);
+    if(/RIGHT hash/.test(await P.textContent('#sub2'))) sawRight=true;
+    const tb=await P.locator('#dia .tap >> nth='+(plays%5)).boundingBox(); await P.mouse.click(tb.x+tb.width/2, tb.y+tb.height/2);
     await P.waitForSelector('.opt', {timeout:4000});
     await P.click('.opt >> nth=0');
     await P.waitForTimeout(1300);
     if(await P.$('.txtopts .chip')) await P.click('.txtopts .chip >> nth=0');
     await P.waitForSelector('#next:not(.hidden)'); if(plays===3) await P.screenshot({path:OUT+'pz-rep.png'}); await P.click('#next');
   }
+  ok(sawRight, 'Some plays came up on the right hash');
   ok(await P.isVisible('#done') && plays===14, 'All 14 plays run to the score screen ('+plays+')');
   ok(await wait(async()=>Object.values(R.getAt('/quiz/melissa')||{}).some(a=>a.kind==='pass')), 'Attempt saved as a pass quiz');
   const rec=Object.values(R.getAt('/quiz/melissa')||{}).find(a=>a.kind==='pass')||{};
-  ok(rec.name==='Jalen' && rec.total>=28 && /#3/.test(rec.groups), 'Saved name, '+rec.score+'/'+rec.total+' and "#3"');
+  ok(rec.name==='Jalen' && rec.total>=27 && /WR \/ TE/.test(rec.groups), 'Saved name and '+rec.score+'/'+rec.total);
   await P.screenshot({path:OUT+'pz-done.png'});
   ok(errs.length===0, 'No page errors on the pass quiz'+(errs.length?': '+errs.join(' | '):''));
   // coach page

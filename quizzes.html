@@ -72,8 +72,9 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums }
   <div class="msg" id="msg" hidden></div>
 
   <section class="panel" id="sharePanel" hidden>
-    <h2>Quiz link for players <small>no account needed</small></h2>
-    <div class="row"><span class="link" id="qlink"></span><button class="btn primary" id="shareLink" type="button">Share link</button><button class="btn" id="copyLink" type="button">Copy link</button><a class="btn" id="openQuiz" target="_blank" rel="noopener">Open quiz</a></div>
+    <h2>Quiz links for players <small>no account needed</small></h2>
+    <div class="row"><b style="min-width:70px">RB</b><span class="link" id="qlink"></span><button class="btn primary" id="shareLink" type="button">Share link</button><button class="btn" id="copyLink" type="button">Copy link</button><a class="btn" id="openQuiz" target="_blank" rel="noopener">Open quiz</a></div>
+    <div class="row" style="margin-top:8px"><b style="min-width:70px">WR / TE</b><span class="link" id="plink"></span><button class="btn primary" id="shareP" type="button">Share link</button><button class="btn" id="copyP" type="button">Copy link</button><a class="btn" id="openP" target="_blank" rel="noopener">Open quiz</a></div>
   </section>
 
   <section class="panel" id="fqPanel" hidden>
@@ -112,6 +113,8 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums }
     <div class="row" style="margin-bottom:10px">
       <label for="who" class="muted">Player</label>
       <select id="who"><option value="">Everyone</option></select>
+      <label for="kind" class="muted">Quiz</label>
+      <select id="kind"><option value="">Both</option><option value="run">RB</option><option value="pass">WR / TE</option></select>
       <label class="row muted" style="gap:6px"><input type="checkbox" id="qOnly"> Only ones with a question</label>
       <button class="btn danger" id="clearAll" type="button" style="margin-left:auto">Clear all attempts</button>
     </div>
@@ -144,6 +147,13 @@ window.SOL_CONFIG = window.SOL_CONFIG || { db: "https://cardinal-booth-default-r
     if (navigator.share) { navigator.share(data).catch(function () {}) }
     else { location.href = "sms:?&body=" + encodeURIComponent(data.text + " " + quizUrl) }
   };
+  var passUrl = new URL("passquiz.html" + (acc.school === "melissa" ? "" : "?s=" + encodeURIComponent(acc.school)), location.href).href;
+  $("plink").textContent = passUrl; $("openP").href = passUrl;
+  $("shareP").onclick = function () {
+    var data = { title: "WR / TE Quiz", text: "Take the WR/TE quiz. Type your name, pick your number (1-4), then hit Start. When you finish, hit Text Coach to send me your results.", url: passUrl };
+    if (navigator.share) { navigator.share(data).catch(function () {}) } else { location.href = "sms:?&body=" + encodeURIComponent(data.text + " " + passUrl) }
+  };
+  $("copyP").onclick = function () { (navigator.clipboard ? navigator.clipboard.writeText(passUrl) : Promise.reject()).then(function () { $("copyP").textContent = "Copied" }, function () { $("copyP").textContent = "Select the link to copy" }) };
   $("copyLink").onclick = function () { (navigator.clipboard ? navigator.clipboard.writeText(quizUrl) : Promise.reject()).then(function () { $("copyLink").textContent = "Copied" }, function () { $("copyLink").textContent = "Select the link to copy" }) };
 
   function load() {
@@ -166,7 +176,7 @@ window.SOL_CONFIG = window.SOL_CONFIG || { db: "https://cardinal-booth-default-r
     $("sumNote").textContent = keys.length + " player" + (keys.length === 1 ? "" : "s");
     $("sumPanel").hidden = !ALL.length;
 
-    var shown = ALL.filter(function (a) { return (!sel.value || a.name.trim().toLowerCase() === sel.value) && (!$("qOnly").checked || (a.question || "").trim()) });
+    var shown = ALL.filter(function (a) { return (!sel.value || a.name.trim().toLowerCase() === sel.value) && (!$("kind").value || (a.kind === "pass" ? "pass" : "run") === $("kind").value) && (!$("qOnly").checked || (a.question || "").trim()) });
     var cnt = {}; shown.forEach(function (a) { String(a.plays || "").split("|").filter(Boolean).forEach(function (p) { cnt[p] = (cnt[p] || 0) + 1 }) });
     var top = Object.keys(cnt).sort(function (x, y) { return cnt[y] - cnt[x] }).slice(0, 10), mx = top.length ? cnt[top[0]] : 1;
     $("missBody").innerHTML = top.map(function (p) { return "<tr><td>" + esc(p) + "</td><td style='width:45%'><div class='bar'><i style='width:" + Math.round(cnt[p] / mx * 100) + "%'></i></div></td><td class='num'>" + cnt[p] + "×</td></tr>" }).join("");
@@ -183,7 +193,7 @@ window.SOL_CONFIG = window.SOL_CONFIG || { db: "https://cardinal-booth-default-r
     $("attPanel").hidden = !ALL.length;
   }
 
-  $("who").onchange = draw; $("qOnly").onchange = draw;
+  $("who").onchange = draw; $("kind").onchange = draw; $("qOnly").onchange = draw;
   $("attList").addEventListener("click", function (e) {
     var b = e.target.closest("[data-del]"); if (!b) return;
     var a = ALL.find(function (x) { return x.id === b.dataset.del });

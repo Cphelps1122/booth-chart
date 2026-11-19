@@ -67,6 +67,11 @@ async function ctxFor(b,vp,uid){ const ctx=await b.newContext({viewport:vp});
  const link=await C.$eval('#fqList .link',e=>e.textContent); ok(new RegExp('quiz\\.html\\?film='+tok+'$').test(link),'its player link: '+link);
  await C.screenshot({path:OUT+'fq_made.png',fullPage:true});
 
+ { const src=fs.readFileSync(ROOT+'/quizzes.html','utf8'); const fn=src.match(/function nums\(f\)[^\n]*\n\s*\/\/[^\n]*\n\s*function clipNos\(files\) \{[\s\S]*?\n  \}/)[0];
+   const clipNos=new Function(fn+'; return clipNos')(); const F=n=>n.map(x=>({name:x}));
+   ok(JSON.stringify(clipNos(F(['DeSoto 15 Angle 1.mp4','DeSoto 16 Angle 1.mp4','DeSoto 17 Angle 1.mp4'])))==='[15,16,17]','clip numbers skip the "Angle 1" that every clip shares');
+   ok(JSON.stringify(clipNos(F(['Wide - Clip 001.mp4','Wide - Clip 002.mp4'])))==='[1,2]','plain "Clip 001" names still work');
+   ok(clipNos(F(['a 1.mp4','b 1.mp4']))===null,'no number that changes: falls back to name order'); }
  console.log('2. Player takes it on a phone, no account');
  const P=await ctxFor(b,{width:390,height:844},null);
  await P.goto('http://localhost:8768/quiz.html?film='+tok); await wait(()=>P.isEnabled('#begin'));
@@ -79,11 +84,15 @@ async function ctxFor(b,vp,uid){ const ctx=await b.newContext({viewport:vp});
  let wrong=0; for (let k=0;k<9;k++){ const q=await P.evaluate(()=>({q:document.getElementById('ask').textContent, c:document.getElementById('call').textContent}));
    const s=sh.clips.find(c=>c.clip===q.c), a=s.asks.find(x=>x.q===q.q);
    const pick= k<2 ? a.ch.find(x=>x!==a.a) : a.a; if(pick!==a.a) wrong++;
-   await P.click('#dia .chs .chip[data-c="'+pick.replace(/"/g,'\\"')+'"]'); await P.click('#next'); }
+   await P.click('#dia .chs .chip[data-c="'+pick.replace(/"/g,'\\"')+'"]');
+   if(k===4){ ok(!/right|wrong/.test(await P.getAttribute('#dia .chs .chip[aria-pressed="true"]','class')),'no answer shown until the end');
+     await P.click('#fBack'); ok(/Question 4 of 9/.test(await P.textContent('#count')) && await P.$('#dia .chs .chip[aria-pressed="true"]'),'Back goes to the last question with its answer still picked');
+     await P.click('#fNext'); ok(/Question 5 of 9/.test(await P.textContent('#count')) && await P.$('#dia .chs .chip[aria-pressed="true"]'),'Next comes back with the pick kept'); }
+   await P.click('#fNext'); }
  ok(await P.isVisible('#done') && (await P.textContent('#final')).trim()==='7 / 9','scored 7 / 9 after missing 2');
  ok(await wait(()=>Object.values(R.db.quiz&&R.db.quiz.melissa||{}).some(a=>a.name==='Jalen' && a.score===7 && a.total===9 && a.groups==='Film: DUNCANVILLE' && /it was/.test(a.missed))),'the attempt saves for Coach with what was missed');
  ok(decodeURIComponent(await P.getAttribute('#sms','href')).includes('Film: DUNCANVILLE'),'Text Coach names the film quiz');
- await P.click('#again'); ok((await P.textContent('#count'))==='Rep 1 of 2','Retry runs just the 2 missed');
+ await P.click('#again'); ok((await P.textContent('#count'))==='Question 1 of 2','Retry runs just the 2 missed');
  await P.screenshot({path:OUT+'fq_retry.png'});
 
  console.log('3. Only the owner can make or delete film quizzes');

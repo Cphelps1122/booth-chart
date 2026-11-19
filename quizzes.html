@@ -335,13 +335,22 @@ window.SOL_CONFIG = window.SOL_CONFIG || { db: "https://cardinal-booth-default-r
     ["shell", "Shell", ["MFC/MFO/0", "SHELL", "MOFO/MOFC"], "Middle of the field: closed, open or zero?"], ["blitz", "Blitz", ["BLITZ"], "Who's coming?"],
     ["lb", "LB alignment", ["LB ALIGNMENT", "LB ALIGN"], "How are the backers aligned?"], ["stunt", "Stunt", ["STUNT"], "What's the stunt?"]];
   var DEF = { front: 1, cov: 1, blitz: 1 }, NONE = { blitz: "No blitz", stunt: "No stunt" };
-  var X = null, V = [], ROWS = [], on = {}, ANS = {}, OPTS = {};
+  var X = null, V = [], ROWS = [], on = {}, ANS = {}, OPTS = {}, MATCHBY = "";
   ASKS.forEach(function (a) { on[a[0]] = !!DEF[a[0]] });
 
   function col(row, names) { for (var k in row) { var K = String(k).trim().toUpperCase(); if (names.indexOf(K) >= 0) { var v = row[k]; return v == null ? "" : String(v).trim() } } return null }
   function hasCol(names) { return X && X.some(function (r) { return col(r, names) !== null }) }
   function val(r, a) { var v = col(r, a[2]); if (v === null) return ""; v = v.toUpperCase(); return v || NONE[a[0]] || "" }
-  function clipNo(f) { var m = f.name.match(/(\d+)(?!.*\d)/); return m ? +m[1] : null }
+  function nums(f) { return (f.name.replace(/\.[^.]+$/, "").match(/\d+/g) || []).map(Number) }
+  // which number in the clip names counts the clips? the one that's different on every clip (Hudl names often end in "Angle 1", the same on all)
+  function clipNos(files) {
+    var N = files.map(nums), most = Math.max.apply(null, N.map(function (a) { return a.length }).concat(0));
+    for (var j = 0; j < most; j++) {
+      var v = N.map(function (a) { return a.length > j ? a[a.length - 1 - j] : null });
+      if (v.every(function (x) { return x != null }) && new Set(v).size === v.length) return v;
+    }
+    return null;
+  }
 
   function drawAsks() {
     $("fqAsks").innerHTML = ASKS.map(function (a) { var has = hasCol(a[2]); return "<label" + (X && !has ? " class='muted' title='Not in this export'" : "") + "><input type='checkbox' data-ask='" + a[0] + "'" + (on[a[0]] && (!X || has) ? " checked" : "") + (X && !has ? " disabled" : "") + "> " + a[1] + "</label>" }).join("");
@@ -349,12 +358,15 @@ window.SOL_CONFIG = window.SOL_CONFIG || { db: "https://cardinal-booth-default-r
   $("fqAsks").addEventListener("change", function (e) { var c = e.target.closest("[data-ask]"); if (!c) return; on[c.dataset.ask] = c.checked; review() });
   function live() { return ASKS.filter(function (a) { return on[a[0]] && hasCol(a[2]) }) }
 
-  // match clips to rows: "Clip 003" goes with row 3; clips with no number go in the order picked
+  // match clips to rows: the clip's number is its Hudl PLAY # if those line up, else its row; clips with no telling number go in name order
   function match() {
     ROWS = []; ANS = {}; OPTS = {}; if (!X || !V.length) return;
-    var numbered = V.every(function (f) { return clipNo(f) != null });
-    var L = V.slice().sort(function (a, b) { return numbered ? clipNo(a) - clipNo(b) : a.name.localeCompare(b.name, undefined, { numeric: true }) });
-    L.forEach(function (f, k) { var n = numbered ? clipNo(f) : k + 1; ROWS.push({ f: f, n: n, r: X[n - 1] || null }) });
+    var no = clipNos(V), byPlay = {};
+    X.forEach(function (r) { var p = col(r, ["PLAY #", "PLAY#", "PLAY"]); if (p && /^\d+$/.test(p)) byPlay[+p] = r });
+    var L = V.map(function (f, k) { return { f: f, n: no ? no[k] : null } }).sort(function (a, b) { return a.n != null && b.n != null ? a.n - b.n : a.f.name.localeCompare(b.f.name, undefined, { numeric: true }) });
+    var usePlay = no && L.every(function (x) { return byPlay[x.n] }), useRow = no && !usePlay && L.every(function (x) { return x.n >= 1 && x.n <= X.length });
+    L.forEach(function (x, k) { var n = usePlay || useRow ? x.n : k + 1; ROWS.push({ f: x.f, n: n, r: usePlay ? byPlay[n] : X[n - 1] || null }) });
+    MATCHBY = usePlay ? "Hudl PLAY #" : useRow ? "row number" : "the order of the clip names";
     ASKS.forEach(function (a) { var c = {}; X.forEach(function (r) { var v = val(r, a); if (v) c[v] = (c[v] || 0) + 1 }); OPTS[a[0]] = Object.keys(c).sort(function (x, y) { return c[y] - c[x] }) });
     ROWS.forEach(function (R, k) { ANS[k] = {}; ASKS.forEach(function (a) { ANS[k][a[0]] = R.r ? val(R.r, a) : "" }) });
   }
@@ -370,8 +382,11 @@ window.SOL_CONFIG = window.SOL_CONFIG || { db: "https://cardinal-booth-default-r
         L.map(function (a) { var v = ANS[k][a[0]], o = OPTS[a[0]].slice(); if (v && o.indexOf(v) < 0) o.unshift(v);
           return "<td><select data-k='" + k + "' data-a='" + a[0] + "' aria-label='" + esc(a[1]) + " answer'><option value=''>Don't ask</option>" + o.map(function (x) { return "<option" + (x === v ? " selected" : "") + ">" + esc(x) + "</option>" }).join("") + "</select></td>" }).join("") +
         "<td><button class='btn' type='button' data-skip='" + k + "'>" + (R.skip ? "Use" : "Leave out") + "</button></td></tr>" }).join("");
-    var n = qCount(), miss = ROWS.filter(function (R) { return !R.r }).length;
-    $("fqNote").textContent = n + " question" + (n === 1 ? "" : "s") + " from " + ROWS.filter(function (R) { return !R.skip }).length + " clips" + (miss ? " · " + miss + " clip" + (miss === 1 ? " has" : "s have") + " no matching row: check it's the same playlist" : "");
+    var n = qCount(), miss = ROWS.filter(function (R) { return !R.r }).length, rowsUsed = {}, dup = 0;
+    ROWS.forEach(function (R) { if (!R.r || R.skip) return; if (rowsUsed[X.indexOf(R.r)]) dup++; rowsUsed[X.indexOf(R.r)] = 1 });
+    var same = ROWS.length > 2 && live().length && live().every(function (a) { var v = {}; ROWS.forEach(function (R, k) { if (!R.skip && ANS[k][a[0]]) v[ANS[k][a[0]]] = 1 }); return Object.keys(v).length <= 1 });
+    $("fqNote").textContent = n + " question" + (n === 1 ? "" : "s") + " from " + ROWS.filter(function (R) { return !R.skip }).length + " clips, matched by " + MATCHBY + "." + (miss ? " " + miss + " clip" + (miss === 1 ? " has" : "s have") + " no matching row: check it's the same playlist." : "") +
+      (dup ? " Warning: " + dup + " clip" + (dup === 1 ? " uses" : "s use") + " the same row as another clip." : "") + (same ? " Warning: every clip has the same answer. The clips and the export probably don't line up; check the Hudl row column before making it." : "");
     $("fqMake").disabled = !n;
   }
   $("fqBody").addEventListener("change", function (e) { var s = e.target.closest("select[data-k]"); if (s) { ANS[s.dataset.k][s.dataset.a] = s.value; review() } });

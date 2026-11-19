@@ -16,6 +16,7 @@ button{font:inherit;cursor:pointer}
 .groups{display:grid;gap:10px;margin:10px 0 14px}
 .chip{min-height:52px;border:2px solid #111;border-radius:10px;background:#fff;font-size:19px;padding:6px 10px;text-align:left}
 .chip[aria-pressed="true"]{background:#111;color:#fff}
+.fnav:not(.hidden){display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
 .go{width:100%;min-height:54px;border:0;border-radius:12px;background:#1f5fbf;color:#fff;font-size:24px}
 .go.alt{background:#fff;color:#111;border:2px solid #111}
 .top{display:flex;justify-content:space-between;font-size:18px;color:#444}
@@ -83,6 +84,10 @@ When you carry it: aim right up the center's backside (Scat: outside the tackle 
 <div id="dia"></div>
 <div class="fb" id="fb" aria-live="polite"></div>
 <div class="rule hidden" id="rule"></div>
+<div id="filmNav" class="fnav hidden">
+<button class="go alt" id="fBack" type="button">Back</button>
+<button class="go" id="fNext" type="button">Next</button>
+</div>
 <button class="go hidden" id="next">Next</button>
 </div>
 </section>
@@ -392,10 +397,11 @@ function filmDeck(){
   shuffle(FILMQ.clips.slice()).forEach(c => c.asks.forEach(a => { const r = { film: true, url: c.url, clip: c.clip, sit: c.sit, q: a.q, a: a.a, ch: a.ch, k: a.k, label: c.clip + ': ' + a.q.replace(/\?$/, '') }; r.p = r; out.push(r); }));
   return out;
 }
+let FPICK = [];
 function showFilm(q){
   stage = 3;
-  $('count').textContent = 'Rep ' + (i+1) + ' of ' + deck.length;
-  $('score').textContent = right + ' right';
+  $('count').textContent = 'Question ' + (i+1) + ' of ' + deck.length;
+  $('score').textContent = FPICK.filter(x => x != null).length + ' answered';
   $('prog').style.width = (i/deck.length*100) + '%';
   $('call').textContent = q.clip; $('hash').textContent = q.sit || ''; $('ask').textContent = q.q;
   $('fb').textContent = ''; $('fb').className = 'fb'; $('rule').classList.add('hidden'); $('next').classList.add('hidden');
@@ -405,17 +411,30 @@ function showFilm(q){
     const nv = $('dia').querySelector('video'); nv.dataset.url = q.url; nv.src = q.url;
     nv.onerror = () => { $('fb').textContent = 'This clip won\u2019t play here. Answer from what you know, or tell Coach.'; };
   }
-  $('dia').querySelector('.chs').innerHTML = shuffle(q.ch.slice()).map(c => '<button class="chip" type="button" data-c="' + c.replace(/"/g, '&quot;') + '">' + c.replace(/</g, '&lt;') + '</button>').join('');
+  if (!q.order) q.order = shuffle(q.ch.slice());
+  $('dia').querySelector('.chs').innerHTML = q.order.map(c => '<button class="chip" type="button" aria-pressed="' + (FPICK[i] === c) + '" data-c="' + c.replace(/"/g, '&quot;') + '">' + c.replace(/</g, '&lt;') + '</button>').join('');
+  $('filmNav').classList.remove('hidden'); $('fBack').disabled = i === 0;
+  $('fNext').textContent = i + 1 < deck.length ? 'Next' : 'Finish and see my score';
+  $('fb').textContent = FPICK[i] != null ? 'You picked ' + FPICK[i] + '. Change it any time before you finish.' : '';
 }
 function answerFilm(b){
-  const q = deck[i]; if (stage !== 3) return; stage = 0;
-  const good = b.dataset.c === q.a;
-  $('dia').querySelectorAll('.chs .chip').forEach(x => { if (x.dataset.c === q.a) x.classList.add('right'); });
-  if (!good) { b.classList.add('wrong'); missed.push(q.p); log.push(q.clip + ' \u2013 ' + q.q + ' Picked ' + b.dataset.c + ', it was ' + q.a); } else right++;
-  $('fb').textContent = good ? 'Right!' : 'It was ' + q.a + '.'; $('fb').className = 'fb ' + (good ? 'ok' : 'no');
-  $('score').textContent = right + ' right';
-  $('next').textContent = i + 1 < deck.length ? 'Next' : 'See score'; $('next').classList.remove('hidden');
+  if (stage !== 3) return;
+  FPICK[i] = b.dataset.c;
+  $('dia').querySelectorAll('.chs .chip').forEach(x => x.setAttribute('aria-pressed', x === b));
+  $('score').textContent = FPICK.filter(x => x != null).length + ' answered';
+  $('fb').textContent = 'You picked ' + b.dataset.c + '. Change it any time before you finish.';
 }
+function gradeFilm(){
+  right = 0; missed = []; log = [];
+  deck.forEach((q, k) => { const p = FPICK[k]; if (p === q.a) right++; else { missed.push(q.p); log.push(q.clip + ' \u2013 ' + q.q + ' ' + (p == null ? 'Skipped' : 'Picked ' + p) + ', it was ' + q.a) } });
+}
+$('fBack').onclick = () => { if (i > 0) { i--; show() } };
+$('fNext').onclick = () => {
+  if (i + 1 < deck.length) { i++; show(); return }
+  const blanks = deck.filter((q, k) => FPICK[k] == null).length;
+  if (blanks && !confirm(blanks + ' question' + (blanks === 1 ? ' is' : 's are') + ' still blank. Finish anyway?')) return;
+  $('filmNav').classList.add('hidden'); gradeFilm(); finish();
+};
 $('dia').addEventListener('click', e => { const b = e.target.closest('.chs .chip'); if (b) answerFilm(b); });
 
 function finish(){
@@ -500,7 +519,7 @@ $('again').onclick = () => FILMQ ? beginFilm([...new Set(missed)]) : begin([...n
 QK.cfg().then(C => { window.__cfg = C; const wk = QK.list(C.run); if (wk.length && !FILM) { $('weekRow').hidden = false; $('weekLbl').textContent = 'This week\u2019s plays only (' + wk.length + ')' + (C.opp ? ' \u2022 vs ' + C.opp : '') } });
 QK.homeTip($('start'));
 function beginFilm(reps){
-  if (!reps.length) return;
+  if (!reps.length) return; FPICK = [];
   deck = reps; i = 0; right = 0; missed = []; log = [];
   $('start').classList.add('hidden'); $('done').classList.add('hidden'); $('quiz').classList.remove('hidden');
   show();

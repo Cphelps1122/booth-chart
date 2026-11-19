@@ -124,6 +124,15 @@ legend { font-weight: 700; padding: 0 6px }
     <div class="row" style="margin-top:10px"><button class="btn primary" id="wkSave" type="button">Save this week</button><span class="muted" id="wkNote"></span></div>
   </section>
 
+  <section class="panel" id="coachPanel" hidden>
+    <h2>Coaches who get results <small>players pick a name when they hit Text Coach</small></h2>
+    <div class="scroll"><table>
+      <thead><tr><th>Name players see</th><th>Cell number</th><th>RB</th><th>WR / TE</th><th>Film</th><th></th></tr></thead>
+      <tbody id="coBody"></tbody>
+    </table></div>
+    <div class="row" style="margin-top:10px"><button class="btn" id="coAdd" type="button">Add a coach</button><button class="btn primary" id="coSave" type="button">Save coaches</button><span class="muted" id="coNote"></span></div>
+  </section>
+
   <section class="panel" id="readyPanel" hidden>
     <h2>Ready for Friday? <small id="readyNote"></small></h2>
     <div class="scroll"><table>
@@ -208,8 +217,31 @@ window.SOL_CONFIG = window.SOL_CONFIG || { db: "https://cardinal-booth-default-r
       $("lkFront").value = L.front || ""; $("lkCov").value = L.cov || ""; $("lkShell").value = L.shell || "";
       picks("wkRun", QK.RUN, QK.list(CFG.run)); picks("wkPass", QK.PASS, QK.list(CFG.pass));
       $("weekPanel").hidden = false;
+      CO = (QK.list(CFG.coaches).length ? QK.list(CFG.coaches) : QK.COACHES0).map(function (c) { return { name: c.name, phone: c.phone, q: Object.assign({}, c.q) } }); drawCoaches(); $("coachPanel").hidden = false;
     });
   }
+  // ---- coaches: name + cell + which quizzes; players see the names only ----
+  var CO = [];
+  function fmtPhone(p) { var d = String(p || "").replace(/\D/g, "").replace(/^1(?=\d{10}$)/, ""); return d.length === 10 ? "(" + d.slice(0, 3) + ") " + d.slice(3, 6) + "-" + d.slice(6) : String(p || "") }
+  function e164(p) { var d = String(p || "").replace(/\D/g, ""); if (d.length === 10) d = "1" + d; return d.length === 11 && d[0] === "1" ? "+" + d : "" }
+  function drawCoaches() {
+    $("coBody").innerHTML = CO.map(function (c, i) { return "<tr><td><input data-co='" + i + "' data-f='name' value='" + esc(c.name) + "' maxlength='40' aria-label='Coach name'></td><td><input data-co='" + i + "' data-f='phone' value='" + esc(fmtPhone(c.phone)) + "' inputmode='tel' maxlength='20' aria-label='Cell number' style='width:150px'></td>" +
+      ["run", "pass", "film"].map(function (k) { return "<td><input type='checkbox' data-co='" + i + "' data-q='" + k + "'" + (c.q && c.q[k] ? " checked" : "") + " aria-label='" + k + "'></td>" }).join("") +
+      "<td><button class='btn danger' type='button' data-codel='" + i + "'>Remove</button></td></tr>" }).join("");
+  }
+  $("coBody").addEventListener("input", function (e) { var x = e.target.closest("[data-co]"); if (!x) return; var c = CO[+x.dataset.co]; if (x.dataset.f) c[x.dataset.f] = x.value; if (x.dataset.q) { c.q = c.q || {}; if (x.checked) c.q[x.dataset.q] = 1; else delete c.q[x.dataset.q] } });
+  $("coBody").addEventListener("change", function (e) { var x = e.target.closest("[data-q]"); if (!x) return; var c = CO[+x.dataset.co]; c.q = c.q || {}; if (x.checked) c.q[x.dataset.q] = 1; else delete c.q[x.dataset.q] });
+  $("coBody").addEventListener("click", function (e) { var b = e.target.closest("[data-codel]"); if (!b) return; CO.splice(+b.dataset.codel, 1); drawCoaches() });
+  $("coAdd").onclick = function () { CO.push({ name: "Coach ", phone: "", q: {} }); drawCoaches(); var L = $("coBody").querySelectorAll("input[data-f='name']"); L[L.length - 1].focus() };
+  $("coSave").onclick = function () {
+    var bad = CO.filter(function (c) { return !c.name.trim() || !e164(c.phone) });
+    if (bad.length) { $("coNote").textContent = "Each coach needs a name and a 10-digit cell number."; return }
+    var v = CO.map(function (c) { return { name: c.name.trim().slice(0, 40), phone: e164(c.phone), q: c.q || {} } });
+    $("coSave").disabled = true;
+    cfgUrl("coaches").then(function (u) { return fetch(u, { method: "PUT", body: JSON.stringify(v) }) }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); CFG.coaches = v; CO = v.map(function (c) { return { name: c.name, phone: c.phone, q: Object.assign({}, c.q) } }); drawCoaches(); $("coNote").textContent = "Saved. Players pick from these names when they hit Text Coach." })
+      .catch(function (e) { $("coNote").textContent = "Couldn't save (" + e.message + ")." }).then(function () { $("coSave").disabled = false });
+  };
+
   $("weekPanel").addEventListener("click", function (e) {
     var a = e.target.closest("[data-all],[data-none]"); if (!a) return;
     var box = (a.dataset.all || a.dataset.none) === "run" ? "wkRun" : "wkPass";
@@ -217,7 +249,7 @@ window.SOL_CONFIG = window.SOL_CONFIG || { db: "https://cardinal-booth-default-r
   });
   $("wkSave").onclick = function () {
     var v = { opp: $("wkOpp").value.trim().slice(0, 40), date: $("wkDate").value || "", run: picked("wkRun"), pass: picked("wkPass"),
-      looks: { front: $("lkFront").value.trim().slice(0, 30), cov: $("lkCov").value.trim().slice(0, 30), shell: $("lkShell").value }, focus: CFG.focus || {}, at: Date.now() };
+      looks: { front: $("lkFront").value.trim().slice(0, 30), cov: $("lkCov").value.trim().slice(0, 30), shell: $("lkShell").value }, focus: CFG.focus || {}, coaches: CFG.coaches || null, at: Date.now() };
     $("wkSave").disabled = true;
     cfgUrl("").then(function (u) { return fetch(u, { method: "PUT", body: JSON.stringify(v) }) }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); CFG = v; $("wkNote").textContent = "Saved. Players get " + v.run.length + " RB and " + v.pass.length + " WR / TE plays this week."; drawReady() })
       .catch(function (e) { $("wkNote").textContent = "Couldn't save (" + e.message + ")." }).then(function () { $("wkSave").disabled = false });

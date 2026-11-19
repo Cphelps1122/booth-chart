@@ -11,6 +11,7 @@ rather than on every change.
     node tests/ui/tdt.js       # "Their defense": two devices on one game, in Fast and in Full
     node tests/ui/mk.js        # Mock game: the call sheet follows the same fit rules
     node tests/ui/mz.js       # Mock game data: full self scout + charted live, file-by-file sends, this week's call sheet
+    node tests/ui/tc.js       # Text Coach: players pick the coach by name; Coaches box on Player Quizzes
     node tests/ui/qk.js       # Quiz upgrades: this week's plays + look, Learn it, speed round, Friday check, streaks, readiness
     node tests/ui/pz.js       # WR / TE pass quiz: line up, route, first read on every play; saves as a pass quiz; coach filter
     node tests/ui/qz.js       # Player quiz: a player saves an attempt with no account; the coach page lists and deletes it

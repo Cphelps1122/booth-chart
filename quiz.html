@@ -484,7 +484,7 @@ function setSend(){
   $('mail').href = 'mailto:' + COACH_EMAIL + '?subject=' + encodeURIComponent((FILMQ ? FILMQ.title : 'RB Quiz') + ': ' + ($('nm').value.trim() || 'player')) + '&body=' + body;
 }
 $('qbox').addEventListener('input', setSend);
-$('sms').addEventListener('click', e => { e.preventDefault(); saveQuestion(); const u = $('sms').href; try { window.top.location.href = u; } catch (x) { const w = window.open(u, '_blank'); if (!w) location.href = u; } });
+$('sms').addEventListener('click', e => { e.preventDefault(); saveQuestion(); QK.textCoach(FILMQ ? 'film' : 'run', report) });
 
 $('next').onclick = () => { i++; i < deck.length ? show() : finish(); };
 $('begin').onclick = () => { if (!$('nm').value.trim()) { $('nm').focus(); $('nm').style.borderColor = '#c0392b'; $('nm').placeholder = 'Type your name first'; return; } if (FILMQ) beginFilm(filmDeck()); else begin(pool()); };

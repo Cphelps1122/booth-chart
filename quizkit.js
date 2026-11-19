@@ -81,6 +81,7 @@
     ".qk-tip{background:#fff7d6;border:2px solid #e0a800;border-radius:12px;padding:10px 12px;font-size:17px;margin-bottom:12px;display:flex;gap:10px;align-items:flex-start}.qk-tip button{margin-left:auto;font:inherit;border:0;background:none;font-size:22px;line-height:1}" +
     ".qk-learn .nav{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}.qk-looks{background:#eef3fb;border-radius:10px;padding:8px 10px;font-size:17px;margin:6px 0}" +
     ".qk-streak{text-align:center;font-size:19px;margin:4px 0}" +
+    ".qk-pick{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;z-index:50}.qk-sheet{background:#fff;border-radius:16px 16px 0 0;padding:16px;width:100%;max-width:640px;display:grid;gap:10px}.qk-pt{font-size:21px;text-align:center;margin-bottom:4px}" +
     "@media (prefers-color-scheme: dark){body{background:#121316!important;color:#ecedef!important}.card{background:#1b1d21!important;border-color:#3a3d44!important}" +
     ".chip,.go.alt,.opt,input,textarea{background:#24272c!important;color:#ecedef!important;border-color:#5a5e66!important}.chip[aria-pressed=\"true\"]{background:#ecedef!important;color:#111!important}" +
     ".sub,.top,.key,.hash{color:#b9bcc3!important}.rule,.qk-looks{background:#24272c!important;color:#ecedef!important}.qk-tip{background:#2b2612!important;color:#f3e7b8!important}" +
@@ -96,6 +97,26 @@
     where.parentNode.insertBefore(d, where);
   }
 
+
+  // ---- coaches who get results by text: set on Player Quizzes (cfg.coaches); this list is used until a coach saves one ----
+  var COACHES0 = [{ name: "Coach Phelps", phone: "+12145786616", q: { run: 1, film: 1 } }, { name: "Coach Scoggin", phone: "+19037244650", q: { pass: 1 } }];
+  function coaches() { var c = list(CFG && CFG.coaches); return c.length ? c : COACHES0 }
+  function coachesFor(kind) { return coaches().filter(function (c) { return c && c.phone && c.q && c.q[kind] }) }
+  function smsUrl(phone, body) { return "sms:" + phone + "?&body=" + encodeURIComponent(body) }
+  function openUrl(u) { if (window.SOL_TEST && window.__qkOpen) return window.__qkOpen(u); try { window.top.location.href = u } catch (x) { var w = window.open(u, "_blank"); if (!w) location.href = u } }
+  // Text Coach: pick the coach by name, then the text opens to his number
+  function textCoach(kind, body) {
+    return cfg().then(function () {
+      var L = coachesFor(kind); if (!L.length) L = coaches().slice(0, 1);
+      if (L.length === 1) { openUrl(smsUrl(L[0].phone, body())); return }
+      var old = document.getElementById("qkPick"); if (old) old.remove();
+      var d = document.createElement("div"); d.id = "qkPick"; d.className = "qk-pick"; d.setAttribute("role", "dialog"); d.setAttribute("aria-label", "Pick your coach");
+      d.innerHTML = "<div class='qk-sheet'><div class='qk-pt'>Send your results to:</div>" + L.map(function (c, i) { return "<button class='go' type='button' data-i='" + i + "'>" + String(c.name).replace(/</g, "&lt;") + "</button>" }).join("") + "<button class='go alt' type='button' data-x='1'>Cancel</button></div>";
+      d.addEventListener("click", function (e) { var b = e.target.closest("button"); if (e.target === d || (b && b.dataset.x)) { d.remove(); return } if (!b) return; d.remove(); openUrl(smsUrl(L[+b.dataset.i].phone, body())) });
+      document.body.appendChild(d); d.querySelector("button").focus();
+    });
+  }
+
   window.QK = { cfg: cfg, list: list, RUN: RUN, PASS: PASSN, requeue: requeue, rightAgain: rightAgain, timerStart: timerStart, timerStop: timerStop,
-    streakHit: streakHit, missAdd: missAdd, missRight: missRight, fridayList: fridayList, homeTip: homeTip, today: today };
+    streakHit: streakHit, coaches: coaches, coachesFor: coachesFor, textCoach: textCoach, COACHES0: COACHES0, missAdd: missAdd, missRight: missRight, fridayList: fridayList, homeTip: homeTip, today: today };
 })();

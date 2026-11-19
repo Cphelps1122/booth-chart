@@ -445,7 +445,7 @@ function report(){
   return t;
 }
 function setSend(){ const body = encodeURIComponent(report()); $('sms').href = 'sms:' + COACH_PHONE + '?&body=' + body; $('mail').href = 'mailto:' + COACH_EMAIL + '?subject=' + encodeURIComponent('WR/TE Quiz: ' + ($('nm').value.trim() || 'player')) + '&body=' + body }
-$('sms').addEventListener('click', e => { e.preventDefault(); saveQuestion(); const u = $('sms').href; try { window.top.location.href = u } catch (x) { const w = window.open(u, '_blank'); if (!w) location.href = u } });
+$('sms').addEventListener('click', e => { e.preventDefault(); saveQuestion(); QK.textCoach('pass', report) });
 
 // ---------- start screen ----------
 $('begin').onclick = () => {

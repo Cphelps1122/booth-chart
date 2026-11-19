@@ -25,19 +25,23 @@ const wait=async(fn,ms=8000)=>{ const t=Date.now(); while(Date.now()-t<ms){ if(a
   await P.click('#begin');
   ok(await P.isVisible('#quiz'), 'Quiz starts once a name is typed');
   let reps=0;
-  while(await P.isVisible('#quiz') && reps<40){
+  const ids=async()=>P.evaluate(()=>{ const q=deck[i]; return { al:'al-'+q.align, t:targetId(q) } });
+  while(await P.isVisible('#quiz') && reps<60){
     reps++;
+    const wrong = reps<=2; // miss the first two, then get everything right
     await P.waitForSelector('#dia .tap.live');
-    if(await P.$('#dia [data-id="al-L"]')){ await P.click('#dia [data-id="al-L"]'); await P.waitForTimeout(1100) }
+    if(await P.$('#dia [data-id="al-L"]')){ const a=await ids(); await P.click('#dia [data-id="'+(wrong?(a.al==='al-L'?'al-R':'al-L'):a.al)+'"]'); await P.waitForTimeout(1100) }
     await P.waitForSelector('#dia .tap.live');
-    await P.click('#dia .tap.live >> nth=0');
+    const a=await ids(); if(wrong) await P.click('#dia .tap.live:not([data-id="'+a.t+'"]) >> nth=0'); else await P.click('#dia [data-id="'+a.t+'"]');
     await P.waitForSelector('#next:not(.hidden)'); await P.click('#next');
   }
+  const n0=await P.evaluate(()=>n0);
+  ok(reps>n0, 'Mastery: missed reps came back ('+reps+' reps for '+n0+' plays)');
   ok(await P.isVisible('#done'), 'Player reaches the score screen ('+reps+' reps)');
   await P.screenshot({path:OUT+'qz-player-done.png'});
   ok(await wait(async()=>{ const q=R.getAt('/quiz/melissa'); return q && Object.keys(q).length===1 }), 'Finished attempt is saved under quiz/melissa');
   const id=Object.keys(R.getAt('/quiz/melissa')||{})[0], rec=(R.getAt('/quiz/melissa')||{})[id]||{};
-  ok(rec.name==='Marcus' && rec.total===reps && typeof rec.score==='number', 'Saved name, score and total ('+rec.score+'/'+rec.total+')');
+  ok(rec.name==='Marcus' && rec.total===n0 && rec.score===n0-2 && rec.kind==='run', 'Saved name, score and total ('+rec.score+'/'+rec.total+')');
   ok(typeof rec.missed==='string' && typeof rec.plays==='string', 'Saved what he missed');
   ok(errs.length===0, 'No page errors on the quiz' + (errs.length?': '+errs.join(' | '):''));
 

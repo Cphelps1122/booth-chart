@@ -60,6 +60,16 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums }
 #fqRev td.cl { font-weight: 700; white-space: nowrap } #fqRev td.sit { color: var(--muted); font-size: 13px; min-width: 120px }
 .fq-item { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center }
 .fq-item .t { font-weight: 800; font-size: 17px } .fq-item .m { color: var(--muted); font-size: 13.5px; flex-basis: 100% }
+.wkcols { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px }
+fieldset { border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; margin: 0; min-width: 0 }
+legend { font-weight: 700; padding: 0 6px }
+.lnk { font: 600 13px var(--f-body); background: none; border: 0; color: var(--school); cursor: pointer; text-decoration: underline; padding: 0 3px }
+.picks { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 2px 10px }
+.picks label { display: flex; gap: 8px; align-items: center; min-height: 34px; font-size: 14.5px }
+.picks input { width: 20px; height: 20px; min-height: 0 }
+.rd { display: inline-block; min-width: 52px; text-align: center; border-radius: 6px; padding: 2px 6px; font-weight: 700 }
+.rd.g { background: #c9efcf; color: #14501f } .rd.y { background: #fbe7a6; color: #5a4300 } .rd.r { background: #f7c9c4; color: #6d1810 } .rd.n { background: var(--chip); color: var(--muted) }
+.lb-rank { font-weight: 800; color: var(--school); margin-right: 6px }
 .link { font-family: ui-monospace, Menlo, monospace; font-size: 13.5px; word-break: break-all }
 </style>
 </head>
@@ -95,6 +105,34 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums }
     <div class="list" id="fqList" style="margin-top:12px"></div>
   </section>
 
+  <section class="panel" id="weekPanel" hidden>
+    <h2>This week <small>players see these plays first, and the Friday check uses them</small></h2>
+    <div class="row" style="margin-bottom:10px">
+      <label for="wkOpp" class="muted">Opponent</label><input id="wkOpp" placeholder="DeSoto" maxlength="40" style="width:160px">
+      <label for="wkDate" class="muted">Game day</label><input id="wkDate" type="date">
+    </div>
+    <div class="row" style="margin-bottom:6px"><b>Their main look</b> <span class="muted">(shows on the WR / TE quiz)</span></div>
+    <div class="row" style="margin-bottom:12px">
+      <label for="lkFront" class="muted">Front</label><input id="lkFront" placeholder="4-2" maxlength="30" style="width:110px">
+      <label for="lkCov" class="muted">Coverage</label><input id="lkCov" placeholder="Cover 3" maxlength="30" style="width:130px">
+      <label for="lkShell" class="muted">Shell</label><select id="lkShell"><option value="">Don't show</option><option value="1-high">1-high</option><option value="2-high">2-high</option><option value="0">0 (no deep safety)</option></select>
+    </div>
+    <div class="wkcols">
+      <fieldset><legend>RB plays <button class="lnk" type="button" data-all="run">all</button> <button class="lnk" type="button" data-none="run">none</button></legend><div id="wkRun" class="picks"></div></fieldset>
+      <fieldset><legend>WR / TE plays <button class="lnk" type="button" data-all="pass">all</button> <button class="lnk" type="button" data-none="pass">none</button></legend><div id="wkPass" class="picks"></div></fieldset>
+    </div>
+    <div class="row" style="margin-top:10px"><button class="btn primary" id="wkSave" type="button">Save this week</button><span class="muted" id="wkNote"></span></div>
+  </section>
+
+  <section class="panel" id="readyPanel" hidden>
+    <h2>Ready for Friday? <small id="readyNote"></small></h2>
+    <div class="scroll"><table>
+      <thead><tr><th>Player</th><th class="num">RB plays</th><th class="num">WR / TE plays</th><th class="num">Tries this week</th><th class="num">Streak</th><th>Still missing</th></tr></thead>
+      <tbody id="readyBody"></tbody>
+    </table></div>
+    <p class="muted" style="margin:8px 0 0;font-size:13.5px">Green 90%+ • yellow 70–89% • red under 70% • gray: hasn't taken it this week. Counts first tries on this week's plays since Monday.</p>
+  </section>
+
   <section class="panel" id="sumPanel" hidden>
     <h2>Players <small id="sumNote"></small></h2>
     <div class="scroll"><table>
@@ -122,6 +160,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums }
   </section>
 </main>
 <script src="nav.js"></script>
+<script src="quizkit.js"></script>
 <script>
 window.SOL_CONFIG = window.SOL_CONFIG || { db: "https://cardinal-booth-default-rtdb.firebaseio.com", apiKey: "AIzaSyDm0t01_w92gL5sm4_1RnVLip7xWkjb9ME" };
 (function () {
@@ -150,11 +189,72 @@ window.SOL_CONFIG = window.SOL_CONFIG || { db: "https://cardinal-booth-default-r
   var passUrl = new URL("passquiz.html" + (acc.school === "melissa" ? "" : "?s=" + encodeURIComponent(acc.school)), location.href).href;
   $("plink").textContent = passUrl; $("openP").href = passUrl;
   $("shareP").onclick = function () {
-    var data = { title: "WR / TE Quiz", text: "Take the WR/TE quiz. Type your name, pick your number (1-4), then hit Start. When you finish, hit Text Coach to send me your results.", url: passUrl };
+    var data = { title: "WR / TE Quiz", text: "Take the WR/TE quiz. Type your name, then hit Start. Each play, tap where you line up. When you finish, hit Text Coach to send me your results.", url: passUrl };
     if (navigator.share) { navigator.share(data).catch(function () {}) } else { location.href = "sms:?&body=" + encodeURIComponent(data.text + " " + passUrl) }
   };
   $("copyP").onclick = function () { (navigator.clipboard ? navigator.clipboard.writeText(passUrl) : Promise.reject()).then(function () { $("copyP").textContent = "Copied" }, function () { $("copyP").textContent = "Select the link to copy" }) };
   $("copyLink").onclick = function () { (navigator.clipboard ? navigator.clipboard.writeText(quizUrl) : Promise.reject()).then(function () { $("copyLink").textContent = "Copied" }, function () { $("copyLink").textContent = "Select the link to copy" }) };
+
+  var CFG = {};
+  function cfgUrl(path) { return solToken().then(function (t) { return SOL.db + "/quizcfg/" + encodeURIComponent(acc.school) + (path ? "/" + path : "") + ".json?auth=" + encodeURIComponent(t) }) }
+  function picks(box, names, on) { $(box).innerHTML = names.map(function (n, i) { return "<label><input type='checkbox' value='" + esc(n) + "'" + (on.indexOf(n) >= 0 ? " checked" : "") + "> " + esc(n) + "</label>" }).join("") }
+  function picked(box) { return [].slice.call($(box).querySelectorAll("input:checked")).map(function (x) { return x.value }) }
+  function nextFriday() { var d = new Date(); d.setDate(d.getDate() + ((5 - d.getDay() + 7) % 7)); return d.toISOString().slice(0, 10) }
+  function weekStart() { var d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d.getTime() }
+  function loadCfg() {
+    return fetch(SOL.db + "/quizcfg/" + encodeURIComponent(acc.school) + ".json").then(function (r) { return r.ok ? r.json() : null }).catch(function () { return null }).then(function (d) {
+      CFG = d || {}; var L = CFG.looks || {};
+      $("wkOpp").value = CFG.opp || ""; $("wkDate").value = CFG.date || nextFriday();
+      $("lkFront").value = L.front || ""; $("lkCov").value = L.cov || ""; $("lkShell").value = L.shell || "";
+      picks("wkRun", QK.RUN, QK.list(CFG.run)); picks("wkPass", QK.PASS, QK.list(CFG.pass));
+      $("weekPanel").hidden = false;
+    });
+  }
+  $("weekPanel").addEventListener("click", function (e) {
+    var a = e.target.closest("[data-all],[data-none]"); if (!a) return;
+    var box = (a.dataset.all || a.dataset.none) === "run" ? "wkRun" : "wkPass";
+    $(box).querySelectorAll("input").forEach(function (x) { x.checked = !!a.dataset.all });
+  });
+  $("wkSave").onclick = function () {
+    var v = { opp: $("wkOpp").value.trim().slice(0, 40), date: $("wkDate").value || "", run: picked("wkRun"), pass: picked("wkPass"),
+      looks: { front: $("lkFront").value.trim().slice(0, 30), cov: $("lkCov").value.trim().slice(0, 30), shell: $("lkShell").value }, focus: CFG.focus || {}, at: Date.now() };
+    $("wkSave").disabled = true;
+    cfgUrl("").then(function (u) { return fetch(u, { method: "PUT", body: JSON.stringify(v) }) }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); CFG = v; $("wkNote").textContent = "Saved. Players get " + v.run.length + " RB and " + v.pass.length + " WR / TE plays this week."; drawReady() })
+      .catch(function (e) { $("wkNote").textContent = "Couldn't save (" + e.message + ")." }).then(function () { $("wkSave").disabled = false });
+  };
+
+  // ---- ready for Friday: first tries on this week's plays since Monday, streaks, and the team's most missed (for the Friday check) ----
+  function dayKey(ms) { var d = new Date(ms); return d.getFullYear() * 400 + d.getMonth() * 32 + d.getDate() }
+  function streakOf(list) {
+    var days = {}; list.forEach(function (a) { days[new Date(a.at).toDateString()] = 1 });
+    var n = 0, d = new Date(); if (!days[d.toDateString()]) d.setDate(d.getDate() - 1);
+    while (days[d.toDateString()]) { n++; d.setDate(d.getDate() - 1) }
+    return n;
+  }
+  function drawReady() {
+    var since = weekStart(), wk = { run: QK.list(CFG.run), pass: QK.list(CFG.pass) }, people = {}, teamMiss = { run: {}, pass: {} };
+    ALL.forEach(function (a) {
+      var k = a.name.trim().toLowerCase(), p = people[k] = people[k] || { name: a.name.trim(), all: [], run: { seen: 0, ok: 0 }, pass: { seen: 0, ok: 0 }, tries: 0, miss: {} };
+      p.all.push(a);
+      if (a.at < since || a.kind === "film") return;
+      p.tries++;
+      var kind = a.kind === "pass" ? "pass" : "run", seen = String(a.seen || "").split("|").filter(Boolean), miss = String(a.plays || "").split("|").filter(Boolean);
+      seen.forEach(function (n) { if (wk[kind].length && wk[kind].indexOf(n) < 0) return; p[kind].seen++; if (miss.indexOf(n) < 0) p[kind].ok++; else { p.miss[n] = 1; teamMiss[kind][n] = (teamMiss[kind][n] || 0) + 1 } });
+    });
+    var rows = Object.keys(people).map(function (k) { return people[k] }).filter(function (p) { return p.tries });
+    rows.forEach(function (p) { p.score = (p.run.seen ? p.run.ok / p.run.seen : 0) + (p.pass.seen ? p.pass.ok / p.pass.seen : 0); p.streak = streakOf(p.all) });
+    rows.sort(function (a, b) { return b.score - a.score || b.tries - a.tries });
+    function cell(x) { if (!x.seen) return "<span class='rd n'>—</span>"; var v = Math.round(x.ok / x.seen * 100); return "<span class='rd " + (v >= 90 ? "g" : v >= 70 ? "y" : "r") + "'>" + v + "%</span>" }
+    $("readyBody").innerHTML = rows.map(function (p, i) {
+      return "<tr><td><span class='lb-rank'>" + (i + 1) + "</span>" + esc(p.name) + "</td><td class='num'>" + cell(p.run) + "</td><td class='num'>" + cell(p.pass) + "</td><td class='num'>" + p.tries + "</td><td class='num'>" + (p.streak ? p.streak + " day" + (p.streak === 1 ? "" : "s") : "—") + "</td><td class='muted'>" + esc(Object.keys(p.miss).slice(0, 4).join(", ")) + "</td></tr>" }).join("");
+    $("readyNote").textContent = (CFG.opp ? "vs " + CFG.opp + " • " : "") + "ranked by this week's scores";
+    $("readyPanel").hidden = !rows.length;
+    // keep the team's most-missed plays for the players' Friday check
+    var focus = { run: Object.keys(teamMiss.run).sort(function (a, b) { return teamMiss.run[b] - teamMiss.run[a] }).slice(0, 8), pass: Object.keys(teamMiss.pass).sort(function (a, b) { return teamMiss.pass[b] - teamMiss.pass[a] }).slice(0, 8) };
+    if (JSON.stringify(focus) !== JSON.stringify(CFG.focus || { run: [], pass: [] }) && (focus.run.length || focus.pass.length)) {
+      CFG.focus = focus; cfgUrl("focus").then(function (u) { return fetch(u, { method: "PUT", body: JSON.stringify(focus) }) }).catch(function () {});
+    }
+  }
 
   function load() {
     msg("Loading attempts…");
@@ -191,6 +291,7 @@ window.SOL_CONFIG = window.SOL_CONFIG || { db: "https://cardinal-booth-default-r
         (a.missed ? "<div class='miss'>" + esc(a.missed) + "</div>" : "<div class='good'>Nothing missed.</div>") + "</div>";
     }).join("");
     $("attPanel").hidden = !ALL.length;
+    drawReady();
   }
 
   $("who").onchange = draw; $("kind").onchange = draw; $("qOnly").onchange = draw;
@@ -207,7 +308,7 @@ window.SOL_CONFIG = window.SOL_CONFIG || { db: "https://cardinal-booth-default-r
     url("").then(function (u) { return fetch(u, { method: "DELETE" }) }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); ALL = []; msg("All attempts cleared."); draw() })
       .catch(function (e) { msg("Couldn't clear (" + esc(e.message) + ").") });
   };
-  load();
+  loadCfg().then(load);
 })();
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>

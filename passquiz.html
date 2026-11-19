@@ -60,7 +60,15 @@ input{font:inherit;font-size:20px;width:100%;min-height:46px;border:2px solid #1
 <section id="start" class="card">
 <label for="nm">Your name</label>
 <input id="nm" autocomplete="name">
+<div class="qk-row" id="weekRow" hidden><input type="checkbox" id="weekOnly" checked><label for="weekOnly" id="weekLbl">This week's plays only</label></div>
+<div style="font-size:20px">How do you want to go?</div>
+<div class="qk-modes" id="modes">
+<button class="chip" type="button" data-mode="normal" aria-pressed="true">Normal</button>
+<button class="chip" type="button" data-mode="speed" aria-pressed="false">Speed round<br><small>5 sec</small></button>
+<button class="chip" type="button" data-mode="friday" aria-pressed="false">Friday check<br><small>10 plays</small></button>
+</div>
 <button class="go" id="begin">Start</button>
+<button class="go alt" id="learnBtn" style="margin-top:10px">Learn the plays first</button>
 <div class="key" style="margin-top:12px">
 Each play: <b>1)</b> tap where YOU line up on that play, <b>2)</b> pick your route, <b>3)</b> know where the ball goes first.<br>
 Spots are numbered left to right, 1 to 4. The back is 0.<br>
@@ -71,6 +79,7 @@ Spots are numbered left to right, 1 to 4. The back is 0.<br>
 <section id="quiz" class="hidden">
 <div class="top"><span id="count"></span><span id="score"></span></div>
 <div class="bar"><i id="prog"></i></div>
+<div class="qk-timer" id="qkTimer" hidden><i></i></div>
 <div class="card">
 <div class="call" id="call"></div>
 <div class="hash" id="sub2"></div>
@@ -82,10 +91,21 @@ Spots are numbered left to right, 1 to 4. The back is 0.<br>
 </div>
 </section>
 
+<section id="learnS" class="card hidden qk-learn">
+<div class="top"><span id="lCount"></span><span>Learn it</span></div>
+<div class="call" id="lCall"></div>
+<div class="hash" id="lHash"></div>
+<div id="lDia"></div>
+<div class="rule" id="lRule"></div>
+<div class="nav"><button class="go alt" id="lPrev" type="button">Back</button><button class="go" id="lNext" type="button">Next play</button></div>
+<button class="go alt" id="lQuiz" type="button" style="margin-top:10px">Quiz me on these</button>
+</section>
+
 <section id="done" class="card hidden">
 <div style="text-align:center;font-size:19px" id="who"></div>
 <div id="saved" style="text-align:center;font-size:15px;color:#1f7a30;min-height:20px"></div>
 <div class="big" id="final"></div>
+<div class="qk-streak" id="streak"></div>
 <div id="missbox"></div>
 <label for="qbox" style="display:block;margin-top:12px">Questions for Coach, or why you picked what you picked:</label>
 <textarea id="qbox" rows="4" style="font:inherit;font-size:18px;width:100%;border:2px solid #111;border-radius:10px;padding:8px;margin:4px 0 10px"></textarea>
@@ -98,6 +118,7 @@ Spots are numbered left to right, 1 to 4. The back is 0.<br>
 <button class="go alt" id="home" style="margin-top:10px">Start over</button>
 </section>
 </main>
+<script src="quizkit.js"></script>
 <script>
 // DeSoto pass game, read from the play sheets (NEW_DESOTO_PASS_GAME.pdf, 11/20/26). Coordinates are the sheet's diagram, ball on the left hash.
 // at = where he lines up; mo = motion path (green dashed); r = route; e = how it ends (arrow, dot = stop/sit, bar = block);
@@ -192,7 +213,7 @@ window.PASS = [
 const $ = id => document.getElementById(id);
 const LOS = 401, VB = '0 96 682 380', FW = 682;
 let BALL = 273;
-let ME = 0, deck = [], i = 0, pts = 0, tot = 0, log = [], missed = [], stage = 0, cur = null;
+let ME = 0, deck = [], i = 0, pts = 0, tot = 0, log = [], missed = [], stage = 0, cur = null, MODE = 'normal', n0 = 0, seen = [], gotRight = [];
 
 // ---------- drawing ----------
 function field(){
@@ -265,19 +286,26 @@ function flipPlay(pl){
     o[k] = k === 'at' ? fx(v) : (k === 'mo' || k === 'r') ? v.map(fx) : k === 'o' ? v.map(b => b.map(p => Array.isArray(p) ? fx(p) : p)) : v }); return o };
   const P = {}, recv = Object.keys(pl.p).filter(k => k !== '0').map(k => fR(pl.p[k])).sort((a, b) => a.at[0] - b.at[0]);
   recv.forEach((R, j) => P[j + 1] = R); P[0] = fR(pl.p[0]);
-  return Object.assign({}, pl, { p: P, flip: 1, name: pl.name.replace(/\b(LT|RT)\b/g, m => m === 'LT' ? 'RT' : 'LT') });
+  return Object.assign({}, pl, { p: P, flip: 1, base: pl.base || pl, name: pl.name.replace(/\b(LT|RT)\b/g, m => m === 'LT' ? 'RT' : 'LT') });
 }
 function shuffle(a){ for (let k = a.length-1; k > 0; k--){ const j = Math.floor(Math.random()*(k+1)); [a[k],a[j]] = [a[j],a[k]] } return a }
+const baseOf = p => p.base || p;
+const deal = p => Math.random() < .5 ? flipPlay(baseOf(p)) : baseOf(p);
+function pool(){
+  const C = window.__cfg || {}, wk = QK.list(C.pass);
+  if (MODE === 'friday') return QK.fridayList('pass', PASS.map(p => p.name), 10).map(n => PASS.find(p => p.name === n)).filter(Boolean);
+  return PASS.filter(p => !$('weekOnly').checked || $('weekRow').hidden || !wk.length || wk.indexOf(p.name) >= 0);
+}
 function begin(plays){
   if (!plays.length) return;
-  deck = shuffle(plays.map(p => Math.random() < .5 ? flipPlay(p) : p)); i = 0; pts = 0; tot = 0; log = []; missed = [];
+  deck = shuffle([...new Set(plays.map(baseOf))].map(deal)); i = 0; pts = 0; tot = 0; log = []; missed = []; n0 = deck.length; seen = []; gotRight = [];
   $('start').classList.add('hidden'); $('done').classList.add('hidden'); $('quiz').classList.remove('hidden');
   show();
 }
 function show(){
   cur = { play: deck[i], miss: [] }; stage = 1; ME = -1;
   const pl = cur.play; BALL = pl.flip ? FW - 273 : 273;
-  $('count').textContent = 'Play ' + (i+1) + ' of ' + deck.length;
+  $('count').textContent = (pl.retry ? 'Again: ' : 'Play ') + (i+1) + ' of ' + deck.length;
   $('score').textContent = pts + ' / ' + tot + ' right';
   $('prog').style.width = (i/deck.length*100) + '%';
   $('call').textContent = pl.name;
@@ -285,7 +313,8 @@ function show(){
   $('rule').classList.add('hidden'); $('next').classList.add('hidden'); $('fb').textContent = ''; $('fb').className = 'fb';
   stepAlign();
 }
-function mark(good, what){ tot++; if (good) pts++; else cur.miss.push(what); $('score').textContent = pts + ' / ' + tot + ' right' }
+function mark(good, what){ QK.timerStop(); if (!cur.play.retry) { tot++; if (good) pts++ } if (!good) cur.miss.push(what); $('score').textContent = pts + ' / ' + tot + ' right' }
+function speed(onOut){ if (MODE === 'speed') QK.timerStart(5, onOut) }
 
 function stepAlign(){
   const pl = cur.play;
@@ -312,7 +341,7 @@ function stepRoute(){
   stage = 2;
   $('ask').textContent = 'Step 2: You\u2019re #' + ME + '. Pick your route.';
   $('fb').textContent = ''; $('fb').className = 'fb';
-  const C = choices(pl);
+  const C = choices(pl); if (window.__pass) window.__pass.lastC = C;
   // zoom every card the same amount, on the part of the field these routes use
   const P = [[BALL - 44, LOS], [BALL + 45, LOS], mine.at]; C.forEach(c => { if (c.mo) P.push(...c.mo); if (c.r) P.push(...c.r); (c.o || []).forEach(o => o.forEach(p => { if (Array.isArray(p)) P.push(p) })) });
   let x0 = Math.min(...P.map(p => p[0])) - 34, x1 = Math.max(...P.map(p => p[0])) + 34, y0 = Math.min(...P.map(p => p[1])) - 30, y1 = Math.max(LOS + 50, Math.max(...P.map(p => p[1])) + 30);
@@ -329,17 +358,18 @@ function stepRoute(){
     $('fb').textContent = good ? 'That\u2019s your route!' : 'Not that one. Green is your route.'; $('fb').className = 'fb ' + (good ? 'ok' : 'no');
     setTimeout(stepRead, 1200);
   }));
+  speed(() => { if (stage !== 2) return; stage = 0; $('dia').querySelectorAll('.opt').forEach((x, j) => { if (C[j].ok) x.classList.add('right') }); mark(false, 'route (too slow)'); $('fb').textContent = 'Too slow! Green is your route.'; $('fb').className = 'fb no'; setTimeout(stepRead, 1200) });
 }
 
 function stepRead(){
   const pl = cur.play;
   if (!pl.prog.length) return finishRep();
   stage = 3;
-  $('ask').textContent = 'Step 3: Where does the ball go first?';
+  $('ask').textContent = 'Step 3: Where does the ball go first?' + looksTxt();
   $('fb').textContent = ''; $('fb').className = 'fb';
   const right = pl.prog[0], others = shuffle([...new Set(PASS.filter(p => p.prog.length).map(p => p.prog[0]).concat(pl.prog.slice(1)))].filter(x => x.toLowerCase() !== right.toLowerCase())).slice(0, 3);
   const C = shuffle([right].concat(others));
-  $('dia').innerHTML = '<svg viewBox="' + VB + '" role="img" aria-label="' + pl.name + ', all routes">' + field() + Object.keys(pl.p).map(k => drawRoute(pl.p[k])).join('') + Object.keys(pl.p).map(k => man(pl.p[k].at, k, +k === ME ? '#ffd84d' : '#fff')).join('') + '</svg>' +
+  $('dia').innerHTML = '<svg viewBox="' + VB + '" role="img" aria-label="' + pl.name + ', all routes">' + field() + shell() + Object.keys(pl.p).map(k => drawRoute(pl.p[k])).join('') + Object.keys(pl.p).map(k => man(pl.p[k].at, k, +k === ME ? '#ffd84d' : '#fff')).join('') + '</svg>' +
     '<div class="txtopts">' + C.map((c, k) => '<button class="chip" type="button" data-k="' + k + '">' + c + '</button>').join('') + '</div>';
   $('dia').querySelectorAll('.txtopts .chip').forEach(b => b.addEventListener('click', () => {
     if (stage !== 3) return; stage = 0;
@@ -349,21 +379,43 @@ function stepRead(){
     $('fb').textContent = good ? 'Right!' : 'The ball goes to ' + right + ' first.'; $('fb').className = 'fb ' + (good ? 'ok' : 'no');
     finishRep();
   }));
+  speed(() => { if (stage !== 3) return; stage = 0; $('dia').querySelectorAll('.txtopts .chip').forEach(x => { if (C[+x.dataset.k] === right) x.classList.add('right') }); mark(false, '1st read (too slow)'); $('fb').textContent = 'Too slow! The ball goes to ' + right + ' first.'; $('fb').className = 'fb no'; finishRep() });
 }
 
+// this week's opponent look, set on Player Quizzes: drawn as the shell behind the routes
+function looksTxt(){ return '' }
+function shell(){
+  const L = (window.__cfg || {}).looks; if (!L || !L.shell) return '';
+  const d = (x, y, t) => '<circle cx="' + x + '" cy="' + y + '" r="17" fill="#dbe6fb" stroke="#0d2a66" stroke-width="2.5"></circle><text x="' + x + '" y="' + (y + 1) + '" text-anchor="middle" dominant-baseline="central" font-size="22" font-weight="700" fill="#0d2a66">' + t + '</text>';
+  let s = d(BALL - 235, 318, 'C') + d(BALL + 235, 318, 'C');
+  if (L.shell === '1-high') s += d(BALL + 10, 175, 'S') + d(BALL + 130, 300, 'S');
+  else if (L.shell === '2-high') s += d(BALL - 120, 200, 'S') + d(BALL + 120, 200, 'S');
+  else s += d(BALL - 120, 320, 'S') + d(BALL + 120, 320, 'S');
+  return s;
+}
 function finishRep(){
   const pl = cur.play;
   if (stage) { stage = 0 }
   if (!pl.prog.length) { $('dia').innerHTML = '<svg viewBox="' + VB + '" role="img" aria-label="' + pl.name + ', all routes">' + field() + Object.keys(pl.p).map(k => drawRoute(pl.p[k])).join('') + Object.keys(pl.p).map(k => man(pl.p[k].at, k, +k === ME ? '#ffd84d' : '#fff')).join('') + '</svg>' }
-  if (cur.miss.length) { missed.push(pl); log.push(pl.name + (pl.flip ? ' (right hash)' : '') + ', lined up #' + ME + ': missed ' + cur.miss.join(', ')) }
-  $('rule').innerHTML = '<b>' + pl.name + '</b>' + (pl.prog.length ? '<br>Progression: ' + pl.prog.map((x, k) => (k+1) + ') ' + x).join(' ') : '') + '<br>Protection: ' + pl.pro + ' \u2022 Drop: ' + pl.drop;
+  QK.timerStop();
+  const nm = baseOf(pl).name;
+  if (!pl.retry) { seen.push(nm); if (cur.miss.length) { missed.push(baseOf(pl)); log.push(pl.name + (pl.flip ? ' (right hash)' : '') + ', lined up #' + ME + ': missed ' + cur.miss.join(', ')) } else gotRight.push(nm) }
+  // mastery: a missed play comes back a few plays later until it is right twice
+  const again = r => Object.assign(deal(baseOf(r)), {});
+  let note = '';
+  if (cur.miss.length && MODE !== 'speed') { QK.requeue(deck, i, pl, again); note = '<br><i>This one comes back in a few plays.</i>' } else if (!cur.miss.length) { QK.rightAgain(deck, i, pl, again); if (pl.retry) note = '<br><i>Got it back. Nice.</i>' }
+  $('rule').innerHTML = '<b>' + pl.name + '</b>' + (pl.prog.length ? '<br>Progression: ' + pl.prog.map((x, k) => (k+1) + ') ' + x).join(' ') : '') + '<br>Protection: ' + pl.pro + ' \u2022 Drop: ' + pl.drop + lookLine() + note;
   $('rule').classList.remove('hidden');
   $('next').textContent = i + 1 < deck.length ? 'Next play' : 'See score';
   $('next').classList.remove('hidden');
 }
 
+function lookLine(){ const C = window.__cfg || {}, L = C.looks; if (!L || !(L.front || L.cov || L.shell)) return ''; return '<br>' + (C.opp ? C.opp + '\u2019s' : 'Their') + ' main look: ' + [L.front, L.cov, L.shell ? L.shell + ' shell' : ''].filter(Boolean).join(', ') }
 function finish(){
+  QK.timerStop();
   $('quiz').classList.add('hidden'); $('done').classList.remove('hidden');
+  QK.missAdd('pass', missed.map(p => p.name)); QK.missRight('pass', gotRight);
+  const st = QK.streakHit(); $('streak').textContent = st > 1 ? 'Day streak: ' + st + ' days in a row' : 'Day streak started. Come back tomorrow.';
   const nm = $('nm').value.trim();
   $('who').textContent = (nm || 'You') + ' scored';
   $('final').textContent = pts + ' / ' + tot;
@@ -378,7 +430,7 @@ const SOL_DB = (window.SOL_CONFIG && window.SOL_CONFIG.db) || 'https://cardinal-
 const SCHOOL = (new URLSearchParams(location.search).get('s') || 'melissa').toLowerCase().replace(/[^a-z0-9_-]/g, '');
 let attemptId = null;
 function save(){
-  const rec = { name: ($('nm').value.trim() || 'Player').slice(0, 60), score: pts, total: tot, at: Date.now(), kind: 'pass', groups: 'WR / TE quiz',
+  const rec = { name: ($('nm').value.trim() || 'Player').slice(0, 60), score: pts, total: tot, at: Date.now(), kind: 'pass', mode: MODE, seen: seen.join('|').slice(0, 4000), groups: 'WR / TE quiz' + (MODE === 'speed' ? ' (speed round)' : MODE === 'friday' ? ' (Friday check)' : ''),
     missed: log.join('\n').slice(0, 4000), plays: [...new Set(missed.map(p => p.name))].join('|').slice(0, 4000), question: $('qbox').value.trim().slice(0, 4000) };
   fetch(SOL_DB + '/quiz/' + SCHOOL + '.json', { method: 'POST', body: JSON.stringify(rec) }).then(r => r.json()).then(j => { attemptId = j && j.name; $('saved').textContent = 'Saved for Coach \u2713' }).catch(() => { $('saved').textContent = 'Could not save. Use Text Coach.' });
 }
@@ -387,7 +439,7 @@ let qTimer = null;
 $('qbox').addEventListener('input', () => { clearTimeout(qTimer); qTimer = setTimeout(saveQuestion, 800); setSend() });
 const COACH_PHONE = '+12145786616', COACH_EMAIL = '';
 function report(){
-  let t = 'DeSoto WR/TE Quiz \u2013 ' + ($('nm').value.trim() || 'A player') + ': ' + pts + '/' + tot + '\n';
+  let t = 'DeSoto WR/TE Quiz' + (MODE === 'speed' ? ' (speed round)' : MODE === 'friday' ? ' (Friday check)' : '') + ' \u2013 ' + ($('nm').value.trim() || 'A player') + ': ' + pts + '/' + tot + '\n';
   t += log.length ? 'Missed:\n' + log.map(l => '- ' + l).join('\n') : 'Missed: none';
   const qq = $('qbox').value.trim(); if (qq) t += '\nQuestion: ' + qq;
   return t;
@@ -398,10 +450,29 @@ $('sms').addEventListener('click', e => { e.preventDefault(); saveQuestion(); co
 // ---------- start screen ----------
 $('begin').onclick = () => {
   if (!$('nm').value.trim()) { $('nm').focus(); $('nm').style.borderColor = '#c0392b'; $('nm').placeholder = 'Type your name first'; return }
-  begin(PASS);
+  begin(pool());
 };
+$('modes').addEventListener('click', e => { const b = e.target.closest('[data-mode]'); if (!b) return; MODE = b.dataset.mode; $('modes').querySelectorAll('[data-mode]').forEach(x => x.setAttribute('aria-pressed', x === b)) });
+
+// ---------- Learn it: each play with every spot's route, then quiz on the same plays ----------
+let LP = [], li = 0;
+function learnShow(){
+  const pl = LP[li]; BALL = 273;
+  $('lCount').textContent = 'Play ' + (li+1) + ' of ' + LP.length;
+  $('lCall').textContent = pl.name; $('lHash').textContent = (pl.call ? 'Call: ' + pl.call + ' \u2022 ' : '') + 'Ball on the left hash';
+  $('lDia').innerHTML = '<svg viewBox="' + VB + '" role="img" aria-label="' + pl.name + ', every route">' + field() + shell() + Object.keys(pl.p).map(k => drawRoute(pl.p[k])).join('') + Object.keys(pl.p).map(k => man(pl.p[k].at, k, '#fff')).join('') + '</svg>';
+  $('lRule').innerHTML = (pl.prog.length ? 'Progression: ' + pl.prog.map((x, k) => (k+1) + ') ' + x).join(' ') + '<br>' : '') + 'Protection: ' + pl.pro + ' \u2022 Drop: ' + pl.drop +
+    '<br>' + Object.keys(pl.p).filter(k => k !== '0').map(k => '#' + k + (pl.p[k].none ? ' stays in' : pl.p[k].mo ? ' motions' : '')).join(' \u2022 ') + ' \u2022 #0 ' + (pl.p[0].none ? 'stays in' : 'releases') + lookLine();
+  $('lPrev').disabled = li === 0; $('lNext').textContent = li + 1 < LP.length ? 'Next play' : 'Back to the first play';
+}
+$('learnBtn').onclick = () => { LP = pool(); if (!LP.length) return; li = 0; $('start').classList.add('hidden'); $('learnS').classList.remove('hidden'); learnShow() };
+$('lPrev').onclick = () => { if (li > 0) { li--; learnShow() } };
+$('lNext').onclick = () => { li = li + 1 < LP.length ? li + 1 : 0; learnShow() };
+$('lQuiz').onclick = () => { $('learnS').classList.add('hidden'); if (!$('nm').value.trim()) { $('start').classList.remove('hidden'); $('nm').focus(); $('nm').style.borderColor = '#c0392b'; $('nm').placeholder = 'Type your name first'; return } begin(LP) };
+QK.cfg().then(C => { window.__cfg = C; const wk = QK.list(C.pass); if (wk.length) { $('weekRow').hidden = false; $('weekLbl').textContent = 'This week\u2019s plays only (' + wk.length + ')' + (C.opp ? ' \u2022 vs ' + C.opp : '') } });
+QK.homeTip($('start'));
 $('next').onclick = () => { i++; i < deck.length ? show() : finish() };
-$('again').onclick = () => begin([...new Set(missed)]);
+$('again').onclick = () => begin([...new Set(missed.map(baseOf))]);
 $('home').onclick = () => { $('done').classList.add('hidden'); $('start').classList.remove('hidden') };
 if (window.SOL_TEST) window.__pass = { choices: choices, flipPlay: flipPlay, setMe: n => { ME = n }, setBall: x => { BALL = x } };
 </script>

@@ -30,19 +30,22 @@ const wait=async(fn,ms=8000)=>{ const t=Date.now(); while(Date.now()-t<ms){ if(a
   ok(await P.isVisible('#quiz'), 'Quiz starts with no number to pick up front');
   ok((await P.$$('#dia .tap')).length===5, 'Step 1 shows 5 spots to pick from (1-4 and the back)');
   let sawRight=false;
-  let plays=0;
-  while(await P.isVisible('#quiz') && plays<20){
+  let plays=0, misses=0;
+  while(await P.isVisible('#quiz') && plays<40){
     plays++;
     if(/RIGHT hash/.test(await P.textContent('#sub2'))) sawRight=true;
     const tb=await P.locator('#dia .tap >> nth='+(plays%5)).boundingBox(); await P.mouse.click(tb.x+tb.width/2, tb.y+tb.height/2);
     await P.waitForSelector('.opt', {timeout:4000});
-    await P.click('.opt >> nth=0');
+    const wrong = plays<=2; // miss the first two plays' routes, then get everything right
+    const k=await P.evaluate(w=>{ const C=window.__pass.lastC; const j=C.findIndex(c=>w?!c.ok:c.ok); return j<0?0:j }, wrong);
+    await P.click('.opt >> nth='+k); if(wrong) misses++;
     await P.waitForTimeout(1300);
-    if(await P.$('.txtopts .chip')) await P.click('.txtopts .chip >> nth=0');
+    if(await P.$('.txtopts .chip')){ const r=await P.evaluate(()=>deck[i].prog[0]); await P.click('.txtopts .chip:text-is("'+r+'")') }
     await P.waitForSelector('#next:not(.hidden)'); if(plays===3) await P.screenshot({path:OUT+'pz-rep.png'}); await P.click('#next');
   }
+  ok(plays>14, 'Mastery: missed plays came back ('+plays+' plays shown for 14)');
   ok(sawRight, 'Some plays came up on the right hash');
-  ok(await P.isVisible('#done') && plays===14, 'All 14 plays run to the score screen ('+plays+')');
+  ok(await P.isVisible('#done'), 'Reaches the score screen');
   ok(await wait(async()=>Object.values(R.getAt('/quiz/melissa')||{}).some(a=>a.kind==='pass')), 'Attempt saved as a pass quiz');
   const rec=Object.values(R.getAt('/quiz/melissa')||{}).find(a=>a.kind==='pass')||{};
   ok(rec.name==='Jalen' && rec.total>=27 && /WR \/ TE/.test(rec.groups), 'Saved name and '+rec.score+'/'+rec.total);

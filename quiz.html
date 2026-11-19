@@ -54,7 +54,15 @@ input{font:inherit;font-size:20px;width:100%;min-height:46px;border:2px solid #1
 <input id="nm" autocomplete="name">
 <div style="font-size:20px" id="pickLbl">Pick what to study:</div>
 <div class="groups" id="groups"></div>
+<div class="qk-row" id="weekRow" hidden><input type="checkbox" id="weekOnly" checked><label for="weekOnly" id="weekLbl">This week's plays only</label></div>
+<div style="font-size:20px" id="modeLbl">How do you want to go?</div>
+<div class="qk-modes" id="modes">
+<button class="chip" type="button" data-mode="normal" aria-pressed="true">Normal</button>
+<button class="chip" type="button" data-mode="speed" aria-pressed="false">Speed round<br><small>5 sec</small></button>
+<button class="chip" type="button" data-mode="friday" aria-pressed="false">Friday check<br><small>10 plays</small></button>
+</div>
 <button class="go" id="begin">Start</button>
+<button class="go alt" id="learnBtn" style="margin-top:10px">Learn the plays first</button>
 <div class="key" id="key" style="margin-top:12px">
 <b>Field</b> = wide side of the field. <b>Boundary</b> = short side.<br>
 <b>FLD / BND</b> = line up to the field / boundary.<br>
@@ -67,6 +75,7 @@ When you carry it: aim right up the center's backside (Scat: outside the tackle 
 <section id="quiz" class="hidden">
 <div class="top"><span id="count"></span><span id="score"></span></div>
 <div class="bar"><i id="prog"></i></div>
+<div class="qk-timer" id="qkTimer" hidden><i></i></div>
 <div class="card">
 <div class="call" id="call"></div>
 <div class="hash" id="hash"></div>
@@ -78,10 +87,21 @@ When you carry it: aim right up the center's backside (Scat: outside the tackle 
 </div>
 </section>
 
+<section id="learnS" class="card hidden qk-learn">
+<div class="top"><span id="lCount"></span><span>Learn it</span></div>
+<div class="call" id="lCall"></div>
+<div class="hash" id="lHash"></div>
+<div id="lDia"></div>
+<div class="rule" id="lRule"></div>
+<div class="nav"><button class="go alt" id="lPrev" type="button">Back</button><button class="go" id="lNext" type="button">Next play</button></div>
+<button class="go alt" id="lQuiz" type="button" style="margin-top:10px">Quiz me on these</button>
+</section>
+
 <section id="done" class="card hidden">
 <div style="text-align:center;font-size:19px" id="who"></div>
 <div id="saved" style="text-align:center;font-size:15px;color:#1f7a30;min-height:20px"></div>
 <div class="big" id="final"></div>
+<div class="qk-streak" id="streak"></div>
 <div id="missbox"></div>
 <label for="qbox" style="display:block;margin-top:12px">Questions for Coach, or why you picked what you picked:</label>
 <textarea id="qbox" rows="4" style="font:inherit;font-size:18px;width:100%;border:2px solid #111;border-radius:10px;padding:8px;margin:4px 0 10px"></textarea>
@@ -94,6 +114,7 @@ When you carry it: aim right up the center's backside (Scat: outside the tackle 
 <button class="go alt" id="home" style="margin-top:10px">Start over</button>
 </section>
 </main>
+<script src="quizkit.js"></script>
 <script>
 /* align: FLD | BND | SS | OPP.  dir: L/R for plays with no number.
    job: carry, or a block target: FLD_ILB BND_ILB FLD_OLB MY_OLB MY_ILB SAFETY MY_CORNER
@@ -243,7 +264,8 @@ function draw(q){
   return s;
 }
 
-let log = [], deck = [], i = 0, right = 0, missed = [], stage = 0, picked = new Set(['qb','rb','bite']);
+let log = [], deck = [], i = 0, right = 0, missed = [], stage = 0, picked = new Set(['qb','rb','bite']), n0 = 0, MODE = 'normal', seen = [], gotRight = [];
+const keyOf = p => p.label || p.name;
 const $ = id => document.getElementById(id);
 
 function drawGroups(){
@@ -257,10 +279,15 @@ function drawGroups(){
     $('groups').appendChild(b);
   });
 }
+function pool(){
+  const C = window.__cfg || {}, wk = QK.list(C.run);
+  if (MODE === 'friday') { const names = QK.fridayList('run', PLAYS.map(keyOf), 10); return names.map(n => PLAYS.find(p => keyOf(p) === n)).filter(Boolean) }
+  return PLAYS.filter(p => picked.has(p.g) && (!$('weekOnly').checked || $('weekRow').hidden || !wk.length || wk.indexOf(keyOf(p)) >= 0));
+}
 function shuffle(a){ for (let k = a.length-1; k > 0; k--){ const j = Math.floor(Math.random()*(k+1)); [a[k],a[j]] = [a[j],a[k]]; } return a; }
 function begin(plays){
   if (!plays.length) return;
-  deck = shuffle(plays.map(build)); i = 0; right = 0; missed = []; log = [];
+  deck = shuffle(plays.map(build)); i = 0; right = 0; missed = []; log = []; n0 = deck.length; seen = []; gotRight = [];
   $('start').classList.add('hidden'); $('done').classList.add('hidden'); $('quiz').classList.remove('hidden');
   show();
 }
@@ -296,7 +323,7 @@ function show(){
   const q = deck[i];
   if (q.film) return showFilm(q);
   stage = q.p.g === 'bite' ? 2 : 1;
-  $('count').textContent = 'Rep ' + (i+1) + ' of ' + deck.length;
+  $('count').textContent = (q.retry ? 'Again: ' : 'Rep ') + (i+1) + ' of ' + deck.length;
   $('score').textContent = right + ' right';
   $('prog').style.width = (i/deck.length*100) + '%';
   $('call').textContent = q.call;
@@ -305,37 +332,54 @@ function show(){
   $('fb').textContent = ''; $('fb').className = 'fb';
   $('rule').classList.add('hidden'); $('next').classList.add('hidden');
   q.wrong = false;
+  if (MODE === 'speed') {
+    $('dia').innerHTML = '<div style="text-align:center;font-size:24px;padding:60px 0">Get ready\u2026</div>'; const st = stage; stage = 0;
+    setTimeout(() => { stage = st; render(); QK.timerStart(5, timeUp) }, 1200);
+    return;
+  }
   render();
+}
+function timeUp(){
+  if (!stage) return;
+  const q = deck[i];
+  if (stage === 1) { answer($('dia').querySelector('[data-id="al-' + (q.align === 'L' ? 'R' : 'L') + '"]'), true); return }
+  answer(null, true);
 }
 
 function lock(el, good, id){
+  QK.timerStop();
   $('dia').querySelectorAll('.tap').forEach(t => t.classList.remove('live'));
   const g = $('dia').querySelector('[data-id="' + id + '"]'); if (g) g.classList.add('right');
-  if (!good) el.classList.add('wrong');
+  if (!good && el) el.classList.add('wrong');
 }
 
-function answer(el){
+function answer(el, late){
   const q = deck[i]; if (!stage) return;
-  const id = el.dataset.id;
+  const id = el ? el.dataset.id : '';
   if (stage === 1) {
     const want = 'al-' + q.align, good = id === want;
     lock(el, good, want); stage = 0;
     if (!good) { q.wrong = true; q.notes = (q.notes || []).concat('lined up ' + (q.align === 'L' ? 'right' : 'left') + ' (should be ' + (q.align === 'L' ? 'left' : 'right') + ')'); }
-    $('fb').textContent = good ? 'Right spot!' : 'Wrong side.'; $('fb').className = 'fb ' + (good ? 'ok' : 'no');
+    $('fb').textContent = late ? 'Too slow!' : good ? 'Right spot!' : 'Wrong side.'; $('fb').className = 'fb ' + (good ? 'ok' : 'no');
     setTimeout(() => {
       stage = 2; render();
       $('ask').textContent = q.target === 'aim' ? 'Step 2: You get the ball. Tap your aiming point.' : 'Step 2: Tap the man you block.';
       $('fb').textContent = good ? '' : 'You belong on the ' + (q.align === 'L' ? 'left' : 'right') + '.';
+      if (MODE === 'speed') QK.timerStart(5, timeUp);
     }, 900);
     return;
   }
   const want = targetId(q), good = id === want;
   lock(el, good, want); stage = 0;
-  if (!good) { q.wrong = true; const pd = q.D.find(x => x[0] === id); q.notes = (q.notes || []).concat(id.startsWith('aim') ? 'wrong aiming point' : 'blocked the ' + (pd ? pd[3] : 'wrong man') + ' (wrong man)'); }
-  if (!q.wrong) right++; else { missed.push(q.p); log.push(q.call + ' (ball on ' + (q.hashL ? 'left' : 'right') + ' hash): ' + q.notes.join(', ')); }
+  if (!good) { q.wrong = true; const pd = q.D.find(x => x[0] === id); q.notes = (q.notes || []).concat(late ? 'too slow' : id.startsWith('aim') ? 'wrong aiming point' : 'blocked the ' + (pd ? pd[3] : 'wrong man') + ' (wrong man)'); }
+  // the first time through counts for the score; a miss comes back a few reps later until it is right twice
+  if (!q.retry) { seen.push(keyOf(q.p)); if (!q.wrong) { right++; gotRight.push(keyOf(q.p)) } else { missed.push(q.p); log.push(q.call + ' (ball on ' + (q.hashL ? 'left' : 'right') + ' hash): ' + q.notes.join(', ')) } }
+  const again = r => build(r.p);
+  let note = '';
+  if (q.wrong && MODE !== 'speed') { QK.requeue(deck, i, q, again); note = ' (This one comes back in a few reps.)' } else if (!q.wrong) { QK.rightAgain(deck, i, q, again); if (q.retry) note = ' (Got it back. Nice.)' }
   $('fb').textContent = good ? (q.target === 'aim' ? 'Right up the center’s backside!' : 'That’s your man!') : (q.target === 'aim' ? 'You get the ball. Aim right up the center’s backside.' : 'Not him. Green is your man.');
   $('fb').className = 'fb ' + (good ? 'ok' : 'no');
-  $('rule').textContent = q.rule; $('rule').classList.remove('hidden');
+  $('rule').textContent = q.rule + note; $('rule').classList.remove('hidden');
   $('score').textContent = right + ' right';
   $('next').textContent = i + 1 < deck.length ? 'Next' : 'See score';
   $('next').classList.remove('hidden');
@@ -378,7 +422,10 @@ function finish(){
   $('quiz').classList.add('hidden'); $('done').classList.remove('hidden');
   const nm = $('nm').value.trim();
   $('who').textContent = nm ? nm + ' scored' : 'You scored';
-  $('final').textContent = right + ' / ' + deck.length;
+  QK.timerStop();
+  $('final').textContent = right + ' / ' + (FILMQ ? deck.length : n0);
+  if (!FILMQ) { QK.missAdd('run', missed.map(keyOf)); QK.missRight('run', gotRight) }
+  const st = QK.streakHit(); $('streak').textContent = st > 1 ? 'Day streak: ' + st + ' days in a row' : 'Day streak started. Come back tomorrow.';
   const names = [...new Set(missed.map(p => p.label || p.name))];
   $('missbox').innerHTML = names.length ? '<div style="font-size:20px">Work on these:</div><ul>' + names.map(n => '<li>' + n + '</li>').join('') + '</ul>' : '<p style="text-align:center;font-size:19px">Perfect. Nothing missed.</p>';
   $('again').classList.toggle('hidden', !names.length);
@@ -389,7 +436,7 @@ const SOL_DB = (window.SOL_CONFIG && window.SOL_CONFIG.db) || 'https://cardinal-
 const SCHOOL = (new URLSearchParams(location.search).get('s') || 'melissa').toLowerCase().replace(/[^a-z0-9_-]/g, '');
 let attemptId = null;
 function save(){
-  const rec = { name: ($('nm').value.trim() || 'Player').slice(0, 60), score: right, total: deck.length, at: Date.now(),
+  const rec = { name: ($('nm').value.trim() || 'Player').slice(0, 60), score: right, total: FILMQ ? deck.length : n0, at: Date.now(), kind: FILMQ ? 'film' : 'run', mode: MODE, seen: (FILMQ ? '' : seen.join('|')).slice(0, 4000),
     groups: (FILMQ ? FILMQ.title : GROUPS.filter(g => picked.has(g.id)).map(g => g.label).join(', ')).slice(0, 400),
     missed: log.join('\n').slice(0, 4000), plays: [...new Set(missed.map(p => p.label || p.name))].join('|').slice(0, 4000),
     question: $('qbox').value.trim().slice(0, 4000) };
@@ -406,7 +453,7 @@ $('qbox').addEventListener('input', () => { clearTimeout(qTimer); qTimer = setTi
 const COACH_PHONE = '+12145786616', COACH_EMAIL = '';
 function report(){
   const nm = $('nm').value.trim() || 'A player';
-  let t = (FILMQ ? FILMQ.title : 'DeSoto RB Quiz') + ' \u2013 ' + nm + ': ' + right + '/' + deck.length + '\n';
+  let t = (FILMQ ? FILMQ.title : 'DeSoto RB Quiz' + (MODE === 'speed' ? ' (speed round)' : MODE === 'friday' ? ' (Friday check)' : '')) + ' \u2013 ' + nm + ': ' + right + '/' + (FILMQ ? deck.length : n0) + '\n';
   t += log.length ? 'Missed:\n' + log.map(l => '- ' + l).join('\n') : 'Missed: none';
   const qq = $('qbox').value.trim();
   if (qq) t += '\nQuestion: ' + qq;
@@ -421,8 +468,37 @@ $('qbox').addEventListener('input', setSend);
 $('sms').addEventListener('click', e => { e.preventDefault(); saveQuestion(); const u = $('sms').href; try { window.top.location.href = u; } catch (x) { const w = window.open(u, '_blank'); if (!w) location.href = u; } });
 
 $('next').onclick = () => { i++; i < deck.length ? show() : finish(); };
-$('begin').onclick = () => { if (!$('nm').value.trim()) { $('nm').focus(); $('nm').style.borderColor = '#c0392b'; $('nm').placeholder = 'Type your name first'; return; } if (FILMQ) beginFilm(filmDeck()); else begin(PLAYS.filter(p => picked.has(p.g))); };
+$('begin').onclick = () => { if (!$('nm').value.trim()) { $('nm').focus(); $('nm').style.borderColor = '#c0392b'; $('nm').placeholder = 'Type your name first'; return; } if (FILMQ) beginFilm(filmDeck()); else begin(pool()); };
+$('modes').addEventListener('click', e => { const b = e.target.closest('[data-mode]'); if (!b) return; MODE = b.dataset.mode; $('modes').querySelectorAll('[data-mode]').forEach(x => x.setAttribute('aria-pressed', x === b)); });
+
+// ---- Learn it: one play at a time with the answer drawn in, then quiz on the same plays ----
+let LP = [], li = 0;
+const AIMX = { 'aim-OL': -55, 'aim-L': -22, 'aim-C': 0, 'aim-R': 22, 'aim-OR': 55 };
+function learnShow(){
+  const q = build(LP[li]); q.hashL = true; q.field = 'R';
+  const res = a => a === 'FLD' ? 'R' : a === 'BND' ? 'L' : a === 'SS' ? q.playSide : (q.playSide === 'L' ? 'R' : 'L');
+  if (q.p.g === 'bite') { q.me = res(q.p.blocker); q.mySide = q.me; q.carry = false; q.target = q.p.job }
+  else { q.align = res(q.p.align); q.mySide = q.align }
+  $('lCount').textContent = 'Play ' + (li+1) + ' of ' + LP.length;
+  $('lCall').textContent = q.call; $('lHash').textContent = 'Ball on the LEFT hash, field to the right' + (q.p.g === 'bite' ? ' \u2022 showing the back who blocks' : '');
+  let s = draw(q); const bx = 190, me = q.mySide === 'L' ? bx - 30 : bx + 30, want = targetId(q);
+  q.D.forEach(d => { s += (d[0] === want ? '<circle cx="' + d[1] + '" cy="' + d[2] + '" r="19" fill="#c9efcf" stroke="#1f9a3a" stroke-width="3"></circle>' : '') + txt(d[3], d[1], d[2], 25) });
+  const tgt = want.startsWith('aim') ? [bx + AIMX[want], OLY + 24] : (q.D.find(d => d[0] === want) || [0, me, 250]).slice(1, 3);
+  if (want.startsWith('aim')) s += '<circle cx="' + tgt[0] + '" cy="' + tgt[1] + '" r="11" fill="#1f9a3a" stroke="#111" stroke-width="2"></circle>';
+  s += '<path d="M ' + me + ' 238 L ' + tgt[0] + ' ' + (tgt[1] + 14) + '" stroke="#1f5fbf" stroke-width="3.5" stroke-dasharray="7 6" fill="none"></path>';
+  s += '<circle cx="' + me + '" cy="250" r="13" fill="#ffd84d" stroke="#111" stroke-width="2"></circle>' + txt('T', me, 250, 17);
+  $('lDia').innerHTML = '<svg viewBox="20 34 340 260" role="img" aria-label="' + q.call + ' with the answer drawn in">' + s + '</svg>';
+  $('lRule').textContent = q.rule;
+  $('lPrev').disabled = li === 0; $('lNext').textContent = li + 1 < LP.length ? 'Next play' : 'Back to the first play';
+}
+$('learnBtn').onclick = () => { LP = pool(); if (!LP.length) return; li = 0; $('start').classList.add('hidden'); $('learnS').classList.remove('hidden'); learnShow() };
+$('lPrev').onclick = () => { if (li > 0) { li--; learnShow() } };
+$('lNext').onclick = () => { li = li + 1 < LP.length ? li + 1 : 0; learnShow() };
+$('lQuiz').onclick = () => { $('learnS').classList.add('hidden'); if (!$('nm').value.trim()) { $('start').classList.remove('hidden'); $('nm').focus(); $('nm').style.borderColor = '#c0392b'; $('nm').placeholder = 'Type your name first'; return } begin(LP) };
 $('again').onclick = () => FILMQ ? beginFilm([...new Set(missed)]) : begin([...new Set(missed)]);
+// this week's plays, set on Player Quizzes
+QK.cfg().then(C => { window.__cfg = C; const wk = QK.list(C.run); if (wk.length && !FILM) { $('weekRow').hidden = false; $('weekLbl').textContent = 'This week\u2019s plays only (' + wk.length + ')' + (C.opp ? ' \u2022 vs ' + C.opp : '') } });
+QK.homeTip($('start'));
 function beginFilm(reps){
   if (!reps.length) return;
   deck = reps; i = 0; right = 0; missed = []; log = [];
@@ -431,7 +507,7 @@ function beginFilm(reps){
 }
 const FILM = new URLSearchParams(location.search).get('film');
 if (FILM) {
-  ['groups', 'pickLbl', 'key'].forEach(id => $(id).classList.add('hidden'));
+  ['groups', 'pickLbl', 'key', 'modes', 'modeLbl', 'learnBtn', 'weekRow'].forEach(id => $(id).classList.add('hidden'));
   $('ttl').textContent = 'FILM QUIZ'; $('sub').textContent = 'Loading the clips\u2026'; $('begin').disabled = true;
   fetch(SOL_DB + '/share/' + encodeURIComponent(FILM) + '.json').then(r => r.ok ? r.json() : null).then(d => {
     const x = d && d.items ? JSON.parse(d.items) : null;

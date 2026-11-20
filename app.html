@@ -1406,7 +1406,7 @@ textarea { min-height: 64px }
   function schedNice(iso) { var p = String(iso || "").split("-"); if (p.length < 3) return iso || ""; var d = new Date(+p[0], +p[1] - 1, +p[2]); return d.toLocaleDateString([], { weekday: "short" }) + " " + (+p[1]) + "/" + (+p[2]) }
   // paste box + editable preview. host: element; list: current schedule; save(list) -> Promise
   function schedEditor(host, list, save, done) {
-    var rows = (list || []).map(function (x) { return { date: x.date, opp: x.opp, ha: x.ha || "" } });
+    var rows = (list || []).map(function (x) { return { date: x.date, opp: x.opp, ha: x.ha || "", venue: x.venue || "" } });
     var e = function (s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] }) };
     host.innerHTML = "<div class='se'><p class='se-n'>On MaxPreps, open the team's <b>Schedule</b> page, select the whole page (Ctrl+A / long-press → Select All), copy, and paste it here. Any schedule text works.</p>"
       + "<textarea class='se-t' rows='5' placeholder='Paste the schedule here'></textarea><div class='se-r'><button type='button' class='se-b se-read'>Read schedule</button><span class='se-m'></span></div><div class='se-l'></div>"
@@ -1414,8 +1414,8 @@ textarea { min-height: 64px }
     var q = function (c) { return host.querySelector(c) }, msg = q(".se-m");
     function draw() {
       rows.sort(function (a, b) { return (a.date || "9").localeCompare(b.date || "9") });
-      q(".se-l").innerHTML = rows.length ? "<table class='se-tb'><tr><th>Date</th><th>Opponent</th><th>Site</th><th></th></tr>" + rows.map(function (r, i) {
-        return "<tr><td><input type='date' data-i='" + i + "' data-f='date' value='" + e(r.date) + "'></td><td><input data-i='" + i + "' data-f='opp' value='" + e(r.opp) + "'></td><td><select data-i='" + i + "' data-f='ha'>" + [["", "—"], ["H", "Home"], ["A", "Away"], ["N", "Neutral"]].map(function (o) { return "<option value='" + o[0] + "'" + (r.ha === o[0] ? " selected" : "") + ">" + o[1] + "</option>" }).join("") + "</select></td><td><button type='button' class='se-b se-del' data-del='" + i + "' aria-label='Remove'>✕</button></td></tr>" }).join("") + "</table>" : "<p class='se-n'>No games yet.</p>";
+      q(".se-l").innerHTML = rows.length ? "<table class='se-tb'><tr><th>Date</th><th>Opponent</th><th>Site</th><th>Stadium (only if it's somewhere else)</th><th></th></tr>" + rows.map(function (r, i) {
+        return "<tr><td><input type='date' data-i='" + i + "' data-f='date' value='" + e(r.date) + "'></td><td><input data-i='" + i + "' data-f='opp' value='" + e(r.opp) + "'></td><td><select data-i='" + i + "' data-f='ha'>" + [["", "—"], ["H", "Home"], ["A", "Away"], ["N", "Neutral"]].map(function (o) { return "<option value='" + o[0] + "'" + (r.ha === o[0] ? " selected" : "") + ">" + o[1] + "</option>" }).join("") + "</select></td><td><input data-i='" + i + "' data-f='venue' placeholder='" + (r.ha === "N" ? "Stadium name" : "auto") + "' value='" + e(r.venue) + "'></td><td><button type='button' class='se-b se-del' data-del='" + i + "' aria-label='Remove'>✕</button></td></tr>" }).join("") + "</table>" : "<p class='se-n'>No games yet.</p>";
     }
     host.oninput = host.onchange = function (ev) { var t = ev.target, i = t.dataset && t.dataset.i; if (i != null && rows[i]) rows[i][t.dataset.f] = t.value };
     host.onclick = function (ev) {
@@ -1424,7 +1424,7 @@ textarea { min-height: 64px }
       if (b.classList.contains("se-add")) { rows.push({ date: "", opp: "", ha: "" }); draw() }
       if (b.dataset.del != null) { rows.splice(+b.dataset.del, 1); draw() }
       if (b.classList.contains("se-x")) done && done(false);
-      if (b.classList.contains("se-s")) { var out = rows.filter(function (r) { return r.date && r.opp.trim() }).map(function (r) { return { date: r.date, opp: r.opp.trim(), ha: r.ha || "" } }); msg.textContent = "Saving…"; save(out).then(function () { done && done(true, out) }, function () { msg.textContent = "Couldn't save. Check the connection." }) }
+      if (b.classList.contains("se-s")) { var out = rows.filter(function (r) { return r.date && r.opp.trim() }).map(function (r) { var o = { date: r.date, opp: r.opp.trim(), ha: r.ha || "" }; if (r.venue && r.venue.trim()) o.venue = r.venue.trim(); return o }); msg.textContent = "Saving…"; save(out).then(function () { done && done(true, out) }, function () { msg.textContent = "Couldn't save. Check the connection." }) }
     };
     draw();
   }
@@ -5312,6 +5312,24 @@ textarea { min-height: 64px }
       });
     });
   }
+  // a stadium typed on the schedule (neutral sites, playoff games): the Texas stadium list first, then the map
+  function stKey(n) { return txKey(n).replace(/\b(stadium|field|complex|athletic|sports|the)\b/g, " ").replace(/\s+/g, " ").trim() }
+  function venueStadium(name) {
+    var slug = "_v_" + venSlug(name), cached = null; if (!venSlug(name)) return Promise.resolve(null);
+    try { cached = JSON.parse(localStorage.getItem("solutions-venue-" + slug) || "null") } catch (e) {}
+    if (cached && okField(cached.field)) return Promise.resolve(cached);
+    return venLoad(slug).then(function (v) {
+      if (v && okField(v.field)) return v;
+      return txTable().then(function (T) {
+        var k = stKey(name), hit = null; Object.keys(T).some(function (x) { var t = T[x]; if (t && t.s && stKey(t.s) === k) { hit = t; return true } return false });
+        if (hit) return venueTX(name, hit).then(function (f) { f.school = name; return f });
+        return geoQ(name + ", Texas").then(function (l) { return l || geoQ(name) }).then(function (loc) {
+          if (!loc) return { school: name, stadium: name, src: "none", field: null, why: "couldn't find it on the map" };
+          return fieldNear(loc, name).then(function (f) { return { school: name, stadium: name, loc: loc, field: f, src: "stadium", why: f ? "" : "couldn't find the field on the map" } });
+        });
+      }).then(function (f) { if (f && okField(f.field)) venSave(slug, f); return f });
+    }).then(function (v) { if (v && okField(v.field)) try { localStorage.setItem("solutions-venue-" + slug, JSON.stringify(v)) } catch (e) {} return v }, function () { return null });
+  }
   function venueFor(name) {
     var slug = venSlug(name); if (!slug) return Promise.resolve(null);
     var cached = null; try { cached = JSON.parse(localStorage.getItem("solutions-venue-" + slug) || "null") } catch (e) {}
@@ -5346,6 +5364,7 @@ textarea { min-height: 64px }
     $("luMsg").textContent = LU.pts.length < 2 ? (LU.pts.length ? "Now tap the other goal line." : "Tap the middle of one goal line.") : ok ? "Goal lines are " + Math.round(d / .9144) + " yards apart. Looks right — save it." : "Those are " + Math.round(d / .9144) + " yards apart; goal lines should be about 100. Zoom in and try again.";
   }
   function luOpen() {
+    var e0 = gameEntry(); if (e0 && e0.ha === "N" && !e0.venue) { toast("Add the stadium for this game on the schedule first (Stadium box), then line it up"); return }
     var e = gameEntry(), away = e && e.ha === "A", who = away ? e.opp : SCHOOL_NAME_H, v = VEN.info || {};
     LU.name = (e && e.venue) || who; LU.stadium = v.stadium && v.src === "txb" ? v.stadium : ""; LU.city = v.city || ""; LU.pts = []; LU.half = 160;
     $("luTitle").textContent = "Line up the field: " + (LU.stadium || LU.name) + (LU.city ? ", " + LU.city : "");
@@ -5357,7 +5376,7 @@ textarea { min-height: 64px }
   function luSave() {
     if (LU.pts.length !== 2) return; var f = { g1: LU.pts[0], g2: LU.pts[1] }, loc = [(f.g1[0] + f.g2[0]) / 2, (f.g1[1] + f.g2[1]) / 2];
     var rec = { school: LU.name, stadium: LU.stadium || LU.name, city: LU.city, loc: loc, field: f, src: LU.stadium ? "txb" : "manual", manual: true, at: Date.now() };
-    var slug = venSlug(LU.name); venSave(slug, rec); try { localStorage.setItem("solutions-venue-" + slug, JSON.stringify(rec)) } catch (x) {}
+    var g = gameEntry(), slug = g && g.venue && LU.name === g.venue ? "_v_" + venSlug(g.venue) : venSlug(LU.name); venSave(slug, rec); try { localStorage.setItem("solutions-venue-" + slug, JSON.stringify(rec)) } catch (x) {}
     if (LU.stadium) venSave(luSlug({ s: LU.stadium, c: LU.city }), rec); // every school that plays there gets it too
     STADIUM = satStadium(f); VEN.info = rec; $("luModal").hidden = true; renderAll(); renderVenueNote(); toast("Field saved for " + (LU.stadium || LU.name));
   }
@@ -5383,19 +5402,21 @@ textarea { min-height: 64px }
   function gameEntry() { if (!WK.list) return null; return WK.list.filter(function (x) { return x.date === S.gameDate })[0] || null }
   function venueUpdate() {
     if (!ONLINE) return; // the game's real stadium always drives the live field (a saved photo only changes the Drives picture)
-    var e = gameEntry(), home = !e || e.ha !== "A", who = home ? SCHOOL_NAME_H : e.opp, key = (e ? e.date : "") + "|" + who;
-    if (e && e.ha === "N" && !e.venue) { if (VEN.key !== key) { VEN.key = key; VEN.info = null; STADIUM = IS_HOME ? HOME_STADIUM : drawnStadium(schoolColor()); renderAll() } return }
+    var e = gameEntry(), home = !e || (e.ha !== "A" && e.ha !== "N"), who = home ? SCHOOL_NAME_H : e.opp, key = (e ? e.date : "") + "|" + who;
+    if (e && e.ha === "N" && !e.venue) { if (VEN.key !== key) { VEN.key = key; VEN.info = { stadium: "Neutral site", src: "nostadium" }; STADIUM = drawnStadium(schoolColor()); renderAll(); renderVenueNote() } return }
+    if (e && e.venue) key += "|" + e.venue;
     if (VEN.key === key) return; VEN.key = key;
-    if (home && IS_HOME) { STADIUM = HOME_STADIUM; VEN.info = { stadium: "Home stadium (photo)" }; renderAll(); return }
+    if (home && IS_HOME && !(e && e.venue)) { STADIUM = HOME_STADIUM; VEN.info = { stadium: "Home stadium (photo)" }; renderAll(); renderVenueNote(); return }
     STADIUM = IS_HOME && home ? HOME_STADIUM : drawnStadium(schoolColor()); VEN.info = { stadium: "Looking up " + who + "'s stadium…" }; renderVenueNote();
-    venueFor(e && e.venue ? e.venue : who).then(function (v) {
+    var vw = e && e.venue ? e.venue : who; VEN.info = { stadium: "Looking up " + vw + "…" }; renderVenueNote();
+    (e && e.venue ? venueStadium(e.venue) : venueFor(who)).then(function (v) {
       if (VEN.key !== key) return;
       if (v && v.field && !okField(v.field)) { v.field = null; v.why = "the map gave a bad spot for this field" }
-      if (v && v.field) { STADIUM = satStadium(v.field); VEN.info = v } else VEN.info = v && v.src === "txb" ? v : { stadium: "Couldn't find " + who + "'s stadium on the map. Showing the drawn field.", src: "none", why: "couldn't find the stadium" };
+      if (v && v.field) { STADIUM = satStadium(v.field); VEN.info = v } else VEN.info = v && v.src === "txb" ? v : { stadium: "Couldn't find " + (e && e.venue ? e.venue : who + "'s stadium") + " on the map. Showing the drawn field.", src: "none", why: "couldn't find the stadium" };
       renderAll(); renderVenueNote();
     });
   }
-  function renderVenueNote() { var el = $("venueNote"); if (!el) return; var v = VEN.info; el.textContent = v ? (v.field ? "This game: " + (v.stadium || v.school) + (v.city ? ", " + v.city : "") + " (satellite view" + (v.manual ? ", lined up by hand" : "") + ")." : v.src === "txb" ? "This game: " + v.stadium + (v.city ? ", " + v.city : "") + " — " + (v.why || "field not lined up yet") + ". Tap “Line up this game's field”." : v.stadium || "") : ""; if (typeof renderHead === "function") try { renderHead() } catch (e) {} }
+  function renderVenueNote() { var el = $("venueNote"); if (!el) return; var v = VEN.info; if (v && v.src === "nostadium") { el.textContent = "This game is at a neutral site. Type the stadium in the Stadium box on the schedule and the field will show it."; return } el.textContent = v ? (v.field ? "This game: " + (v.stadium || v.school) + (v.city ? ", " + v.city : "") + " (satellite view" + (v.manual ? ", lined up by hand" : "") + ")." : v.src === "txb" ? "This game: " + v.stadium + (v.city ? ", " + v.city : "") + " — " + (v.why || "field not lined up yet") + ". Tap “Line up this game's field”." : v.stadium || "") : ""; if (typeof renderHead === "function") try { renderHead() } catch (e) {} }
   setInterval(venueUpdate, 4000);
   function fieldMode() { try { return localStorage.getItem(FIELD_KEY) || "stadium" } catch (e) { return "stadium" } }
   function ourScore() {

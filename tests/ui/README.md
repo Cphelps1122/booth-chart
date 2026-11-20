@@ -18,6 +18,7 @@ rather than on every change.
     node tests/ui/pl.js        # Matchup Predictor: learning from past games, and the why-panel on Game Impact
     node tests/ui/hm.js        # Home screen: every coach page can be reached from home, on an iPad and a phone
     node tests/ui/fq.js        # Film quiz: coach builds one from Hudl clips + export, a player takes it on a phone (needs ffmpeg)
+    node tests/ui/vn.js        # Game-day stadium: neutral site with the stadium typed on the schedule (map services stood in for)
 
 Each prints `N passed, N failed` and exits non-zero on a failure.
 Screenshots are written to `$SHOT_DIR` (a temp folder by default):

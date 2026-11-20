@@ -7,7 +7,9 @@ VOC = ('<annotation><filename>{f}</filename><size><width>1920</width><height>108
        '<object><name>football</name><bndbox><xmin>{a}</xmin><ymin>{b}</ymin><xmax>{c}</xmax><ymax>{d}</ymax></bndbox></object></annotation>')
 ok = 0
 for f, (a, b, c, d) in L.items():
-    with open(os.path.join(here, "frames", f), "rb") as fh:
+    p = os.path.join(here, "frames", f)
+    p = p if os.path.exists(p) else os.path.join(here, "frames2", f)
+    with open(p, "rb") as fh:
         r = requests.post("https://api.roboflow.com/dataset/%s/upload" % proj, params={"api_key": key, "name": f,
                           "batch": "ball-tight-nov20", "split": "train"}, files={"file": (f, fh, "image/jpeg")}, timeout=120)
     j = r.json(); iid = j.get("id")

@@ -39,7 +39,7 @@ const wait=async(fn,ms=10000)=>{ const t=Date.now(); while(Date.now()-t<ms){ if(
   await P.evaluate(d=>window.__mock.schedUse(d), D);
   ok(await wait(async()=>/week of 2026-11-20/.test(await P.textContent('#nSheet'))), 'Picking the game loads this week\'s call sheet: '+await P.textContent('#nSheet'));
   ok(/Call sheet: this week's/.test(await P.textContent('#schedNote')), 'Schedule note says the call sheet is this week\'s');
-  ok(/DeSoto: 40 plays/.test(await P.textContent('#schedNote')), 'Opponent film sent file by file loads (40 plays)');
+  ok(/DeSoto: 1 game file \(40 plays\)/.test(await P.textContent('#schedNote')), 'Opponent film sent file by file loads (40 plays)');
   ok(await wait(async()=>/590 self scout plays/.test(await note())), 'Self scout still 590 after picking the game');
   await P.screenshot({path:OUT+'mz-mock.png'});
   // old single-block format still reads

@@ -52,7 +52,7 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
     <h2>Run a game your way <small>Practice calling a game, or practice charting one</small></h2>
     <label class="drop big" id="dSheet" for="fSheet"><b>Upload your call sheet</b><span id="nSheet">Your sheet, laid out like it is on game day. Google Sheets: File, Download, Microsoft Excel (.xlsx).</span><input type="file" id="fSheet" accept=".xlsx" hidden></label>
     <label class="drop" id="dBook" for="fBook" style="margin-top:10px"><b>Upload your playbook (optional)</b><span id="nBook">Your routes and blocking, so every play runs the way you drew it. Use the playbook file made from your pass and run books. Uploading more adds to it; plays you already have stay the same.</span><input type="file" id="fBook" accept=".json,application/json" hidden></label>
-    <label class="drop" id="dDraw" for="fDraw" style="margin-top:10px"><b>Upload this week's run and pass drawings</b><span id="nDraw">PDF or PowerPoint, one play per page or slide. From Google Slides: File, Download, PDF or PowerPoint (.pptx). Each play runs the way it's drawn, and the defense lines up where it's drawn.</span><input type="file" id="fDraw" accept=".pdf,.pptx,application/pdf" multiple hidden></label>
+    <label class="drop" id="dDraw" for="fDraw" style="margin-top:10px"><b>Upload this week's run and pass drawings</b><span id="nDraw">PDF or PowerPoint, one play per page or slide. From Google Slides: File, Download, PDF or PowerPoint (.pptx). Each play runs the way it's drawn, and the defense lines up where it's drawn.</span><input type="file" id="fDraw" accept=".pdf,.pptx,.json,application/pdf,application/json" multiple hidden></label>
     <div id="drBox" hidden style="margin-top:10px;border:1px solid var(--line);border-radius:10px;padding:12px;background:var(--panel2)">
       <p class="note" id="drNote" style="margin:0 0 8px"></p>
       <div id="drList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px"></div>
@@ -772,8 +772,12 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
     return hit }
   $("fDraw").onchange = function () { var F = [].slice.call(this.files); this.value = ""; if (!F.length) return; if (!window.SolDraw) { toast("Couldn't load the drawing reader. Check the connection."); return }
     $("nDraw").textContent = "Reading " + F.map(function (f) { return f.name }).join(", ") + "…";
-    Promise.all(F.map(function (f) { return SolDraw.read(f).then(function (pages) { return pages.map(function (pg) { var r = SolDraw.play(pg); r.file = f.name; return r }) }, function () { return [{ file: f.name, err: 1, name: "", o: [], p: [], d: [], issues: ["Couldn't open this file. Save it as PDF or PowerPoint (.pptx) and upload again."] }] }) }))
+    Promise.all(F.map(function (f) { if (/\.json$/i.test(f.name)) return drJson(f); return SolDraw.read(f).then(function (pages) { return pages.map(function (pg) { var r = SolDraw.play(pg); r.file = f.name; return r }) }, function () { return [{ file: f.name, err: 1, name: "", o: [], p: [], d: [], issues: ["Couldn't open this file. Save it as PDF or PowerPoint (.pptx) and upload again."] }] }) }))
       .then(function (L) { DRP = [].concat.apply([], L); DRP.forEach(function (r) { r.use = !r.err && r.o.length === 11; var c = drMatchOne(r); if (c) { r.call = c.name; r.callLab = c.lab; r.callForm = c.form; r.run = !!c.run } }); drShow() }) };
+  // a plays file already read from a staff's drawings (same play shape the reader makes)
+  function drJson(f) { return f.text().then(function (t) { var j = JSON.parse(t), L = j && j.solDrawn && j.plays; if (!L || !L.length) throw 0;
+      return L.map(function (q) { return { name: q.name || "", page: q.page, file: q.file || f.name, run: !!q.run, o: q.o || [], p: q.p || [], d: q.d || [], issues: q.issues || [] } }) })
+    .catch(function () { return [{ file: f.name, err: 1, name: "", o: [], p: [], d: [], issues: ["This isn't a plays file the mock game knows. Upload the PDF or PowerPoint instead."] }] }) }
   function drShow() { var box = $("drList"); box.innerHTML = ""; $("drBox").hidden = !DRP.length;
     var nOk = DRP.filter(function (r) { return r.use }).length, nM = DRP.filter(function (r) { return r.use && r.call }).length;
     $("drNote").textContent = DRP.length + " page" + (DRP.length === 1 ? "" : "s") + " read · " + nOk + " play" + (nOk === 1 ? "" : "s") + " ready · " + nM + " matched to your call sheet. Check each one: drag any player that's off, and fix the call name if it didn't match.";

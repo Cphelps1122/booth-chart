@@ -61,5 +61,17 @@ const SHEET={name:'Week sheet',boxes:[{name:'OPENERS',kind:'sit',key:'1',plays:[
    await p.setInputFiles('#fDraw', f); await p.waitForTimeout(2500);
    const t=await p.evaluate(()=>document.getElementById('drList').innerText); ok(/Couldn't open this file/.test(t),'a file it can\'t read says so instead of saving nonsense');
    ok(p.errs.length===0,'no page errors '+p.errs.join(' | ')); await p.context().close() }
+
+ console.log('a plays file (.json) made from drawings that are pictures');
+ { const p=await mk(); const f=OUT+'plays.json';
+   fs.writeFileSync(f, JSON.stringify({solDrawn:1,plays:[{name:'GOLD MESH',page:3,run:false,o:[{x:-4.2,y:-.9},{x:-2.1,y:-.9},{x:0,y:-.9},{x:2.1,y:-.9},{x:4.2,y:-.9},{x:0,y:-4.5},{x:-18,y:-1},{x:-9,y:-1.5},{x:6.3,y:-1},{x:18,y:-1},{x:0,y:-7}],p:[null,null,null,null,null,null,[[0,0],[0,18]],null,null,null,null],d:[]}]}));
+   await p.setInputFiles('#fDraw', f); await p.waitForSelector('#drBox:not([hidden])',{timeout:8000}).catch(()=>{});
+   const c=await p.evaluate(()=>[...document.querySelectorAll('#drList .drcard')].map(c=>({call:c.querySelector('input[type=text]').value, st:c.querySelector('.drst').textContent, use:c.querySelector('.druse').checked})));
+   ok(c.length===1 && c[0].call==='GOLD MESH' && /On your call sheet/.test(c[0].st) && c[0].use,'it goes through the same check screen');
+   await p.click('#drSave'); await p.waitForTimeout(300); const D=await p.evaluate(()=>__mock.PB&&__mock.PB.drawn||{});
+   ok(D['GOLD MESH'] && D['GOLD MESH'].p[6][1][1]===18,'and saves like a drawing');
+   fs.writeFileSync(f,'{"nope":1}'); await p.setInputFiles('#fDraw', f); await p.waitForTimeout(800);
+   ok(/isn't a plays file/.test(await p.evaluate(()=>document.getElementById('drList').innerText)),'any other .json says so');
+   ok(p.errs.length===0,'no page errors '+p.errs.join(' | ')); await p.context().close() }
  console.log('\n'+pass+' passed, '+fail+' failed'); process.exit(fail?1:0);
 })();

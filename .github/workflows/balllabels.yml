@@ -3,7 +3,7 @@ name: Ball labels to Roboflow
 on:
   push:
     branches: [ball-test]
-    paths: ["tools/balltest/labels.json", "tools/balltest/upload_labels.py"]
+    paths: ["tools/balltest/labels.json", "tools/balltest/upload_labels.py", "tools/balltest/prop_good.json"]
 jobs:
   labels:
     runs-on: ubuntu-latest
@@ -13,6 +13,6 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.11" }
       - run: pip install requests==2.32.3
-      - run: python tools/balltest/upload_labels.py
+      - run: pip install -r tools/track/requirements.txt && python tools/balltest/upload_prop.py
         env:
           ROBOFLOW_API_KEY: ${{ secrets.ROBOFLOW_API_KEY }}

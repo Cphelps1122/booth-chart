@@ -3,7 +3,7 @@ name: Player model bench
 on:
   push:
     branches: [ball-test]
-    paths: ["tools/balltest/player_bench.py", ".github/workflows/playerbench.yml"]
+    paths: ["tools/balltest/player_bench.py", "tools/balltest/number_bench.py", ".github/workflows/playerbench.yml"]
 jobs:
   bench:
     runs-on: ubuntu-latest
@@ -13,10 +13,10 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.11" }
       - run: pip install -r tools/track/requirements.txt
-      - run: python tools/balltest/player_bench.py
+      - run: python tools/balltest/number_bench.py
         env:
           ROBOFLOW_API_KEY: ${{ secrets.ROBOFLOW_API_KEY }}
-          BENCH_MODELS: softballtracker-sy17i/full-field-read-2-rfdetr-small-t1,nfl-object-tracking/1,football-l9zew/6,football-txom1/1,american-football-player-detection/1,football-offense/1,football-offense-2-0/1
+          BENCH_MODELS: football-field-numbers/1,football-field-numbers/2,football-field-numbers/3,football-field-numbers-k4hzg/1,field-numbers/1,field-numbers/2,created-field-numbers/1,football-field-numbers-lvwhb/1,yardage_lines_numbers-instant-1,hash-yards-intersection/4
       - uses: actions/upload-artifact@v4
         if: always()
         with: { name: player-bench, path: results/ }

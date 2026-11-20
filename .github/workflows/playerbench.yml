@@ -1,0 +1,22 @@
+# Compares player models on the same frames. ball-test branch only.
+name: Player model bench
+on:
+  push:
+    branches: [ball-test]
+    paths: ["tools/balltest/player_bench.py", ".github/workflows/playerbench.yml"]
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install -r tools/track/requirements.txt
+      - run: python tools/balltest/player_bench.py
+        env:
+          ROBOFLOW_API_KEY: ${{ secrets.ROBOFLOW_API_KEY }}
+          BENCH_MODELS: softballtracker-sy17i/full-field-read-2-rfdetr-small-t1,nfl-object-tracking/1,football-l9zew/6,football-txom1/1,american-football-player-detection/1,football-offense/1,football-offense-2-0/1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: player-bench, path: results/ }

@@ -401,8 +401,15 @@ select.sel { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 8
     var G = GAMES.filter(function (g) { return g.sv && g.final && g.sv.a.n >= 20 });
     if (!G.length || !ONLINE) return;
     var errs = G.map(function (g) { var used = (g.sim.cal && g.sim.cal.g) || 0; return g.sv.a.ypp - (g.sim.tend.ypp.m - used) });
-    var cal = { g: Math.round(100 * errs.reduce(function (t, e) { return t + e }, 0) / (errs.length + 2)) / 100, n: G.length, at: Date.now() };
-    get("/simCal").then(function (cur) { if (cur && cur.n === cal.n && Math.abs((cur.g || 0) - cal.g) < 0.01) return; return solToken().then(function (t) { return fetch(SOL_DB + "/schools/" + encodeURIComponent(ACC.school) + "/simCal.json?auth=" + encodeURIComponent(t), { method: "PUT", body: JSON.stringify(cal) }) }) }).catch(function () {});
+    var avg = function (A, d) { return Math.round(d * A.reduce(function (t, e) { return t + e }, 0) / (A.length + 2)) / d }, U = function (g, k) { return (g.sim.cal && g.sim.cal[k]) || 0 };
+    // besides yards a play: efficient plays, 3rd down, explosives and turnovers, each as real minus forecast (forecast taken without what it had already learned)
+    var perPlay = function (b, plays) { return b && plays && plays.m ? b.m / plays.m : null };
+    var ef = G.map(function (g) { return g.sv.a.eff - (g.sim.tend.eff.m - U(g, "ef")) });
+    var t3 = G.filter(function (g) { return g.sv.a.third != null && g.sim.tend.third }).map(function (g) { return g.sv.a.third - (g.sim.tend.third.m - U(g, "t3")) });
+    var ex = G.map(function (g) { var s = perPlay(g.sim.tend.expl, g.sim.tend.plays); return s == null ? 0 : g.sv.a.expl / g.sv.a.n - (s - U(g, "ex")) });
+    var to = G.map(function (g) { var s = perPlay(g.sim.tend.to, g.sim.tend.plays); return s == null ? 0 : g.sv.a.to / g.sv.a.n - (s - U(g, "to")) });
+    var cal = { g: avg(errs, 100), ef: avg(ef, 10), t3: t3.length ? avg(t3, 10) : 0, ex: avg(ex, 1000), to: avg(to, 1000), n: G.length, at: Date.now() };
+    get("/simCal").then(function (cur) { if (cur && cur.n === cal.n && ["g", "ef", "t3", "ex", "to"].every(function (k) { return Math.abs((cur[k] || 0) - cal[k]) < 0.001 })) return; return solToken().then(function (t) { return fetch(SOL_DB + "/schools/" + encodeURIComponent(ACC.school) + "/simCal.json?auth=" + encodeURIComponent(t), { method: "PUT", body: JSON.stringify(cal) }) }) }).catch(function () {});
   }
   // The predictor learns: how far each model's pregame score was off, averaged over our finished games.
   // A week's saved prediction can be rewritten after the game, so one only counts when it is known to pre-date kickoff.

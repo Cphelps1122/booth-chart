@@ -51,9 +51,13 @@
   }
   function eff(p) { return p.td || p.gain >= Math.ceil(need(p.dn == null ? 1 : p.dn) * (p.dist || 10)) }
 
+  // what the predictor learned from our finished games: yards a play (g), and now also efficient-play rate (ef),
+  // 3rd-down rate (t3) and explosive / turnover rates per play (ex, to), each as "real minus forecast"
+  function calOf(c) { var f = function (v, lim) { v = +v; return isFinite(v) ? Math.max(-lim, Math.min(lim, v)) : 0 };
+    return c && isFinite(c.g) ? { g: +c.g, n: c.n || 0, ef: f(c.ef, 25), t3: f(c.t3, 30), ex: f(c.ex, 0.08), to: f(c.to, 0.04) } : { g: 0, n: 0, ef: 0, t3: 0, ex: 0, to: 0 } }
   // ---------- model ----------
   function build(oppRows, ourSnaps, cal) {
-    var O = fromHudl(oppRows), U = fromChart(ourSnaps), M = { v: V, cal: cal && isFinite(cal.g) ? { g: cal.g, n: cal.n || 0 } : { g: 0, n: 0 }, oppN: O.length, ourN: U.length };
+    var O = fromHudl(oppRows), U = fromChart(ourSnaps), M = { v: V, cal: calOf(cal), oppN: O.length, ourN: U.length };
     var typeMean = function (A, run) { return mean(A.filter(function (p) { return p.run === run }).map(function (p) { return p.gain })) };
     // their looks by situation (empirical joint draws), red zone separately when there's enough
     M.looks = {}; BUCKETS.forEach(function (b) { M.looks[b] = O.filter(function (p) { return p.b === b && (p.shell || p.cov || p.front || p.blz != null) }) });
@@ -77,6 +81,7 @@
     M.oppPoolAll = { run: O.filter(function (p) { return p.run }).map(function (p) { return p.gain }), pass: O.filter(function (p) { return !p.run }).map(function (p) { return p.gain }) };
     var toR = function (A, run) { var Q = A.filter(function (p) { return p.run === run }); return Q.length ? Q.filter(function (p) { return p.to }).length / Q.length : null };
     M.to = { run: shrink(toR(U, true), U.filter(function (p) { return p.run }).length, 0.012, 40), pass: shrink(toR(U, false), U.filter(function (p) { return !p.run }).length, 0.03, 40) };
+    M.oppRZ = {}; [true, false].forEach(function (run) { var k = run ? "run" : "pass", A = O.filter(function (p) { return p.rz && p.run === run }); M.oppRZ[k] = A.length ? (mean(A.map(function (p) { return p.gain })) - M.oppAll[k]) * A.length / (A.length + 12) : 0 });
     M.oppTo = { run: shrink(toR(O, true), O.filter(function (p) { return p.run }).length, 0.012, 40), pass: shrink(toR(O, false), O.filter(function (p) { return !p.run }).length, 0.03, 40) };
     // how our yards move with their look (from our charted snaps that have the look tagged)
     M.lookAdj = { run: { shell: {}, blz: {} }, pass: { shell: {}, blz: {} } };
@@ -138,7 +143,7 @@
     var L = M.best[b]; if (!L || !L.length) return callTend(M, b, r);
     var x = r(); return L[x < 0.45 || L.length < 2 ? 0 : x < 0.75 || L.length < 3 ? 1 : 2].c;
   }
-  function play(M, c, b, look, r) {
+  function play(M, c, b, look, r, rz) {
     var cc = c && c.charAt(0) !== "#" ? M.concepts[c] : null, run = cc ? cc.isRun : c === "#RUN", k = run ? "run" : "pass", pool;
     // a play's own history counts in proportion to how often we've run it; the rest comes from all our plays of that type
     // (keeps a few lucky gains from making one call look unbeatable)
@@ -146,9 +151,9 @@
     if (!pool || !pool.length) pool = M.usPool[b][k].length >= 5 ? M.usPool[b][k] : M.usPoolAll[k];
     if (!pool || !pool.length) pool = M.oppPool[b][k].length >= 5 ? M.oppPool[b][k] : M.oppPoolAll[k];
     if (!pool || !pool.length) pool = run ? [3, 4, 5, 2, 0, 8, -1] : [0, 0, 8, 12, 6, -5, 20];
-    var g = pick(pool, r) + oppAdj(M, b, run) + (look.shell != null && M.lookAdj[k].shell[look.shell] || 0) + (look.blz != null && M.lookAdj[k].blz[look.blz] || 0) + M.cal.g;
+    var g = pick(pool, r) + oppAdj(M, b, run) + (look.shell != null && M.lookAdj[k].shell[look.shell] || 0) + (look.blz != null && M.lookAdj[k].blz[look.blz] || 0) + M.cal.g + (rz && M.oppRZ ? M.oppRZ[k] : 0);
     g = Math.round(g + (r() - 0.5));
-    var to = r() < (M.to[k] + M.oppTo[k]) / 2;
+    var to = r() < Math.max(0, (M.to[k] + M.oppTo[k]) / 2 + M.cal.to);
     return { g: g, run: run, to: to };
   }
   function drive(M, pol, r, acc, log) {
@@ -159,11 +164,18 @@
         if (dist > goLimit(y)) { if (y >= 75) { acc.fga++; if (r() < 0.72) { acc.fg++; return out(3, "FG") } return out(0, "Missed FG") } acc.punt++; return out(0, "Punt") }
         acc.go4++;
       }
-      var look = drawLook(M, b, y >= 80, r), c = pol(M, b, r), p = play(M, c, b, look, r), ndn = dn === 0 ? 1 : dn, ok;
+      var look = drawLook(M, b, y >= 80, r), c = pol(M, b, r), p = play(M, c, b, look, r, y >= 80), ndn = dn === 0 ? 1 : dn, ok;
       n++; acc.pl++; if (p.run) acc.ru++;
       if (L) L.plays.push({ y: y, dn: dn, dist: dist, b: b, c: c, run: p.run, g: p.to ? 0 : Math.max(-15, Math.min(100 - y, p.g)), to: p.to, look: look });
       if (p.to) { acc.to++; if (dn === 3) acc.a3++; return out(0, "Turnover") }
-      var gain = Math.max(-15, Math.min(100 - y, p.g)); acc.yd += gain;
+      var gain = Math.max(-15, Math.min(100 - y, p.g)), needY = Math.ceil(need(ndn) * dist), big = p.run ? 10 : 15, C = M.cal;
+      // learned rates: tip a play over (or under) the line so success, 3rd down and explosives land where our real games did
+      var lift = (C.ef || 0) / 100 + (dn === 3 ? (C.t3 || 0) / 100 : 0);
+      if (lift > 0 && gain < needY && r() < lift / 0.5) gain = Math.min(100 - y, needY);
+      else if (lift < 0 && gain >= needY && gain < big && r() < -lift / 0.5) gain = Math.max(-15, needY - 1 - Math.floor(r() * 3));
+      if (C.ex > 0 && gain < big && r() < C.ex / 0.9) gain = Math.min(100 - y, big + Math.floor(r() * 10));
+      else if (C.ex < 0 && gain >= big && r() < -C.ex / 0.1) gain = Math.min(gain, big - 1 - Math.floor(r() * 4));
+      acc.yd += gain;
       ok = y + gain >= 100 || gain >= Math.ceil(need(ndn) * dist); if (ok) acc.ef++;
       if ((p.run && gain >= 10) || (!p.run && gain >= 15)) acc.ex++;
       if (dn === 3) { acc.a3++; if (y + gain >= 100 || gain >= dist) acc.c3++ }

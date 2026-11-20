@@ -52,6 +52,13 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
     <h2>Run a game your way <small>Practice calling a game, or practice charting one</small></h2>
     <label class="drop big" id="dSheet" for="fSheet"><b>Upload your call sheet</b><span id="nSheet">Your sheet, laid out like it is on game day. Google Sheets: File, Download, Microsoft Excel (.xlsx).</span><input type="file" id="fSheet" accept=".xlsx" hidden></label>
     <label class="drop" id="dBook" for="fBook" style="margin-top:10px"><b>Upload your playbook (optional)</b><span id="nBook">Your routes and blocking, so every play runs the way you drew it. Use the playbook file made from your pass and run books. Uploading more adds to it; plays you already have stay the same.</span><input type="file" id="fBook" accept=".json,application/json" hidden></label>
+    <label class="drop" id="dDraw" for="fDraw" style="margin-top:10px"><b>Upload this week's run and pass drawings</b><span id="nDraw">PDF or PowerPoint, one play per page or slide. From Google Slides: File, Download, PDF or PowerPoint (.pptx). Each play runs the way it's drawn, and the defense lines up where it's drawn.</span><input type="file" id="fDraw" accept=".pdf,.pptx,application/pdf" multiple hidden></label>
+    <div id="drBox" hidden style="margin-top:10px;border:1px solid var(--line);border-radius:10px;padding:12px;background:var(--panel2)">
+      <p class="note" id="drNote" style="margin:0 0 8px"></p>
+      <div id="drList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px"></div>
+      <div class="row" style="margin-top:10px"><button class="btn pri" id="drSave" type="button">Save these plays</button><button class="btn" id="drCancel" type="button">Cancel</button></div>
+      <datalist id="drCalls"></datalist>
+    </div>
     <details id="pbBox" style="margin-top:10px"><summary style="cursor:pointer;font-weight:700">Playbook builder: add plays your playbook doesn't have</summary>
       <p class="note" id="pbMissN" style="margin:8px 0 6px"></p><div id="pbMiss" style="display:flex;flex-wrap:wrap;gap:6px"></div>
       <div class="row" style="margin-top:10px"><button class="btn pri" id="pbNew" type="button">+ New play</button></div>
@@ -110,6 +117,7 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
 <div class="toast" id="toast" hidden></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="scoutkit.js"></script>
+<script src="drawkit.js"></script>
 <script src="nav.js"></script>
 <script>
 (function () {
@@ -362,7 +370,7 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
   var SHEET = null; // { boxes, grid, name }
   function sitKeys() { var k = [], g = G; if (g.dn === 3) k.push(g.dist <= 3 ? "3S" : g.dist <= 6 ? "3M" : g.dist <= 10 ? "3L7" : "3L11"); if (g.dn === 2 && g.dist >= 7) k.push("2L"); if (g.dn === 4) k.push("4TH"); if (g.ball >= 95) k.push("TZ"); if (g.ball >= 90 && g.ball < 95) k.push("SZ"); if (g.ball >= 80 && g.ball < 90) k.push("RZ"); if (g.ball <= 10) k.push("CO"); return k }
   function cellPlays(c) { var box = SHEET.grid.boxes ? null : SHEET.boxes[c.b]; if (!box) return []; var t = String(c.v).toUpperCase(), d = null, m = t.match(/^(\d+(?:\s*-\s*\d+)?\+?)\s*:\s*(.*)$/); if (m) { d = m[1].replace(/\s/g, ""); t = m[2] } if (!t) return [];
-    return csExpand(t).map(function (p) { var form = formFor(box.kind === "form" ? box.form : "", p.t); return { name: ((form ? form + " " : "") + p.t).replace(/\s+/g, " ").trim(), lab: p.t, d: d, form: titleCase(form), kind: c.k || "scr", run: c.k === "run", scheme: /POWER|COUNTER|DART|TRAP/i.test(p.t) ? "power" : "zone", id: c.r + ":" + c.c + ":" + p.t } }) }
+    return csExpand(t).map(function (p) { var form = formFor(box.kind === "form" ? box.form : "", p.t); return { name: ((form && (p.t + " ").toUpperCase().indexOf(String(form).toUpperCase() + " ") !== 0 ? form + " " : "") + p.t).replace(/\s+/g, " ").trim(), lab: p.t, d: d, form: titleCase(form), kind: c.k || "scr", run: c.k === "run", scheme: /POWER|COUNTER|DART|TRAP/i.test(p.t) ? "power" : "zone", id: c.r + ":" + c.c + ":" + p.t } }) }
   function allPlays() { var o = []; SHEET.grid.cells.forEach(function (c) { if (c.b != null) o = o.concat(cellPlays(c)) }); return o }
   function useSheet(s) { if (!s || !s.grid || !s.boxes) return false; SHEET = s; $("nSheet").textContent = s.name + " · " + allPlays().length + " plays"; $("dSheet").classList.add("ok"); return true }
   function saveSheet() { claim(); var txt = JSON.stringify(SHEET); store.set("sol-mock-sheet", SHEET); if (!SHEET.sample) cloud("sheet", "PUT", txt).catch(function () {}) }
@@ -629,19 +637,25 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
   var P = { o: [], d: [], ball: null, trail: [], tackle: null, tgt: 10, showPlan: false };
   function poses() {
     var bx = bxOf(); if (!call) return;
-    var pf0 = pbFind(call), fm = pf0 && (pf0.run || pf0.pass).form || call.form;
-    var BK = !ALIGN.off[fm] && bookOf(fm); P.o = BK ? bookPlace(BK, bx) : placeOff(offStd(fm), bx);
-    var bkRun = call.run && pbFind(call), bnd = bndOf(call);
+    var pf0 = pbFind(call), DRW = pf0 && pf0.drawn, fm = pf0 && !DRW && (pf0.run || pf0.pass).form || call.form;
+    var BK = !ALIGN.off[fm] && bookOf(fm); P.o = DRW ? DRW.o.map(function (q, i) { return { x: Math.max(-22.5, Math.min(22.5, bx + q.x)), y: q.y, lab: OFF_LAB[i], num: OFF_NUM[i] } }) : BK ? bookPlace(BK, bx) : placeOff(offStd(fm), bx);
+    var bkRun = !DRW && call.run && pbFind(call), bnd = DRW ? null : bndOf(call);
     // the TE goes where the run needs him: toward-the-TE runs put him on the play side, away runs on the back side (the formation flips)
     var hd = holeDir(call);
     if (bkRun && bkRun.run && hd && (/^(te|away|strong|weak)$/.test(bkRun.run.toward))) { var te0 = teOf(P.o, bx), want = /^(te|strong)$/.test(bkRun.run.toward) ? hd : -hd; if (te0 && (te0.x >= bx ? 1 : -1) !== want) P.o.forEach(function (p, i) { if (i > 5) p.x = Math.max(-22.5, Math.min(22.5, 2 * bx - p.x)) }) }
     else if (bkRun && bkRun.run && bnd && bx !== 0) { var bside = bx < 0 ? -1 : 1; if (runSide(call, bkRun.run) !== bside) P.o.forEach(function (p, i) { if (i > 5) p.x = Math.max(-22.5, Math.min(22.5, 2 * bx - p.x)) }) } var s = strengthOf(P.o, bx), ft = ftypeOf(P.o, bx);
     P.d = placeDef(defStd(look && look.front, look ? look.sh : "MFO", ft, look && look.cov), s, bx); P.s = s;
     var RC = P.o.slice(6, 10); RC.filter(function (p) { return p.y < -4 }).forEach(function (p) { p.lab = "B"; p.num = "B" }); RC.filter(function (p) { return p.y >= -4 }).sort(function (a, b) { return a.x - b.x || b.y - a.y }).forEach(function (p, i) { p.lab = String(i + 1); p.num = p.lab }); P.o[10].lab = "0"; P.o[10].num = "0";
-    if (!ALIGN.def[defKey(look && look.front, look ? look.sh : "MFO", ft)] && !ALIGN.def[defKey(null, look ? look.sh : "MFO", ft)]) keyOn(P.o, P.d, s, bx, ft, look ? look.sh : "MFO");
-    if (look && look.blitz) blitzers(P.d, look.blitz, s, bx);
+    var drD = DRW && DRW.d && DRW.d.length ? DRW.d : null;
+    if (!drD && !ALIGN.def[defKey(look && look.front, look ? look.sh : "MFO", ft)] && !ALIGN.def[defKey(null, look ? look.sh : "MFO", ft)]) keyOn(P.o, P.d, s, bx, ft, look ? look.sh : "MFO");
+    if (drD) drawnDef(P.d, drD, bx); else if (look && look.blitz) blitzers(P.d, look.blitz, s, bx);
     CAMX = bx * (NARROW ? .45 : .35); P.ball = { x: bx, y: -.2, z: 0 }; P.carry = -1; P.trail = []; P.tackle = null; P.showPlan = false;
   }
+  // the defense where this week's drawing put it: each drawn man takes the nearest spot of their scout look (keeps his job), the rest stay
+  function drawnDef(d, D, bx) { var free = d.map(function (p, i) { return i });
+    D.slice(0, 11).forEach(function (q) { var x = Math.max(-25, Math.min(25, bx + q.x)), bi = -1, bd = 1e9; free.forEach(function (i) { var e = Math.hypot(d[i].x - x, d[i].y - q.y); if (e < bd) { bd = e; bi = i } }); if (bi < 0) return; free.splice(free.indexOf(bi), 1);
+      var p = d[bi]; p.x = x; p.y = q.y; p.down = q.y < 2; p.blitz = !!q.blitz; if (q.lab && /^[A-Z$]{1,2}$/.test(q.lab)) p.lab = q.lab === "$" ? "N" : q.lab });
+    if (D.length >= 9) free.forEach(function (i) { d[i].y = Math.max(d[i].y, 1) }) }
   function route(kind, S) { return { go: [[0, 0], [0, 4], [S * .4, 22]], seam: [[0, 0], [0, 6], [S * -.6, 20]], hitch: [[0, 0], [0, 6], [S * -.6, 5]], out: [[0, 0], [0, 7], [S * 5, 7]], dig: [[0, 0], [0, 11], [-S * 7, 11]], choice: [[0, 0], [0, 6], [-S * 3.5, 7]], flat: [[0, 0], [S * 1.5, 2], [S * 6, 3.2]], check: [[0, 0], [S * 2, .5], [S * 4, 3]], slant: [[0, 0], [0, 2], [-S * 5, 7]] }[kind] }
   function routesFor(c) { var k = String(c.concept).toUpperCase(); if (/CHOICE|OPTION/.test(k)) return ["go", "choice", "flat", "hitch"]; if (/SLANT|QUICK/.test(k)) return ["slant", "slant", "flat", "slant"]; if (/DIG|CROSS|MESH|DRIVE/.test(k)) return ["go", "dig", "flat", "dig"]; if (/OUT|SPEED|SMASH/.test(k)) return ["hitch", "out", "out", "hitch"]; if (/HITCH|STICK|CURL/.test(k)) return ["hitch", "flat", "hitch", "hitch"]; return ["go", "seam", "seam", "go"] }
 
@@ -651,8 +665,13 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
   function pbTok(name) { var s = String(name || "").toUpperCase().replace(/=.*$/, " ").replace(/\([^)]*\)/g, " ").replace(/\b\d+\s*\*\s*\d+\b(?=\s*[A-Z])/g, " ").replace(/(\d+)\s*\*\s*(\d+)/g, "$1X$2").replace(/[^A-Z0-9# ]+/g, " ");
     return s.split(/\s+/).filter(function (w) { return w && !PB_STRIP.test(w) && !/^\d+$/.test(w) }).map(function (w) { return PB && PB.alias && PB.alias[w] || w }) }
   function usePlaybook(b) { if (!b || !b.pass || !b.runs) return false; PB = b; b.alias = b.alias || {}; PBK = b.pass.map(function (p) { return pbTok(p.t) });
-    $("nBook").textContent = (b.name || "Playbook") + " · " + b.pass.length + " pass plays, " + Object.keys(b.runs).length + " runs"; $("dBook").classList.add("ok"); return true }
+    $("nBook").textContent = (b.name || "Playbook") + " · " + b.pass.length + " pass plays, " + Object.keys(b.runs).length + " runs"; var nd = Object.keys(b.drawn || {}).length; if (nd) { $("nDraw").textContent = nd + " drawn play" + (nd === 1 ? "" : "s") + " saved" + (b.drawnWeek ? " · " + b.drawnWeek : "") + ". Upload again to add or replace plays."; $("dDraw").classList.add("ok") } $("dBook").classList.add("ok"); return true }
+  function drKey(n) { return String(n || "").toUpperCase().replace(/[^A-Z0-9#]+/g, " ").trim() }
+  function drFind(c) { if (!PB || !PB.drawn || !c) return null; var D = PB.drawn, a = drKey(c.name), b = drKey(c.lab || ""), k = D[a] ? a : D[b] ? b : null;
+    if (!k) Object.keys(D).some(function (x) { var d = D[x]; if (d.lab && drKey(d.lab) === b && (!d.form || !c.form || drKey(d.form) === drKey(c.form))) { k = x; return true } return false });
+    return k ? D[k] : null }
   function pbFind(c) {
+    var dr = drFind(c); if (dr) return { drawn: dr };
     if (!PB || !c) return null; var t = pbTok(c.lab || c.name);
     if (!t.length) return null;
     if (PB.runs[t.join(" ")] && (c.run || PB.runs[t.join(" ")].built)) return { run: PB.runs[t.join(" ")] };
@@ -710,7 +729,11 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
     } }
   // where each player goes on this call: book routes and blocks when the call is in your playbook, null when it isn't
   function bookPaths(c) {
-    var bk = pbFind(c); if (!bk) return null; var o = P.o, bx = bxOf(), out = { src: bk.run ? bk.run.from : bk.pass.rt ? "Built in the app" : "Pass book p." + bk.pass.pg, paths: [], pull: {} };
+    var bk = pbFind(c); if (!bk) return null; var o = P.o, bx = bxOf();
+    if (bk.drawn) { var D = bk.drawn, dout = { src: "This week's drawing" + (D.file ? " (" + D.file + (D.page ? " p." + D.page : "") + ")" : ""), paths: [], pull: {}, run: !!c.run, drawn: true };
+      o.forEach(function (p, i) { var q = D.p && D.p[i]; if (q && q.length > 1) dout.paths[i] = q.map(function (v) { return [Math.max(-26, Math.min(26, p.x + v[0])), p.y + v[1]] }); else if (i >= 6) { dout.paths[i] = i === 10 ? [[p.x, p.y], [p.x, p.y + .4]] : [[p.x, p.y], [p.x, p.y + 1]]; dout.pull[i] = 2 } });
+      var rbp = dout.paths[10]; dout.side = rbp && rbp.length > 1 && rbp[rbp.length - 1][0] < o[10].x ? -1 : 1; return dout }
+    var out = { src: bk.run ? bk.run.from : bk.pass.rt ? "Built in the app" : "Pass book p." + bk.pass.pg, paths: [], pull: {} };
     if (bk.run) {
       var r = bk.run, s = runSide(c, r), te = teOf(o, bx), role = s > 0 ? ["bst", "bsg", "c", "psg", "pst"] : ["pst", "psg", "c", "bsg", "bst"];
       o.forEach(function (p, i) {
@@ -738,6 +761,68 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
       case "flat": return q([[0, 0], [-1, 1], [-6, 2]]); case "wheel": return q([[0, 0], [-4, 2], [-6, 6], [-6, 18]]);
       case "swing": return q([[0, 0], [-3, -.5], [-7, 1]]);
       default: return null } }
+  // ======================= THIS WEEK'S DRAWINGS: PDF / PowerPoint pages → plays =======================
+  var DRP = [];
+  function drCalls() { return SHEET ? allPlays() : [] }
+  function drMatchOne(r) { var L = drCalls(), k = drKey(r.name || ""), t = drKey(r.name || "").split(" ").filter(Boolean), hit = null;
+    if (!t.length) return null;
+    L.some(function (c) { if (drKey(c.name) === k) { hit = c; return true } return false });
+    if (!hit) L.some(function (c) { if (drKey(c.lab) === k) { hit = c; return true } return false });
+    if (!hit) { var best = 0; L.forEach(function (c) { var ct = drKey(c.name).split(" "), n = t.filter(function (w) { return ct.indexOf(w) >= 0 }).length; if (n === t.length && n > best && drKey(c.lab).split(" ").every(function (w) { return t.indexOf(w) >= 0 })) { best = n; hit = c } }) }
+    return hit }
+  $("fDraw").onchange = function () { var F = [].slice.call(this.files); this.value = ""; if (!F.length) return; if (!window.SolDraw) { toast("Couldn't load the drawing reader. Check the connection."); return }
+    $("nDraw").textContent = "Reading " + F.map(function (f) { return f.name }).join(", ") + "…";
+    Promise.all(F.map(function (f) { return SolDraw.read(f).then(function (pages) { return pages.map(function (pg) { var r = SolDraw.play(pg); r.file = f.name; return r }) }, function () { return [{ file: f.name, err: 1, name: "", o: [], p: [], d: [], issues: ["Couldn't open this file. Save it as PDF or PowerPoint (.pptx) and upload again."] }] }) }))
+      .then(function (L) { DRP = [].concat.apply([], L); DRP.forEach(function (r) { r.use = !r.err && r.o.length === 11; var c = drMatchOne(r); if (c) { r.call = c.name; r.callLab = c.lab; r.callForm = c.form; r.run = !!c.run } }); drShow() }) };
+  function drShow() { var box = $("drList"); box.innerHTML = ""; $("drBox").hidden = !DRP.length;
+    var nOk = DRP.filter(function (r) { return r.use }).length, nM = DRP.filter(function (r) { return r.use && r.call }).length;
+    $("drNote").textContent = DRP.length + " page" + (DRP.length === 1 ? "" : "s") + " read · " + nOk + " play" + (nOk === 1 ? "" : "s") + " ready · " + nM + " matched to your call sheet. Check each one: drag any player that's off, and fix the call name if it didn't match.";
+    $("drCalls").innerHTML = drCalls().map(function (c) { return "<option value=\"" + esc(c.name) + "\">" }).join("");
+    $("nDraw").textContent = DRP.length + " page" + (DRP.length === 1 ? "" : "s") + " read. Check them below, then Save.";
+    DRP.forEach(function (r, ix) {
+      var card = document.createElement("div"); card.className = "drcard"; card.style.cssText = "border:1px solid var(--line);border-radius:10px;padding:8px;background:var(--panel)";
+      var top = "<div style='font-size:12px;opacity:.75;margin-bottom:4px'>" + esc(r.file || "") + (r.page ? " · page " + r.page : "") + "</div>";
+      card.innerHTML = top + (r.err || r.o.length !== 11 ? "" : "<canvas width='520' height='380' style='width:100%;height:auto;touch-action:none;border-radius:6px;background:#1f5130;display:block'></canvas>") +
+        "<label class='f' style='margin-top:6px'>Call<input type='text' list='drCalls' value=\"" + esc(r.call || r.name || "") + "\"></label>" +
+        "<div class='drst' style='font-size:13px;margin-top:4px'></div>" +
+        (r.issues && r.issues.length ? "<ul style='margin:4px 0 0 16px;padding:0;font-size:12px'>" + r.issues.map(function (x) { return "<li>" + esc(x) + "</li>" }).join("") + "</ul>" : "") +
+        "<div class='row' style='margin-top:6px;gap:10px;font-size:13px'><label><input type='checkbox' class='druse'" + (r.use ? " checked" : "") + (r.err || r.o.length !== 11 ? " disabled" : "") + "> Use this play</label><label><input type='radio' name='drk" + ix + "' value='run'" + (r.run ? " checked" : "") + "> Run</label><label><input type='radio' name='drk" + ix + "' value='pass'" + (!r.run ? " checked" : "") + "> Pass</label></div>";
+      box.appendChild(card);
+      var inp = card.querySelector("input[type=text]"), st = card.querySelector(".drst"), status = function () { var c = drMatchOne({ name: inp.value }); if (c) { r.call = c.name; r.callLab = c.lab; r.callForm = c.form } else { r.call = inp.value.trim(); r.callLab = null; r.callForm = null }
+        st.innerHTML = !r.call ? "<b style='color:#f87171'>Type the call this play is.</b>" : c ? "✓ On your call sheet: <b>" + esc(c.name) + "</b>" : SHEET ? "<span style='color:#fbbf24'>Not on your call sheet. It's saved and runs when a call with this name comes up.</span>" : "Load your call sheet to check the name." };
+      inp.oninput = status; status();
+      card.querySelector(".druse").onchange = function () { r.use = this.checked; drShow() };
+      card.querySelectorAll("input[type=radio]").forEach(function (b) { b.onchange = function () { r.run = this.value === "run" } });
+      var cv = card.querySelector("canvas"); if (cv) drPreview(cv, r);
+    });
+  }
+  function drPreview(cv, r) {
+    var W = cv.width, H = cv.height, u = W / 54, X = function (x) { return W / 2 + x * u }, Y = function (y) { return H * 0.62 - y * u }, g = cv.getContext("2d");
+    function paint() { g.clearRect(0, 0, W, H); g.fillStyle = "#1f5130"; g.fillRect(0, 0, W, H);
+      g.strokeStyle = "rgba(255,255,255,.25)"; g.lineWidth = 1; for (var y = -5; y <= 20; y += 5) { g.beginPath(); g.moveTo(0, Y(y)); g.lineTo(W, Y(y)); g.stroke() }
+      g.strokeStyle = "#7dd3fc"; g.lineWidth = 2; g.beginPath(); g.moveTo(0, Y(0)); g.lineTo(W, Y(0)); g.stroke();
+      r.o.forEach(function (p, i) { var q = r.p && r.p[i]; if (!q || q.length < 2) return; g.strokeStyle = i < 5 ? "#e5e7eb" : "#fde047"; g.lineWidth = 2.5; g.beginPath(); q.forEach(function (v, k) { var x = X(p.x + v[0]), y = Y(p.y + v[1]); k ? g.lineTo(x, y) : g.moveTo(x, y) }); g.stroke() });
+      r.o.forEach(function (p, i) { g.beginPath(); g.fillStyle = p.guess ? "#9ca3af" : i === 2 ? "#fff" : "#f4f4f5"; g.strokeStyle = "#111"; g.lineWidth = 1.5; if (i === 2) g.rect(X(p.x) - 8, Y(p.y) - 8, 16, 16); else g.arc(X(p.x), Y(p.y), 8, 0, 7); g.fill(); g.stroke();
+        g.fillStyle = "#111"; g.font = "bold 10px sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(["", "", "", "", "", "Q", "", "", "", "", "R"][i], X(p.x), Y(p.y)) });
+      (r.d || []).forEach(function (p) { g.fillStyle = "#fca5a5"; g.font = "bold 18px sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(p.lab || "▼", X(p.x), Y(p.y)) }) }
+    paint();
+    var drag = null, at = function (e) { var b = cv.getBoundingClientRect(); return [(e.clientX - b.left) * W / b.width, (e.clientY - b.top) * H / b.height] };
+    cv.addEventListener("pointerdown", function (e) { var m = at(e), bd = 22; drag = null;
+      r.o.forEach(function (p, i) { var d = Math.hypot(X(p.x) - m[0], Y(p.y) - m[1]); if (d < bd) { bd = d; drag = { o: i } } });
+      (r.d || []).forEach(function (p, j) { var d = Math.hypot(X(p.x) - m[0], Y(p.y) - m[1]); if (d < bd) { bd = d; drag = { d: j } } });
+      if (drag) { cv.setPointerCapture(e.pointerId); e.preventDefault() } });
+    cv.addEventListener("pointermove", function (e) { if (!drag) return; var m = at(e), x = Math.round(10 * (m[0] - W / 2) / u) / 10, y = Math.round(10 * (H * 0.62 - m[1]) / u) / 10;
+      if (drag.o != null) { var p = r.o[drag.o]; p.x = Math.max(-24, Math.min(24, x)); p.y = Math.min(-0.9, y); delete p.guess } else { var q = r.d[drag.d]; q.x = Math.max(-25, Math.min(25, x)); q.y = Math.max(0.8, y) } paint() });
+    cv.addEventListener("pointerup", function () { drag = null });
+  }
+  $("drCancel").onclick = function () { DRP = []; $("drBox").hidden = true; useP(); };
+  function useP() { if (PB) usePlaybook(PB); else $("nDraw").textContent = "PDF or PowerPoint, one play per page or slide." }
+  $("drSave").onclick = function () { var L = DRP.filter(function (r) { return r.use && r.call }); if (!L.length) { toast("Nothing to save: tick Use this play and give each one a call."); return }
+    if (!PB) PB = { v: 1, name: "Playbook", made: Date.now(), runs: {}, pass: [], alias: {} };
+    PB.drawn = PB.drawn || {}; var now = Date.now(), d = new Date(), wk = "week of " + (d.getMonth() + 1) + "/" + d.getDate();
+    L.forEach(function (r) { var k = drKey(r.call); if (!k) return; PB.drawn[k] = { name: r.call, lab: r.callLab || r.call, form: r.callForm || "", o: r.o.map(function (q) { return { x: q.x, y: q.y } }), p: r.p, d: r.d, run: !!r.run, file: r.file, page: r.page, at: now }; if (PB.del) delete PB.del["d:" + k] });
+    PB.drawnWeek = wk; DRP = []; $("drBox").hidden = true; pbSave(); toast("Saved " + L.length + " drawn play" + (L.length === 1 ? "" : "s") + ". They run the way they're drawn.") };
+
   // ======================= PLAYBOOK BUILDER =======================
   var OLA = { base: "Base", down: "Down", deuce: "Double (deuce)", zone: "Zone", reach: "Reach", cutoff: "Cutoff", back: "Back", hinge: "Hinge", pull_kick: "Pull & kick", pull_wrap: "Pull & wrap" },
     TEA = { base: "Block / base", kick: "Kick out", wrap: "Wrap", arc: "Arc", cut: "Cut off", split: "Split (across)", split_lb: "Split to LB", zone: "Zone" },
@@ -751,7 +836,8 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
   function pbHas(c) { return !!pbFind(c) }
   function pbBuilt() { if (!PB) return []; var o = []; Object.keys(PB.runs).forEach(function (k) { if (PB.runs[k].built) o.push({ k: k, run: PB.runs[k] }) }); PB.pass.forEach(function (p, i) { if (p.rt) o.push({ k: pbKey(p.t), pass: p, i: i }) }); return o }
   // one live playbook per school. Everything merges in; nothing is ever replaced. Deleted plays are remembered so they don't come back.
-  function pbMerge(into, from) { var n = 0; if (!from || !from.runs || !from.pass) return 0; into.del = into.del || {}; Object.keys(from.del || {}).forEach(function (k) { into.del[k] = 1 });
+  function pbMerge(into, from) { var n = 0; if (!from || !from.runs || !from.pass) return 0;
+    if (from.drawn) { into.drawn = into.drawn || {}; Object.keys(from.drawn).forEach(function (k) { var a = into.drawn[k], b = from.drawn[k]; if (into.del && into.del["d:" + k] && !(b.at > (into.del["d:" + k] || 0))) return; if (!a || (b.at || 0) > (a.at || 0)) { into.drawn[k] = b; if (!a) n++ } }) } into.del = into.del || {}; Object.keys(from.del || {}).forEach(function (k) { into.del[k] = 1 });
     Object.keys(from.runs).forEach(function (k) { if (!into.runs[k] && !into.del["r:" + k]) { into.runs[k] = from.runs[k]; n++ } });
     var have = {}; into.pass.forEach(function (q) { have[q.t] = 1 }); from.pass.forEach(function (q) { if (!have[q.t] && !into.del["p:" + q.t]) { into.pass.push(q); have[q.t] = 1; n++ } });
     into.alias = into.alias || {}; Object.keys(from.alias || {}).forEach(function (k) { if (!into.alias[k]) into.alias[k] = from.alias[k] }); return n }
@@ -1018,7 +1104,7 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
   function me() { var a = authGet(); return a && a.uid }
   function canEdit() { return !SHARED && (!OWNER || OWNER === me()) }
   function claim() { if (!SHARED && !OWNER && me()) { OWNER = me(); cloud("owner", "PUT", OWNER).catch(function () {}); lockUI() } }
-  function lockUI() { var ok = canEdit(); $("dSheet").hidden = !ok; $("dBook").hidden = !ok; $("pbBox").hidden = !ok; $("filmBox").hidden = !ok; $("shareBox").hidden = !(ok && me()); $("stopBtn").hidden = !store.get("sol-mock-share"); $("lockNote").hidden = ok; $("lockNote").textContent = SHARED ? "Shared with you: " + (SHEET ? SHEET.name : "call sheet") + ". Nothing you do here changes the original." : "Your head account manages this call sheet and film." }
+  function lockUI() { var ok = canEdit(); $("dSheet").hidden = !ok; $("dBook").hidden = !ok; $("dDraw").hidden = !ok; if (!ok) $("drBox").hidden = true; $("pbBox").hidden = !ok; $("filmBox").hidden = !ok; $("shareBox").hidden = !(ok && me()); $("stopBtn").hidden = !store.get("sol-mock-share"); $("lockNote").hidden = ok; $("lockNote").textContent = SHARED ? "Shared with you: " + (SHEET ? SHEET.name : "call sheet") + ". Nothing you do here changes the original." : "Your head account manages this call sheet and film." }
   $("shareBtn").onclick = function () { if (!SHEET) { toast("Upload your call sheet first."); return } var tok = ""; while (tok.length < 24) tok += Math.random().toString(36).slice(2); tok = tok.slice(0, 24);
     var body = { by: me(), at: Date.now(), items: JSON.stringify({ s: authGet().school, book: PB, sheet: SHEET, ours: RAW.ours, them: RAW.them, align: ALIGN, us: $("usName").value, opp: $("oppName").value }) };
     solToken().then(function (t) { return fetch(SOL.db + "/share/" + tok + ".json?auth=" + encodeURIComponent(t), { method: "PUT", body: JSON.stringify(body) }) }).then(function (r) { if (!r.ok) throw 0; store.set("sol-mock-share", tok); var u = $("shareUrl"); u.value = location.origin + location.pathname + "?share=" + tok; u.hidden = false; u.select(); if (navigator.clipboard) navigator.clipboard.writeText(u.value).catch(function () {}); toast("Link ready"); lockUI() }).catch(function () { toast("Couldn't make the link. Check your connection and sign-in.") }) };
@@ -1171,7 +1257,7 @@ summary { cursor: pointer; font-weight: 600; margin: 10px 0 }
   cloud("names").then(function (n) { if (n) { $("usName").value = n.us; $("oppName").value = n.opp } }, function () {});
   lockUI();
   }
-  if (window.SOL_TEST) window.__mock = { chartedFor: typeof chartedFor === "function" ? chartedFor : null, filmFor: typeof filmFor === "function" ? filmFor : null, schedUse: typeof schedUse === "function" ? schedUse : null, packFiles: typeof packFiles === "function" ? packFiles : null, startGame: startGame, newGame: newGame, get G() { return G } };
+  if (window.SOL_TEST) window.__mock = { chartedFor: typeof chartedFor === "function" ? chartedFor : null, filmFor: typeof filmFor === "function" ? filmFor : null, schedUse: typeof schedUse === "function" ? schedUse : null, packFiles: typeof packFiles === "function" ? packFiles : null, startGame: startGame, newGame: newGame, get G() { return G }, get P() { return P }, get PB() { return PB }, tapPlay: function (p) { tapPlay(p) }, allPlays: function () { return allPlays() }, bookPaths: function (c) { return bookPaths(c) } };
 })();
 </script>
 

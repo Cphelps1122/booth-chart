@@ -20,6 +20,7 @@ rather than on every change.
     node tests/ui/fq.js        # Film quiz: coach builds one from Hudl clips + export, a player takes it on a phone (needs ffmpeg)
     node tests/ui/vn.js        # Game-day stadium: neutral site with the stadium typed on the schedule (map services stood in for)
     node tests/ui/mg.js        # Mock game: their Hudl games per opponent, and every mock game saved (coaches and shared-link players)
+    node tests/ui/dw.js        # Mock game: this week's run/pass drawings (PDF and PowerPoint) run as drawn, defense where it's drawn
 
 Each prints `N passed, N failed` and exits non-zero on a failure.
 Screenshots are written to `$SHOT_DIR` (a temp folder by default):
@@ -32,3 +33,6 @@ at a time.
 When a check fails, read the sentence it prints before assuming the app broke:
 some of these pin down a default (which sheet view the call sheet opens in, for
 instance), so changing a default on purpose means updating the expectation here.
+
+The drawing files `dw.js` uses are made by `fixtures/make_drawings.py` (python-pptx and reportlab).
+`node tests/sim.js` (no browser) checks that everything the Game Preview sim learns moves the forecast the right way.

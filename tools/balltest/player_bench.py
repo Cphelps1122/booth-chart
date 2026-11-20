@@ -4,7 +4,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "track"))
 from track import roboflow_detect  # noqa
 here = os.path.dirname(__file__); key = os.environ["ROBOFLOW_API_KEY"].strip(); os.makedirs("results", exist_ok=True)
 share = json.loads(requests.get("https://cardinal-booth-default-rtdb.firebaseio.com/share/022lmq5563h48f2f3mnkart9.json", timeout=30).json()["items"])
-imgs = [cv2.imread(os.path.join(here, "frames", f)) for f in ("tight093_f109.jpg", "tight362_f022.jpg")]
+imgs = [cv2.imread(os.path.join(here, "frames", f)) for f in ("tight093_f109.jpg", "tight362_f048.jpg")]
 for ci in (1, 7):
     open("w.mp4", "wb").write(requests.get(share["clips"][ci - 1]["url"], timeout=120).content)
     cap = cv2.VideoCapture("w.mp4"); cap.set(1, 20); ok, im = cap.read(); imgs.append(im)

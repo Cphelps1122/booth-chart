@@ -77,6 +77,8 @@ header { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; backg
 .brandbox .logo { height: 46px; width: auto; display: block; filter: drop-shadow(0 0 1px rgba(255,255,255,.35)) }
 .opp { color: #b9bbc0; font-size: 13px }
 .board { display: flex; gap: 6px; align-items: stretch }
+/* phone: the four scoreboard boxes share the width instead of running off the right edge */
+@media (max-width: 560px) { .hrow.gamebar .board { flex: 1 1 100%; min-width: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px } .hrow.gamebar .board .sb { min-width: 0; padding: 3px 4px 4px } .hrow.gamebar .board .sb .tm { font-size: 10px; letter-spacing: .04em; max-width: 100% } .hrow.gamebar .board .sb .pts { font-size: 26px } .hrow.gamebar .board .sb .wpd { font-size: 10px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap } }
 .sb { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 96px; padding: 3px 12px 4px; border-radius: 8px; border: 1px solid #2c2f36; background: #050506; color: #f4f4f5; cursor: pointer; font: inherit }
 .sb .tm { font-family: var(--f-display); font-weight: 700; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: #b9bbc0; max-width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
 .sb .pts { font-family: var(--f-display); font-weight: 800; font-size: 34px; line-height: 1; font-variant-numeric: tabular-nums; color: #ffb21e; text-shadow: 0 0 10px rgba(255,178,30,.35) }

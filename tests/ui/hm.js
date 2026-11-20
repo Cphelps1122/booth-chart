@@ -30,6 +30,10 @@ const PAGES=['defense.html','reports.html','scout.html','stats.html','impact.htm
   for (const x of PAGES) { const r=await p.request.get('http://localhost:8767/'+x); ok(r.ok(),x+' opens'); }
   await p.click('#homeAll [data-role=chart]'); await p.waitForTimeout(800);
   ok(await p.evaluate(()=>{ const v=document.getElementById('v-chart'); return !!v && v.offsetParent!==null }),'Chart opens the chart');
+  await p.evaluate(()=>{ document.getElementById('tmThem').textContent='McKinney North'; document.getElementById('wpDelta').textContent='+12 last play' }); await p.waitForTimeout(200);
+  const sb=await p.evaluate(()=>{ const w=document.documentElement.clientWidth; return [...document.querySelectorAll('.hrow.gamebar .board .sb')].map(e=>{ const r=e.getBoundingClientRect(); return {vis:r.width>0, right:r.right, left:r.left, w} }) });
+  ok(sb.length===4 && sb.every(s=>s.vis && s.left>=0 && s.right<=s.w+1),'scoreboard: all four boxes fit on the screen '+JSON.stringify(sb.map(s=>Math.round(s.right))));
+  await p.evaluate(()=>{ window.scrollTo(0,0); document.querySelectorAll('.nc,#nextCall,[id^=nc]').forEach(e=>e.style.visibility='hidden') }); await p.waitForTimeout(200); const hb=await p.locator('header').boundingBox(); await p.screenshot({path:OUT+'scoreboard_'+name+'.png',clip:{x:0,y:0,width:vp.width,height:Math.min(320,(hb?hb.height:220))}});
   ok(p.errs.length===0,'no page errors '+p.errs.join(' | '));
   await ctx.close();
  }

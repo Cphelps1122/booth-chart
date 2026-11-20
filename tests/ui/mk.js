@@ -32,6 +32,26 @@ let pass=0, fail=0; const ok=(c,m)=>{ console.log((c?'  PASS ':'  FAIL ')+m); c?
  console.log('follows the Settings choice');
  P=await mk({width:1366,height:1024},sheet,{open:'w',min:11}); await P.evaluate(()=>{ const b=document.getElementById('startBtn')||document.getElementById('goBtn'); if(b) b.click() }); await P.waitForTimeout(800); r=await m(P); console.log(r); ok(/width/.test(r.fit) && r.font>=11 && r.over<=1,'opens on Fit: width with Large text when Settings says so');
  P=await mk({width:1366,height:1024},sheet,{open:'keep'}); await P.evaluate(()=>{ const b=document.getElementById('startBtn')||document.getElementById('goBtn'); if(b) b.click() }); await P.waitForTimeout(800); r=await m(P); ok(/off/.test(r.fit),'"Keep my zoom" in Settings leaves the mock sheet full size');
+
+ console.log('charting practice: a call that is on the sheet twice counts in either spot');
+ { let done=false;
+   for (let i=0;i<40 && !done;i++) {
+     const Q=await mk({width:1366,height:1024}); await Q.evaluate(()=>{ document.querySelector('[name=mode][value=chart]').checked=true }); await Q.click('#sampleBtn'); await Q.waitForTimeout(500);
+     await Q.evaluate(()=>{ const b=document.getElementById('startBtn')||document.getElementById('goBtn'); if(b) b.click() }); await Q.waitForTimeout(700);
+     const r=await Q.evaluate(()=>{ const d=document.querySelector('.drill b'); if(!d) return null; const call=d.textContent.replace(/[“”]/g,'').trim();
+       const hdr=[...document.querySelectorAll('#grid .gh')].find(h=>/3RD SHORT/.test(h.textContent)); if(!hdr) return {call}; const hr=hdr.getBoundingClientRect();
+       const lab=b=>[...b.childNodes].filter(n=>n.nodeType===3).map(n=>n.textContent).join('').trim();
+       const inSit=[...document.querySelectorAll('#grid .gc button')].filter(b=>{ const x=b.getBoundingClientRect(); return x.left>=hr.left-1 && x.right<=hr.right+1 });
+       const elsewhere=[...document.querySelectorAll('#grid .gc button')].filter(b=>inSit.indexOf(b)<0);
+       const t=inSit.find(b=>call!==lab(b) && call.endsWith(' '+lab(b)) && elsewhere.some(e=>lab(e)===lab(b)));
+       if(!t) return {call}; t.click(); return {call, tapped:lab(t)} });
+     if (r && r.tapped) { await Q.waitForTimeout(400); const st=await Q.evaluate(()=>{ const d=document.querySelector('.drill'); return d?d.textContent:'' });
+       console.log('  heard',r.call,'tapped',r.tapped,'in 3RD SHORT');
+       ok(!/Find it on the sheet/.test(st) && !/Listen again/.test(await Q.evaluate(()=>document.body.innerText)),'the situation-box copy of the call is accepted'); done=true }
+     await Q.context().close();
+   }
+   ok(done,'found a duplicate call to test within 40 games');
+ }
  ok(P.errs.length===0,'no page errors '+P.errs.join('|'));
  console.log('\n'+pass+' passed, '+fail+' failed'); process.exit(fail?1:0);
 })();

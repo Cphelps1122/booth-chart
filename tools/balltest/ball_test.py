@@ -46,7 +46,7 @@ def main():
                 if not p: return sv.Detections.empty()
                 arr = np.array(p)
                 return sv.Detections(xyxy=arr[:, :4], confidence=arr[:, 4], class_id=np.zeros(len(arr), int))
-            sl = sv.InferenceSlicer(callback=cb, slice_wh=(640, 360), overlap_wh=(128, 72),
+            sl = sv.InferenceSlicer(callback=cb, slice_wh=(640, 360), overlap_ratio_wh=None, overlap_wh=(128, 72),
                                     overlap_filter=sv.OverlapFilter.NON_MAX_SUPPRESSION, iou_threshold=0.3)
             d = sl(big); total["calls_b"] += calls[0]
             b = [[*(xy / 2), cf] for xy, cf in zip(d.xyxy, d.confidence)] if len(d) else []

@@ -1,0 +1,19 @@
+# Scores ball models against hand-boxed frames. ball-test branch only.
+name: Ball model bench
+on:
+  push:
+    branches: [ball-test]
+    paths: ["tools/balltest/ball_bench.py", ".github/workflows/ballbench.yml"]
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install -r tools/track/requirements.txt
+      - run: python tools/balltest/ball_bench.py
+        env:
+          ROBOFLOW_API_KEY: ${{ secrets.ROBOFLOW_API_KEY }}
+          BENCH_MODELS: softballtracker-sy17i/full-field-read-2-rfdetr-small-t1,nfl-object-tracking/1,nfl-object-tracking/2,nfl-object-tracking/3,football-l9zew/6,football-txom1/1,football-txom1/2,ball-detection-project/1,football-ball-detection-6543t/1,football-ball-detection/1

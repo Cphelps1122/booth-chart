@@ -1,0 +1,21 @@
+# Ball pass test: runs only on the ball-test branch. Doesn't touch the app, main, or game-night tracking.
+name: Ball pass test
+on:
+  push:
+    branches: [ball-test]
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install -r tools/track/requirements.txt supervision==0.25.1
+      - run: python tools/balltest/ball_test.py && cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
+        env:
+          ROBOFLOW_API_KEY: ${{ secrets.ROBOFLOW_API_KEY }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: ball-results, path: results/ }

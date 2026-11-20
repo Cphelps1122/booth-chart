@@ -3,6 +3,7 @@ name: Ball pass test
 on:
   push:
     branches: [ball-test]
+    paths: ["tools/balltest/ball_test.py", ".github/workflows/balltest.yml"]
   workflow_dispatch:
 jobs:
   test:

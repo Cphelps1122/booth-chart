@@ -1,0 +1,18 @@
+# Sends tight-film frames to Roboflow for ball labeling. ball-test branch only.
+name: Ball frames to Roboflow
+on:
+  push:
+    branches: [ball-test]
+    paths: ["tools/balltest/frames/**", "tools/balltest/upload_frames.py"]
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install requests==2.32.3
+      - run: python tools/balltest/upload_frames.py
+        env:
+          ROBOFLOW_API_KEY: ${{ secrets.ROBOFLOW_API_KEY }}

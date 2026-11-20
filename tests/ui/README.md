@@ -21,6 +21,7 @@ rather than on every change.
     node tests/ui/vn.js        # Game-day stadium: neutral site with the stadium typed on the schedule (map services stood in for)
     node tests/ui/mg.js        # Mock game: their Hudl games per opponent, and every mock game saved (coaches and shared-link players)
     node tests/ui/dw.js        # Mock game: this week's run/pass drawings (PDF and PowerPoint) run as drawn, defense where it's drawn
+    node tests/ui/ow.js        # Mock game: any coach at the school can upload; View-only devices and shared links can't
 
 Each prints `N passed, N failed` and exits non-zero on a failure.
 Screenshots are written to `$SHOT_DIR` (a temp folder by default):

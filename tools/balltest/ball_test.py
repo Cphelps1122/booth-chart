@@ -25,12 +25,15 @@ def balls(preds, dx=0, dy=0, scale=1.0):
 def main():
     key = os.environ["ROBOFLOW_API_KEY"].strip()
     det = roboflow_detect(key, confidence=int(os.environ.get("BALL_CONF", "20")))
-    share = json.loads(requests.get(SHARE, timeout=30).json()["items"])
+    share = {} if os.environ.get("BALL_FILES") else json.loads(requests.get(SHARE, timeout=30).json()["items"])
     rows, total = [], {"a": 0, "b": 0, "n": 0, "calls_a": 0, "calls_b": 0}
-    for ci in CLIPS:
-        c = share["clips"][ci - 1]
-        path = "clip%d.mp4" % ci
-        open(path, "wb").write(requests.get(c["url"], timeout=120).content)
+    files = [f for f in os.environ.get("BALL_FILES", "").split(",") if f]
+    jobs = [(i + 1, {"clip": os.path.basename(f), "sit": ""}, f) for i, f in enumerate(files)] or \
+           [(ci, share["clips"][ci - 1], None) for ci in CLIPS]
+    for ci, c, path in jobs:
+        if path is None:
+            path = "clip%d.mp4" % ci
+            open(path, "wb").write(requests.get(c["url"], timeout=120).content)
         cap = cv2.VideoCapture(path); n = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         idx = np.linspace(0, n - 1, FRAMES).astype(int)
         hit_a = hit_b = 0; saved = 0
@@ -38,7 +41,8 @@ def main():
             cap.set(cv2.CAP_PROP_POS_FRAMES, int(fi)); ok, img = cap.read()
             if not ok: continue
             a = balls(det(img)); total["calls_a"] += 1
-            big = cv2.resize(img, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
+            UP = float(os.environ.get("BALL_UP", "2")); TW, TH = int(os.environ.get("BALL_TW", "640")), int(os.environ.get("BALL_TH", "360"))
+            big = cv2.resize(img, None, fx=UP, fy=UP, interpolation=cv2.INTER_CUBIC) if UP != 1 else img
             calls = [0]
             def cb(tile):
                 calls[0] += 1
@@ -49,17 +53,18 @@ def main():
             sl = sv.InferenceSlicer(callback=cb, slice_wh=(640, 360), overlap_ratio_wh=None, overlap_wh=(128, 72),
                                     overlap_filter=sv.OverlapFilter.NON_MAX_SUPPRESSION, iou_threshold=0.3)
             d = sl(big); total["calls_b"] += calls[0]
-            b = [[*(xy / 2), cf] for xy, cf in zip(d.xyxy, d.confidence)] if len(d) else []
+            b = [[*(xy / UP), cf] for xy, cf in zip(d.xyxy, d.confidence)] if len(d) else []
             hit_a += bool(a); hit_b += bool(b); total["n"] += 1
-            if (a or b) and saved < 3 or (k == FRAMES // 2 and saved < 4):
+            if (a or b) and saved < 6:
                 vis = img.copy()
                 for x1, y1, x2, y2, cf in a:
-                    cv2.rectangle(vis, (int(x1)-3, int(y1)-3), (int(x2)+3, int(y2)+3), (0, 0, 255), 2)
+                    cv2.rectangle(vis, (int(x1)-10, int(y1)-10), (int(x2)+10, int(y2)+10), (0, 0, 255), 3)
+                    cv2.putText(vis, "%.2f" % cf, (int(x1), int(y2) + 24), 0, 0.6, (0, 0, 255), 2)
                 for x1, y1, x2, y2, cf in b:
                     cv2.rectangle(vis, (int(x1)-6, int(y1)-6), (int(x2)+6, int(y2)+6), (38, 201, 110), 2)
                     cv2.putText(vis, "%.2f" % cf, (int(x1), int(y1) - 9), 0, 0.4, (38, 201, 110), 1)
                 cv2.putText(vis, "%s  f%d  red=whole frame  green=tiled" % (c["clip"], fi), (8, 18), 0, 0.5, (255, 255, 255), 1)
-                cv2.imwrite(os.path.join(OUT, "clip%02d_f%03d.jpg" % (ci, fi)), cv2.resize(vis, None, fx=2, fy=2)); saved += 1
+                cv2.imwrite(os.path.join(OUT, "clip%02d_f%03d.jpg" % (ci, fi)), vis if vis.shape[1] > 1000 else cv2.resize(vis, None, fx=2, fy=2)); saved += 1
         total["a"] += hit_a; total["b"] += hit_b
         rows.append("| %s | %s | %d/%d | %d/%d |" % (c["clip"], c.get("sit", ""), hit_a, len(idx), hit_b, len(idx)))
     md = ["# Ball pass test", "", "Model: `%s`, frames per clip: %d" % (MODEL, FRAMES), "",

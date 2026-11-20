@@ -16,6 +16,11 @@ jobs:
       - run: python tools/balltest/ball_test.py && cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
         env:
           ROBOFLOW_API_KEY: ${{ secrets.ROBOFLOW_API_KEY }}
+          BALL_FILES: tools/balltest/clips/tight_360.mp4,tools/balltest/clips/tight_361.mp4,tools/balltest/clips/tight_362.mp4
+          BALL_UP: "1"
+          BALL_TW: "960"
+          BALL_TH: "540"
+          BALL_FRAMES: "20"
       - uses: actions/upload-artifact@v4
         if: always()
         with: { name: ball-results, path: results/ }
